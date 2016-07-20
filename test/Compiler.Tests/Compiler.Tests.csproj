@@ -26,6 +26,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -48,8 +49,10 @@
   </Choose>
   <ItemGroup>
     <Compile Include="IdentifierScannerTests.cs" />
+    <Compile Include="NumericalTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TextInputRangeTests.cs" />
+    <Compile Include="NumericalScannerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Compiler.Tests.project.json" />

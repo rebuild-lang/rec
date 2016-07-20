@@ -32,7 +32,7 @@ namespace REC.Tests
                 }
             };
 
-            Assert.Throws<IndexOutOfRangeException>(() => input.PeekChar());
+            Assert.AreEqual('\0', input.PeekChar());
         }
 
         [Test()]

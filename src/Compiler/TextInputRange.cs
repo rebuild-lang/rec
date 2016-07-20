@@ -29,9 +29,9 @@ namespace REC
 
     public class TextInputRange : TextFileRange
     {
-        public char EndChar => File.Content[End.Index];
+        public char EndChar => End.Index == File.Content.Length ? '\0' : File.Content[End.Index];
 
-        public char PeekChar(int endOffset = 1) => File.Content[End.Index + endOffset];
+        public char PeekChar(int endOffset = 1) => (End.Index + endOffset) >= File.Content.Length ? '\0' : File.Content[End.Index + endOffset];
 
         public string EndString(int nChars) => File.Content.Substring(End.Index, Math.Min(nChars, File.Content.Length - End.Index));
 
