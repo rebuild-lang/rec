@@ -6,7 +6,7 @@ namespace REC
     {
         void CompileTimeFlag(TextFileRange range);
         void Identifier(TextFileRange range);
-        void NumericalLiteral(Numerical numerical, TextFileRange range);
+        void NumericalLiteral(NumberLiteral numberLiteral, TextFileRange range);
         void StringLiteral(string text, TextFileRange range);
 
         void Assignment(TextFileRange range);

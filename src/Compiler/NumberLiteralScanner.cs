@@ -1,8 +1,8 @@
 namespace REC
 {
-    public class NumericalScanner
+    public class NumberLiteralScanner
     {
-        public static Numerical Scan(TextInputRange input) {
+        public static NumberLiteral Scan(TextInputRange input) {
             var chr = input.EndChar;
             if (!IsDecDigit(chr)) return null;
 
@@ -26,9 +26,9 @@ namespace REC
             return ScanDecimalNumber(input);
         }
 
-        private static Numerical ScanDecimalNumber(TextInputRange input)
+        private static NumberLiteral ScanDecimalNumber(TextInputRange input)
         {
-            var result = new Numerical { BaseRadix = 10 };
+            var result = new NumberLiteral { BaseRadix = 10 };
             var chr = input.EndChar;
             while (IsDecDigit(chr))
             {
@@ -82,8 +82,8 @@ namespace REC
             return result.IsValid ? result : null;
         }
 
-        private static Numerical ScanHexNumber(TextInputRange input) {
-            var result = new Numerical { BaseRadix = 16 };
+        private static NumberLiteral ScanHexNumber(TextInputRange input) {
+            var result = new NumberLiteral { BaseRadix = 16 };
             var chr = input.EndChar;
             while (IsHexDigit(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";

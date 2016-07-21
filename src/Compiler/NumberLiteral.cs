@@ -7,7 +7,7 @@ namespace REC
     using Pair = KeyValuePair<int, int>; // bits, radix
     using Dict = Dictionary<KeyValuePair<int, int>, string>;
 
-    public class Numerical
+    public class NumberLiteral
     {
         public int BaseRadix; // 1, 8, 10, 16
         public string IntegerPart;
@@ -24,20 +24,20 @@ namespace REC
         public bool FitsNegative(int byteCount) => IsInteger && IsFitsNegativeBits(IntegerPart, BaseRadix, byteCount * 8 - 1);
         public bool FitsFloat(int byteCount) => false;
 
-        public byte[] toUnsigned(int byteCount) => new byte[byteCount];
-        public byte[] toSigned(int byteCount) => new byte[byteCount];
-        public byte[] toFloat(int byteCount) => new byte[byteCount];
+        public byte[] ToUnsigned(int byteCount) => new byte[byteCount];
+        public byte[] ToSigned(int byteCount) => new byte[byteCount];
+        public byte[] ToFloat(int byteCount) => new byte[byteCount];
 
         private static bool IsFitsBits(string number, int radix, int bits)
         {
             var maxString = MaxBitsString(bits, radix);
             return number.Length < maxString.Length 
-                || (number.Length == maxString.Length && string.Compare(number, maxString) < 0);
+                || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.InvariantCultureIgnoreCase) < 0);
         }
         private static bool IsFitsNegativeBits(string number, int radix, int bits) {
             var maxString = MaxBitsString(bits, radix);
             return number.Length < maxString.Length
-                || (number.Length == maxString.Length && string.Compare(number, maxString) <= 0);
+                || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.InvariantCultureIgnoreCase) <= 0);
         }
 
         private static readonly Dict _dict = createDict(128);

@@ -6,7 +6,7 @@
     <ProjectGuid>{7C9918DC-D0B0-4D94-A980-68B1C4281314}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>RECTests</RootNamespace>
+    <RootNamespace>REC.Tests</RootNamespace>
     <AssemblyName>RECTests</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -49,10 +49,10 @@
   </Choose>
   <ItemGroup>
     <Compile Include="IdentifierScannerTests.cs" />
-    <Compile Include="NumericalTests.cs" />
+    <Compile Include="NumberLiteralScannerTests.cs" />
+    <Compile Include="NumberLiteralTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TextInputRangeTests.cs" />
-    <Compile Include="NumericalScannerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Compiler.Tests.project.json" />

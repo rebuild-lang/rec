@@ -3,7 +3,7 @@
 namespace REC.Tests
 {
     [TestFixture]
-    public class NumericalScannerTests
+    public class NumberLiteralScannerTests
     {
         [TestCase("12'3", 10, "123", null, null)]
         [TestCase("0.12'3", 10, "", "123", null)]
@@ -29,7 +29,7 @@ namespace REC.Tests
                 }
             };
 
-            var result = NumericalScanner.Scan(input);
+            var result = NumberLiteralScanner.Scan(input);
 
             Assert.IsNotNull(result);
             Assert.AreEqual(radix, result.BaseRadix);
@@ -50,7 +50,7 @@ namespace REC.Tests
                 }
             };
 
-            var result = NumericalScanner.Scan(input);
+            var result = NumberLiteralScanner.Scan(input);
 
             Assert.IsNull(result);
         }

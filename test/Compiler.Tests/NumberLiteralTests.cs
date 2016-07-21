@@ -1,15 +1,9 @@
 ﻿using NUnit.Framework;
-using REC;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace REC.Tests
 {
     [TestFixture()]
-    public class NumericalTests
+    public class NumberLiteralTests
     {
         [TestCase(10, "0", 1, true)]
         [TestCase(10, "255", 1, true)]
@@ -18,7 +12,7 @@ namespace REC.Tests
         [TestCase(16, "100", 1, false)]
         public void FitsUnsignedTest(int radix, string integerPart, int byteCount, bool fits)
         {
-            var num = new Numerical
+            var num = new NumberLiteral
             {
                 BaseRadix = radix, IntegerPart = integerPart
             };
@@ -34,7 +28,7 @@ namespace REC.Tests
         [TestCase(16, "80", 1, true)]
         [TestCase(16, "81", 1, false)]
         public void FitsNegativeTest(int radix, string integerPart, int byteCount, bool fits) {
-            var num = new Numerical {
+            var num = new NumberLiteral {
                 BaseRadix = radix, IntegerPart = integerPart
             };
 
@@ -49,7 +43,7 @@ namespace REC.Tests
         [TestCase(16, "7F", 1, true)]
         [TestCase(16, "80", 1, false)]
         public void FitsPositiveTest(int radix, string integerPart, int byteCount, bool fits) {
-            var num = new Numerical {
+            var num = new NumberLiteral {
                 BaseRadix = radix, IntegerPart = integerPart
             };
 

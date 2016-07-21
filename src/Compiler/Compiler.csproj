@@ -62,8 +62,8 @@
   <ItemGroup>
     <Compile Include="IdentifierScanner.cs" />
     <Compile Include="IdentifierScope.cs" />
-    <Compile Include="Numerical.cs" />
-    <Compile Include="NumericalScanner.cs" />
+    <Compile Include="NumberLiteral.cs" />
+    <Compile Include="NumberLiteralScanner.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
