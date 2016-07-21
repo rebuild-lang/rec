@@ -10,14 +10,6 @@ namespace REC
     {
         string Label { get; }
     }
-    public interface IEntry
-    { }
-
-    public struct ScanResult
-    {
-        public IIdentifier Identifier;
-        public IEntry Next;
-    }
 
     internal static class ExtensionMethods
     {
@@ -33,7 +25,7 @@ namespace REC
         }
     }
 
-    internal class Entry : IEntry
+    internal class Entry
     {
         private int _depth;
         private readonly Dict _options = new Dict(); // decision options after last streak char
