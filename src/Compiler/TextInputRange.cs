@@ -56,16 +56,26 @@ namespace REC
             End.Column += columns;
         }
 
-        public void CollapseWhitespaces() {
+        public void ExtendWhitespaces() {
             while (true) {
                 var chr = EndChar;
                 if (!IsWhiteSpace(chr)) break;
                 Extend(1, (chr == '\t') ? 8 : 1);
             }
+        }
+
+        public void CollapseWhitespaces() {
+            ExtendWhitespaces();
             Collapse();
         }
 
         public void NewLine() {
+            var chr = EndChar;
+            Skip();
+            if (IsEndValid) {
+                var nextChr = EndChar;
+                if (chr != nextChr && (nextChr == '\n' || nextChr == '\r')) Skip();
+            }
             End.Line++;
             End.Column = 1;
         }

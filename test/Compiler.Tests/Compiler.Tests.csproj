@@ -52,6 +52,7 @@
     <Compile Include="NumberLiteralScannerTests.cs" />
     <Compile Include="NumberLiteralTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StringLiteralScannerTests.cs" />
     <Compile Include="TextInputRangeTests.cs" />
   </ItemGroup>
   <ItemGroup>

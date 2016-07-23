@@ -38,13 +38,6 @@ namespace REC
             var indent = 0;
 
             Action handleNewLine = () => {
-                var chr = range.EndChar;
-                range.Skip();
-                if (range.IsEndValid) {
-                    var nextChr = range.EndChar;
-                    if (chr != nextChr && (nextChr == '\n' || nextChr == '\r'))
-                        range.Skip();
-                }
                 range.NewLine();
                 range.Collapse();
                 isIndent = true;
