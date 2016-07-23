@@ -40,14 +40,14 @@ namespace REC
                 || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.InvariantCultureIgnoreCase) <= 0);
         }
 
-        private static readonly Dict _dict = createDict(128);
+        internal static readonly Dict MaxStringDict = CreateDict(128);
 
         private static string MaxBitsString(int bits, int radix)
         {
-            return _dict[new Pair(bits, radix)];
+            return MaxStringDict[new Pair(bits, radix)];
         }
 
-        private static Dict createDict(int maxBits)
+        private static Dict CreateDict(int maxBits)
         {
             var result = new Dict();
             FillHexStrings(result, maxBits);
@@ -57,7 +57,7 @@ namespace REC
 
         private static void FillHexStrings(Dict dict, int maxBits) {
             var now = new StringBuilder(maxBits / 4);
-            var flow = new char[] { '2', '4', '8', '0' };
+            var flow = new[] { '2', '4', '8', '0' };
             for (var g = 0; g < maxBits; g += 4) {
                 now.Insert(0, '1');
                 for (var i = 0; i < 4 && g + i < maxBits; i++) {
@@ -99,6 +99,7 @@ namespace REC
             return result.ToString();
         }
 
+/*
         private static string DecimalDecrement(string a) {
             var result = new StringBuilder(a);
             int aI = a.Length - 1;
@@ -121,5 +122,6 @@ namespace REC
             }
             return result.ToString();
         }
+*/
     }
 }
