@@ -1,4 +1,5 @@
 ﻿using System;
+using REC.AST;
 
 namespace REC
 {
@@ -6,7 +7,7 @@ namespace REC
     {
         void CompileTimeFlag(TextFileRange range);
         void Identifier(TextFileRange range);
-        void NumericalLiteral(NumberLiteral numberLiteral, TextFileRange range);
+        void NumericalLiteral(INumberLiteral numberLiteral, TextFileRange range);
         void StringLiteral(string text, TextFileRange range);
 
         void Assignment(TextFileRange range);
@@ -19,7 +20,11 @@ namespace REC
 
         void StartBlock(TextFileRange range);
         void End(TextFileRange range);
+    }
 
+    public interface IParserState
+    {
+        void IdentifierScope(IdentifierScope scope);
     }
 
     public class Parser

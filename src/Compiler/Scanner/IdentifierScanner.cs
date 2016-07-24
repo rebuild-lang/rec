@@ -1,28 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using REC.Tools;
 
-namespace REC
+namespace REC.Scanner
 {
     using Dict = Dictionary<char, Entry>;
 
     public interface IIdentifier
     {
         string Label { get; }
-    }
-
-    internal static class ExtensionMethods
-    {
-        public static TValue GetOrAdd<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key, Func<TValue> valueFactory) {
-            if (dictionary == null) throw new ArgumentNullException("dictionary");
-            if (key == null) throw new ArgumentNullException("key");
-            if (valueFactory == null) throw new ArgumentNullException("valueFactory");
-
-            if (dictionary.ContainsKey(key)) return dictionary[key];
-            var value = valueFactory();
-            dictionary[key] = value;
-            return value;
-        }
     }
 
     internal class Entry

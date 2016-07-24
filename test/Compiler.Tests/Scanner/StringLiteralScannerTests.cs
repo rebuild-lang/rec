@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
+using REC.Scanner;
 
-namespace REC.Tests
+namespace REC.Tests.Scanner
 {
     [TestFixture()]
     public class StringLiteralScannerTests

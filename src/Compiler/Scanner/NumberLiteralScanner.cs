@@ -1,8 +1,10 @@
-namespace REC
+using REC.AST;
+
+namespace REC.Scanner
 {
     public class NumberLiteralScanner
     {
-        public static NumberLiteral Scan(TextInputRange input) {
+        public static INumberLiteral Scan(TextInputRange input) {
             var chr = input.EndChar;
             if (!IsDecDigit(chr)) return null;
 

@@ -1,10 +1,11 @@
 ﻿using System.Text;
+using REC.AST;
 
-namespace REC
+namespace REC.Scanner
 {
     public class StringLiteralScanner
     {
-        public static StringLiteral Scan(TextInputRange input) {
+        public static IStringLiteral Scan(TextInputRange input) {
             var chr = input.EndChar;
             if (!IsDoubleQuote(chr)) return null;
             input.Extend();

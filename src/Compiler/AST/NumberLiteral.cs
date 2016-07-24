@@ -1,25 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using REC.Tools;
+using System.Runtime.CompilerServices;
 
-namespace REC
+[assembly: InternalsVisibleTo("RECTests")]
+
+namespace REC.AST
 {
     using Pair = KeyValuePair<int, int>; // bits, radix
     using Dict = Dictionary<KeyValuePair<int, int>, string>;
 
-    public class NumberLiteral
+    public interface INumberLiteral : ILiteral
     {
-        public int BaseRadix; // 1, 8, 10, 16
-        public string IntegerPart;
-        public string FractionalPart;
-        public bool IsExponentPositive = true;
-        public string ExponentPart;
+        int BaseRadix { get; } // 1, 8, 10, 16
+        string IntegerPart { get; }
+        string FractionalPart { get; }
+        bool IsExponentPositive { get; }
+        string ExponentPart { get; }
+
+        bool IsValid { get; }
+        bool IsFloat { get; }
+        bool IsInteger { get; }
+
+        bool FitsUnsigned(int byteCount);
+        bool FitsPositive(int byteCount);
+        bool FitsNegative(int byteCount);
+        bool FitsFloat(int byteCount);
+    }
+
+    internal class NumberLiteral : Literal, INumberLiteral
+    {
+        public int BaseRadix { get; set; } // 1, 8, 10, 16
+        public string IntegerPart { get; set; }
+        public string FractionalPart { get; set; }
+        public bool IsExponentPositive { get; set; } = true;
+        public string ExponentPart { get; set; }
 
         public bool IsValid => IntegerPart != null || FractionalPart != null || ExponentPart != null;
         public bool IsFloat => FractionalPart != null || ExponentPart != null;
         public bool IsInteger => IntegerPart != null && FractionalPart == null && ExponentPart == null;
 
-        public bool FitsUnsigned(int byteCount) => IsInteger && IsFitsBits(IntegerPart, BaseRadix, byteCount*8);
+        public bool FitsUnsigned(int byteCount) => IsInteger && IsFitsBits(IntegerPart, BaseRadix, byteCount * 8);
         public bool FitsPositive(int byteCount) => IsInteger && IsFitsBits(IntegerPart, BaseRadix, byteCount * 8 - 1);
         public bool FitsNegative(int byteCount) => IsInteger && IsFitsNegativeBits(IntegerPart, BaseRadix, byteCount * 8 - 1);
         public bool FitsFloat(int byteCount) => false;
@@ -28,10 +50,9 @@ namespace REC
         public byte[] ToSigned(int byteCount) => new byte[byteCount];
         public byte[] ToFloat(int byteCount) => new byte[byteCount];
 
-        private static bool IsFitsBits(string number, int radix, int bits)
-        {
+        private static bool IsFitsBits(string number, int radix, int bits) {
             var maxString = MaxBitsString(bits, radix);
-            return number.Length < maxString.Length 
+            return number.Length < maxString.Length
                 || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.InvariantCultureIgnoreCase) < 0);
         }
         private static bool IsFitsNegativeBits(string number, int radix, int bits) {
@@ -42,13 +63,11 @@ namespace REC
 
         internal static readonly Dict MaxStringDict = CreateDict(128);
 
-        private static string MaxBitsString(int bits, int radix)
-        {
+        private static string MaxBitsString(int bits, int radix) {
             return MaxStringDict[new Pair(bits, radix)];
         }
 
-        private static Dict CreateDict(int maxBits)
-        {
+        private static Dict CreateDict(int maxBits) {
             var result = new Dict();
             FillHexStrings(result, maxBits);
             FillDecimalStrings(result, maxBits);
@@ -67,61 +86,12 @@ namespace REC
             }
         }
 
-        private static void FillDecimalStrings(Dict dict, int maxBits)
-        {
+        private static void FillDecimalStrings(Dict dict, int maxBits) {
             var decimalStr = "1";
-            for (var i = 0; i < maxBits; i++)
-            {
+            for (var i = 0; i < maxBits; i++) {
                 dict[new Pair(i, 10)] = decimalStr;
-                decimalStr = DecimalAdd(decimalStr, decimalStr);
+                decimalStr = decimalStr.DecimalAdd(decimalStr);
             }
         }
-
-        private static string DecimalAdd(string a, string b) {
-            var result = new StringBuilder(Math.Max(a.Length + 1, b.Length + 1));
-            var aI = a.Length - 1;
-            var bI = a.Length - 1;
-            var overflow = 0;
-            while (aI >= 0 || bI >= 0) {
-                var aC = aI >= 0 ? a[aI] : 0;
-                var bC = bI >= 0 ? b[bI] : 0;
-                var rC = aC + bC - '0' + overflow;
-                if (rC > '9') {
-                    overflow = 1;
-                    rC -= 10;
-                }
-                else overflow = 0;
-                result.Insert(0, (char)rC);
-                aI--;
-                bI--;
-            }
-            if (1 == overflow) result.Insert(0, '1');
-            return result.ToString();
-        }
-
-/*
-        private static string DecimalDecrement(string a) {
-            var result = new StringBuilder(a);
-            int aI = a.Length - 1;
-            int underflow = 1;
-            while (aI >= 0 && underflow == 1) {
-                var aC = aI >= 0 ? a[aI] : 0;
-                var rC = aC - underflow;
-                if (rC < '0') {
-                    rC += 10;
-                    result[aI] = (char)rC;
-                    aI--;
-                    continue;
-                }
-                result[aI] = (char)rC;
-                break;
-            }
-            if (aI < 0) throw new System.IndexOutOfRangeException("below 0");
-            if (aI == 0) {
-                while (result[0] == '0') result.Remove(0, 1);
-            }
-            return result.ToString();
-        }
-*/
     }
 }

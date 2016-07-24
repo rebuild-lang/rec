@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
+using REC.AST;
 
-namespace REC.Tests
+namespace REC.Tests.AST
 {
     [TestFixture()]
     public class NumberLiteralTests
