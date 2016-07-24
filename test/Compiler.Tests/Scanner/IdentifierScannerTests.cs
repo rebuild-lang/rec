@@ -44,6 +44,7 @@ namespace REC.Tests.Scanner
         [TestCase("(+)", "(+)")] // full brackets
         [TestCase("«+»", "«+»")] // full quotations
         [TestCase("a(", "a")] // partial bracket
+        [TestCase("a}", "a")] // partial bracket
         [TestCase("a#", "a")] // comment
         [TestCase("a,b", "a")] // comma is not part of id
         [TestCase("a.b", "a")] // dot is nod part of id

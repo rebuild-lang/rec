@@ -11,6 +11,7 @@ namespace REC.Tests.Scanner
         [TestCase("\"text\"", "text")]
         [TestCase("\"line1\nline2\"", "line1line2")]
         [TestCase("\"hello \\\"world\\\"\"", "hello \"world\"")]
+        [TestCase("\"line1\\nline2\"", "line1\nline2")]
         public void ScanSuccess(string content, string output) {
             var input = new TextInputRange {
                 File = new TextFile {
