@@ -1,4 +1,5 @@
 using REC.AST;
+using REC.Tools;
 
 namespace REC.Scanner
 {
@@ -35,7 +36,7 @@ namespace REC.Scanner
             while (IsDecDigit(chr))
             {
                 if (result.IntegerPart == null) result.IntegerPart = "";
-                if (!IsZero(chr) || result.IntegerPart.Length != 0)
+                if (!IsZero(chr) || !result.IntegerPart.IsEmpty())
                 {
                     result.IntegerPart += chr;
                 }
@@ -69,7 +70,7 @@ namespace REC.Scanner
                 }
                 while (IsDecDigit(chr)) {
                     if (result.ExponentPart == null) result.ExponentPart = "";
-                    if (!IsZero(chr) || result.ExponentPart.Length != 0)
+                    if (!IsZero(chr) || !result.ExponentPart.IsEmpty())
                     {
                         result.ExponentPart += chr;
                     }
@@ -89,7 +90,7 @@ namespace REC.Scanner
             var chr = input.EndChar;
             while (IsHexDigit(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";
-                if (!IsZero(chr) || result.IntegerPart.Length != 0) {
+                if (!IsZero(chr) || !result.IntegerPart.IsEmpty()) {
                     result.IntegerPart += chr;
                 }
                 do {
@@ -119,7 +120,7 @@ namespace REC.Scanner
                 }
                 while (IsDecDigit(chr)) {
                     if (result.ExponentPart == null) result.ExponentPart = "";
-                    if (!IsZero(chr) || result.ExponentPart.Length != 0) {
+                    if (!IsZero(chr) || !result.ExponentPart.IsEmpty()) {
                         result.ExponentPart += chr;
                     }
                     do {

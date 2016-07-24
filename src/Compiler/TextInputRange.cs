@@ -13,6 +13,14 @@ namespace REC
         public int Line { get; set; } = 1; // 1 for first line
         public int Column { get; set; } = 1; // 1 for first column
         public int Index { get; set; }
+
+        public TextPosition Clone() {
+            return new TextPosition {
+                Line = Line,
+                Column = Column,
+                Index = Index,
+            };
+        }
     }
 
     public class TextFileRange
@@ -25,6 +33,14 @@ namespace REC
         public bool IsEndValid => End.Index < File.Content.Length;
         public int Length => End.Index - Start.Index;
         public string Text => File.Content.Substring(Start.Index, Length);
+
+        public TextFileRange Clone() {
+            return new TextFileRange {
+                File = File,
+                Start = Start.Clone(),
+                End = End.Clone(),
+            };
+        }
     }
 
     public class TextInputRange : TextFileRange

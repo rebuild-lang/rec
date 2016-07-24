@@ -83,6 +83,7 @@
     <Compile Include="TextInputRange.cs" />
     <Compile Include="Tools\DecimalExtensionMethods.cs" />
     <Compile Include="Tools\DictionaryExtensionMethods.cs" />
+    <Compile Include="Tools\ListExtensionMethods.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
