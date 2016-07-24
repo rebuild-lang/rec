@@ -48,6 +48,7 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
+    <Compile Include="IdentifierScopeTests.cs" />
     <Compile Include="Scanner\IdentifierScannerTests.cs" />
     <Compile Include="Scanner\NumberLiteralScannerTests.cs" />
     <Compile Include="AST\NumberLiteralTests.cs" />
