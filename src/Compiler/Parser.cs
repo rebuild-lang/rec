@@ -24,7 +24,7 @@ namespace REC
 
     public interface IParserState
     {
-        void IdentifierScope(IdentifierScope scope);
+        void IdentifierScope(IIdentifierScope scope);
     }
 
     public class Parser
@@ -48,69 +48,6 @@ namespace REC
                 isIndent = true;
             };
 
-            Func<bool> handleDeclarations = () => {
-                if (range.IsKeyword("var")) {
-                    _observer.VarDecl(range, indent);
-                    range.CollapseWhitespaces();
-                    // TODO
-                    return true;
-                }
-                if (range.IsKeyword("def")) {
-                    _observer.DefineDecl(range, indent);
-                    range.CollapseWhitespaces();
-                    // TODO
-                    return true;
-                }
-                if (range.IsKeyword("fn")) {
-                    _observer.FunctionDecl(range, indent);
-                    range.CollapseWhitespaces();
-                    if (range.EndChar == '(') {
-                        _observer.StartArguments(range);
-                        // TODO
-                        if (range.EndChar != ')') {
-                            // ERROR
-                        }
-                        _observer.EndArguments();
-                        range.CollapseWhitespaces();
-                    }
-                    if (range.EndChar == '&') {
-                        _observer.CompileTimeFlag(range);
-                        range.CollapseWhitespaces();
-                    }
-                    // TODO identifier
-                    range.CollapseWhitespaces();
-                    _observer.StartArguments(range);
-                    if (range.EndChar == '(') {
-                        // TODO
-                        if (range.EndChar != ')') {
-                            // ERROR
-                        }
-
-                        range.CollapseWhitespaces();
-                    }
-                    else {
-
-                    }
-                    _observer.EndArguments();
-                    if (range.IsKeyword("->")) {
-                        _observer.StartArguments(range);
-                        // TODO
-                        _observer.EndArguments();
-                    }
-                    if (range.EndChar == ';') {
-                        return true;
-                    }
-                    if (range.EndChar == '=') {
-                        _observer.Assignment(range);
-                        // add expression
-                        return true;
-                    }
-                    _observer.StartBlock(range);
-                    return true;
-                }
-                return false;
-            };
-
             while (range.IsEndValid) {
                 if (range.IsEndNewline) {
                     handleNewLine();
@@ -123,12 +60,13 @@ namespace REC
                 if (isIndent) {
                     indent = range.Start.Column;
                     isIndent = false;
-                    if (handleDeclarations()) continue;
+                    if (ParseDeclarations(range, indent)) continue;
                 }
                 var chr = range.EndChar;
                 switch (chr) {
                     case '#':
-                        break;
+                        ScanComment(range);
+                        continue;
                     case '(':
                         break;
                     case ')':
@@ -146,6 +84,86 @@ namespace REC
                 }
             }
             return !range.IsEndValid;
+        }
+
+        private static void ScanComment(TextInputRange range)
+        {
+            while (range.IsEndValid && !range.IsEndNewline) range.Extend();
+        }
+
+        private bool ParseDeclarations(TextInputRange range, int indent)
+        {
+            if (range.IsKeyword("var"))
+            {
+                _observer.VarDecl(range, indent);
+                range.CollapseWhitespaces();
+                // TODO
+                return true;
+            }
+            if (range.IsKeyword("def"))
+            {
+                _observer.DefineDecl(range, indent);
+                range.CollapseWhitespaces();
+                // TODO
+                return true;
+            }
+            if (range.IsKeyword("fn"))
+            {
+                _observer.FunctionDecl(range, indent);
+                range.CollapseWhitespaces();
+                if (range.EndChar == '(')
+                {
+                    _observer.StartArguments(range);
+                    // TODO
+                    if (range.EndChar != ')')
+                    {
+                        // ERROR
+                    }
+                    _observer.EndArguments();
+                    range.CollapseWhitespaces();
+                }
+                if (range.EndChar == '&')
+                {
+                    _observer.CompileTimeFlag(range);
+                    range.CollapseWhitespaces();
+                }
+                // TODO identifier
+                range.CollapseWhitespaces();
+                _observer.StartArguments(range);
+                if (range.EndChar == '(')
+                {
+                    // TODO
+                    if (range.EndChar != ')')
+                    {
+                        // ERROR
+                    }
+
+                    range.CollapseWhitespaces();
+                }
+                else
+                {
+                }
+                _observer.EndArguments();
+                if (range.IsKeyword("->"))
+                {
+                    _observer.StartArguments(range);
+                    // TODO
+                    _observer.EndArguments();
+                }
+                if (range.EndChar == ';')
+                {
+                    return true;
+                }
+                if (range.EndChar == '=')
+                {
+                    _observer.Assignment(range);
+                    // add expression
+                    return true;
+                }
+                _observer.StartBlock(range);
+                return true;
+            }
+            return false;
         }
     }
 }
