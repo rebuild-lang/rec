@@ -77,7 +77,6 @@ namespace REC
             return GetEnumerator();
         }
 
-        [Serializable]
         public struct Enumerator : IEnumerator<IIdentifier>
         {
             readonly IdentifierScope _startScope;

@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Text;
 using REC.Tools;
-using System.Runtime.CompilerServices;
-
-[assembly: InternalsVisibleTo("RECTests")]
 
 namespace REC.AST
 {
@@ -53,12 +50,12 @@ namespace REC.AST
         private static bool IsFitsBits(string number, int radix, int bits) {
             var maxString = MaxBitsString(bits, radix);
             return number.Length < maxString.Length
-                || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.InvariantCultureIgnoreCase) < 0);
+                || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.CurrentCultureIgnoreCase) < 0);
         }
         private static bool IsFitsNegativeBits(string number, int radix, int bits) {
             var maxString = MaxBitsString(bits, radix);
             return number.Length < maxString.Length
-                || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.InvariantCultureIgnoreCase) <= 0);
+                || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.CurrentCultureIgnoreCase) <= 0);
         }
 
         internal static readonly Dict MaxStringDict = CreateDict(128);

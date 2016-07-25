@@ -92,7 +92,7 @@ namespace REC.Scanner
         };
 
         private static bool IsIdentifier(char chr, BracketStack brackets, TextInputRange input) {
-            switch (char.GetUnicodeCategory(chr)) {
+            switch (CharUnicodeInfo.GetUnicodeCategory(chr)) {
                 case UnicodeCategory.LowercaseLetter: // lower
                 case UnicodeCategory.UppercaseLetter: // UPPER
                 //case UnicodeCategory.TitlecaseLetter: // Ligatures ǅ, ǈ, ǋ and ǲ
