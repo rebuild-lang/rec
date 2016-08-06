@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using REC.Identifier;
 using REC.Scanner;
 
 namespace REC.Tests
@@ -11,6 +12,8 @@ namespace REC.Tests
         internal class Identifier : IIdentifier
         {
             public string Label { get; set; }
+            public ICallable Callable { get; } = null;
+            public bool IsCompileTime { get; } = false;
         }
 
         [Test()]

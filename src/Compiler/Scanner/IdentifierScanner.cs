@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using REC.AST;
+using REC.Identifier;
 using REC.Tools;
 
 namespace REC.Scanner
@@ -9,11 +10,6 @@ namespace REC.Scanner
     using EntryDict = Dictionary<char, Entry>;
     using BracketEntry = KeyValuePair<char, TextPosition>;
     using BracketStack = Stack<KeyValuePair<char, TextPosition>>;
-
-    public interface IIdentifier
-    {
-        string Label { get; }
-    }
 
     internal class Entry
     {

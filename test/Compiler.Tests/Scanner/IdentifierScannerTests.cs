@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using REC.Identifier;
 using REC.Scanner;
 
 namespace REC.Tests.Scanner
@@ -9,6 +10,8 @@ namespace REC.Tests.Scanner
         internal class Identifier : IIdentifier
         {
             public string Label { get; set; }
+            public ICallable Callable { get; } = null;
+            public bool IsCompileTime { get; } = false;
         }
 
         [Test()]

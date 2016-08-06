@@ -1,5 +1,8 @@
 ﻿using System;
 using REC.AST;
+using REC.Identifier;
+using REC.Scanner;
+using IModule = REC.Identifier.IModule;
 
 namespace REC
 {
@@ -19,6 +22,7 @@ namespace REC
         void EndArguments();
 
         void StartBlock(TextFileRange range);
+        void Expression(IExpression expression);
         void End(TextFileRange range);
     }
 
@@ -29,133 +33,132 @@ namespace REC
 
     public class Parser
     {
+        private readonly IndentationParser indentation = new IndentationParser();
+
         private readonly IParserObserver _observer;
+        private IIdentifierScope _scope;
+        private IdentifierScanner _identifierScanner;
+
 
         public Parser(IParserObserver observer) {
             _observer = observer;
+            _scope = new IdentifierScope();
+            UpdateIdentifierScanner();
         }
 
-        public bool Parse(TextFile file) {
+        private void UpdateIdentifierScanner() {
+            _identifierScanner = new IdentifierScanner();
+            foreach (var id in _scope) _identifierScanner.Add(id);
+        }
+
+        public bool ParseFile(TextFile file) {
             var range = new TextInputRange {
                 File = file
             };
-            var isIndent = true;
-            var indent = 0;
+            ParseBlock(range, null);
+            if (range.IsEndValid) {
+                // TODO: expected to parse all
+                return false;
+            }
+            return true;
+        }
 
-            Action handleNewLine = () => {
-                range.NewLine();
-                range.Collapse();
-                isIndent = true;
-            };
-
+        private void ParseBlock(TextInputRange range, IndentationParser.ILevel parentLevel) {
+            indentation.ParseNewline(range);
+            var level = indentation.CurrentLevel;
             while (range.IsEndValid) {
-                if (range.IsEndNewline) {
-                    handleNewLine();
-                    continue;
+                if (indentation.ParseNewline(range)) {
+                    if (range.IsKeyword("end")) {
+                        if (indentation.CurrentLevel != parentLevel) {
+                            // TODO: something went wrong
+                        }
+                        range.Collapse();
+                        return;
+                    }
+                    if (level != indentation.CurrentLevel) {
+                        // TODO: something went wrong
+                        if (level.Column > indentation.CurrentLevel.Column) {
+                            return;
+                        }
+                    }
                 }
-                if (range.IsEndWhitespace) {
-                    range.CollapseWhitespaces();
-                    continue;
-                }
-                if (isIndent) {
-                    indent = range.Start.Column;
-                    isIndent = false;
-                    if (ParseDeclarations(range, indent)) continue;
-                }
-                var chr = range.EndChar;
-                switch (chr) {
-                    case '#':
-                        ScanComment(range);
-                        continue;
-                    case '(':
-                        break;
-                    case ')':
-                        break;
-                    case '[':
-                        break;
-                    case ']':
-                        break;
-                    case ',':
-                        break;
-                    case '.':
-                        break;
-                    default:
-                        break;
-                }
+                var isDeclaration = ParseDeclaration(range, level);
+                if (isDeclaration) continue;
+                var isExpression = ParseLeftExpression(range, level);
+                if (isExpression) continue;
+                // TODO: syntax error
             }
-            return !range.IsEndValid;
+            // TODO: missing end!
         }
 
-        private static void ScanComment(TextInputRange range)
-        {
+        private bool ParseLeftExpression(TextInputRange range, IndentationParser.ILevel parentLevel) {
+            return false;
+        }
+
+        private void ParseIdentifier(ITypedConstruct variable, TextInputRange range) {
+            //ParseRightExpression(variable, range);
+        }
+        private void ParseIdentifier(IModule module, TextInputRange range) {
+            //ParseRightExpression(variable, range);
+        }
+
+        private static void ScanComment(TextInputRange range) {
             while (range.IsEndValid && !range.IsEndNewline) range.Extend();
+            // newline will collapse the range
         }
 
-        private bool ParseDeclarations(TextInputRange range, int indent)
-        {
-            if (range.IsKeyword("var"))
-            {
-                _observer.VarDecl(range, indent);
+        private bool ParseDeclaration(TextInputRange range, IndentationParser.ILevel parentLevel) {
+            if (range.IsKeyword("var")) {
+                _observer.VarDecl(range, parentLevel.Column);
                 range.CollapseWhitespaces();
                 // TODO
                 return true;
             }
-            if (range.IsKeyword("def"))
-            {
-                _observer.DefineDecl(range, indent);
+            if (range.IsKeyword("def")) {
+                _observer.DefineDecl(range, parentLevel.Column);
                 range.CollapseWhitespaces();
                 // TODO
                 return true;
             }
-            if (range.IsKeyword("fn"))
-            {
-                _observer.FunctionDecl(range, indent);
+            if (range.IsKeyword("fn")) {
+                _observer.FunctionDecl(range, parentLevel.Column);
                 range.CollapseWhitespaces();
-                if (range.EndChar == '(')
-                {
+                if (range.EndChar == '(') {
                     _observer.StartArguments(range);
                     // TODO
-                    if (range.EndChar != ')')
-                    {
+                    if (range.EndChar != ')') {
                         // ERROR
                     }
                     _observer.EndArguments();
                     range.CollapseWhitespaces();
                 }
-                if (range.EndChar == '&')
-                {
+                if (range.EndChar == '&') {
                     _observer.CompileTimeFlag(range);
                     range.CollapseWhitespaces();
                 }
                 // TODO identifier
                 range.CollapseWhitespaces();
                 _observer.StartArguments(range);
-                if (range.EndChar == '(')
-                {
+                if (range.EndChar == '(') {
                     // TODO
-                    if (range.EndChar != ')')
-                    {
+                    if (range.EndChar != ')') {
                         // ERROR
                     }
 
                     range.CollapseWhitespaces();
                 }
-                else
-                {
+                else {
                 }
                 _observer.EndArguments();
-                if (range.IsKeyword("->"))
-                {
+                if (range.IsKeyword("->")) {
                     _observer.StartArguments(range);
                     // TODO
                     _observer.EndArguments();
                 }
-                if (range.EndChar == ';')
-                {
+                if (range.EndChar == ';') {
                     return true;
                 }
-                if (range.EndChar == '=')
-                {
+                if (range.EndChar == '=') {
                     _observer.Assignment(range);
                     // add expression
                     return true;

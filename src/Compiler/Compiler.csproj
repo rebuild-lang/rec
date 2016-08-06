@@ -73,8 +73,10 @@
     <Compile Include="AST\NumberLiteral.cs" />
     <Compile Include="AST\StringLiteral.cs" />
     <Compile Include="AST\VariableDeclaration.cs" />
+    <Compile Include="IndentationParser.cs" />
     <Compile Include="Scanner\IdentifierScanner.cs" />
-    <Compile Include="IdentifierScope.cs" />
+    <Compile Include="Identifier\IdentifierScope.cs" />
+    <Compile Include="Identifier\IIdentifier.cs" />
     <Compile Include="Scanner\NumberLiteralScanner.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Program.cs" />

@@ -1,19 +1,17 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using REC.Scanner;
 using REC.Tools;
 
-namespace REC
+namespace REC.Identifier
 {
     using Dict = Dictionary<string, IIdentifier>;
-    using DictKeyValue = KeyValuePair<string, IIdentifier>;
 
     public delegate void ScopedIdentifierAdded(IIdentifierScope scope, IIdentifier identifier);
 
     public delegate void ScopeDisposed(IIdentifierScope scope);
 
-    public interface IIdentifierScope : IDisposable
+    public interface IIdentifierScope : IDisposable, IEnumerable<IIdentifier>
     {
         IIdentifierScope Parent { get; }
         IIdentifier this[string key] { get; }
@@ -24,7 +22,7 @@ namespace REC
         bool Add(IIdentifier identifier);
     }
 
-    internal class IdentifierScope : IIdentifierScope, IEnumerable<IIdentifier>
+    internal class IdentifierScope : IIdentifierScope
     {
         private readonly Dict _identifiers = new Dict();
         private readonly IIdentifierScope _parent;
