@@ -37,6 +37,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
   </ItemGroup>
   <Choose>
@@ -48,7 +49,9 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
+    <Compile Include="DynamicTests.cs" />
     <Compile Include="IdentifierScopeTests.cs" />
+    <Compile Include="NestedYieldTests.cs" />
     <Compile Include="Scanner\IdentifierScannerTests.cs" />
     <Compile Include="Scanner\NumberLiteralScannerTests.cs" />
     <Compile Include="AST\NumberLiteralTests.cs" />
