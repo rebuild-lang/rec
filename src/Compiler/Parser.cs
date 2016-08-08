@@ -1,17 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
 using REC.AST;
-using REC.Identifier;
+using REC.Scope;
 using REC.Scanner;
-using IModule = REC.Identifier.IModule;
+using REC.Tools;
 
 namespace REC
 {
     public interface IParserObserver
     {
         void CompileTimeFlag(TextFileRange range);
-        void Identifier(TextFileRange range);
+        void Identifier(IIdentifierLiteral identifier, TextFileRange range);
         void NumericalLiteral(INumberLiteral numberLiteral, TextFileRange range);
-        void StringLiteral(string text, TextFileRange range);
+        void StringLiteral(IStringLiteral stringLiteral, TextFileRange range);
 
         void Assignment(TextFileRange range);
         void FunctionDecl(TextFileRange range, int indent);
@@ -26,29 +27,15 @@ namespace REC
         void End(TextFileRange range);
     }
 
-    public interface IParserState
+    public class OldParser
     {
-        void IdentifierScope(IIdentifierScope scope);
-    }
-
-    public class Parser
-    {
-        private readonly IndentationParser indentation = new IndentationParser();
+        private readonly IndentationParser _indentation = new IndentationParser();
 
         private readonly IParserObserver _observer;
-        private IIdentifierScope _scope;
-        private IdentifierScanner _identifierScanner;
 
 
-        public Parser(IParserObserver observer) {
+        public OldParser(IParserObserver observer) {
             _observer = observer;
-            _scope = new IdentifierScope();
-            UpdateIdentifierScanner();
-        }
-
-        private void UpdateIdentifierScanner() {
-            _identifierScanner = new IdentifierScanner();
-            foreach (var id in _scope) _identifierScanner.Add(id);
         }
 
         public bool ParseFile(TextFile file) {
@@ -64,20 +51,21 @@ namespace REC
         }
 
         private void ParseBlock(TextInputRange range, IndentationParser.ILevel parentLevel) {
-            indentation.ParseNewline(range);
-            var level = indentation.CurrentLevel;
+            _indentation.ParseNewline(range);
+            var level = _indentation.CurrentLevel;
             while (range.IsEndValid) {
-                if (indentation.ParseNewline(range)) {
+                if (_indentation.ParseNewline(range)) {
                     if (range.IsKeyword("end")) {
-                        if (indentation.CurrentLevel != parentLevel) {
+                        if (_indentation.CurrentLevel != parentLevel) {
                             // TODO: something went wrong
                         }
+                        _observer.End(range);
                         range.Collapse();
                         return;
                     }
-                    if (level != indentation.CurrentLevel) {
+                    if (level != _indentation.CurrentLevel) {
                         // TODO: something went wrong
-                        if (level.Column > indentation.CurrentLevel.Column) {
+                        if (level.Column > _indentation.CurrentLevel.Column) {
                             return;
                         }
                     }
@@ -92,14 +80,76 @@ namespace REC
         }
 
         private bool ParseLeftExpression(TextInputRange range, IndentationParser.ILevel parentLevel) {
+            if (range.IsKeyword("(")) {
+                var isBracket = ParseLeftBracket(range, parentLevel);
+                if (!isBracket) return false;
+                return ParseRightExpression(range, parentLevel);
+            }
+            var isLiteral = ParseLiteral(range);
+            if (isLiteral) {
+                return ParseRightExpression(range, parentLevel);
+            }
+            var identifier = ParseIdentifier(range);
+            if (identifier != null) {
+                return ParseRightOfIdentifier((dynamic) identifier, range, parentLevel);
+            }
             return false;
         }
 
-        private void ParseIdentifier(ITypedConstruct variable, TextInputRange range) {
-            //ParseRightExpression(variable, range);
+        private bool ParseLeftBracket(TextInputRange range, IndentationParser.ILevel parentLevel) {
+            throw new NotImplementedException();
         }
-        private void ParseIdentifier(IModule module, TextInputRange range) {
+
+        private bool ParseRightExpression(TextInputRange range, IndentationParser.ILevel parentLevel) {
+            return true;
+        }
+
+        private bool ParseLiteral(TextInputRange range) {
+            var numberLiteral = NumberLiteralScanner.Scan(range);
+            if (numberLiteral != null) {
+                _observer.NumericalLiteral(numberLiteral, range);
+                return true;
+            }
+            var stringLiteral = StringLiteralScanner.Scan(range);
+            if (stringLiteral != null) {
+                _observer.StringLiteral(stringLiteral, range);
+                return true;
+            }
+            return false;
+        }
+
+        private IIdentifierLiteral ParseIdentifier(TextInputRange range) {
+            var identifier = IdentifierScanner.Scan(range);
+            if (identifier != null) {
+                _observer.Identifier(identifier, range);
+            }
+            return identifier;
+        }
+
+        private bool ParseRightOfIdentifier(ITypedConstruct variable, TextInputRange range, IndentationParser.ILevel parentLevel) {
             //ParseRightExpression(variable, range);
+            return false;
+        }
+
+        private bool ParseRightOfIdentifier(IModule module, TextInputRange range, IndentationParser.ILevel parentLevel) {
+            //ParseRightExpression(variable, range);
+            return false;
+        }
+
+        private bool ParseRightOfIdentifier(IFunction function, TextInputRange range, IndentationParser.ILevel parentLevel) {
+            if (function.RightArguments.IsEmpty()) {
+                return true; // no arguments required
+            }
+            return false;
+            //return ParseArguments(function.RightArguments, range, parentLevel);
+        }
+
+        private bool ParseArguments(ICollection<IArgument> rightArguments, TextInputRange range, IndentationParser.ILevel parentLevel) {
+            var isLiteral = ParseLiteral(range);
+            if (isLiteral) {
+                return ParseRightExpression(range, parentLevel);
+            }
+            return true;
         }
 
         private static void ScanComment(TextInputRange range) {
@@ -136,7 +186,7 @@ namespace REC
                     _observer.CompileTimeFlag(range);
                     range.CollapseWhitespaces();
                 }
-                // TODO identifier
+                // TODO entry
                 range.CollapseWhitespaces();
                 _observer.StartArguments(range);
                 if (range.EndChar == '(') {
@@ -147,8 +197,7 @@ namespace REC
 
                     range.CollapseWhitespaces();
                 }
-                else {
-                }
+                else {}
                 _observer.EndArguments();
                 if (range.IsKeyword("->")) {
                     _observer.StartArguments(range);

@@ -1,13 +1,15 @@
-using REC.AST;
 using REC.Tools;
 
 namespace REC.Scanner
 {
-    public class NumberLiteralScanner
+    using INumberLiteral = AST.INumberLiteral;
+    using NumberLiteral = AST.NumberLiteral;
+
+    public static class NumberLiteralScanner
     {
         public static INumberLiteral Scan(TextInputRange input) {
             var chr = input.EndChar;
-            if (!IsDecDigit(chr)) return null;
+            if (!IsDecimalDigit(chr)) return null;
 
             if (chr == '0') {
                 var next = input.PeekChar();
@@ -16,6 +18,7 @@ namespace REC.Scanner
                     case 'X':
                         input.Extend(2);
                         return ScanHexNumber(input);
+                    // TODO
                     //case 'o':
                     //case 'O':
                     //    input.Extend(2);
@@ -29,29 +32,24 @@ namespace REC.Scanner
             return ScanDecimalNumber(input);
         }
 
-        private static NumberLiteral ScanDecimalNumber(TextInputRange input)
-        {
-            var result = new NumberLiteral { BaseRadix = 10 };
+        private static NumberLiteral ScanDecimalNumber(TextInputRange input) {
+            var result = new NumberLiteral {BaseRadix = 10};
             var chr = input.EndChar;
-            while (IsDecDigit(chr))
-            {
+            while (IsDecimalDigit(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";
-                if (!IsZero(chr) || !result.IntegerPart.IsEmpty())
-                {
+                if (!IsZero(chr) || !result.IntegerPart.IsEmpty()) {
                     result.IntegerPart += chr;
                 }
-                do
-                {
+                do {
                     input.Extend();
                     chr = input.EndChar;
                 } while (IsIgnored(chr));
             }
-            if (IsDot(chr))
-            {
+            if (IsDot(chr)) {
                 result.FractionalPart = "";
                 input.Extend();
                 chr = input.EndChar;
-                while (IsDecDigit(chr)) {
+                while (IsDecimalDigit(chr)) {
                     result.FractionalPart += chr;
                     do {
                         input.Extend();
@@ -59,8 +57,7 @@ namespace REC.Scanner
                     } while (IsIgnored(chr));
                 }
             }
-            if (IsE(chr))
-            {
+            if (IsE(chr)) {
                 input.Extend();
                 chr = input.EndChar;
                 if (IsSign(chr)) {
@@ -68,10 +65,9 @@ namespace REC.Scanner
                     input.Extend();
                     chr = input.EndChar;
                 }
-                while (IsDecDigit(chr)) {
+                while (IsDecimalDigit(chr)) {
                     if (result.ExponentPart == null) result.ExponentPart = "";
-                    if (!IsZero(chr) || !result.ExponentPart.IsEmpty())
-                    {
+                    if (!IsZero(chr) || !result.ExponentPart.IsEmpty()) {
                         result.ExponentPart += chr;
                     }
                     do {
@@ -81,12 +77,11 @@ namespace REC.Scanner
                 }
                 if (result.ExponentPart == null) return null; // if exponent started it has to contain value
             }
-
             return result.IsValid ? result : null;
         }
 
         private static NumberLiteral ScanHexNumber(TextInputRange input) {
-            var result = new NumberLiteral { BaseRadix = 16 };
+            var result = new NumberLiteral {BaseRadix = 16};
             var chr = input.EndChar;
             while (IsHexDigit(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";
@@ -118,7 +113,7 @@ namespace REC.Scanner
                     input.Extend();
                     chr = input.EndChar;
                 }
-                while (IsDecDigit(chr)) {
+                while (IsDecimalDigit(chr)) {
                     if (result.ExponentPart == null) result.ExponentPart = "";
                     if (!IsZero(chr) || !result.ExponentPart.IsEmpty()) {
                         result.ExponentPart += chr;
@@ -147,7 +142,7 @@ namespace REC.Scanner
 
         private static bool IsZero(char chr) => chr == '0';
 
-        private static bool IsDecDigit(char chr) => (chr >= '0' && chr <= '9');
+        private static bool IsDecimalDigit(char chr) => (chr >= '0' && chr <= '9');
 
         private static bool IsHexDigit(char chr) => (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
     }

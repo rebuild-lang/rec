@@ -4,11 +4,11 @@ namespace REC.AST
 {
     public interface IBlock : IExpression
     {
-        IEnumerable<IExpression> List { get; }
+        ICollection<IExpression> Expressions { get; }
     }
 
     internal class Block : Expression, IBlock
     {
-        public IEnumerable<IExpression> List { get; set; }
+        public ICollection<IExpression> Expressions { get; } = new List<IExpression>();
     }
 }

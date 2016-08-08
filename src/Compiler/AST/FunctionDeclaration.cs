@@ -4,20 +4,20 @@ namespace REC.AST
 {
     public interface IFunctionDeclaration : IDeclaration
     {
-        IEnumerable<IArgumentDeclaration> LeftArguments { get; }
-        IEnumerable<IArgumentDeclaration> RightArguments { get; }
-        IEnumerable<IArgumentDeclaration> Results { get; }
+        ICollection<IArgumentDeclaration> LeftArguments { get; }
+        ICollection<IArgumentDeclaration> RightArguments { get; }
+        ICollection<IArgumentDeclaration> Results { get; }
 
         IBlock Implementation { get; }
     }
 
     internal class FunctionDeclaration : Declaration, IFunctionDeclaration
     {
-        public IEnumerable<IArgumentDeclaration> LeftArguments { get; set; }
+        public ICollection<IArgumentDeclaration> LeftArguments { get; set; }
 
-        public IEnumerable<IArgumentDeclaration> RightArguments { get; set; }
+        public ICollection<IArgumentDeclaration> RightArguments { get; set; }
 
-        public IEnumerable<IArgumentDeclaration> Results { get; set; }
+        public ICollection<IArgumentDeclaration> Results { get; set; }
 
 
         public IBlock Implementation { get; set; }

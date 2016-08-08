@@ -7,6 +7,7 @@ namespace REC.Tests
     [TestFixture()]
     public class DynamicTests
     {
+        // This test shows how a dynamic dispatch without virtual functions works in C#
         private interface IInterface
         {
         }

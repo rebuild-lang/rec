@@ -7,7 +7,7 @@ namespace REC.AST
         string Name { get; }
     }
 
-    internal class Declaration : Expression, IDeclaration
+    class Declaration : Expression, IDeclaration
     {
         public string Name { get; set; }
     }

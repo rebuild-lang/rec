@@ -1,13 +1,15 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using NUnit.Framework;
+using REC.Tools;
 
 namespace REC.Tests
 {
     [TestFixture()]
     public class NestedYieldTests
     {
-        private enum Token
+        // This test shows how a nested yield generator can be flattened
+        // ReSharper disable once MemberCanBePrivate.Global
+        public enum Token
         {
             VarDecl,
             Call,
@@ -19,27 +21,16 @@ namespace REC.Tests
             public int State { get; private set; }
 
             public IEnumerable<Token> Parse() {
-                return Flatten(ParseNested());
-            }
-
-            private static IEnumerable<Token> Flatten(Token t) {
-                yield return t;
-            }
-            private static IEnumerable<Token> Flatten(IEnumerable<dynamic> d) {
-                return d.SelectMany<dynamic, Token>(i => Flatten(i));
-            }
-
-            private static IEnumerable<dynamic> ToEnumerable(IEnumerator<Token> d) {
-                while (d.MoveNext()) yield return d.Current;
+                return ParseNested().FlattenTo<Token>();
             }
 
             private IEnumerable<dynamic> ParseNested() {
                 State = 1;
                 yield return Token.VarDecl;
-                var x = Flatten(ParseVarDecl()).GetEnumerator();
+                var x = ParseVarDecl().GetFlatEnumerator<Token>();
                 if (x.MoveNext()) {
                     yield return x.Current;
-                    yield return ToEnumerable(x);
+                    yield return x;
                 }
                 State = 4;
             }
@@ -60,7 +51,7 @@ namespace REC.Tests
         public void PeekCharStartTest() {
             var p = new ParserMoc();
             //var x = p.Parse().ToList();
-            //Assert.AreEqual(new List<Token> {Token.VarDecl, Token.Identifier}, x);
+            //Assert.AreEqual(new Expressions<Token> {Token.VarDecl, Token.entry}, x);
             var i = p.Parse().GetEnumerator();
             Assert.AreEqual(0, p.State);
 

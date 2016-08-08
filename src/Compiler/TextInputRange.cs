@@ -14,6 +14,12 @@ namespace REC
         public int Column { get; set; } = 1; // 1 for first column
         public int Index { get; set; }
 
+        public void Assign(TextPosition position) {
+            Line = position.Line;
+            Column = position.Column;
+            Index = position.Index;
+        }
+
         public TextPosition Clone() {
             return new TextPosition {
                 Line = Line,
@@ -33,6 +39,12 @@ namespace REC
         public bool IsEndValid => End.Index < File.Content.Length;
         public int Length => End.Index - Start.Index;
         public string Text => File.Content.Substring(Start.Index, Length);
+
+        public void Assign(TextFileRange range) {
+            File = range.File;
+            Start.Assign(range.Start);
+            End.Assign(range.End);
+        }
 
         public TextFileRange Clone() {
             return new TextFileRange {
@@ -96,10 +108,12 @@ namespace REC
             End.Column = 1;
         }
 
+        public void Backtrack() {
+            End.Assign(Start);
+        }
+
         public void Collapse() {
-            Start.Index = End.Index;
-            Start.Column = End.Column;
-            Start.Line = End.Line;
+            Start.Assign(End);
         }
     }
 }

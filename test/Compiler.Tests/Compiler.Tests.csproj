@@ -56,8 +56,10 @@
     <Compile Include="Scanner\NumberLiteralScannerTests.cs" />
     <Compile Include="AST\NumberLiteralTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Scanner\OperatorScannerTests.cs" />
     <Compile Include="Scanner\StringLiteralScannerTests.cs" />
     <Compile Include="TextInputRangeTests.cs" />
+    <Compile Include="GeneratorTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Compiler.Tests.project.json" />

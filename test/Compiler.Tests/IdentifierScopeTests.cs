@@ -1,25 +1,24 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using REC.Identifier;
-using REC.Scanner;
+using REC.Scope;
 
 namespace REC.Tests
 {
     [TestFixture()]
     public class IdentifierScopeTests
     {
-        internal class Identifier : IIdentifier
+        private class Entry : IEntry
         {
             public string Label { get; set; }
-            public ICallable Callable { get; } = null;
+            public ICallableEntry CallableEntry { get; } = null;
             public bool IsCompileTime { get; } = false;
         }
 
         [Test()]
         public void IdentifierScope() {
-            var parentScope = new IdentifierScope();
-            var childScope = new IdentifierScope(parentScope);
+            var parentScope = new Scope.Scope();
+            var childScope = new Scope.Scope(parentScope);
 
             Assert.AreEqual(childScope.Parent, parentScope);
             Assert.IsNull(parentScope.Parent);
@@ -45,11 +44,11 @@ namespace REC.Tests
 
         [Test()]
         public void Add() {
-            var parentScope = new IdentifierScope();
-            var childScope = new IdentifierScope(parentScope);
-            var myScope = new IdentifierScope(childScope) {new Identifier {Label = "label"}};
+            var parentScope = new Scope.Scope();
+            var childScope = new Scope.Scope(parentScope);
+            var myScope = new Scope.Scope(childScope) {new Entry { Label = "label"}};
 
-            var testIdentifier = new Identifier { Label = "label" };
+            var testIdentifier = new Entry { Label = "label" };
             var parentIdentifierAdded = false;
             parentScope.IdentifierAdded += (scope, identifier) =>
             {
@@ -65,7 +64,7 @@ namespace REC.Tests
                 childIdentifierAdded = true;
             };
 
-            var myIdentifierAdded = false;
+            const bool myIdentifierAdded = false;
             childScope.IdentifierAdded += (scope, identifier) => childIdentifierAdded = true;
 
             var result = parentScope.Add(testIdentifier);
@@ -81,9 +80,9 @@ namespace REC.Tests
 
         [Test()]
         public void GetEnumerator() {
-            var parentScope = new IdentifierScope() { new Identifier { Label = "label" } };
-            var childScope = new IdentifierScope(parentScope);
-            var myScope = new IdentifierScope(childScope) { new Identifier { Label = "fun" } };
+            var parentScope = new Scope.Scope() { new Entry { Label = "label" } };
+            var childScope = new Scope.Scope(parentScope);
+            var myScope = new Scope.Scope(childScope) { new Entry { Label = "fun" } };
 
             var result = myScope.Select(i => i.Label).ToList();
 

@@ -3,38 +3,38 @@ using System.Collections;
 using System.Collections.Generic;
 using REC.Tools;
 
-namespace REC.Identifier
+namespace REC.Scope
 {
-    using Dict = Dictionary<string, IIdentifier>;
+    using Dict = Dictionary<string, IEntry>;
 
-    public delegate void ScopedIdentifierAdded(IIdentifierScope scope, IIdentifier identifier);
+    public delegate void ScopedIdentifierAdded(IScope scope, IEntry entry);
+    public delegate void ScopeDisposed(IScope scope);
 
-    public delegate void ScopeDisposed(IIdentifierScope scope);
-
-    public interface IIdentifierScope : IDisposable, IEnumerable<IIdentifier>
+    // The scope is used for name lookups during parsing
+    public interface IScope : IDisposable, IEnumerable<IEntry>
     {
-        IIdentifierScope Parent { get; }
-        IIdentifier this[string key] { get; }
+        IScope Parent { get; }
+        IEntry this[string key] { get; }
 
         event ScopedIdentifierAdded IdentifierAdded;
         event ScopeDisposed Disposed;
 
-        bool Add(IIdentifier identifier);
+        bool Add(IEntry entry);
     }
 
-    internal class IdentifierScope : IIdentifierScope
+    internal class Scope : IScope
     {
         private readonly Dict _identifiers = new Dict();
-        private readonly IIdentifierScope _parent;
+        private readonly IScope _parent;
 
-        public IIdentifierScope Parent => _parent;
+        public IScope Parent => _parent;
 
         public event ScopedIdentifierAdded IdentifierAdded;
         public event ScopeDisposed Disposed;
 
-        public IIdentifier this[string key] => _identifiers.GetOr(key, () => _parent?[key]);
+        public IEntry this[string key] => _identifiers.GetOr(key, () => _parent?[key]);
 
-        public IdentifierScope(IIdentifierScope parent = null) {
+        public Scope(IScope parent = null) {
             _parent = parent;
             if (_parent != null)
             {
@@ -43,14 +43,14 @@ namespace REC.Identifier
             }
         }
 
-        private void OnParentDisposed(IIdentifierScope _) {
+        private void OnParentDisposed(IScope _) {
             Dispose();
         }
 
-        private void OnParentIdentifierAdded(IIdentifierScope scope, IIdentifier identifier)
+        private void OnParentIdentifierAdded(IScope scope, IEntry entry)
         {
-            if (_identifiers.ContainsKey(identifier.Label)) return;
-            IdentifierAdded?.Invoke(scope, identifier);
+            if (_identifiers.ContainsKey(entry.Label)) return;
+            IdentifierAdded?.Invoke(scope, entry);
         }
 
         public void Dispose() {
@@ -58,16 +58,16 @@ namespace REC.Identifier
             Disposed?.Invoke(this);
         }
 
-        public bool Add(IIdentifier identifier) {
-            var label = identifier.Label;
+        public bool Add(IEntry entry) {
+            var label = entry.Label;
             if (_identifiers.ContainsKey(label))
                 return false;
-            _identifiers.Add(label, identifier);
-            IdentifierAdded?.Invoke(this, identifier);
+            _identifiers.Add(label, entry);
+            IdentifierAdded?.Invoke(this, entry);
             return true;
         }
 
-        public IEnumerator<IIdentifier> GetEnumerator() {
+        public IEnumerator<IEntry> GetEnumerator() {
             return new Enumerator(this);
         }
 
@@ -75,20 +75,20 @@ namespace REC.Identifier
             return GetEnumerator();
         }
 
-        public struct Enumerator : IEnumerator<IIdentifier>
+        public struct Enumerator : IEnumerator<IEntry>
         {
-            readonly IdentifierScope _startScope;
-            IdentifierScope _scope;
+            readonly Scope _startScope;
+            Scope _scope;
             Dict.ValueCollection.Enumerator _enumerator;
 
-            internal Enumerator(IdentifierScope scope) : this() {
+            internal Enumerator(Scope scope) : this() {
                 _startScope = scope;
                 Reset();
             }
 
             public bool MoveNext() {
                 while (!_enumerator.MoveNext()) {
-                    _scope = (IdentifierScope)_scope?._parent;
+                    _scope = (Scope)_scope?._parent;
                     if (null == _scope) return false;
                     _enumerator = _scope._identifiers.Values.GetEnumerator();
                 }
@@ -100,7 +100,7 @@ namespace REC.Identifier
                 _enumerator = _scope._identifiers.Values.GetEnumerator();
             }
 
-            public IIdentifier Current => _enumerator.Current;
+            public IEntry Current => _enumerator.Current;
 
             object IEnumerator.Current => Current;
 

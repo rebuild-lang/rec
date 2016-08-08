@@ -74,17 +74,25 @@
     <Compile Include="AST\StringLiteral.cs" />
     <Compile Include="AST\VariableDeclaration.cs" />
     <Compile Include="IndentationParser.cs" />
+    <Compile Include="Intrinsic\IIntrinsic.cs" />
+    <Compile Include="Intrinsic\Intrinsic.cs" />
+    <Compile Include="Parser\CommentIndentationFilter.cs" />
+    <Compile Include="Parser\Parser.cs" />
+    <Compile Include="Scanner\CommentScanner.cs" />
     <Compile Include="Scanner\IdentifierScanner.cs" />
-    <Compile Include="Identifier\IdentifierScope.cs" />
-    <Compile Include="Identifier\IIdentifier.cs" />
+    <Compile Include="Scope\Scope.cs" />
+    <Compile Include="Scope\IEntry.cs" />
     <Compile Include="Scanner\NumberLiteralScanner.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Scanner\OperatorScanner.cs" />
+    <Compile Include="Scanner\Scanner.cs" />
     <Compile Include="Scanner\StringLiteralScanner.cs" />
     <Compile Include="TextInputRange.cs" />
     <Compile Include="Tools\DecimalExtensionMethods.cs" />
     <Compile Include="Tools\DictionaryExtensionMethods.cs" />
+    <Compile Include="Tools\EnumerableExtensionMethods.cs" />
     <Compile Include="Tools\ListExtensionMethods.cs" />
   </ItemGroup>
   <ItemGroup>

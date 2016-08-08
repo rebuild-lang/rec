@@ -5,8 +5,8 @@ namespace REC.AST
     public interface IInvocation : IExpression
     {
         IFunctionDeclaration Function { get; }
-        IEnumerable<IExpression> Left { get; }
-        IEnumerable<IExpression> Right { get; }
+        ICollection<IExpression> Left { get; }
+        ICollection<IExpression> Right { get; }
     }
 
     public interface IArgumentAssignment : IExpression
@@ -18,8 +18,8 @@ namespace REC.AST
     class Invocation : Expression, IInvocation
     {
         public IFunctionDeclaration Function { get; set; }
-        public IEnumerable<IExpression> Left { get; set; }
-        public IEnumerable<IExpression> Right { get; set; }
+        public ICollection<IExpression> Left { get; set; }
+        public ICollection<IExpression> Right { get; set; }
     }
 
     class ArgumentAssignment : Expression, IArgumentAssignment
