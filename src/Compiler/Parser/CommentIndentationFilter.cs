@@ -17,7 +17,7 @@ namespace REC.Parser
                     if (it.Current.Type != Token.Comment) yield return previous;
                     else {
                         if (previous.Type != Token.NewLineIndentation) yield return previous; // skip indentation before comment
-                        if (!it.MoveNext()) yield break; // skip comment
+                        if (!it.MoveNext()) yield break; // skip final comment
                     }
                     previous = it.Current;
                 }
