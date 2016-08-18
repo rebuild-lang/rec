@@ -5,7 +5,7 @@ namespace REC.Scanner
 {
     public enum Token
     {
-        //WhiteSpaceSeperator,
+        WhiteSpaceSeperator,
         NewLineIndentation,
         Comment,
         CommaSeparator,
@@ -19,7 +19,7 @@ namespace REC.Scanner
         NumberLiteral,
         IdentifierLiteral,
         OperatorLiteral,
-        InvalidCharacter
+        InvalidCharacter,
     }
 
     public struct TokenData
@@ -42,8 +42,7 @@ namespace REC.Scanner
                         yield break;
                     case ' ':
                     case '\t':
-                        //yield return ScanWhitespaces(input);
-                        ScanWhitespaces(input);
+                        yield return ScanWhitespaces(input);
                         continue;
                     case '\n':
                     case '\r':
@@ -104,10 +103,10 @@ namespace REC.Scanner
             }
         }
 
-        static void ScanWhitespaces(TextInputRange input) {
+        static TokenData ScanWhitespaces(TextInputRange input) {
             input.Extend();
             input.ExtendWhitespaces();
-            //return new TokenData {Range = input.Clone(), Type = Token.WhiteSpaceSeperator};
+            return new TokenData {Range = input.Clone(), Type = Token.WhiteSpaceSeperator};
         }
 
         static TokenData ScanNewLine(TextInputRange input) {
