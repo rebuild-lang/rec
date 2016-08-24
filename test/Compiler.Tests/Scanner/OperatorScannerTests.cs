@@ -6,17 +6,18 @@ namespace REC.Tests.Scanner
     [TestFixture]
     public class OperatorScannerTests
     {
-        [TestCase(arg1: "+", arg2: "+")] // math symbol
-        [TestCase(arg1: "+*2", arg2: "+*")] // combination
-        [TestCase(arg1: "+$2", arg2: "+")] // currency (dollar not allowed)
-        [TestCase(arg1: "?!", arg2: "?!")] // allowed other punctuations
-        [TestCase(arg1: "{+}", arg2: "{+}")] // full brackets
-        [TestCase(arg1: "«+»", arg2: "«+»")] // full quotations
-        [TestCase(arg1: "+(", arg2: "+")] // partial bracket
-        [TestCase(arg1: "+}", arg2: "+")] // partial bracket
-        [TestCase(arg1: "+#", arg2: "+")] // comment
-        [TestCase(arg1: "½²", arg2: "½²")] // Other Number
-        [TestCase(arg1: "©®", arg2: "©®")] // Other Symbols
+        [TestCase(arg1: "+", arg2: "+", TestName = "math symbol")]
+        [TestCase(arg1: "+*2", arg2: "+*", TestName = "combination")]
+        [TestCase(arg1: "+$2", arg2: "+", TestName = "currency (dollar not allowed)")]
+        [TestCase(arg1: "?!", arg2: "?!", TestName = "allowed other punctuations")]
+        [TestCase(arg1: "{+}", arg2: "{+}", TestName = "full brackets")]
+        [TestCase(arg1: "«+»", arg2: "«+»", TestName = "full quotations")]
+        [TestCase(arg1: "+(", arg2: "+", TestName = "partial open bracket")]
+        [TestCase(arg1: "+}", arg2: "+", TestName = "partial close bracket")]
+        [TestCase(arg1: "+#", arg2: "+", TestName = "comment")]
+        [TestCase(arg1: "½²", arg2: "½²", TestName = "Other Number")]
+        [TestCase(arg1: "©®", arg2: "©®", TestName = "Other Symbols")]
+        [TestCase(arg1: "-", arg2: "-", TestName = "Dash punctuation")] 
         public void ScanNewSuccess(string content, string id) {
             var input = new TextInputRange {
                 File = new TextFile {
@@ -31,13 +32,13 @@ namespace REC.Tests.Scanner
             Assert.AreEqual(id, result.Content);
         }
 
-        [TestCase(arg: "normalId ")]
-        [TestCase(arg: "all_lower")]
-        [TestCase(arg: "123")] // reserved for numbers
-        [TestCase(arg: ",+")] // comma is separator
-        [TestCase(arg: "$+")] // $ is pattern
-        [TestCase(arg: "&+")] // & is compile time execution
-        [TestCase(arg: "(+ )")] // space is hard separator, closing bracket is missing, no entry left
+        [TestCase(arg: "normalId ", TestName = "normalId")]
+        [TestCase(arg: "all_lower", TestName = "all_lower")]
+        [TestCase(arg: "123", TestName = "reserved for numbers")]
+        [TestCase(arg: ",+", TestName = "comma is separator")]
+        [TestCase(arg: "$+", TestName = "$ is pattern")]
+        [TestCase(arg: "&+", TestName = "& is compile time execution")]
+        [TestCase(arg: "(+ )", TestName = "space is hard separator")] // closing bracket is missing, no entry left
         public void ScanNewFailure(string content) {
             var input = new TextInputRange {
                 File = new TextFile {

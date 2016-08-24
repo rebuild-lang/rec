@@ -54,7 +54,7 @@ namespace REC.Scanner
                 case UnicodeCategory.ConnectorPunctuation: // various underscores _‿⁀⁔＿
                     return false; // regular identifiers and literals
 
-                case UnicodeCategory.MathSymbol: // +=-
+                case UnicodeCategory.MathSymbol: // +=/
                 case UnicodeCategory.OtherSymbol: // ©®⌛⌚
                 case UnicodeCategory.OtherNumber: // ½²
                 case UnicodeCategory.PrivateUse: // emojis etc.
@@ -74,9 +74,10 @@ namespace REC.Scanner
                     if (brackets.IsEmpty() || brackets.Peek().Key != chr) return false;
                     brackets.Pop();
                     return true;
+                case UnicodeCategory.DashPunctuation: // all kinds of hyphens
+                    return chr == '-';
                 case UnicodeCategory.TitlecaseLetter: // Ligatures ǅ, ǈ, ǋ and ǲ
                 case UnicodeCategory.OtherLetter: // Hebrew etc. א
-                case UnicodeCategory.DashPunctuation: // all kinds of hyphens
                 case UnicodeCategory.LetterNumber: // Roman Numbers (look like normal letters)
                 case UnicodeCategory.ModifierLetter:
                 case UnicodeCategory.NonSpacingMark:
