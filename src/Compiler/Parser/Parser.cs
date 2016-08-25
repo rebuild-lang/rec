@@ -8,36 +8,15 @@ namespace REC.Parser
 {
     public static class Parser
     {
-        public static IBlock ParseBlock(IEnumerator<TokenData> tokens, IScope parentScope) {
+        public static IBlock ParseBlock(ITokenBlock tokenBlock, IScope parentScope) {
             var block = new Block();
             var scope = new Scope.Scope(parent: parentScope);
-            do {
-                var token = tokens.Current;
-                switch (token.Type) {
-                    case Token.NewLineIndentation:
-                        break;
-                    case Token.CompileTimeOperator:
-                    case Token.BracketOpen:
-                    case Token.StringLiteral:
-                    case Token.NumberLiteral:
-                    case Token.IdentifierLiteral:
-                    case Token.OperatorLiteral:
-                        var expression = ParseBlockExpression(tokens, scope);
-                        if (expression != null) block.Expressions.Add(expression);
-                        break;
-                    case Token.BracketClose:
-                    case Token.SquareBracketOpen:
-                    case Token.SquareBracketClose:
-                    case Token.InvalidCharacter:
-                    case Token.Comment:
-                    case Token.CommaSeparator:
-                    case Token.SemicolonSeparator:
-                        // TODO: these are errors
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+            foreach (var tokenLine in tokenBlock.Lines) {
+                using (var it = tokenLine.Tokens.GetEnumerator()) {
+                    var expression = ParseBlockExpression(it, scope);
+                    if (expression != null) block.Expressions.Add(expression);
                 }
-            } while (tokens.MoveNext());
+            }
             return block;
         }
 

@@ -12,13 +12,11 @@ namespace REC
         IScope IntrinsicScope { get; }
 
         public void CompileFile(TextFile file) {
-            var unfiltered = Scanner.Scanner.ScanFile(file);
-            var commentFiltered = Parser.CommentIndentationFilter.Filter(unfiltered);
-            using (var tokenIt = commentFiltered.GetEnumerator()) {
-                if (tokenIt.MoveNext()) {
-                    var block = Parser.Parser.ParseBlock(tokenIt, IntrinsicScope);
-                }
-            }
+            var raw = Scanner.Scanner.ScanFile(file);
+            var prepared = Parser.TokenPreparation.Apply(raw);
+            var block = new Parser.BlockLineGrouping().Group(prepared);
+            var ast = Parser.Parser.ParseBlock(block, IntrinsicScope);
+            // TODO: use AST
         }
     }
 
