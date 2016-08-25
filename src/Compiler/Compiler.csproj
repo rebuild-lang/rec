@@ -76,6 +76,7 @@
     <Compile Include="Intrinsic\IIntrinsic.cs" />
     <Compile Include="Intrinsic\Intrinsic.cs" />
     <Compile Include="Parser\TokenPreparation.cs" />
+    <Compile Include="Parser\BlockLineGrouping.cs" />
     <Compile Include="Parser\Parser.cs" />
     <Compile Include="Scanner\CommentScanner.cs" />
     <Compile Include="Scanner\IdentifierScanner.cs" />
