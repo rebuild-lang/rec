@@ -38,7 +38,7 @@ namespace REC
         public bool IsStartValid => Start.Index < File.Content.Length;
         public bool IsEndValid => End.Index < File.Content.Length;
         public int Length => End.Index - Start.Index;
-        public string Text => File.Content.Substring(Start.Index, Length);
+        public string Text => Length>0 ? File.Content.Substring(Start.Index, Length) : String.Empty;
 
         public void Assign(TextFileRange range) {
             File = range.File;

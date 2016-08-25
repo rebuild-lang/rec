@@ -7,6 +7,8 @@ namespace REC.Scanner
     {
         WhiteSpaceSeperator,
         NewLineIndentation,
+        BlockStartIndentation, // used later
+        BlockEndIndentation, // used later
         Comment,
         CommaSeparator,
         SemicolonSeparator,
