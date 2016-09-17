@@ -1,31 +1,32 @@
-﻿using System.Collections.Generic;
-using REC.AST;
-using REC.Scope;
+﻿using REC.AST;
+using REC.Tools;
 
 namespace REC.Intrinsic
 {
-    public class Intrinsic : Entry, IIntrinsic
+    using ArgumentDeclarationCollection = NamedCollection<IArgumentDeclaration>;
+
+    public class Intrinsic : IIntrinsic
     {
-        public virtual void InvokeCompileTime(IArgumentValues result, IArgumentValues left, IArgumentValues right) {
+        public string Name { get; protected set; }
+
+        public virtual void InvokeCompileTime(IArgumentValues result, IArgumentValues right) {
             throw new System.NotImplementedException();
         }
 
-        public ICollection<IArgumentDeclaration> LeftArguments => null;
-        public ICollection<IArgumentDeclaration> RightArguments { get; } = new List<IArgumentDeclaration>();
-        public ICollection<IArgumentDeclaration> Results { get; } = new List<IArgumentDeclaration>();
-        public ISet<IFunction> Preferred => null;
-        public Association Associative => Association.Right;
+        public ArgumentDeclarationCollection RightArguments { get; } = new ArgumentDeclarationCollection();
+        public ArgumentDeclarationCollection Results { get; } = new ArgumentDeclarationCollection();
     }
 
     public class PrintIntrinsic : Intrinsic
     {
         public PrintIntrinsic() {
-            Label = "Print";
-            RightArguments.Add(new ArgumentDeclaration {Name = "Text"});
+            Name = "Print";
+            RightArguments.Add(new ArgumentDeclaration { Name = "Text" });
         }
-        public override void InvokeCompileTime(IArgumentValues result, IArgumentValues left, IArgumentValues right) {
-            var text = right["Text"].Value as string;
-            System.Console.WriteLine(text);
+        public override void InvokeCompileTime(IArgumentValues result, IArgumentValues right) {
+            //var text = right["Text"].Value as string;
+            //System.Console.WriteLine(text);
+            System.Console.WriteLine("Print was called");
         }
     }
 }

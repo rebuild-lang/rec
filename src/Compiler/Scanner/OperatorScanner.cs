@@ -38,7 +38,7 @@ namespace REC.Scanner
                 if (input.Length == 0) return null;
             }
 
-            return new IdentifierLiteral { Content = input.Text, Range = input };
+            return new IdentifierLiteral { Content = input.Text, Range = input.Clone() };
         }
 
         static bool IsStart(TextInputRange input, BracketStack brackets) {
@@ -62,7 +62,7 @@ namespace REC.Scanner
                 case UnicodeCategory.CurrencySymbol: // ¢¥$€
                     return chr != '$'; // $ is used to start pattern literals (we might want to disambiguate this later)
                 case UnicodeCategory.OtherPunctuation: // like !?#.
-                    return chr != '#' && chr != '.' && chr != ',' && chr != '&'; // it might be possible to disambiguate usage of & later
+                    return chr != '#' && chr != '.' && chr != ',';
                 case UnicodeCategory.OpenPunctuation: // [{(
                 case UnicodeCategory.InitialQuotePunctuation: // “«
                     if (!OpenCloseDict.ContainsKey(chr)) return false;

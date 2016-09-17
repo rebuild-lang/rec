@@ -6,7 +6,9 @@ namespace REC
     class Compiler
     {
         public Compiler() {
-            IntrinsicScope = new Scope.Scope {new PrintIntrinsic()};
+            IntrinsicScope = new IntrinsicScope {
+                new PrintIntrinsic()
+            }.Build();
         }
 
         IScope IntrinsicScope { get; }
@@ -26,7 +28,7 @@ namespace REC
             var compiler = new Compiler();
             compiler.CompileFile(
                 new TextFile {
-                    Content = "print \"Hello\"",
+                    Content = "&Print \"Hello\"",
                     Filename = "Test.rebuild"
                 });
         }

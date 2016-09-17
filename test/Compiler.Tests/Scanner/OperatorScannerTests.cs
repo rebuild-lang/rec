@@ -17,7 +17,8 @@ namespace REC.Tests.Scanner
         [TestCase(arg1: "+#", arg2: "+", TestName = "comment")]
         [TestCase(arg1: "½²", arg2: "½²", TestName = "Other Number")]
         [TestCase(arg1: "©®", arg2: "©®", TestName = "Other Symbols")]
-        [TestCase(arg1: "-", arg2: "-", TestName = "Dash punctuation")] 
+        [TestCase(arg1: "-", arg2: "-", TestName = "Dash punctuation")]
+        [TestCase(arg1: "&+", arg2: "&+", TestName = "& is a normal operator")]
         public void ScanNewSuccess(string content, string id) {
             var input = new TextInputRange {
                 File = new TextFile {
@@ -37,7 +38,6 @@ namespace REC.Tests.Scanner
         [TestCase(arg: "123", TestName = "reserved for numbers")]
         [TestCase(arg: ",+", TestName = "comma is separator")]
         [TestCase(arg: "$+", TestName = "$ is pattern")]
-        [TestCase(arg: "&+", TestName = "& is compile time execution")]
         [TestCase(arg: "(+ )", TestName = "space is hard separator")] // closing bracket is missing, no entry left
         public void ScanNewFailure(string content) {
             var input = new TextInputRange {

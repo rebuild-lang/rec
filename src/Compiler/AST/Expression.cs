@@ -11,7 +11,7 @@
         TextFileRange Range { get; }
     }
 
-    internal class Expression : IExpression
+    abstract class Expression : IExpression
     {
         public TextFileRange Range { get; set; }
     }

@@ -1,19 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using REC.AST;
 using REC.Scanner;
-using REC.Tools;
 
 namespace REC.Parser
 {
-    public interface ITokenLine
-    {
-        IList<TokenData> Tokens { get; }
-    }
-
-    public interface ITokenBlock
-    {
-        IList<ITokenLine> Lines { get; }
-    }
 
     /**
      * Preparation step that allows to defer block processing
@@ -23,59 +14,44 @@ namespace REC.Parser
      * * Semicolons are splitten into separate lines
      * 
      * example:S
-     *   'if'[WS]'a'[NewLine
-     *      ]'&&'[WS]'b'[BlockStart
-     *     ]'print'[WS]"a"[NewLine
+     *   'if' 'a'[NewLine
+     *      ]'&&' 'b'[BlockStart
+     *     ]'print' "a"[NewLine
      *   ]'else'[BlockStart
-     *     ]'print'[WS]"b"[BlockEnd
+     *     ]'print' "b"[BlockEnd
      *   ]
      * 
      *  is turned into:
      *   Lines:
      *   - - 'if'
-     *     - [WS]
      *     - 'a'
-     *     - [WS]
      *     - '&&'
-     *     - [WS]
      *     - 'b'
      *     - BlockStart:
      *         Lines:
      *         - - 'print'
-     *           - [WS]
      *           - "a"
      *     - 'else'
      *     - BlockStart:
      *         Lines:
      *         - - 'print'
-     *           - [WS]
      *           - "b"
      */
     public class BlockLineGrouping
     {
-        class Line : ITokenLine
-        {
-            public IList<TokenData> Tokens { get; } = new List<TokenData>();
-        }
-
-        class Block : ITokenBlock
-        {
-            public IList<ITokenLine> Lines { get; } = new List<ITokenLine>();
-        }
-
         char _indentChar = '\0';
         bool _done; // marks that we hit the end of input
 
-        public ITokenBlock Group(IEnumerable<TokenData> input) {
+        public IBlockLiteral Group(IEnumerable<TokenData> input) {
             _indentChar = '\0';
             _done = false;
             using (var it = input.GetEnumerator()) {
-                if (!it.MoveNext()) return new Block();
+                if (!it.MoveNext()) return new BlockLiteral();
                 var blockColumn = 1;
                 if (it.Current.Type == Token.NewLineIndentation
                     || it.Current.Type == Token.WhiteSpaceSeperator) { // first whitespace is an indentation
                     blockColumn = GetIndent(it);
-                    if (!it.MoveNext()) return new Block();
+                    if (!it.MoveNext()) return new BlockLiteral();
                 }
                 var block = ParseBlock(it, blockColumn);
                 if (!_done) {
@@ -85,8 +61,8 @@ namespace REC.Parser
             }
         }
 
-        ITokenBlock ParseBlock(IEnumerator<TokenData> it, int blockColumn) {
-            var block = new Block();
+        IBlockLiteral ParseBlock(IEnumerator<TokenData> it, int blockColumn) {
+            var block = new BlockLiteral();
             while (true) {
                 while (true) {
                     int indent;
@@ -125,7 +101,7 @@ namespace REC.Parser
         }
 
         ITokenLine ParseLine(IEnumerator<TokenData> it, int parentBlockColumn) {
-            var line = new Line();
+            var line = new TokenLine();
             var expectEnd = false;
             while (true) {
                 ExtractLineTokens(it, line);
@@ -139,11 +115,6 @@ namespace REC.Parser
                             if (nextColumn < parentBlockColumn) return line; // end of the parent block
                             // line continuation
                             while (true) {
-                                if (!line.Tokens.IsEmpty() && line.Tokens.Last().Type != Token.BlockStartIndentation) {
-                                    current = it.Current;
-                                    current.Type = Token.WhiteSpaceSeperator;
-                                    line.Tokens.Add(current);
-                                }
                                 if (!it.MoveNext()) _done = true;
                                 if (_done) return line; // should not happen (final NewLineIndentation was filtered)
                                 ExtractLineTokens(it, line);
@@ -185,12 +156,12 @@ namespace REC.Parser
                             if (nextColumn < parentBlockColumn) {
                                 // TODO report missing end
                                 // handling: add empty block and finish line
-                                current.Data = new Block();
+                                current.Data = new BlockLiteral();
                                 line.Tokens.Add(current);
                                 return line;
                             }
                             if (nextColumn == parentBlockColumn) { // empty block
-                                current.Data = new Block();
+                                current.Data = new BlockLiteral();
                                 line.Tokens.Add(current);
                                 if (!it.MoveNext()) _done = true;
                                 continue;

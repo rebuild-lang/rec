@@ -61,25 +61,33 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AST\ArgumentDeclaration.cs" />
-    <Compile Include="AST\Block.cs" />
+    <Compile Include="AST\BlockLiteral.cs" />
+    <Compile Include="AST\ExpressionBlock.cs" />
     <Compile Include="AST\Declaration.cs" />
     <Compile Include="AST\DefineDeclaration.cs" />
     <Compile Include="AST\Expression.cs" />
     <Compile Include="AST\FunctionDeclaration.cs" />
     <Compile Include="AST\IdentifierLiteral.cs" />
-    <Compile Include="AST\Invocation.cs" />
+    <Compile Include="AST\FunctionInvocation.cs" />
     <Compile Include="AST\Literal.cs" />
-    <Compile Include="AST\Module.cs" />
+    <Compile Include="AST\ModuleDeclaration.cs" />
+    <Compile Include="AST\NamedExpressionTuple.cs" />
     <Compile Include="AST\NumberLiteral.cs" />
     <Compile Include="AST\StringLiteral.cs" />
+    <Compile Include="AST\TypedReference.cs" />
+    <Compile Include="AST\TypedValue.cs" />
     <Compile Include="AST\VariableDeclaration.cs" />
+    <Compile Include="Execution\CompileTime.cs" />
     <Compile Include="Intrinsic\IIntrinsic.cs" />
     <Compile Include="Intrinsic\Intrinsic.cs" />
+    <Compile Include="Intrinsic\IntrinsicScope.cs" />
     <Compile Include="Parser\TokenPreparation.cs" />
     <Compile Include="Parser\BlockLineGrouping.cs" />
     <Compile Include="Parser\Parser.cs" />
     <Compile Include="Scanner\CommentScanner.cs" />
     <Compile Include="Scanner\IdentifierScanner.cs" />
+    <Compile Include="Scanner\TokenData.cs" />
+    <Compile Include="Scope\BindingLevel.cs" />
     <Compile Include="Scope\Scope.cs" />
     <Compile Include="Scope\IEntry.cs" />
     <Compile Include="Scanner\NumberLiteralScanner.cs" />
@@ -88,7 +96,9 @@
     <Compile Include="Scanner\OperatorScanner.cs" />
     <Compile Include="Scanner\Scanner.cs" />
     <Compile Include="Scanner\StringLiteralScanner.cs" />
+    <Compile Include="Scope\SyntaxPattern.cs" />
     <Compile Include="TextInputRange.cs" />
+    <Compile Include="Tools\NamedCollection.cs" />
     <Compile Include="Tools\DecimalExtensionMethods.cs" />
     <Compile Include="Tools\DictionaryExtensionMethods.cs" />
     <Compile Include="Tools\EnumerableExtensionMethods.cs" />

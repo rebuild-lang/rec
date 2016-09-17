@@ -8,6 +8,8 @@ namespace REC.AST
     using Pair = KeyValuePair<int, int>; // bits, radix
     using Dict = Dictionary<KeyValuePair<int, int>, string>;
 
+    // collection of data derived from parsing any number literal token
+    // the processing of the number value is deferred until we know a format to encode the value to
     public interface INumberLiteral : ILiteral
     {
         int BaseRadix { get; } // 1, 8, 10, 16

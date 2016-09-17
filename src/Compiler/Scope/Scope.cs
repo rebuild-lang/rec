@@ -49,7 +49,7 @@ namespace REC.Scope
 
         private void OnParentIdentifierAdded(IScope scope, IEntry entry)
         {
-            if (_identifiers.ContainsKey(entry.Label)) return;
+            if (_identifiers.ContainsKey(entry.Name)) return;
             IdentifierAdded?.Invoke(scope, entry);
         }
 
@@ -59,7 +59,7 @@ namespace REC.Scope
         }
 
         public bool Add(IEntry entry) {
-            var label = entry.Label;
+            var label = entry.Name;
             if (_identifiers.ContainsKey(label))
                 return false;
             _identifiers.Add(label, entry);

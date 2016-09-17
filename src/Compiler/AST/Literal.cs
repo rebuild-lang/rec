@@ -1,12 +1,13 @@
 ﻿namespace REC.AST
 {
-    // Literal are constants values
+    // Literals are constants values
+    // NumberLiteral, StringLiteral, BlockLiteral
     public interface ILiteral : IExpression
     {
         
     }
 
-    internal class Literal : Expression, ILiteral
+    abstract class Literal : Expression, ILiteral
     {
     }
 

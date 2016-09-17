@@ -10,9 +10,7 @@ namespace REC.Tests
     {
         private class Entry : IEntry
         {
-            public string Label { get; set; }
-            public ICallableEntry CallableEntry { get; } = null;
-            public bool IsCompileTime { get; } = false;
+            public string Name { get; set; }
         }
 
         [Test()]
@@ -46,9 +44,9 @@ namespace REC.Tests
         public void Add() {
             var parentScope = new Scope.Scope();
             var childScope = new Scope.Scope(parentScope);
-            var myScope = new Scope.Scope(childScope) {new Entry { Label = "label"}};
+            var myScope = new Scope.Scope(childScope) {new Entry { Name = "label"}};
 
-            var testIdentifier = new Entry { Label = "label" };
+            var testIdentifier = new Entry { Name = "label" };
             var parentIdentifierAdded = false;
             parentScope.IdentifierAdded += (scope, identifier) =>
             {
@@ -74,17 +72,17 @@ namespace REC.Tests
             Assert.IsTrue(parentIdentifierAdded);
             Assert.IsTrue(childIdentifierAdded);
             Assert.IsFalse(myIdentifierAdded);
-            Assert.AreEqual(testIdentifier, childScope[testIdentifier.Label]);
-            Assert.AreNotEqual(testIdentifier, myScope[testIdentifier.Label]);
+            Assert.AreEqual(testIdentifier, childScope[testIdentifier.Name]);
+            Assert.AreNotEqual(testIdentifier, myScope[testIdentifier.Name]);
         }
 
         [Test()]
         public void GetEnumerator() {
-            var parentScope = new Scope.Scope() { new Entry { Label = "label" } };
+            var parentScope = new Scope.Scope() { new Entry { Name = "label" } };
             var childScope = new Scope.Scope(parentScope);
-            var myScope = new Scope.Scope(childScope) { new Entry { Label = "fun" } };
+            var myScope = new Scope.Scope(childScope) { new Entry { Name = "fun" } };
 
-            var result = myScope.Select(i => i.Label).ToList();
+            var result = myScope.Select(i => i.Name).ToList();
 
             Assert.AreEqual(new List<string>() { "fun", "label" }, result);
         }

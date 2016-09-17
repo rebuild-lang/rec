@@ -1,14 +1,14 @@
 ﻿namespace REC.AST
 {
-    public interface IDefineDeclaration : IDeclaration
+    // immutable declaration
+    // almost the same as VariableDeclaration but value the final value
+    public interface IDefineDeclaration : ITypedDeclaration
     {
-        IModule Type { get; }
         IExpression Value { get; }
     }
 
-    internal class DefineDeclaration : Declaration, IDefineDeclaration
+    class DefineDeclaration : TypedDeclaration, IDefineDeclaration
     {
-        public IModule Type { get; set; }
         public IExpression Value { get; set; }
     }
 }

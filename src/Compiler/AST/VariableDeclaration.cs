@@ -1,14 +1,15 @@
 ﻿namespace REC.AST
 {
-    public interface IVariableDeclaration : IDeclaration
+    // mutable variable declaration
+    // almost the same as DefineDeclaration but Value is only initial value
+    public interface IVariableDeclaration : ITypedDeclaration
     {
-        IModule Type { get; }
+        // might be null if no initial value was given
         IExpression Value { get; }
     }
 
-    internal class VariableDeclaration : Declaration, IVariableDeclaration
+    internal class VariableDeclaration : TypedDeclaration, IVariableDeclaration
     {
-        public IModule Type { get; set; }
         public IExpression Value { get; set; }
     }
 }

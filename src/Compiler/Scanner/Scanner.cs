@@ -3,35 +3,7 @@ using System.Diagnostics;
 
 namespace REC.Scanner
 {
-    public enum Token
-    {
-        WhiteSpaceSeperator,
-        NewLineIndentation,
-        BlockStartIndentation, // used later
-        BlockEndIndentation, // used later
-        Comment,
-        CommaSeparator,
-        SemicolonSeparator,
-        CompileTimeOperator,
-        SquareBracketOpen,
-        SquareBracketClose,
-        BracketOpen,
-        BracketClose,
-        StringLiteral,
-        NumberLiteral,
-        IdentifierLiteral,
-        OperatorLiteral,
-        InvalidCharacter,
-    }
-
-    public struct TokenData
-    {
-        public Token Type;
-        public TextFileRange Range;
-        public object Data;
-    }
-
-    public class Scanner
+    public static class Scanner
     {
         public static IEnumerable<TokenData> ScanFile(TextFile file) {
             var input = new TextInputRange {File = file};
@@ -58,9 +30,6 @@ namespace REC.Scanner
                         continue;
                     case ';':
                         yield return ScanSingleChar(input, Token.SemicolonSeparator);
-                        continue;
-                    case '&':
-                        yield return ScanSingleChar(input, Token.CompileTimeOperator);
                         continue;
                     case '[':
                         yield return ScanSingleChar(input, Token.SquareBracketOpen);
@@ -130,13 +99,13 @@ namespace REC.Scanner
 
         static TokenData ScanStringLiteral(TextInputRange input) {
             var literal = StringLiteralScanner.Scan(input);
-            Debug.Assert(literal != null);
+            Debug.Assert(literal != null); // TODO: Create error token
             return new TokenData {Range = literal.Range, Type = Token.StringLiteral, Data = literal};
         }
 
         static TokenData ScanNumberLiteral(TextInputRange input) {
             var literal = NumberLiteralScanner.Scan(input);
-            Debug.Assert(literal != null);
+            Debug.Assert(literal != null); // TODO: Create error token
             return new TokenData {Range = literal.Range, Type = Token.NumberLiteral, Data = literal};
         }
     }

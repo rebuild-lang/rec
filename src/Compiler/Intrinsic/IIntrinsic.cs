@@ -7,11 +7,7 @@ using REC.Tools;
 
 namespace REC.Intrinsic
 {
-    public interface ITypedValue
-    {
-        IModule Type { get; }
-        dynamic Value { get; }
-    }
+    using ArgumentDeclarationCollection = NamedCollection<IArgumentDeclaration>;
 
     public interface IArgumentValues
     {
@@ -21,18 +17,15 @@ namespace REC.Intrinsic
         IReadOnlyCollection<ITypedValue> Values { get; }
     }
 
-    public interface IIntrinsic : ICallableEntry
+    public interface IIntrinsic : INamed
     {
-        void InvokeCompileTime(IArgumentValues result, IArgumentValues left, IArgumentValues right);
+        void InvokeCompileTime(IArgumentValues result, IArgumentValues right);
+
+        ArgumentDeclarationCollection RightArguments { get; }
+        ArgumentDeclarationCollection Results { get; }
     }
 
-    internal class TypedValue : ITypedValue
-    {
-        public IModule Type { get; set; }
-        public dynamic Value { get; set; }
-    }
-
-    internal class ArgumentValues : IArgumentValues
+    class ArgumentValues : IArgumentValues
     {
         public class Entry
         {

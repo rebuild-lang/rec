@@ -1,9 +1,10 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using NUnit.Framework;
-using System.Collections.Generic;
+using REC.AST;
+using REC.Parser;
 using REC.Scanner;
 
-namespace REC.Parser.Tests
+namespace REC.Tests.Parser
 {
     [TestFixture()]
     public class BlockLineGroupingTests
@@ -11,12 +12,21 @@ namespace REC.Parser.Tests
         public struct TestData
         {
             public IEnumerable<TokenData> Input;
-            public ITokenBlock Output;
+            public IBlockLiteral Output;
         }
 
         static TokenData Id(string text) {
             return new TokenData {
                 Type = Token.IdentifierLiteral,
+                Range = new TextFileRange {
+                    File = new TextFile { Content = text },
+                    End = new TextPosition { Column = text.Length, Index = text.Length }
+                }
+            };
+        }
+        static TokenData Op(string text) {
+            return new TokenData {
+                Type = Token.OperatorLiteral,
                 Range = new TextFileRange {
                     File = new TextFile { Content = text },
                     End = new TextPosition { Column = text.Length, Index = text.Length }
@@ -34,10 +44,6 @@ namespace REC.Parser.Tests
             };
         }
 
-        static TokenData WS() {
-            return new TokenData { Type = Token.WhiteSpaceSeperator };
-        }
-
         static TokenData NewLineIndentation(int column) {
             return new TokenData {
                 Type = Token.NewLineIndentation,
@@ -46,7 +52,7 @@ namespace REC.Parser.Tests
                 }
             };
         }
-        static TokenData BlockStart(int column, ITokenBlock block = null) {
+        static TokenData BlockStart(int column, IBlockLiteral block = null) {
             return new TokenData {
                 Type = Token.BlockStartIndentation,
                 Range = new TextFileRange {
@@ -64,41 +70,31 @@ namespace REC.Parser.Tests
             };
         }
 
-        class Line : ITokenLine
-        {
-            public IList<TokenData> Tokens { get; } = new List<TokenData>();
-        }
-
-        class Block : ITokenBlock
-        {
-            public IList<ITokenLine> Lines { get; } = new List<ITokenLine>();
-        }
-
         static readonly TestData[] GroupTests = new[] {
             new TestData {
                 Input = new [] {
-                    Id(text: "if"), WS(), Id(text: "a"), NewLineIndentation(column: 4),
-                        Id(text: "&&"), WS(), Id(text: "b"), BlockStart(column: 4),
-                        Id(text: "print"), WS(), StringLiteral(text: "a"), NewLineIndentation(column: 1),
+                    Id(text: "if"), Id(text: "a"), NewLineIndentation(column: 4),
+                        Op(text: "&&"), Id(text: "b"), BlockStart(column: 4),
+                        Id(text: "print"), StringLiteral(text: "a"), NewLineIndentation(column: 1),
                     Id(text: "else"), BlockStart(column: 4),
-                        Id(text: "print"), WS(), StringLiteral(text: "b"), BlockEnd(column: 1),
+                        Id(text: "print"), StringLiteral(text: "b"), BlockEnd(column: 1),
                 },
-                Output = new Block {
+                Output = new BlockLiteral {
                     Lines = {
-                        new Line {
+                        new TokenLine {
                             Tokens = {
-                                Id(text: "if"), WS(), Id(text: "a"), WS(), Id(text: "&&"), WS(), Id(text: "b"),
-                                BlockStart(column: 4, block: new Block {
+                                Id(text: "if"), Id(text: "a"), Op(text: "&&"), Id(text: "b"),
+                                BlockStart(column: 4, block: new BlockLiteral {
                                     Lines = {
-                                        new Line {
-                                            Tokens = { Id(text: "print"), WS(), StringLiteral(text: "a") }
+                                        new TokenLine {
+                                            Tokens = { Id(text: "print"), StringLiteral(text: "a") }
                                         }
                                     }
                                 }), Id(text: "else"),
-                                BlockStart(column: 4, block: new Block {
+                                BlockStart(column: 4, block: new BlockLiteral {
                                     Lines = {
-                                        new Line {
-                                            Tokens = { Id(text: "print"), WS(), StringLiteral(text: "b") }
+                                        new TokenLine {
+                                            Tokens = { Id(text: "print"), StringLiteral(text: "b") }
                                         }
                                     }
                                 })
@@ -117,7 +113,7 @@ namespace REC.Parser.Tests
             AssertBlock(data.Output, result, label: "result");
         }
 
-        void AssertBlock(ITokenBlock expected, ITokenBlock actual, string label) {
+        void AssertBlock(IBlockLiteral expected, IBlockLiteral actual, string label) {
             Assert.That(actual.Lines.Count, Is.EqualTo(expected.Lines.Count), $"{label}.Lines.Count");
             for (var i = 0; i < actual.Lines.Count; i++) {
                 AssertLine(expected.Lines[i], actual.Lines[i], $"{label}.Lines[{i}]");
@@ -136,8 +132,8 @@ namespace REC.Parser.Tests
             switch (actual.Type) {
                 case Token.BlockStartIndentation:
                     Assert.That(actual.Range.End.Column, Is.EqualTo(expected.Range.End.Column));
-                    var actualBlock = actual.Data as ITokenBlock;
-                    var expectedBlock = expected.Data as ITokenBlock;
+                    var actualBlock = actual.Data as IBlockLiteral;
+                    var expectedBlock = expected.Data as IBlockLiteral;
                     AssertBlock(expectedBlock, actualBlock, $"{label}.Data");
                     break;
 
@@ -146,8 +142,6 @@ namespace REC.Parser.Tests
                 case Token.IdentifierLiteral:
                 case Token.OperatorLiteral:
                     Assert.That(actual.Range.Text, Is.EqualTo(expected.Range.Text));
-                    break;
-                default:
                     break;
             }
         }

@@ -1,16 +1,19 @@
 using System.Collections.Generic;
 using REC.AST;
+using REC.Tools;
 
 namespace REC.Scope
 {
-    public interface IEntry
+    using ArgumentDeclarationCollection = NamedCollection<IArgumentDeclaration>;
+
+    public interface IEntry : INamed
     {
-        string Label { get; }
+        // TODO: add access to shadowed names to process better error messages
     }
 
-    public class Entry : IEntry
+    abstract class Entry : IEntry
     {
-        public string Label { get; set; }
+        public string Name { get; set; }
     }
 
     public interface IDeclaredEntry : IEntry
@@ -18,67 +21,30 @@ namespace REC.Scope
         IDeclaration Declaration { get; }
     }
 
-    public class DeclaredEntry : IDeclaredEntry
+    abstract class DeclaredEntry : IDeclaredEntry
     {
-        public string Label => Declaration.Name;
+        public string Name => Declaration.Name;
         public IDeclaration Declaration { get; }
     }
 
-    public enum Association
+    public interface IFuntionEntry : IEntry
     {
-        Both, // does not matter (might give optimizations)
-        Left, // a+b+c evaluates (a+b)+c
-        Right, // a+b+c evaluates a+(b+c)
+        IList<IFunctionDeclaration> FunctionDeclarations { get; }
     }
 
-    public interface ICallableEntry : IEntry
+    class FunctionEnty : IFuntionEntry
     {
-        ICollection<IArgumentDeclaration> LeftArguments { get; }
-        ICollection<IArgumentDeclaration> RightArguments { get; }
-        ICollection<IArgumentDeclaration> Results { get; }
-
-        ISet<IFunction> Preferred { get; }
-        Association Associative { get; }
+        public string Name => FunctionDeclarations?.First()?.Name;
+        public IList<IFunctionDeclaration> FunctionDeclarations { get; } = new List<IFunctionDeclaration>();
     }
 
-    public interface IFunction : IDeclaredEntry, ICallableEntry
+    public interface ITypedConstruct : IDeclaredEntry
     {
-        new IFunctionDeclaration Declaration { get; }
+        IModuleDeclaration Type { get; } // TODO: Type is not always statically evaluated
     }
 
-    public class FunctionEnty : IFunction
+    class TypeConstruct : DeclaredEntry, ITypedConstruct
     {
-        public string Label => Declaration.Name;
-        IDeclaration IDeclaredEntry.Declaration => Declaration;
-
-        public IFunctionDeclaration Declaration { get; set; }
-
-        public ICollection<IArgumentDeclaration> LeftArguments => Declaration.LeftArguments;
-        public ICollection<IArgumentDeclaration> RightArguments => Declaration.RightArguments;
-        public ICollection<IArgumentDeclaration> Results => Declaration.Results;
-        public ISet<IFunction> Preferred { get; } = new HashSet<IFunction>();
-        public Association Associative { get; } = Association.Both;
+        public IModuleDeclaration Type { get; set; }
     }
-
-    public interface ITypedConstruct : IEntry
-    {
-        IModule Type { get; } // TODO: Type is not always statically evaluated
-    }
-
-    public class TypeConstruct : Entry, ITypedConstruct
-    {
-        public IModule Type { get; set; }
-    }
-
-    public interface IArgument : ITypedConstruct
-    {}
-
-    public class Argument : TypeConstruct, IArgument
-    {}
-
-    public interface IVariable : ITypedConstruct
-    {}
-
-    public interface IDefine : ITypedConstruct
-    {}
 }

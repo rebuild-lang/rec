@@ -5,6 +5,10 @@ namespace REC.Tools
 {
     public static class EnumerableExtensionMethods
     {
+        public static IEnumerable<T> Yield<T>(this T self) {
+            yield return self;
+        }
+
         // Flatten nested enumerable to specific type
         // !! type T cannot implement IEnumerable or IEnumerator
         public static IEnumerable<T> FlattenTo<T>(this IEnumerable<dynamic> enumerable) {
