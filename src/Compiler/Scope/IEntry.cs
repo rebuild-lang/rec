@@ -52,6 +52,7 @@ namespace REC.Scope
 
     public interface ITypedConstruct : IDeclaredEntry
     {
+        ITypedDeclaration TypedDeclaration { get; }
         IModuleDeclaration Type { get; } // TODO: Type is not always statically evaluated
     }
 
@@ -59,6 +60,7 @@ namespace REC.Scope
     {
         public DefineDeclaration Define { get; set; }
         public override IDeclaration Declaration => Define;
+        public ITypedDeclaration TypedDeclaration => Define;
         public IModuleDeclaration Type => Define.Type;
     }
 }

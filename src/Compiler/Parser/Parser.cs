@@ -95,7 +95,7 @@ namespace REC.Parser
             var result = new TypedReference {
                 Range = tokens.Current.Range,
                 Type = typed.Type,
-                Declaration = typed.Declaration
+                Declaration = typed.TypedDeclaration
             };
             return result;
         }

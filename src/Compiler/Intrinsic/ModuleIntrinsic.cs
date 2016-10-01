@@ -30,6 +30,11 @@ namespace REC.Intrinsic
         public void Add(IIntrinsic value) {
             Dict[value.Name] = value;
         }
+        public void Add(IFunctionIntrinsic[] value) {
+            foreach (var intrinsic in value) {
+                Add(intrinsic);
+            }
+        }
     }
 
     public interface IModuleIntrinsic : IIntrinsic

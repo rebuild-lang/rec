@@ -1,6 +1,6 @@
 ﻿using REC.Intrinsic;
+using REC.Intrinsic.IO;
 using REC.Parser;
-using REC.Scope;
 
 namespace REC
 {
@@ -12,7 +12,8 @@ namespace REC
                 new IntrinsicDict {
                         Intrinsic.Types.U64Type.Get(),
                         Intrinsic.Types.API.NumberLiteralType.Get(),
-                        Intrinsic.IO.PrintIntrinsic.Get()
+                        PrintIntrinsic.Get(),
+                        SimpleMathIntrinsic<ulong, UlongMath>.Get()
                 });
         }
 
@@ -33,7 +34,7 @@ namespace REC
             var compiler = new Compiler();
             compiler.CompileFile(
                 new TextFile {
-                    Content = "&Print 42",
+                    Content = "&Print Add 23 42",
                     Filename = "Test.rebuild"
                 });
         }

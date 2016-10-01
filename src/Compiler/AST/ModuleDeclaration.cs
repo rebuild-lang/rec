@@ -67,6 +67,10 @@ namespace REC.AST
             return (module as IntrinsicModuleDeclaration)?.ToNetType;
         }
 
+        public static FromNetTypeAction GetFromNetType(this IModuleDeclaration module) {
+            return (module as IntrinsicModuleDeclaration)?.FromNetType;
+        }
+
     }
 
     class ModuleDeclaration : Declaration, IModuleDeclaration

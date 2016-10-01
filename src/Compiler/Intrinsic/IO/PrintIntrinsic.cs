@@ -1,4 +1,6 @@
-﻿#pragma warning disable 649
+﻿
+#pragma warning disable 649
+
 namespace REC.Intrinsic.IO
 {
     static class PrintIntrinsic
@@ -8,7 +10,7 @@ namespace REC.Intrinsic.IO
                 Name = "Print",
                 IsCompileTimeOnly = true,
                 RightArgumentsType = typeof(RightArguments),
-                CompileTime = (left, right, result) => CompileTime((RightArguments)right)
+                CompileTime = (left, right, result) => CompileTime((RightArguments) right)
             };
         }
 

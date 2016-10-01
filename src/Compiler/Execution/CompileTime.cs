@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using REC.AST;
@@ -31,22 +32,29 @@ namespace REC.Execution
         }
 
         [SuppressMessage("ReSharper", "UnusedParameter.Local")]
-        static IExpression Dynamic(INumberLiteral numberLiteral, IScope scope) {
-            //var type = scope.Identifiers["NumberLiteral"];
-            //IExpression result = null;
-            return numberLiteral;
+        static IExpression Dynamic(ILiteral literal, IScope scope) {
+            return literal;
+        }
+
+        [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+        static IExpression Dynamic(ITypedValue value, IScope scope) {
+            return value;
+        }
+
+        static IExpression Dynamic(ITypedReference reference, IScope scope) {
+            return scope.Values[reference.Declaration];
         }
 
         static IExpression Dynamic(IFunctionInvocation functionInvocation, IScope scope) {
             var dynamicScope = new Parser.Scope {Parent = functionInvocation.Function.StaticScope};
             BuildArgumentValues(dynamicScope, functionInvocation.Left, functionInvocation.Function.LeftArguments, scope);
             BuildArgumentValues(dynamicScope, functionInvocation.Right, functionInvocation.Function.RightArguments, scope);
-            // TODO: BuildResultValues(innerScope, functionInvocation.Function.Results);
-            Dynamic(functionInvocation.Function.Implementation, dynamicScope);
-            return null; // TODO: ExtractResultValues(innerScope, functionInvocation.Function.Results);
+            BuildResultValues(dynamicScope, functionInvocation.Function.Results);
+            var result = Dynamic(functionInvocation.Function.Implementation, dynamicScope);
+            return ExtractResultValues(dynamicScope, result, functionInvocation.Function.Results);
         }
 
-        static void BuildArgumentValues(IScope innerScope, INamedExpressionTuple expressions, NamedCollection<IArgumentDeclaration> arguments, IScope argumentScope) {
+        static void BuildArgumentValues(IScope innerScope, INamedExpressionTuple expressions, IReadOnlyList<IArgumentDeclaration> arguments, IScope argumentScope) {
             var argN = 0;
             foreach (var expression in expressions.Tuple) {
                 var argument = arguments[argN];
@@ -60,6 +68,27 @@ namespace REC.Execution
                 var value = Dynamic((dynamic) argument.Value, innerScope.Parent);
                 innerScope.Values.Add(argument, value);
             }
+        }
+
+        static void BuildResultValues(IScope innerScope, IEnumerable<IArgumentDeclaration> results) {
+            foreach (var result in results) {
+                var value = result.Value != null ? Dynamic((dynamic) result.Value, innerScope.Parent) : CreateValue(result.Type);
+                innerScope.Values.Add(result, value);
+            }
+        }
+
+        static IExpression ExtractResultValues(IScope scope, IExpression result, NamedCollection<IArgumentDeclaration> results) {
+            if (results.IsEmpty()) return null;
+            if (results.Count == 1 && results.First().Name == null) return result;
+            var expressionTuple = new NamedExpressionTuple();
+            foreach (var namedResult in results) {
+                var value = scope.Values[namedResult.Name];
+                expressionTuple.Tuple.Add(new NamedExpression {
+                    Name = namedResult.Name,
+                    Expression = value
+                });
+            }
+            return expressionTuple;
         }
 
         static ITypedValue ImplicitCast(ITypedValue value, IModuleDeclaration type) {
@@ -76,6 +105,13 @@ namespace REC.Execution
             return value;
         }
 
+        static ITypedValue ImplicitCast(INamedExpressionTuple tuple, IModuleDeclaration type) {
+            if (tuple.Tuple.Count == 1) {
+                return ImplicitCast((dynamic)tuple.Tuple.First().Expression, type);
+            }
+            throw new ArgumentException("Invalid argument tuple");
+        }
+
         static IExpression Dynamic(IIntrinsicExpression intrinsicExpression, IScope scope) {
             var func = intrinsicExpression.Intrinsic as IFunctionIntrinsic;
             if (func != null) {
@@ -88,10 +124,20 @@ namespace REC.Execution
                 ScopeToNetTypes(scope.Values, results, func.ResultType);
 
                 func.CompileTime(leftArguments, rightArguments, results);
-                // TODO: convert results
-                // NetTypesToScope(results, func.ResultType, scope);
+
+                NetTypesToScope(results, func.ResultType, scope.Values);
             }
             return null;
+        }
+
+        static void NetTypesToScope(object netValues, Type type, IValueScope scope) {
+            if (netValues == null) return;
+            foreach (var fieldInfo in type.GetRuntimeFields()) {
+                var netValue = fieldInfo.GetValue(netValues);
+                var fieldValue = scope[fieldInfo.Name];
+                var converter = fieldValue.Type.GetFromNetType();
+                converter(netValue, fieldValue.Data);
+            }
         }
 
         static void ScopeToNetTypes(IValueScope scope, object netValues, Type type) {

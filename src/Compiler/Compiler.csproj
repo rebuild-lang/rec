@@ -83,6 +83,7 @@
     <Compile Include="Intrinsic\DeclarationConverter.cs" />
     <Compile Include="Intrinsic\FunctionIntrinsic.cs" />
     <Compile Include="Intrinsic\Intrinsic.cs" />
+    <Compile Include="Intrinsic\IO\SimpleMathIntrinsic.cs" />
     <Compile Include="Intrinsic\ModuleIntrinsic.cs" />
     <Compile Include="Intrinsic\IO\PrintIntrinsic.cs" />
     <Compile Include="Intrinsic\TypeIntrinsic.cs" />

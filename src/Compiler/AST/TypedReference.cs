@@ -7,12 +7,12 @@
     {
         IModuleDeclaration Type { get; }
 
-        IDeclaration Declaration { get; }
+        ITypedDeclaration Declaration { get; }
     }
 
     class TypedReference : Expression, ITypedReference
     {
         public IModuleDeclaration Type { get; set; }
-        public IDeclaration Declaration { get; set; }
+        public ITypedDeclaration Declaration { get; set; }
     }
 }
