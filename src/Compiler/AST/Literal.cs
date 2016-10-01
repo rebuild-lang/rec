@@ -1,7 +1,7 @@
 ﻿namespace REC.AST
 {
     // Literals are constants values
-    // NumberLiteral, StringLiteral, BlockLiteral
+    // NumberLiteralType, StringLiteral, BlockLiteral
     public interface ILiteral : IExpression
     {
         

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using REC.Tools;
+﻿using REC.Tools;
 
 namespace REC.AST
 {

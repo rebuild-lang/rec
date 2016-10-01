@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using REC.AST;
 using REC.Execution;
@@ -13,7 +12,7 @@ namespace REC.Parser
     {
         public static IExpressionBlock ParseBlock(IBlockLiteral tokenBlock, IScope parentScope) {
             var block = new ExpressionBlock();
-            var scope = new Scope.Scope(parentScope);
+            var scope = new Scope {Parent = parentScope};
             foreach (var tokenLine in tokenBlock.Lines) {
                 using (var it = tokenLine.Tokens.GetEnumerator()) {
                     if (it.MoveNext()) {
@@ -54,30 +53,30 @@ namespace REC.Parser
                 switch (token.Type) {
                     case Token.IdentifierLiteral:
                         var identifierLiteral = (IIdentifierLiteral)token.Data;
-                        var resolved = scope[identifierLiteral.Content];
+                        var resolved = scope.Identifiers[identifierLiteral.Content];
                         if (null != resolved) {
                             var subexpression = ParseResolved((dynamic)resolved, result, tokens, scope, ref done);
-                            result.tuple.Add(new NamedExpression { Expression = subexpression != null ? subexpression : identifierLiteral });
+                            result.Tuple.Add(new NamedExpression { Expression = subexpression != null ? subexpression : identifierLiteral });
                             continue;
                         }
-                        result.tuple.Add(new NamedExpression { Expression = identifierLiteral });
+                        result.Tuple.Add(new NamedExpression { Expression = identifierLiteral });
                         break;
                     case Token.OperatorLiteral:
                         var operatorLiteral = (IIdentifierLiteral)token.Data;
                         // TODO: split operators with scope
-                        result.tuple.Add(new NamedExpression { Expression = operatorLiteral });
+                        result.Tuple.Add(new NamedExpression { Expression = operatorLiteral });
                         break;
                     case Token.StringLiteral:
                         var stringLiteral = (IStringLiteral)token.Data;
-                        result.tuple.Add(new NamedExpression { Expression = stringLiteral });
+                        result.Tuple.Add(new NamedExpression { Expression = stringLiteral });
                         break;
                     case Token.NumberLiteral:
                         var numberLiteral = (INumberLiteral)token.Data;
-                        result.tuple.Add(new NamedExpression { Expression = numberLiteral });
+                        result.Tuple.Add(new NamedExpression { Expression = numberLiteral });
                         break;
                     case Token.BlockStartIndentation:
                         var tokenBlock = (IBlockLiteral)token.Data;
-                        result.tuple.Add(new NamedExpression { Expression = tokenBlock });
+                        result.Tuple.Add(new NamedExpression { Expression = tokenBlock });
                         break;
                 }
                 if (done) break;
@@ -87,13 +86,13 @@ namespace REC.Parser
         }
 
         static IExpression ParseResolved(
-            TypeConstruct typed,
+            ITypedConstruct typed,
             INamedExpressionTuple leftArguments,
             IEnumerator<TokenData> tokens,
             IScope scope,
             ref bool done) {
             
-            var result = new AST.TypedReference {
+            var result = new TypedReference {
                 Range = tokens.Current.Range,
                 Type = typed.Type,
                 Declaration = typed.Declaration
@@ -135,14 +134,14 @@ namespace REC.Parser
         static IList<IFunctionDeclaration> FilterFunctionLeftArguments(IList<IFunctionDeclaration> pool, INamedExpressionTuple leftArguments) {
             return pool.Where(f => {
                 if (f.LeftArguments == null) return true;
-                if (f.LeftArguments.Count > leftArguments.tuple.Count) return false;
-                var o = leftArguments.tuple.Count - f.LeftArguments.Count;
+                if (f.LeftArguments.Count > leftArguments.Tuple.Count) return false;
+                var o = leftArguments.Tuple.Count - f.LeftArguments.Count;
                 foreach (var fArg in f.LeftArguments) {
-                    var givenArg = leftArguments.tuple[o];
+                    var givenArg = leftArguments.Tuple[o];
                     if (!CanImplicitConvertExpressionTo(givenArg.Expression, fArg.Type)) return false;
                     o++;
                 }
-                return f.LeftArguments.Count <= leftArguments.tuple.Count;
+                return f.LeftArguments.Count <= leftArguments.Tuple.Count;
             }).ToList();
         }
 
@@ -154,8 +153,8 @@ namespace REC.Parser
             return pool.Where(
                 f => {
                     if (f.RightArguments == null) return true;
-                    if (f.MandatoryRightArgumentCount() > rightArguments.tuple.Count
-                        || (f.MaxRightArgumentCount() != null && f.MaxRightArgumentCount() < rightArguments.tuple.Count))
+                    if (f.MandatoryRightArgumentCount() > rightArguments.Tuple.Count
+                        || (f.MaxRightArgumentCount() != null && f.MaxRightArgumentCount() < rightArguments.Tuple.Count))
                         return false;
                     return true;
                 }).ToList();
@@ -180,8 +179,15 @@ namespace REC.Parser
             return invocation;
         }
 
-        static ICollection<IExpression> AssignArguments(NamedCollection<IArgumentDeclaration> argumentDeclarations, INamedExpressionTuple arguments) {
-            var result = new List<IExpression>();
+        static INamedExpressionTuple AssignArguments(NamedCollection<IArgumentDeclaration> argumentDeclarations, INamedExpressionTuple arguments) {
+            var result = new NamedExpressionTuple();
+            foreach (var argument in arguments.Tuple) {
+                result.Tuple.Add(argument);
+            }
+            arguments.Tuple.Clear();
+            // TODO: check that enough arguments are given
+            // TODO: check that conversion exists
+            // TODO: consume only left arguments that are used
             return result;
         }
     }

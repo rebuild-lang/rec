@@ -6,11 +6,11 @@ namespace REC.AST
     public interface IExpressionBlock : IExpression
     {
         // Modules, Declarations, Invocations & nested blocks are allowed
-        ICollection<IExpression> Expressions { get; }
+        IList<IExpression> Expressions { get; }
     }
 
     class ExpressionBlock : Expression, IExpressionBlock
     {
-        public ICollection<IExpression> Expressions { get; } = new List<IExpression>();
+        public IList<IExpression> Expressions { get; } = new List<IExpression>();
     }
 }

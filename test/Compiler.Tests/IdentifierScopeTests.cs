@@ -13,74 +13,34 @@ namespace REC.Tests
             public string Name { get; set; }
         }
 
-        [Test()]
-        public void IdentifierScope() {
-            var parentScope = new Scope.Scope();
-            var childScope = new Scope.Scope(parentScope);
-
-            Assert.AreEqual(childScope.Parent, parentScope);
-            Assert.IsNull(parentScope.Parent);
-
-            var childScopeDisposed = false;
-            childScope.Disposed += scope => {
-                Assert.AreEqual(childScope, scope);
-                childScopeDisposed = true;
-            };
-            var parentScopeDisposed = false;
-            parentScope.Disposed += scope =>
-            {
-                // ReSharper disable once AccessToDisposedClosure
-                Assert.AreEqual(parentScope, scope);
-                parentScopeDisposed = true;
-            };
-
-            parentScope.Dispose();
-
-            Assert.IsTrue(parentScopeDisposed);
-            Assert.IsTrue(childScopeDisposed);
-        }
 
         [Test()]
         public void Add() {
-            var parentScope = new Scope.Scope();
-            var childScope = new Scope.Scope(parentScope);
-            var myScope = new Scope.Scope(childScope) {new Entry { Name = "label"}};
+            var parentScope = new IdentifierScope {};
+            var childScope = new IdentifierScope {Parent = parentScope};
+            var myScope = new IdentifierScope {Parent = childScope};
 
-            var testIdentifier = new Entry { Name = "label" };
-            var parentIdentifierAdded = false;
-            parentScope.IdentifierAdded += (scope, identifier) =>
-            {
-                Assert.AreEqual(parentScope, scope);
-                Assert.AreEqual(testIdentifier, identifier);
-                parentIdentifierAdded = true;
-            };
+            var myEntry = new Entry {Name = "label"};
+            myScope.Add(myEntry);
 
-            var childIdentifierAdded = false;
-            childScope.IdentifierAdded += (scope, identifier) => {
-                Assert.AreEqual(parentScope, scope);
-                Assert.AreEqual(testIdentifier, identifier);
-                childIdentifierAdded = true;
-            };
-
-            const bool myIdentifierAdded = false;
-            childScope.IdentifierAdded += (scope, identifier) => childIdentifierAdded = true;
+            var testIdentifier = new Entry { Name = myEntry.Name };
 
             var result = parentScope.Add(testIdentifier);
             Assert.IsTrue(result);
             Assert.IsFalse(parentScope.Add(testIdentifier));
 
-            Assert.IsTrue(parentIdentifierAdded);
-            Assert.IsTrue(childIdentifierAdded);
-            Assert.IsFalse(myIdentifierAdded);
+            Assert.AreEqual(testIdentifier, parentScope[testIdentifier.Name]);
             Assert.AreEqual(testIdentifier, childScope[testIdentifier.Name]);
+            Assert.AreEqual(myEntry, myScope[testIdentifier.Name]);
             Assert.AreNotEqual(testIdentifier, myScope[testIdentifier.Name]);
         }
 
         [Test()]
         public void GetEnumerator() {
-            var parentScope = new Scope.Scope() { new Entry { Name = "label" } };
-            var childScope = new Scope.Scope(parentScope);
-            var myScope = new Scope.Scope(childScope) { new Entry { Name = "fun" } };
+            var parentScope = new IdentifierScope { new Entry { Name = "label" } };
+            var childScope = new IdentifierScope {Parent = parentScope};
+            var myScope = new IdentifierScope {Parent = childScope};
+            myScope.Add(new Entry { Name = "fun" });
 
             var result = myScope.Select(i => i.Name).ToList();
 

@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using System.Security.Cryptography.X509Certificates;
+using REC.Parser;
 using REC.Scope;
 using REC.Tools;
 
@@ -9,6 +9,11 @@ namespace REC.AST
 
     public interface IFunctionDeclaration : IDeclaration
     {
+        bool IsCompileTimeOnly { get; }
+        //bool IsRuntimeOnly { get; }
+
+        IScope StaticScope { get; }
+
         ArgumentDeclarationCollection LeftArguments { get; }
         ArgumentDeclarationCollection RightArguments { get; }
         ArgumentDeclarationCollection Results { get; }
@@ -46,6 +51,9 @@ namespace REC.AST
 
     class FunctionDeclaration : Declaration, IFunctionDeclaration
     {
+        public bool IsCompileTimeOnly { get; set; }
+        //public bool IsRuntimeOnly { get; set; }
+        public IScope StaticScope { get; set; }
         public ArgumentDeclarationCollection LeftArguments { get; set; }
         public ArgumentDeclarationCollection RightArguments { get; set; }
         public ArgumentDeclarationCollection Results { get; set; }

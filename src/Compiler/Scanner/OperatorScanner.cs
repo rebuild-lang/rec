@@ -11,7 +11,7 @@ namespace REC.Scanner
     using BracketEntry = KeyValuePair<char, TextPosition>;
     using BracketStack = Stack<KeyValuePair<char, TextPosition>>;
 
-    // Operators can contain any symbols and are disambiguated into multiple identifiers the current scope
+    // Operators can contain any symbols and are disambiguated into multiple identifiers the current identifierScope
     // This allows a+b to be parsed as three tokens
     public static class OperatorScanner
     {

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using REC.Tools;
+﻿using REC.Tools;
 
 namespace REC.AST
 {
@@ -18,7 +13,7 @@ namespace REC.AST
 
     public interface INamedExpressionTuple : IExpression
     {
-        NamedExpressionCollection tuple { get; }
+        NamedExpressionCollection Tuple { get; }
     }
 
     struct NamedExpression : INamedExpression
@@ -29,6 +24,6 @@ namespace REC.AST
 
     class NamedExpressionTuple : Expression, INamedExpressionTuple
     {
-        public NamedExpressionCollection tuple { get; } = new NamedExpressionCollection();
+        public NamedExpressionCollection Tuple { get; } = new NamedExpressionCollection();
     }
 }

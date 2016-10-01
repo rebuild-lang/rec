@@ -24,7 +24,19 @@ namespace REC.Scope
     abstract class DeclaredEntry : IDeclaredEntry
     {
         public string Name => Declaration.Name;
-        public IDeclaration Declaration { get; }
+        public virtual IDeclaration Declaration { get; }
+    }
+
+    public interface IModuleEntry : IDeclaredEntry
+    {
+        IModuleDeclaration ModuleDeclaration { get; }
+    }
+
+    class ModuleEntry : DeclaredEntry, IModuleEntry
+    {
+        public override IDeclaration Declaration => ModuleDeclaration;
+
+        public IModuleDeclaration ModuleDeclaration { get; set; }
     }
 
     public interface IFuntionEntry : IEntry
@@ -43,8 +55,10 @@ namespace REC.Scope
         IModuleDeclaration Type { get; } // TODO: Type is not always statically evaluated
     }
 
-    class TypeConstruct : DeclaredEntry, ITypedConstruct
+    class DefineEntry : DeclaredEntry, ITypedConstruct
     {
-        public IModuleDeclaration Type { get; set; }
+        public DefineDeclaration Define { get; set; }
+        public override IDeclaration Declaration => Define;
+        public IModuleDeclaration Type => Define.Type;
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using REC.Tools;
+﻿//using REC.Tools;
 
 namespace REC.AST
 {
@@ -7,27 +6,28 @@ namespace REC.AST
     public interface IFunctionInvocation : IExpression
     {
         IFunctionDeclaration Function { get; }
-        ICollection<IExpression> Left { get; }
-        ICollection<IExpression> Right { get; }
+        INamedExpressionTuple Left { get; }
+        INamedExpressionTuple Right { get; }
     }
 
-    public interface IArgumentAssignment : IExpression, INamed
-    {
-        IArgumentDeclaration Variable { get; }
-        IExpression Value { get; }
-    }
 
     class FunctionInvocation : Expression, IFunctionInvocation
     {
         public IFunctionDeclaration Function { get; set; }
-        public ICollection<IExpression> Left { get; set; }
-        public ICollection<IExpression> Right { get; set; }
+        public INamedExpressionTuple Left { get; set; }
+        public INamedExpressionTuple Right { get; set; }
     }
 
-    class ArgumentAssignment : Expression, IArgumentAssignment
-    {
-        public string Name => Variable?.Name;
-        public IArgumentDeclaration Variable { get; set; }
-        public IExpression Value { get; set; }
-    }
+
+    //public interface IArgumentAssignment : IExpression, INamed
+    //{
+    //    IArgumentDeclaration Variable { get; }
+    //    IExpression Value { get; }
+    //}
+    //class ArgumentAssignment : Expression, IArgumentAssignment
+    //{
+    //    public string Name => Variable?.Name;
+    //    public IArgumentDeclaration Variable { get; set; }
+    //    public IExpression Value { get; set; }
+    //}
 }

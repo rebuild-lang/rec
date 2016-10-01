@@ -8,7 +8,7 @@
         IExpression Value { get; }
     }
 
-    internal class VariableDeclaration : TypedDeclaration, IVariableDeclaration
+    class VariableDeclaration : TypedDeclaration, IVariableDeclaration
     {
         public IExpression Value { get; set; }
     }

@@ -69,6 +69,7 @@
     <Compile Include="AST\FunctionDeclaration.cs" />
     <Compile Include="AST\IdentifierLiteral.cs" />
     <Compile Include="AST\FunctionInvocation.cs" />
+    <Compile Include="AST\IntrinsicExpression.cs" />
     <Compile Include="AST\Literal.cs" />
     <Compile Include="AST\ModuleDeclaration.cs" />
     <Compile Include="AST\NamedExpressionTuple.cs" />
@@ -78,9 +79,16 @@
     <Compile Include="AST\TypedValue.cs" />
     <Compile Include="AST\VariableDeclaration.cs" />
     <Compile Include="Execution\CompileTime.cs" />
-    <Compile Include="Intrinsic\IIntrinsic.cs" />
+    <Compile Include="Execution\ValueScope.cs" />
+    <Compile Include="Intrinsic\DeclarationConverter.cs" />
+    <Compile Include="Intrinsic\FunctionIntrinsic.cs" />
     <Compile Include="Intrinsic\Intrinsic.cs" />
-    <Compile Include="Intrinsic\IntrinsicScope.cs" />
+    <Compile Include="Intrinsic\ModuleIntrinsic.cs" />
+    <Compile Include="Intrinsic\IO\PrintIntrinsic.cs" />
+    <Compile Include="Intrinsic\TypeIntrinsic.cs" />
+    <Compile Include="Intrinsic\Types\API\NumberLiteralType.cs" />
+    <Compile Include="Intrinsic\Types\U64Type.cs" />
+    <Compile Include="Parser\Scope.cs" />
     <Compile Include="Parser\TokenPreparation.cs" />
     <Compile Include="Parser\BlockLineGrouping.cs" />
     <Compile Include="Parser\Parser.cs" />
@@ -88,7 +96,7 @@
     <Compile Include="Scanner\IdentifierScanner.cs" />
     <Compile Include="Scanner\TokenData.cs" />
     <Compile Include="Scope\BindingLevel.cs" />
-    <Compile Include="Scope\Scope.cs" />
+    <Compile Include="Scope\IdentifierScope.cs" />
     <Compile Include="Scope\IEntry.cs" />
     <Compile Include="Scanner\NumberLiteralScanner.cs" />
     <Compile Include="Program.cs" />
@@ -98,6 +106,7 @@
     <Compile Include="Scanner\StringLiteralScanner.cs" />
     <Compile Include="Scope\SyntaxPattern.cs" />
     <Compile Include="TextInputRange.cs" />
+    <Compile Include="Tools\HandleCache.cs" />
     <Compile Include="Tools\NamedCollection.cs" />
     <Compile Include="Tools\DecimalExtensionMethods.cs" />
     <Compile Include="Tools\DictionaryExtensionMethods.cs" />

@@ -26,6 +26,10 @@ namespace REC.AST
         bool FitsPositive(int byteCount);
         bool FitsNegative(int byteCount);
         bool FitsFloat(int byteCount);
+
+        byte[] ToUnsigned(int byteCount);
+        byte[] ToSigned(int byteCount);
+        byte[] ToFloat(int byteCount);
     }
 
     internal class NumberLiteral : Literal, INumberLiteral
@@ -45,7 +49,9 @@ namespace REC.AST
         public bool FitsNegative(int byteCount) => IsInteger && IsFitsNegativeBits(IntegerPart, BaseRadix, byteCount * 8 - 1);
         public bool FitsFloat(int byteCount) => false;
 
-        public byte[] ToUnsigned(int byteCount) => new byte[byteCount];
+        public byte[] ToUnsigned(int byteCount) {
+            return BitConverter.GetBytes(Convert.ToUInt64(IntegerPart));
+        }
         public byte[] ToSigned(int byteCount) => new byte[byteCount];
         public byte[] ToFloat(int byteCount) => new byte[byteCount];
 
