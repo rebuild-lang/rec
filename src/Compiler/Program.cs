@@ -1,4 +1,6 @@
-﻿using REC.Intrinsic;
+﻿using System.IO;
+using REC.Cpp;
+using REC.Intrinsic;
 using REC.Intrinsic.IO;
 using REC.Parser;
 
@@ -21,10 +23,13 @@ namespace REC
 
         public void CompileFile(TextFile file) {
             var raw = Scanner.Scanner.ScanFile(file);
-            var prepared = Parser.TokenPreparation.Apply(raw);
-            var block = new Parser.BlockLineGrouping().Group(prepared);
+            var prepared = TokenPreparation.Apply(raw);
+            var block = new BlockLineGrouping().Group(prepared);
             var ast = Parser.Parser.ParseBlock(block, InjectedScope);
-            // TODO: use AST
+            using (var writer = File.CreateText(path: "compiled.cpp")) {
+                var generator = new CppGenerator();
+                generator.Generate(writer, ast);
+            }
         }
     }
 
@@ -34,7 +39,7 @@ namespace REC
             var compiler = new Compiler();
             compiler.CompileFile(
                 new TextFile {
-                    Content = "&Print Add 23 42",
+                    Content = "Print 42",
                     Filename = "Test.rebuild"
                 });
         }

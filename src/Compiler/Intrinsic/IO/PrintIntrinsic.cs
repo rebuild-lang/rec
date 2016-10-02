@@ -1,4 +1,6 @@
 ﻿
+using REC.Cpp;
+
 #pragma warning disable 649
 
 namespace REC.Intrinsic.IO
@@ -10,7 +12,8 @@ namespace REC.Intrinsic.IO
                 Name = "Print",
                 IsCompileTimeOnly = true,
                 RightArgumentsType = typeof(RightArguments),
-                CompileTime = (left, right, result) => CompileTime((RightArguments) right)
+                CompileTime = (left, right, result) => CompileTime((RightArguments) right),
+                GenerateCpp = GenerateCpp,
             };
         }
 
@@ -21,6 +24,11 @@ namespace REC.Intrinsic.IO
 
         static void CompileTime(RightArguments right) {
             System.Console.WriteLine("Print: " + right.Value.ToString());
+        }
+
+        static void GenerateCpp(ICppIntrinsic intrinsic) {
+            intrinsic.EnsureGlobal("stdio", () => "#include <stdio.h>");
+            intrinsic.OutputLine($"printf(\"Print: %I64u\\n\", {intrinsic.RightArgument("Value")});");
         }
     }
 }

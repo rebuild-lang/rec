@@ -1,4 +1,5 @@
 ﻿using System;
+using REC.Cpp;
 
 namespace REC.Intrinsic
 {
@@ -29,6 +30,8 @@ namespace REC.Intrinsic
         Type RightArgumentsType { get; }
 
         Action<ILeftArguments, IRightArguments, IResultArguments> CompileTime { get; }
+
+        Action<ICppIntrinsic> GenerateCpp { get; }
     }
 
     class FunctionIntrinsic : Intrinsic, IFunctionIntrinsic
@@ -38,5 +41,6 @@ namespace REC.Intrinsic
         public Type LeftArgumentsType { get; set; }
         public Type RightArgumentsType { get; set; }
         public Action<ILeftArguments, IRightArguments, IResultArguments> CompileTime { get; set; }
+        public Action<ICppIntrinsic> GenerateCpp { get; set; }
     }
 }
