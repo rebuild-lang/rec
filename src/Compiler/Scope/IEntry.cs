@@ -56,11 +56,28 @@ namespace REC.Scope
         IModuleDeclaration Type { get; } // TODO: Type is not always statically evaluated
     }
 
-    class DefineEntry : DeclaredEntry, ITypedConstruct
+    public interface IDefineEntry : ITypedConstruct
     {
-        public DefineDeclaration Define { get; set; }
+        IDefineDeclaration Define { get; }
+    }
+
+    class DefineEntry : DeclaredEntry, IDefineEntry
+    {
+        public IDefineDeclaration Define { get; set; }
         public override IDeclaration Declaration => Define;
         public ITypedDeclaration TypedDeclaration => Define;
         public IModuleDeclaration Type => Define.Type;
+    }
+
+    public interface IArgumentEntry : ITypedConstruct
+    {
+        IArgumentDeclaration Argument { get; }
+    }
+    class ArgumentEntry : DeclaredEntry, IArgumentEntry
+    {
+        public IArgumentDeclaration Argument { get; set; }
+        public override IDeclaration Declaration => Argument;
+        public ITypedDeclaration TypedDeclaration => Argument;
+        public IModuleDeclaration Type => Argument.Type;
     }
 }

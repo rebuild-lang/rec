@@ -28,7 +28,7 @@ namespace REC.Intrinsic.IO
 
         static void GenerateCpp(ICppIntrinsic intrinsic) {
             intrinsic.EnsureGlobal("stdio", () => "#include <stdio.h>");
-            intrinsic.OutputLine($"printf(\"Print: %I64u\\n\", {intrinsic.RightArgument("Value")});");
+            intrinsic.Runtime.AddLine($"printf(\"Print: %I64u\\n\", {intrinsic.RightArgument("Value")});");
         }
     }
 }

@@ -79,6 +79,9 @@
     <Compile Include="AST\TypedValue.cs" />
     <Compile Include="AST\VariableDeclaration.cs" />
     <Compile Include="Cpp\CppGenerator.cs" />
+    <Compile Include="Cpp\CppIntrinsic.cs" />
+    <Compile Include="Cpp\CppScope.cs" />
+    <Compile Include="Cpp\IndentedTextBuilder.cs" />
     <Compile Include="Execution\CompileTime.cs" />
     <Compile Include="Execution\ValueScope.cs" />
     <Compile Include="Intrinsic\DeclarationConverter.cs" />

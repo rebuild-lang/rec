@@ -33,9 +33,9 @@ namespace REC.Intrinsic
             ConvertNetTypes(moduleDeclaration.Expressions, intrinsic.Children);
             if (moduleDeclaration.IsType()) {
                 var typeEntry = moduleDeclaration.Scope.Identifiers["type"] as IModuleEntry;
-                var sizeEntry = typeEntry?.ModuleDeclaration.Scope.Identifiers["size"] as DefineEntry;
+                var sizeEntry = typeEntry?.ModuleDeclaration.Scope.Identifiers["size"] as IDefineEntry;
                 if (sizeEntry != null) {
-                    sizeEntry.Define.Type = NetTypeToRebuildType(typeof(ulong));
+                    ((DefineDeclaration) sizeEntry.Define).Type = NetTypeToRebuildType(typeof(ulong));
                     ((TypedValue) sizeEntry.Define.Value).Type = sizeEntry.Define.Type;
                 }
             }

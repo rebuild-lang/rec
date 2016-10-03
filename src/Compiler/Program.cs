@@ -36,8 +36,7 @@ namespace REC
             var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp"); 
             //var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp"); // use this for debugging cpp output
             using (var writer = File.CreateText(cppFileName)) {
-                var generator = new CppGenerator();
-                generator.Generate(writer, ast);
+                CppGenerator.Generate(writer, ast);
             }
             RunCppCompiler(cppFileName, Path.ChangeExtension(file.Filename, extension: "exe"));
         }
@@ -101,7 +100,10 @@ namespace REC
             compiler.CompileFile(
                 new TextFile {
                     Content = @"
-Print 23
+fn test (x : u64):
+   Print x
+end
+test 23
 Print 42",
                     Filename = "Test.rebuild"
                 });
