@@ -78,7 +78,10 @@ namespace REC.Parser
          * mutates
          * * ":" before indentation => block start
          * * "end" after indentation => block end
-         * * identifiers with separators around them
+         * * identifiers separators around identifiers and operators
+         * 
+         * note:
+         * * this code is independent of : being an operator or literal
          */
         public static IEnumerable<TokenData> Apply(IEnumerable<TokenData> input) {
             using (var it = input.GetEnumerator()) {
@@ -126,7 +129,8 @@ namespace REC.Parser
                             continue;
 
                         case Token.NewLineIndentation:
-                            if (previous.Type == Token.IdentifierLiteral && previous.Range.Text == ":") {
+                            if ((previous.Type == Token.IdentifierLiteral || previous.Type == Token.OperatorLiteral)
+                                && previous.Range.Text == ":") {
                                 if (lastYieldType == Token.NewLineIndentation
                                     || lastYieldType == Token.BlockStartIndentation) {
                                     // TODO: report as error

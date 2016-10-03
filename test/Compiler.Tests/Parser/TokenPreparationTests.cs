@@ -75,13 +75,26 @@ namespace REC.Tests.Parser
             Token.NewLineIndentation, "begin", ":", Token.NewLineIndentation,
         }, arg2: new[] {
             Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
-        }, TestName = "Mutate block start")]
+        }, TestName = "Mutate identifier block start")]
 
         [TestCase(arg1: new object[] {
             "begin", ":", Token.WhiteSpaceSeperator, Token.Comment, Token.NewLineIndentation,
         }, arg2: new[] {
             Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
-        }, TestName = "Mutate block start with comment")]
+        }, TestName = "Mutate identifier block start with comment")]
+
+        [TestCase(arg1: new object[] {
+            Token.NewLineIndentation, "begin", ':', Token.NewLineIndentation,
+        }, arg2: new[] {
+            Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
+        }, TestName = "Mutate operator block start")]
+
+        [TestCase(arg1: new object[] {
+            "begin", ':', Token.WhiteSpaceSeperator, Token.Comment, Token.NewLineIndentation,
+        }, arg2: new[] {
+            Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
+        }, TestName = "Mutate operator block start with comment")]
+
         public void Filter(IEnumerable<dynamic> inputTokens, IEnumerable<Token> expectedTokens) {
             var input = inputTokens.Select(
                 t => {
@@ -91,6 +104,14 @@ namespace REC.Tests.Parser
                             Type = Token.IdentifierLiteral,
                             Range = new TextFileRange { File = new TextFile { Content = s }, End = new TextPosition { Index = s.Length } },
                             Data = new IdentifierLiteral { Content = s }
+                        };
+                    }
+                    var c = t as char?;
+                    if (c != null) {
+                        return new TokenData {
+                            Type = Token.OperatorLiteral,
+                            Range = new TextFileRange { File = new TextFile { Content = ""+c }, End = new TextPosition { Index = 1 } },
+                            Data = new IdentifierLiteral { Content = ""+c }
                         };
                     }
                     return new TokenData { Type = t };
