@@ -109,10 +109,10 @@ namespace REC.Parser
 
                 while (true) {
                     var nextColumn = GetIndent(it);
-                    TokenData current;
                     switch (it.Current.Type) {
                         case Token.NewLineIndentation:
                             if (nextColumn < parentBlockColumn) return line; // end of the parent block
+                            if (nextColumn == parentBlockColumn && !expectEnd) return line; // normal line break
                             // line continuation
                             while (true) {
                                 if (!it.MoveNext()) _done = true;
@@ -152,7 +152,7 @@ namespace REC.Parser
                             continue;
                         case Token.BlockStartIndentation:
                             expectEnd = true;
-                            current = it.Current;
+                            var current = it.Current;
                             if (nextColumn < parentBlockColumn) {
                                 // TODO report missing end
                                 // handling: add empty block and finish line

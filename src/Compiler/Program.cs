@@ -100,7 +100,9 @@ namespace REC
             var compiler = new Compiler();
             compiler.CompileFile(
                 new TextFile {
-                    Content = "Print 42",
+                    Content = @"
+Print 23
+Print 42",
                     Filename = "Test.rebuild"
                 });
         }

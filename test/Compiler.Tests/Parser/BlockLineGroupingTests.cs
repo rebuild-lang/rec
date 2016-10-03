@@ -19,17 +19,18 @@ namespace REC.Tests.Parser
             return new TokenData {
                 Type = Token.IdentifierLiteral,
                 Range = new TextFileRange {
-                    File = new TextFile { Content = text },
-                    End = new TextPosition { Column = text.Length, Index = text.Length }
+                    File = new TextFile {Content = text},
+                    End = new TextPosition {Column = text.Length, Index = text.Length}
                 }
             };
         }
+
         static TokenData Op(string text) {
             return new TokenData {
                 Type = Token.OperatorLiteral,
                 Range = new TextFileRange {
-                    File = new TextFile { Content = text },
-                    End = new TextPosition { Column = text.Length, Index = text.Length }
+                    File = new TextFile {Content = text},
+                    End = new TextPosition {Column = text.Length, Index = text.Length}
                 }
             };
         }
@@ -38,8 +39,8 @@ namespace REC.Tests.Parser
             return new TokenData {
                 Type = Token.StringLiteral,
                 Range = new TextFileRange {
-                    File = new TextFile { Content = text },
-                    End = new TextPosition { Column = text.Length, Index = text.Length }
+                    File = new TextFile {Content = text},
+                    End = new TextPosition {Column = text.Length, Index = text.Length}
                 }
             };
         }
@@ -52,57 +53,68 @@ namespace REC.Tests.Parser
                 }
             };
         }
+
         static TokenData BlockStart(int column, IBlockLiteral block = null) {
             return new TokenData {
                 Type = Token.BlockStartIndentation,
                 Range = new TextFileRange {
-                    End = new TextPosition { Column = column }
+                    End = new TextPosition {Column = column}
                 },
                 Data = block
             };
         }
+
         static TokenData BlockEnd(int column) {
             return new TokenData {
                 Type = Token.BlockEndIndentation,
                 Range = new TextFileRange {
-                    End = new TextPosition { Column = column }
+                    End = new TextPosition {Column = column}
                 }
             };
         }
 
         static readonly TestData[] GroupTests = new[] {
             new TestData {
-                Input = new [] {
+                Input = new[] {
                     Id(text: "if"), Id(text: "a"), NewLineIndentation(column: 4),
-                        Op(text: "&&"), Id(text: "b"), BlockStart(column: 4),
-                        Id(text: "print"), StringLiteral(text: "a"), NewLineIndentation(column: 1),
+                    Op(text: "&&"), Id(text: "b"), BlockStart(column: 4),
+                    Id(text: "print"), StringLiteral(text: "a"), NewLineIndentation(column: 4),
+                    Id(text: "print"), StringLiteral(text: "b"), NewLineIndentation(column: 1),
                     Id(text: "else"), BlockStart(column: 4),
-                        Id(text: "print"), StringLiteral(text: "b"), BlockEnd(column: 1),
+                    Id(text: "print"), StringLiteral(text: "b"), BlockEnd(column: 1),
                 },
                 Output = new BlockLiteral {
                     Lines = {
                         new TokenLine {
                             Tokens = {
                                 Id(text: "if"), Id(text: "a"), Op(text: "&&"), Id(text: "b"),
-                                BlockStart(column: 4, block: new BlockLiteral {
-                                    Lines = {
-                                        new TokenLine {
-                                            Tokens = { Id(text: "print"), StringLiteral(text: "a") }
+                                BlockStart(
+                                    column: 4,
+                                    block: new BlockLiteral {
+                                        Lines = {
+                                            new TokenLine {
+                                                Tokens = {Id(text: "print"), StringLiteral(text: "a")}
+                                            },
+                                            new TokenLine {
+                                                Tokens = {Id(text: "print"), StringLiteral(text: "b")}
+                                            }
                                         }
-                                    }
-                                }), Id(text: "else"),
-                                BlockStart(column: 4, block: new BlockLiteral {
-                                    Lines = {
-                                        new TokenLine {
-                                            Tokens = { Id(text: "print"), StringLiteral(text: "b") }
+                                    }),
+                                Id(text: "else"),
+                                BlockStart(
+                                    column: 4,
+                                    block: new BlockLiteral {
+                                        Lines = {
+                                            new TokenLine {
+                                                Tokens = {Id(text: "print"), StringLiteral(text: "b")}
+                                            }
                                         }
-                                    }
-                                })
+                                    })
                             }
                         }
                     }
                 }
-            }, 
+            },
         };
 
 
