@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using REC.AST;
 using REC.Intrinsic;
@@ -68,9 +69,10 @@ namespace REC.Cpp
 
             var leftArgs = BuildArgumentValues(function, function.LeftArguments, functionInvocation.Left, scope, kind: "Left");
             var rightArgs = BuildArgumentValues(function, function.RightArguments, functionInvocation.Right, scope, kind: "Right");
-            var resultArgs = BuildResultValues(function, scope);
+            var resultName = string.Empty;
+            var resultArgs = BuildResultValues(function, scope, ref resultName);
             scope.Runtime.AddLine(BuildInvocation(function.Name, leftArgs, rightArgs, resultArgs));
-            return resultArgs;
+            return resultName;
         }
 
         static string BuildInvocation(string function, string leftArgs, string rightArgs, string resultArgs) {
@@ -79,10 +81,10 @@ namespace REC.Cpp
             return $"{resultArgs}{function}({left}{right});";
         }
 
-        static string BuildResultValues(IFunctionDeclaration function, ICppScope scope) {
+        static string BuildResultValues(IFunctionDeclaration function, ICppScope scope, ref string name) {
             var argumentDeclarations = function.Results;
             if (argumentDeclarations.IsEmpty()) return string.Empty;
-            var name = scope.MakeLocalName();
+            name = scope.MakeLocalName();
             var typeName = GetFunctionTypeName(function.Name, kind: "Result");
             return $"{typeName} {name} = ";
         }
@@ -145,21 +147,34 @@ namespace REC.Cpp
                 innerScope => {
                     MakeArgumentLocals(function.LeftArguments, leftLocal, innerScope);
                     MakeArgumentLocals(function.RightArguments, rightLocal, innerScope);
-                    //MakeResultLocals(function.Results, innerScope);
+                    MakeResultLocals(function.Results, innerScope);
 
                     Dynamic(function.Implementation, innerScope);
 
                     if (!noResult) {
                         var resultLocal = scope.MakeLocalName("result");
                         innerScope.Runtime.AddLine($"{resultType} {resultLocal};");
-                        // TODO: assign values
+                        AssignResultsFromLocals(resultLocal, function.Results, innerScope);
                         innerScope.Runtime.AddLine($"return {resultLocal};");
                     }
                 });
             scope.Declaration.AddLine(line: "}");
         }
 
-        static void MakeArgumentLocals(NamedCollection<IArgumentDeclaration> arguments, string arg, ICppScope scope) {
+        static void AssignResultsFromLocals(string resultLocal, IEnumerable<IArgumentDeclaration> results, ICppScope scope) {
+            foreach (var result in results) {
+                scope.Runtime.AddLine($"{resultLocal}.{result.Name} = std::move({result.Name});");
+            }
+        }
+
+        static void MakeResultLocals(IEnumerable<IArgumentDeclaration> results, ICppScope scope) {
+            foreach (var result in results) {
+                var resultType = GetArgumentTypeName(result.Type);
+                scope.Runtime.AddLine($"{resultType} {result.Name};"); // TODO: initialize to default value
+            }
+        }
+
+        static void MakeArgumentLocals(IEnumerable<IArgumentDeclaration> arguments, string arg, ICppScope scope) {
             foreach (var argument in arguments) {
                 var argumentType = GetArgumentTypeName(argument.Type);
                 scope.Runtime.AddLine($"{argumentType} {argument.Name} = std::move({arg}.{argument.Name});");
@@ -175,6 +190,9 @@ namespace REC.Cpp
                     foreach (var argument in arguments) {
                         var argTypeName = GetArgumentTypeName(argument.Type);
                         innerScope.Declaration.AddLine($"{argTypeName} {argument.Name};");
+                        if (arguments.Count == 1) {
+                            innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return {argument.Name}; }}");
+                        }
                     }
                 });
             scope.Declaration.AddLine(line: "};");

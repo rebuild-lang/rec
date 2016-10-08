@@ -1,5 +1,4 @@
-﻿
-using REC.Cpp;
+﻿using REC.Cpp;
 
 #pragma warning disable 649
 

@@ -1,4 +1,7 @@
 ﻿// ReSharper disable NotAccessedField.Local
+
+using REC.Cpp;
+
 #pragma warning disable 649
 namespace REC.Intrinsic.IO
 {
@@ -30,13 +33,15 @@ namespace REC.Intrinsic.IO
                     Name = "Add",
                     RightArgumentsType = typeof(BinaryArguments),
                     ResultType = typeof(Result),
-                    CompileTime = (left, right, result) => CompileTimeAdd((BinaryArguments) right, (Result) result)
+                    CompileTime = (left, right, result) => CompileTimeAdd((BinaryArguments) right, (Result) result),
+                    GenerateCpp = GenerateCppAdd,
                 },
                 new FunctionIntrinsic {
                     Name = "Sub",
                     RightArgumentsType = typeof(BinaryArguments),
                     ResultType = typeof(Result),
-                    CompileTime = (left, right, result) => CompileTimeSub((BinaryArguments) right, (Result) result)
+                    CompileTime = (left, right, result) => CompileTimeSub((BinaryArguments) right, (Result) result),
+                    GenerateCpp = GenerateCppSub,
                 },
             };
         }
@@ -55,9 +60,16 @@ namespace REC.Intrinsic.IO
         static void CompileTimeAdd(BinaryArguments args, Result res) {
             res.Value = Api.Add(args.Left, args.Right);
         }
+        static void GenerateCppAdd(ICppIntrinsic intrinsic) {
+            intrinsic.Runtime.AddLine($"{intrinsic.ResultArgument("Value")} = {intrinsic.RightArgument("Left")} + {intrinsic.RightArgument("Right")};");
+        }
 
         static void CompileTimeSub(BinaryArguments args, Result res) {
             res.Value = Api.Sub(args.Left, args.Right);
         }
+        static void GenerateCppSub(ICppIntrinsic intrinsic) {
+            intrinsic.Runtime.AddLine($"{intrinsic.ResultArgument("Value")} = {intrinsic.RightArgument("Left")} - {intrinsic.RightArgument("Right")};");
+        }
+
     }
 }

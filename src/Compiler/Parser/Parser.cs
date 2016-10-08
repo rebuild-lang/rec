@@ -56,8 +56,7 @@ namespace REC.Parser
             var token = tokens.Current;
             #region Left Arguments
             if (token.Type == Token.BracketOpen) {
-                //functionDecl.LeftArguments = ParseArgumentsDecl(tokens, functionDecl.StaticScope, ref done);
-                // TODO: parse left arguments
+                functionDecl.LeftArguments = ParseArgumentsDecl(tokens, functionDecl.StaticScope, ref done);
                 if (done) return null;
                 token = tokens.Current;
             }
@@ -89,7 +88,7 @@ namespace REC.Parser
             if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "->") {
                 if (!tokens.MoveNext()) done = true; // jump over the arrow
                 if (done) return functionDecl;
-                //functionDecl.Results = ParseArgumentsDecl(tokens, functionDecl.StaticScope, ref done);
+                functionDecl.Results = ParseArgumentsDecl(tokens, functionDecl.StaticScope, ref done);
                 if (done) return functionDecl;
                 token = tokens.Current;
             }

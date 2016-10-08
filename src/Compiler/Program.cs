@@ -100,11 +100,17 @@ namespace REC
             compiler.CompileFile(
                 new TextFile {
                     Content = @"
+# assignment is undefined
+#fn (a : u64) add (b : u64) -> r : u64:
+#   r = Add a b
+#end
 fn test (x : u64):
    Print x
 end
-test 23
-Print 42",
+test Add 23 12
+&Print Add 42 23
+&test Add 23 32
+Print Add 42 22",
                     Filename = "Test.rebuild"
                 });
         }
