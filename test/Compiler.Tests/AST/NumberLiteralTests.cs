@@ -4,7 +4,7 @@ using REC.AST;
 namespace REC.Tests.AST
 {
     [TestFixture()]
-    public class NumberLiteralTests
+    public class lsNumberLiteralTests
     {
         [TestCase(10, "0", 1, true)]
         [TestCase(10, "255", 1, true)]

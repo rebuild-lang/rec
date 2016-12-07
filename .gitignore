@@ -2,3 +2,6 @@
 *.user
 bin/
 obj/
+.idea/
+packages/
+test/Compiler.Tests/project.lock.json
