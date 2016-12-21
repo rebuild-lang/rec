@@ -16,7 +16,7 @@ namespace REC.Tests
 
         [Test()]
         public void Add() {
-            var parentScope = new IdentifierScope {};
+            var parentScope = new IdentifierScope();
             var childScope = new IdentifierScope {Parent = parentScope};
             var myScope = new IdentifierScope {Parent = childScope};
 
