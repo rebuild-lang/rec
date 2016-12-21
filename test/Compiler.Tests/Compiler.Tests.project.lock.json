@@ -3,36 +3,38 @@
   "version": 1,
   "targets": {
     ".NETFramework,Version=v4.6.1": {
-      "NUnit/3.4.0": {
+      "NUnit/3.5.0": {
         "compile": {
           "lib/net45/nunit.framework.dll": {}
         },
         "runtime": {
           "lib/net45/nunit.framework.dll": {}
         }
-      }
+      },
+      "NUnit3TestAdapter/3.6.0": {}
     },
     ".NETFramework,Version=v4.6.1/win": {
-      "NUnit/3.4.0": {
+      "NUnit/3.5.0": {
         "compile": {
           "lib/net45/nunit.framework.dll": {}
         },
         "runtime": {
           "lib/net45/nunit.framework.dll": {}
         }
-      }
+      },
+      "NUnit3TestAdapter/3.6.0": {}
     }
   },
   "libraries": {
-    "NUnit/3.4.0": {
-      "sha512": "EaW+oOg4e90NrWCUTS7Hj3sCkW7KOMkoQKK/O5j2Nq5i2W8wvmqqllDSyXe8HLhDipnXnXJZoAvbJTVQdsJ8hg==",
+    "NUnit/3.5.0": {
+      "sha512": "z/03NfC+ci3/OzlIlClH+nd0LZ99OU3wS74nAtLVnPo1oq6nvd+CGxTHZAc8n8xxDLeLMofZ8AjahxlROEhf/Q==",
       "type": "package",
-      "path": "NUnit/3.4.0",
+      "path": "NUnit/3.5.0",
       "files": [
         "CHANGES.txt",
         "LICENSE.txt",
         "NOTICES.txt",
-        "NUnit.3.4.0.nupkg.sha512",
+        "NUnit.3.5.0.nupkg.sha512",
         "NUnit.nuspec",
         "lib/dotnet/nunit.framework.dll",
         "lib/dotnet/nunit.framework.xml",
@@ -48,11 +50,29 @@
         "lib/portable-net45+win8+wp8+wpa81+Xamarin.Mac+MonoAndroid10+MonoTouch10+Xamarin.iOS10/nunit.framework.dll",
         "lib/portable-net45+win8+wp8+wpa81+Xamarin.Mac+MonoAndroid10+MonoTouch10+Xamarin.iOS10/nunit.framework.xml"
       ]
+    },
+    "NUnit3TestAdapter/3.6.0": {
+      "sha512": "r3USYZd6YC0aohy80WAS2Cg0FVs4EgsZ615RywMxmXvANzbDbDCrEYBnvDKMpGzyV9sXjAz3gjCWW0D/F6CkKg==",
+      "type": "package",
+      "path": "NUnit3TestAdapter/3.6.0",
+      "files": [
+        "LICENSE.txt",
+        "NUnit3TestAdapter.3.6.0.nupkg.sha512",
+        "NUnit3TestAdapter.nuspec",
+        "tools/Mono.Cecil.Mdb.dll",
+        "tools/Mono.Cecil.Pdb.dll",
+        "tools/Mono.Cecil.Rocks.dll",
+        "tools/Mono.Cecil.dll",
+        "tools/NUnit3.TestAdapter.dll",
+        "tools/nunit.engine.api.dll",
+        "tools/nunit.engine.dll"
+      ]
     }
   },
   "projectFileDependencyGroups": {
     "": [
-      "NUnit >= 3.4.0"
+      "NUnit >= 3.5.0",
+      "NUnit3TestAdapter >= 3.6.0"
     ],
     ".NETFramework,Version=v4.6.1": []
   }

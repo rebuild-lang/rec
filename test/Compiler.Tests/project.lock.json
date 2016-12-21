@@ -2480,11 +2480,17 @@
           "lib/netstandard1.3/System.Xml.XPath.XDocument.dll": {}
         }
       },
-      "Compiler/1.0.0": {
+      "CompilerCore/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v1.0",
         "dependencies": {
           "Microsoft.NETCore.App": "1.1.0"
+        },
+        "compile": {
+          "netcoreapp1.0/CompilerCore.dll": {}
+        },
+        "runtime": {
+          "netcoreapp1.0/CompilerCore.dll": {}
         }
       }
     }
@@ -2642,7 +2648,7 @@
       ]
     },
     "Microsoft.DiaSymReader/1.0.8": {
-      "sha512": "ABLULVhCAiyBFLBT5xX6vB4NhZDgwUylGRQK+zW5nZn2rbh1f8LOnFZ9gVSxzL6qOzPNb32Nu3QZ43iZerHOxA==",
+      "sha512": "HAhTmRgU+nnDVYxMZFAS1iwqg6CudbsSMZfSY9UJj4AJO4L69xZCtTOPKC5rW8+egNBWjDb0iBZV4ZdNI6dZnA==",
       "type": "package",
       "path": "Microsoft.DiaSymReader/1.0.8",
       "files": [
@@ -7392,9 +7398,10 @@
         "ref/xamarinwatchos10/_._"
       ]
     },
-    "Compiler/1.0.0": {
+    "CompilerCore/1.0.0": {
       "type": "project",
-      "path": "../../src/Compiler/project.json"
+      "path": "../../src/Compiler/project.json",
+      "msbuildProject": "../../src/Compiler/CompilerCore.xproj"
     }
   },
   "projectFileDependencyGroups": {
