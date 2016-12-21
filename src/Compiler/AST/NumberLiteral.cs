@@ -12,7 +12,7 @@ namespace REC.AST
     // the processing of the number value is deferred until we know a format to encode the value to
     public interface INumberLiteral : ILiteral
     {
-        int BaseRadix { get; } // 1, 8, 10, 16
+        int Radix { get; } // 1, 8, 10, 16
         string IntegerPart { get; }
         string FractionalPart { get; }
         bool IsExponentPositive { get; }
@@ -34,7 +34,7 @@ namespace REC.AST
 
     internal class NumberLiteral : Literal, INumberLiteral
     {
-        public int BaseRadix { get; set; } // 1, 8, 10, 16
+        public int Radix { get; set; } // 1, 8, 10, 16
         public string IntegerPart { get; set; }
         public string FractionalPart { get; set; }
         public bool IsExponentPositive { get; set; } = true;
@@ -44,9 +44,9 @@ namespace REC.AST
         public bool IsFloat => FractionalPart != null || ExponentPart != null;
         public bool IsInteger => IntegerPart != null && FractionalPart == null && ExponentPart == null;
 
-        public bool FitsUnsigned(int byteCount) => IsInteger && IsFitsBits(IntegerPart, BaseRadix, byteCount * 8);
-        public bool FitsPositive(int byteCount) => IsInteger && IsFitsBits(IntegerPart, BaseRadix, byteCount * 8 - 1);
-        public bool FitsNegative(int byteCount) => IsInteger && IsFitsNegativeBits(IntegerPart, BaseRadix, byteCount * 8 - 1);
+        public bool FitsUnsigned(int byteCount) => IsInteger && IsFitsBits(IntegerPart, Radix, byteCount * 8);
+        public bool FitsPositive(int byteCount) => IsInteger && IsFitsBits(IntegerPart, Radix, byteCount * 8 - 1);
+        public bool FitsNegative(int byteCount) => IsInteger && IsFitsNegativeBits(IntegerPart, Radix, byteCount * 8 - 1);
         public bool FitsFloat(int byteCount) => false;
 
         public byte[] ToUnsigned(int byteCount) {

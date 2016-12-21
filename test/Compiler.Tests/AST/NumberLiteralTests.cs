@@ -15,7 +15,7 @@ namespace REC.Tests.AST
         {
             var num = new NumberLiteral
             {
-                BaseRadix = radix, IntegerPart = integerPart
+                Radix = radix, IntegerPart = integerPart
             };
 
             var result = num.FitsUnsigned(byteCount);
@@ -30,7 +30,7 @@ namespace REC.Tests.AST
         [TestCase(16, "81", 1, false)]
         public void FitsNegativeTest(int radix, string integerPart, int byteCount, bool fits) {
             var num = new NumberLiteral {
-                BaseRadix = radix, IntegerPart = integerPart
+                Radix = radix, IntegerPart = integerPart
             };
 
             var result = num.FitsNegative(byteCount);
@@ -45,7 +45,7 @@ namespace REC.Tests.AST
         [TestCase(16, "80", 1, false)]
         public void FitsPositiveTest(int radix, string integerPart, int byteCount, bool fits) {
             var num = new NumberLiteral {
-                BaseRadix = radix, IntegerPart = integerPart
+                Radix = radix, IntegerPart = integerPart
             };
 
             var result = num.FitsPositive(byteCount);

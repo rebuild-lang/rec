@@ -32,7 +32,7 @@ namespace REC.Scanner
         }
 
         private static NumberLiteral ScanDecimalNumber(TextInputRange input) {
-            var result = new NumberLiteral {BaseRadix = 10};
+            var result = new NumberLiteral {Radix = 10};
             var chr = input.EndChar;
             while (IsDecimalDigit(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";
@@ -80,7 +80,7 @@ namespace REC.Scanner
         }
 
         private static NumberLiteral ScanNumber(TextInputRange input, int radix, System.Func<char,bool> isBase) {
-            var result = new NumberLiteral {BaseRadix = radix};
+            var result = new NumberLiteral {Radix = radix};
             var chr = input.EndChar;
             while (isBase(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";

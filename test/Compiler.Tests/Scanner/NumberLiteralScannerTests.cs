@@ -45,7 +45,7 @@ namespace REC.Tests.Scanner
             var result = NumberLiteralScanner.Scan(input);
 
             Assert.IsNotNull(result);
-            Assert.AreEqual(radix, result.BaseRadix);
+            Assert.AreEqual(radix, result.Radix);
             Assert.AreEqual(integerPart, result.IntegerPart);
             Assert.AreEqual(fractionalPart, result.FractionalPart);
             Assert.AreEqual(exponentPart, result.ExponentPart);
