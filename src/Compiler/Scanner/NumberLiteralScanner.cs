@@ -17,21 +17,21 @@ namespace REC.Scanner
                     case 'x':
                     case 'X':
                         input.Extend(2);
-                        return ScanNumber(input,16,IsHexDigit);
+                        return ScanNumber(input, radix: 16, isDigit: IsHexDigit);
                     case 'o':
                     case 'O':
                         input.Extend(2);
-                        return ScanNumber(input,8,IsOctalDigit);
+                        return ScanNumber(input, radix: 8, isDigit: IsOctalDigit);
                     case 'b':
                     case 'B':
                         input.Extend(2);
-                        return ScanNumber(input,2,IsBinaryDigit);
+                        return ScanNumber(input, radix: 2, isDigit: IsBinaryDigit);
                 }
             }
             return ScanDecimalNumber(input);
         }
 
-        private static NumberLiteral ScanDecimalNumber(TextInputRange input) {
+        static NumberLiteral ScanDecimalNumber(TextInputRange input) {
             var result = new NumberLiteral {Radix = 10};
             var chr = input.EndChar;
             while (IsDecimalDigit(chr)) {
@@ -79,10 +79,10 @@ namespace REC.Scanner
             return result.IsValid ? result : null;
         }
 
-        private static NumberLiteral ScanNumber(TextInputRange input, int radix, System.Func<char,bool> isBase) {
+        static NumberLiteral ScanNumber(TextInputRange input, int radix, System.Func<char,bool> isDigit) {
             var result = new NumberLiteral {Radix = radix};
             var chr = input.EndChar;
-            while (isBase(chr)) {
+            while (isDigit(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";
                 if (!IsZero(chr) || !result.IntegerPart.IsEmpty()) {
                     result.IntegerPart += chr;
@@ -96,7 +96,7 @@ namespace REC.Scanner
                 result.FractionalPart = "";
                 input.Extend();
                 chr = input.EndChar;
-                while (isBase(chr)) {
+                while (isDigit(chr)) {
                     result.FractionalPart += chr;
                     do {
                         input.Extend();
@@ -127,26 +127,26 @@ namespace REC.Scanner
             return result.IsValid ? result : null;
         }
 
-        private static bool IsIgnored(char chr) => chr == '\'';
+        static bool IsIgnored(char chr) => chr == '\'';
 
-        private static bool IsPlus(char chr) => (chr == '+');
+        static bool IsPlus(char chr) => (chr == '+');
 
-        private static bool IsSign(char chr) => chr == '+' || chr == '-';
+        static bool IsSign(char chr) => chr == '+' || chr == '-';
 
-        private static bool IsP(char chr) => chr == 'p' || chr == 'P';
+        static bool IsP(char chr) => chr == 'p' || chr == 'P';
 
-        private static bool IsE(char chr) => chr == 'e' || chr == 'E';
+        static bool IsE(char chr) => chr == 'e' || chr == 'E';
 
-        private static bool IsDot(char chr) => chr == '.';
+        static bool IsDot(char chr) => chr == '.';
 
-        private static bool IsZero(char chr) => chr == '0';
+        static bool IsZero(char chr) => chr == '0';
 
-        private static bool IsBinaryDigit(char chr) => (chr == '0' || chr == '1');
+        static bool IsBinaryDigit(char chr) => (chr == '0' || chr == '1');
 
-        private static bool IsOctalDigit(char chr) => (chr >= '0' && chr <= '7');
+        static bool IsOctalDigit(char chr) => (chr >= '0' && chr <= '7');
 
-        private static bool IsDecimalDigit(char chr) => (chr >= '0' && chr <= '9');
+        static bool IsDecimalDigit(char chr) => (chr >= '0' && chr <= '9');
 
-        private static bool IsHexDigit(char chr) => (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
+        static bool IsHexDigit(char chr) => (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
     }
 }
