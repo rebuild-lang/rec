@@ -17,16 +17,15 @@ namespace REC.Scanner
                     case 'x':
                     case 'X':
                         input.Extend(2);
-                        return ScanHexNumber(input);
-                    // TODO
-                    //case 'o':
-                    //case 'O':
-                    //    input.Extend(2);
-                    //    return ScanOctalNumber(input);
-                    //case 'b':
-                    //case 'B':
-                    //    input.Extend(2);
-                    //    return ScanBinaryNumber(input);
+                        return ScanNumber(input,16,IsHexDigit);
+                    case 'o':
+                    case 'O':
+                        input.Extend(2);
+                        return ScanNumber(input,8,IsOctalDigit);
+                    case 'b':
+                    case 'B':
+                        input.Extend(2);
+                        return ScanNumber(input,2,IsBinaryDigit);
                 }
             }
             return ScanDecimalNumber(input);
@@ -80,10 +79,10 @@ namespace REC.Scanner
             return result.IsValid ? result : null;
         }
 
-        private static NumberLiteral ScanHexNumber(TextInputRange input) {
-            var result = new NumberLiteral {BaseRadix = 16};
+        private static NumberLiteral ScanNumber(TextInputRange input, int radix, System.Func<char,bool> isBase) {
+            var result = new NumberLiteral {BaseRadix = radix};
             var chr = input.EndChar;
-            while (IsHexDigit(chr)) {
+            while (isBase(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";
                 if (!IsZero(chr) || !result.IntegerPart.IsEmpty()) {
                     result.IntegerPart += chr;
@@ -97,7 +96,7 @@ namespace REC.Scanner
                 result.FractionalPart = "";
                 input.Extend();
                 chr = input.EndChar;
-                while (IsHexDigit(chr)) {
+                while (isBase(chr)) {
                     result.FractionalPart += chr;
                     do {
                         input.Extend();
@@ -141,6 +140,10 @@ namespace REC.Scanner
         private static bool IsDot(char chr) => chr == '.';
 
         private static bool IsZero(char chr) => chr == '0';
+
+        private static bool IsBinaryDigit(char chr) => (chr == '0' || chr == '1');
+
+        private static bool IsOctalDigit(char chr) => (chr >= '0' && chr <= '7');
 
         private static bool IsDecimalDigit(char chr) => (chr >= '0' && chr <= '9');
 

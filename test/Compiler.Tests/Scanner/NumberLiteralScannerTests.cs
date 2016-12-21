@@ -15,10 +15,22 @@ namespace REC.Tests.Scanner
         [TestCase("0x.ab'c", 16, null, "abc", null)]
         [TestCase("0xp12'3", 16, null, null, "123")]
         [TestCase("0xA.Bp-1", 16, "A", "B", "1")]
+        [TestCase("0o12'3", 8, "123", null, null)]
+        [TestCase("0o.11'55", 8, null, "1155", null)]
+        [TestCase("0op12'3", 8, null, null, "123")]
+        [TestCase("0o1.3p-4", 8, "1", "3", "4")]
+        [TestCase("0b10'1", 2, "101", null, null)]
+        [TestCase("0b.11'01", 2, null, "1101", null)]
+        [TestCase("0bp10'1", 2, null, null, "101")]
+        [TestCase("0b1.1p-10", 2, "1", "1", "10")]
         [TestCase("0", 10, "", null, null)]
         [TestCase("0.", 10, "", "", null)]
         [TestCase("0x0", 16, "", null, null)]
         [TestCase("0x0.", 16, "", "", null)]
+        [TestCase("0o0", 8, "", null, null)]
+        [TestCase("0o0.", 8, "", "", null)]
+        [TestCase("0b0", 2, "", null, null)]
+        [TestCase("0b0.", 2, "", "", null)]
         public void ScanSuccess(string content, int radix, string integerPart, string fractionalPart, string exponentPart)
         {
             var input = new TextInputRange
@@ -40,6 +52,8 @@ namespace REC.Tests.Scanner
         }
 
         [TestCase("0x")]
+        [TestCase("0o")]
+        [TestCase("0b")]
         [TestCase("0.e")]
         [TestCase(".0")]
         public void ScanFailures(string content)
