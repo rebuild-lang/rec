@@ -2,7 +2,7 @@
   "locked": false,
   "version": 1,
   "targets": {
-    ".NETFramework,Version=v4.6.1": {
+    ".NETFramework,Version=v4.6.2": {
       "NUnit/3.5.0": {
         "compile": {
           "lib/net45/nunit.framework.dll": {}
@@ -13,7 +13,7 @@
       },
       "NUnit3TestAdapter/3.6.0": {}
     },
-    ".NETFramework,Version=v4.6.1/win": {
+    ".NETFramework,Version=v4.6.2/win": {
       "NUnit/3.5.0": {
         "compile": {
           "lib/net45/nunit.framework.dll": {}
@@ -74,6 +74,6 @@
       "NUnit >= 3.5.0",
       "NUnit3TestAdapter >= 3.6.0"
     ],
-    ".NETFramework,Version=v4.6.1": []
+    ".NETFramework,Version=v4.6.2": []
   }
 }

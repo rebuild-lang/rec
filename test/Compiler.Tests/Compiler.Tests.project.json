@@ -4,7 +4,7 @@
     "NUnit3TestAdapter": "3.6.0"
   },
   "frameworks": {
-    ".NETFramework,Version=v4.6.1": {}
+    ".NETFramework,Version=v4.6.2": {}
   },
   "runtimes": {
     "win": {}
