@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection;
 using REC.AST;
 using REC.Intrinsic;
@@ -47,6 +48,8 @@ namespace REC.Execution
             BuildArgumentValues(dynamicScope, functionInvocation.Right, functionInvocation.Function.RightArguments, scope);
             BuildResultValues(dynamicScope, functionInvocation.Function.Results);
             var result = Dynamic(functionInvocation.Function.Implementation, dynamicScope);
+            ExtractArgumentReferenceValues(dynamicScope, functionInvocation.Left, functionInvocation.Function.LeftArguments, scope);
+            ExtractArgumentReferenceValues(dynamicScope, functionInvocation.Right, functionInvocation.Function.RightArguments, scope);
             return ExtractResultValues(dynamicScope, result, functionInvocation.Function.Results);
         }
 
@@ -74,6 +77,27 @@ namespace REC.Execution
             foreach (var result in results) {
                 var value = result.Value != null ? Dynamic((dynamic) result.Value, innerScope.Parent) : CreateValue(result.Type);
                 innerScope.Values.Add(result, value);
+            }
+        }
+
+        static void ExtractArgumentReferenceValues(
+            IScope innerScope,
+            INamedExpressionTuple expressions,
+            IReadOnlyList<IArgumentDeclaration> arguments,
+            IScope argumentScope)
+        {
+            var argN = 0;
+            foreach (var expression in expressions.Tuple)
+            {
+                var argument = arguments[argN];
+                argN++;
+                if (argument.IsAssignable && expression.Expression is ITypedReference) {
+                    var reference = (ITypedReference) expression.Expression;
+                    var referenceDecl = argumentScope.Values[reference.Declaration];
+                    var value = innerScope.Values[argument.Name];
+                    var casted = ImplicitCast(value, referenceDecl.Type);
+                    Array.Copy(casted.Data, referenceDecl.Data, referenceDecl.Data.Length);
+                }
             }
         }
 
@@ -125,6 +149,8 @@ namespace REC.Execution
 
                 func.CompileTime(leftArguments, rightArguments, results);
 
+                NetTypesToScope(leftArguments, func.LeftArgumentsType, scope.Values);
+                NetTypesToScope(rightArguments, func.RightArgumentsType, scope.Values);
                 NetTypesToScope(results, func.ResultType, scope.Values);
             }
             return null;
@@ -133,10 +159,12 @@ namespace REC.Execution
         static void NetTypesToScope(object netValues, Type type, IValueScope scope) {
             if (netValues == null) return;
             foreach (var fieldInfo in type.GetRuntimeFields()) {
-                var netValue = fieldInfo.GetValue(netValues);
-                var fieldValue = scope[fieldInfo.Name];
-                var converter = fieldValue.Type.GetFromNetType();
-                converter(netValue, fieldValue.Data);
+                if (fieldInfo.GetCustomAttributes(typeof(ArgumentAssignable)).Any()) {
+                    var netValue = fieldInfo.GetValue(netValues);
+                    var fieldValue = scope[fieldInfo.Name];
+                    var converter = fieldValue.Type.GetFromNetType();
+                    converter(netValue, fieldValue.Data);
+                }
             }
         }
 

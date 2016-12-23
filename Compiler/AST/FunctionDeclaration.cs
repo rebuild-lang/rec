@@ -37,11 +37,11 @@ namespace REC.AST
             return count;
         }
 
-        public static bool IsFunction(this IFunctionDeclaration declaration) {
-            return declaration.LeftArguments.Count > 0
-                && declaration.Results.Count > 0
-                && declaration.RightArguments.Count > 0;
-        }
+        //public static bool IsFunction(this IFunctionDeclaration declaration) {
+        //    return declaration.LeftArguments.Count > 0
+        //        || declaration.Results.Count > 0
+        //        || declaration.RightArguments.Count > 0;
+        //}
     }
 
 

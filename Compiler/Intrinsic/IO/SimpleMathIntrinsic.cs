@@ -31,6 +31,12 @@ namespace REC.Intrinsic.IO
         public static IFunctionIntrinsic[] Get() {
             return new IFunctionIntrinsic[] {
                 new FunctionIntrinsic {
+                    Name = "Assign",
+                    RightArgumentsType = typeof(AssignArguments),
+                    CompileTime = (left, right, result) => CompileTimeAssign((AssignArguments) right),
+                    GenerateCpp = GenerateCppAssign
+                },
+                new FunctionIntrinsic {
                     Name = "Add",
                     RightArgumentsType = typeof(BinaryArguments),
                     ResultType = typeof(Result),
@@ -45,6 +51,15 @@ namespace REC.Intrinsic.IO
                     GenerateCpp = GenerateCppSub
                 }
             };
+        }
+
+        static void CompileTimeAssign(AssignArguments args) {
+            args.Left = args.Right;
+        }
+
+        static void GenerateCppAssign(ICppIntrinsic intrinsic) {
+            intrinsic.Runtime.AddLine(
+                $"{intrinsic.RightArgument(name: "Left")} = {intrinsic.RightArgument(name: "Right")};");
         }
 
         static void CompileTimeAdd(BinaryArguments args, Result res) {
@@ -65,6 +80,12 @@ namespace REC.Intrinsic.IO
                 $"{intrinsic.ResultArgument(name: "Value")} = {intrinsic.RightArgument(name: "Left")} - {intrinsic.RightArgument(name: "Right")};");
         }
 
+        class AssignArguments : IRightArguments
+        {
+            [ArgumentAssignable] public T Left;
+            public T Right;
+        }
+
         class BinaryArguments : IRightArguments
         {
             public T Left;
@@ -73,7 +94,7 @@ namespace REC.Intrinsic.IO
 
         class Result : IResultArguments
         {
-            public T Value;
+            [ArgumentAssignable] public T Value;
         }
     }
 }

@@ -85,6 +85,8 @@
     <Compile Include="Intrinsic\Types\API\NumberLiteralType.cs" />
     <Compile Include="Intrinsic\Types\U64Type.cs" />
     <Compile Include="Parser\BlockLineGrouping.cs" />
+    <Compile Include="Parser\ExpressionParser.cs" />
+    <Compile Include="Parser\FunctionDeclParser.cs" />
     <Compile Include="Parser\Parser.cs" />
     <Compile Include="Parser\Scope.cs" />
     <Compile Include="Parser\TokenPreparation.cs" />

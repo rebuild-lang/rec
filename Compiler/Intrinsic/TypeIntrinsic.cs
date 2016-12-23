@@ -43,7 +43,8 @@ namespace REC.Intrinsic
     class TypeModuleIntrinsic : ModuleIntrinsic, ITypeModuleIntrinsic
     {
         public ulong TypeSize { get; set; }
-        public ConstructAction Construct { get; set; }
+        public ConstructAction Construct { get; set; } = DefaultConstruct;
+
         public DestructAction Destruct { get; set; }
         public ImplicitFromAction ImplicitFrom { get; set; }
         public FromLiteralFunc FromLiteral { get; set; }
@@ -51,5 +52,9 @@ namespace REC.Intrinsic
         public Type NetType { get; set; }
         public ToNetTypeFunc ToNetType { get; set; }
         public FromNetTypeAction FromNetType { get; set; }
+
+        static void DefaultConstruct(byte[] data) {
+            Array.Clear(data, index: 0, length: data.Length);
+        }
     }
 }

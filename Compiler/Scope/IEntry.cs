@@ -24,7 +24,7 @@ namespace REC.Scope
     abstract class DeclaredEntry : IDeclaredEntry
     {
         public string Name => Declaration.Name;
-        public virtual IDeclaration Declaration { get; }
+        public abstract IDeclaration Declaration { get; }
     }
 
     public interface IModuleEntry : IDeclaredEntry
@@ -39,12 +39,12 @@ namespace REC.Scope
         public IModuleDeclaration ModuleDeclaration { get; set; }
     }
 
-    public interface IFuntionEntry : IEntry
+    public interface IFunctionEntry : IEntry
     {
         IList<IFunctionDeclaration> FunctionDeclarations { get; }
     }
 
-    class FunctionEnty : IFuntionEntry
+    class FunctionEntry : IFunctionEntry
     {
         public string Name => FunctionDeclarations?.First()?.Name;
         public IList<IFunctionDeclaration> FunctionDeclarations { get; } = new List<IFunctionDeclaration>();

@@ -35,8 +35,8 @@ namespace REC
             var prepared = TokenPreparation.Apply(raw);
             var block = new BlockLineGrouping().Group(prepared);
             var ast = Parser.Parser.ParseBlock(block, InjectedScope);
-            var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
-            //var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp"); // use this for debugging cpp output
+            //var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
+            var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp"); // use this for debugging cpp output
             using (var writer = File.CreateText(cppFileName)) {
                 CppGenerator.Generate(writer, ast);
             }
@@ -104,16 +104,19 @@ namespace REC
                 new TextFile {
                     Content = @"
 # assignment is undefined
-#fn (a : u64) add (b : u64) -> r : u64:
-#   r = Add a b
-#end
-fn test (x : u64):
-   Print x
+fn (*l : u64) mov (r : u64):
+    Assign l, r
 end
-test Add 23 12
-&Print Add 42 23
-&test Add 23 32
-Print Add 42 22",
+fn (a : u64) add (b : u64) -> *r : u64:
+    Assign r, Add a b
+end
+fn test (x : u64):
+    Print x
+end
+#test Add 23 12
+&Print 42 add 23
+#&test Add 23 32
+Print 42 add 22",
                     Filename = "Test.rebuild"
                 });
         }

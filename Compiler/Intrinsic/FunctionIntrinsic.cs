@@ -9,6 +9,10 @@ namespace REC.Intrinsic
     class ArgumentUnrolled : Attribute
     {}
 
+    [AttributeUsage(AttributeTargets.Field)]
+    class ArgumentAssignable : Attribute
+    {}
+
     // mark classes for use as left arguments
     public interface ILeftArguments
     {}

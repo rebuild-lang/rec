@@ -11,8 +11,10 @@ namespace REC.Tests.Parser
     {
         public struct TestData
         {
+            public string Name;
             public IEnumerable<TokenData> Input;
             public IBlockLiteral Output;
+            public override string ToString() => Name;
         }
 
         static TokenData Id(string text) {
@@ -75,6 +77,7 @@ namespace REC.Tests.Parser
 
         static readonly TestData[] GroupTests = {
             new TestData {
+                Name = "Example",
                 Input = new[] {
                     Id(text: "if"), Id(text: "a"), NewLineIndentation(column: 4),
                     Op(text: "&&"), Id(text: "b"), BlockStart(column: 4),

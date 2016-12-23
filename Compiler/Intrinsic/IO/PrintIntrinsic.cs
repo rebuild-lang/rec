@@ -10,7 +10,6 @@ namespace REC.Intrinsic.IO
         public static IFunctionIntrinsic Get() {
             return new FunctionIntrinsic {
                 Name = "Print",
-                IsCompileTimeOnly = true,
                 RightArgumentsType = typeof(RightArguments),
                 CompileTime = (left, right, result) => CompileTime((RightArguments) right),
                 GenerateCpp = GenerateCpp

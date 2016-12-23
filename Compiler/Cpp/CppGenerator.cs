@@ -42,7 +42,7 @@ namespace REC.Cpp
 
         static void Dynamic(IIntrinsicExpression intrinsicExpression, ICppScope scope) {
             var func = intrinsicExpression.Intrinsic as IFunctionIntrinsic;
-            if (func != null) func.GenerateCpp(new CppIntrinsic {Scope = scope});
+            func?.GenerateCpp(new CppIntrinsic {Scope = scope});
         }
 
         static string Dynamic(INamedExpressionTuple expressionTuple, ICppScope scope) {
@@ -97,7 +97,12 @@ namespace REC.Cpp
                 var argument = arguments[argN];
                 argN++;
                 var value = Dynamic((dynamic) expression.Expression, scope);
-                scope.Runtime.AddLine($"{name}.{argument.Name} = {value};");
+                if (argument.IsAssignable) {
+                    scope.Runtime.AddLine($"{name}.{argument.Name} = &{value};");
+                }
+                else {
+                    scope.Runtime.AddLine($"{name}.{argument.Name} = {value};");
+                }
             }
             return name;
         }
@@ -169,7 +174,12 @@ namespace REC.Cpp
         static void MakeArgumentLocals(IEnumerable<IArgumentDeclaration> arguments, string arg, ICppScope scope) {
             foreach (var argument in arguments) {
                 var argumentType = GetArgumentTypeName(argument.Type);
-                scope.Runtime.AddLine($"{argumentType} {argument.Name} = std::move({arg}.{argument.Name});");
+                if (argument.IsAssignable) {
+                    scope.Runtime.AddLine($"{argumentType} &{argument.Name} = *std::move({arg}.{argument.Name});");
+                }
+                else {
+                    scope.Runtime.AddLine($"{argumentType} {argument.Name} = std::move({arg}.{argument.Name});");
+                }
             }
         }
 
@@ -181,8 +191,16 @@ namespace REC.Cpp
                 innerScope => {
                     foreach (var argument in arguments) {
                         var argTypeName = GetArgumentTypeName(argument.Type);
-                        innerScope.Declaration.AddLine($"{argTypeName} {argument.Name};");
-                        if (arguments.Count == 1) innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return {argument.Name}; }}");
+                        if (argument.IsAssignable && kind != "Result") {
+                            innerScope.Declaration.AddLine($"{argTypeName}* {argument.Name};");
+                            if (arguments.Count == 1)
+                                innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return *{argument.Name}; }}");
+                        }
+                        else {
+                            innerScope.Declaration.AddLine($"{argTypeName} {argument.Name};");
+                            if (arguments.Count == 1)
+                                innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return {argument.Name}; }}");
+                        }
                     }
                 });
             scope.Declaration.AddLine(line: "};");

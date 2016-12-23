@@ -17,5 +17,9 @@ namespace REC.Tools
         public static bool IsEmpty<TK, T>(this KeyedCollection<TK, T> keyed) => keyed.Count == 0;
 
         public static bool IsEmpty(this string str) => str.Length == 0;
+
+        public static void AddRange<T>(this Collection<T> collection, IEnumerable<T> items) {
+            foreach (var item in items) collection.Add(item);
+        }
     }
 }

@@ -117,7 +117,7 @@ namespace REC.Intrinsic
                 }
             };
             parentScope.Identifiers.Add(
-                new FunctionEnty {
+                new FunctionEntry {
                     FunctionDeclarations = {functionDeclaration}
                 });
             return functionDeclaration;
@@ -130,6 +130,7 @@ namespace REC.Intrinsic
                 result.Add(
                     new ArgumentDeclaration {
                         IsUnrolled = field.GetCustomAttributes(typeof(ArgumentUnrolled)).Any(),
+                        IsAssignable = field.GetCustomAttributes(typeof(ArgumentAssignable)).Any(),
                         Name = field.Name,
                         Type = NetTypeToRebuildType(field.FieldType)
                         //Value = field.V

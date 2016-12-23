@@ -52,16 +52,16 @@ namespace REC.AST
             return entry != null ? 8u : 0u;
         }
 
-        public static IFuntionEntry GetConstructor(this IModuleDeclaration module) {
-            return module.Scope.Identifiers[key: "Construct"] as IFuntionEntry;
+        public static IFunctionEntry GetConstructor(this IModuleDeclaration module) {
+            return module.Scope.Identifiers[key: "Construct"] as IFunctionEntry;
         }
 
-        public static IFuntionEntry GetDestructor(this IModuleDeclaration module) {
-            return module.Scope.Identifiers[key: "Destruct"] as IFuntionEntry;
+        public static IFunctionEntry GetDestructor(this IModuleDeclaration module) {
+            return module.Scope.Identifiers[key: "Destruct"] as IFunctionEntry;
         }
 
-        public static IFuntionEntry GetImplicitFrom(this IModuleDeclaration module) {
-            return module.Scope.Identifiers[key: "ImplicitFrom"] as IFuntionEntry;
+        public static IFunctionEntry GetImplicitFrom(this IModuleDeclaration module) {
+            return module.Scope.Identifiers[key: "ImplicitFrom"] as IFunctionEntry;
         }
 
         public static FromLiteralFunc GetFromLiteral(this IModuleDeclaration module) {
