@@ -35,8 +35,7 @@ namespace REC.Parser
             }
             if (token.Type == Token.IdentifierLiteral) {
                 var identifier = (IIdentifierLiteral) token.Data;
-                if (identifier.Content == "var") return null; // ParseVarDecl(tokens, scope, isCompileTime);
-                if (identifier.Content == "def") return null; // ParseDefineDecl(tokens, scope, isCompileTime);
+                if (identifier.Content == "let") return null; // ParseVariableDecl(tokens, scope, isCompileTime);
                 if (identifier.Content == "fn") return ParseFunctionDecl(tokens, scope, isCompileTime, ref done);
                 if (identifier.Content == "module") return null; // ParseModuleDecl(tokens, scope, isCompileTime);
                 if (identifier.Content == "with") return null; // ParseWithExpression(tokens, scope, isCompileTime);
