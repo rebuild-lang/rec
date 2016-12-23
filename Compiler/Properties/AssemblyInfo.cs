@@ -22,4 +22,3 @@ using System.Runtime.InteropServices;
 [assembly: Guid("24681601-36eb-41e7-a9da-12cdea0aedb9")]
 
 [assembly: InternalsVisibleTo("REC.Test")]
-[assembly: InternalsVisibleTo("Compiler.Test")]
