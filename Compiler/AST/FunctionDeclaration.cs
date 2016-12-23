@@ -9,9 +9,6 @@ namespace REC.AST
 
     public interface IFunctionDeclaration : IDeclaration
     {
-        bool IsCompileTimeOnly { get; }
-        //bool IsRuntimeOnly { get; }
-
         IScope StaticScope { get; }
 
         ArgumentDeclarationCollection LeftArguments { get; }
@@ -51,8 +48,6 @@ namespace REC.AST
 
     class FunctionDeclaration : Declaration, IFunctionDeclaration
     {
-        public bool IsCompileTimeOnly { get; set; }
-        //public bool IsRuntimeOnly { get; set; }
         public IScope StaticScope { get; set; }
         public ArgumentDeclarationCollection LeftArguments { get; set; }
         public ArgumentDeclarationCollection RightArguments { get; set; }

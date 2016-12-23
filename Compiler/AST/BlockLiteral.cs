@@ -20,7 +20,7 @@ namespace REC.AST
         public IList<TokenData> Tokens { get; } = new List<TokenData>();
     }
 
-    class BlockLiteral : Declaration, IBlockLiteral
+    class BlockLiteral : Literal, IBlockLiteral
     {
         public IList<ITokenLine> Lines { get; } = new List<ITokenLine>();
     }

@@ -55,7 +55,6 @@
     <Compile Include="AST\ArgumentDeclaration.cs" />
     <Compile Include="AST\BlockLiteral.cs" />
     <Compile Include="AST\Declaration.cs" />
-    <Compile Include="AST\DefineDeclaration.cs" />
     <Compile Include="AST\Expression.cs" />
     <Compile Include="AST\ExpressionBlock.cs" />
     <Compile Include="AST\FunctionDeclaration.cs" />

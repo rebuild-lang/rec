@@ -33,10 +33,10 @@ namespace REC.Intrinsic
             ConvertNetTypes(moduleDeclaration.Expressions, intrinsic.Children);
             if (moduleDeclaration.IsType()) {
                 var typeEntry = moduleDeclaration.Scope.Identifiers["type"] as IModuleEntry;
-                var sizeEntry = typeEntry?.ModuleDeclaration.Scope.Identifiers["size"] as IDefineEntry;
+                var sizeEntry = typeEntry?.ModuleDeclaration.Scope.Identifiers["size"] as IVariableEntry;
                 if (sizeEntry != null) {
-                    ((DefineDeclaration) sizeEntry.Define).Type = NetTypeToRebuildType(typeof(ulong));
-                    ((TypedValue) sizeEntry.Define.Value).Type = sizeEntry.Define.Type;
+                    ((VariableDeclaration) sizeEntry.Variable).Type = NetTypeToRebuildType(typeof(ulong));
+                    ((TypedValue) sizeEntry.Variable.Value).Type = sizeEntry.Variable.Type;
                 }
             }
         }
@@ -89,7 +89,7 @@ namespace REC.Intrinsic
         }
 
         void AddTypeSizeDeclaration(ulong typeIntrinsicTypeSize, ModuleDeclaration moduleDeclaration) {
-            var sizeDefine = new DefineDeclaration {
+            var sizeDefine = new VariableDeclaration {
                 Name = "size",
                 Value = new TypedValue {
                     Data = BitConverter.GetBytes(typeIntrinsicTypeSize)
@@ -102,7 +102,7 @@ namespace REC.Intrinsic
                     sizeDefine
                 }
             };
-            typeModule.Scope.Identifiers.Add(new DefineEntry { Define = sizeDefine });
+            typeModule.Scope.Identifiers.Add(new VariableEntry { Variable = sizeDefine });
             moduleDeclaration.Scope.Identifiers.Add(new ModuleEntry {ModuleDeclaration = typeModule});
             moduleDeclaration.Expressions.Add(typeModule);
         }
