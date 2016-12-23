@@ -2,7 +2,7 @@
 using NUnit.Framework;
 using REC.Tools;
 
-namespace REC.Tests
+namespace REC.Tests.Experiments
 {
     [TestFixture()]
     public class NestedYieldTests
@@ -16,7 +16,7 @@ namespace REC.Tests
             Identifier
         }
 
-        private class ParserMoc
+        class ParserMoc
         {
             public int State { get; private set; }
 
@@ -24,7 +24,7 @@ namespace REC.Tests
                 return ParseNested().FlattenTo<Token>();
             }
 
-            private IEnumerable<dynamic> ParseNested() {
+            IEnumerable<dynamic> ParseNested() {
                 State = 1;
                 yield return Token.VarDecl;
                 var x = ParseVarDecl().GetFlatEnumerator<Token>();
@@ -35,13 +35,13 @@ namespace REC.Tests
                 State = 4;
             }
 
-            private IEnumerable<dynamic> ParseVarDecl() {
+            IEnumerable<dynamic> ParseVarDecl() {
                 State = 2;
                 yield return Token.Identifier;
                 yield return ParseCall();
             }
 
-            private IEnumerable<dynamic> ParseCall() {
+            IEnumerable<dynamic> ParseCall() {
                 State = 3;
                 yield return Token.Call;
             }

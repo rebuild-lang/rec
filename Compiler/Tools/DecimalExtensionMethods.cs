@@ -6,8 +6,8 @@ namespace REC.Tools
     // Extends string to allow endless decimal number calculations
     public static class DecimalExtensionMethods
     {
-        private const char Zero = '0';
-        private const char One = '1';
+        const char Zero = '0';
+        const char One = '1';
 
         public static string DecimalAdd(this string a, string b) {
             var result = new StringBuilder(Math.Max(a.Length + 1, b.Length + 1));

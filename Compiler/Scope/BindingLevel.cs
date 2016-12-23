@@ -90,7 +90,7 @@ namespace REC.Scope
             return res;
         }
 
-        private BindingLevelGroup EnsureGroup() {
+        BindingLevelGroup EnsureGroup() {
             if (null == Group) {
                 Group = new BindingLevelGroup();
                 Group.AddLevel(this);

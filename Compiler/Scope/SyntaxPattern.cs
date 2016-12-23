@@ -71,7 +71,7 @@ namespace REC.Scope
             return syntaxPattern;
         }
 
-        private static void MergeDeclaration(SyntaxPattern syntaxPattern, IFunctionDeclaration declaration) {
+        static void MergeDeclaration(SyntaxPattern syntaxPattern, IFunctionDeclaration declaration) {
             if (syntaxPattern.Members.Contains(declaration)) return;
 
             syntaxPattern.MinArgumentCount = Math.Min(syntaxPattern.MinArgumentCount, declaration.MandatoryRightArgumentCount());

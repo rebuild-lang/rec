@@ -18,13 +18,13 @@ namespace REC.Tools
             return FlattenTo<T>(enumerable).GetEnumerator();
         }
 
-        private static class Flattener<T> // Flattener encapsulates Type parameter, to enable dynamic dispatch
+        static class Flattener<T> // Flattener encapsulates Type parameter, to enable dynamic dispatch
         {
-            private static IEnumerable<T> Flatten(T t) {
+            static IEnumerable<T> Flatten(T t) {
                 yield return t; // normal case
             }
 
-            private static IEnumerable<T> Flatten(IEnumerator<T> d) {
+            static IEnumerable<T> Flatten(IEnumerator<T> d) {
                 while (d.MoveNext()) yield return d.Current; // allow already flattened enumerators
             }
 

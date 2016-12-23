@@ -40,10 +40,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AST\NumberLiteralTests.cs" />
-    <Compile Include="DynamicTests.cs" />
-    <Compile Include="GeneratorTests.cs" />
-    <Compile Include="IdentifierScopeTests.cs" />
-    <Compile Include="NestedYieldTests.cs" />
+    <Compile Include="Experiments\DynamicTests.cs" />
+    <Compile Include="Experiments\GeneratorTests.cs" />
+    <Compile Include="Experiments\NestedYieldTests.cs" />
     <Compile Include="Parser\BlockLineGroupingTests.cs" />
     <Compile Include="Parser\TokenPreparationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -52,6 +51,7 @@
     <Compile Include="Scanner\NumberLiteralScannerTests.cs" />
     <Compile Include="Scanner\OperatorScannerTests.cs" />
     <Compile Include="Scanner\StringLiteralScannerTests.cs" />
+    <Compile Include="Scope\IdentifierScopeTests.cs" />
     <Compile Include="TextInputRangeTests.cs" />
   </ItemGroup>
   <ItemGroup>

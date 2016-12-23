@@ -32,7 +32,7 @@ namespace REC.AST
         byte[] ToFloat(int byteCount);
     }
 
-    internal class NumberLiteral : Literal, INumberLiteral
+    class NumberLiteral : Literal, INumberLiteral
     {
         public int Radix { get; set; } // 1, 8, 10, 16
         public string IntegerPart { get; set; }
@@ -55,12 +55,13 @@ namespace REC.AST
         public byte[] ToSigned(int byteCount) => new byte[byteCount];
         public byte[] ToFloat(int byteCount) => new byte[byteCount];
 
-        private static bool IsFitsBits(string number, int radix, int bits) {
+        static bool IsFitsBits(string number, int radix, int bits) {
             var maxString = MaxBitsString(bits, radix);
             return number.Length < maxString.Length
                 || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.CurrentCultureIgnoreCase) < 0);
         }
-        private static bool IsFitsNegativeBits(string number, int radix, int bits) {
+
+        static bool IsFitsNegativeBits(string number, int radix, int bits) {
             var maxString = MaxBitsString(bits, radix);
             return number.Length < maxString.Length
                 || (number.Length == maxString.Length && string.Compare(number, maxString, StringComparison.CurrentCultureIgnoreCase) <= 0);
@@ -68,18 +69,18 @@ namespace REC.AST
 
         internal static readonly Dict MaxStringDict = CreateDict(128);
 
-        private static string MaxBitsString(int bits, int radix) {
+        static string MaxBitsString(int bits, int radix) {
             return MaxStringDict[new Pair(bits, radix)];
         }
 
-        private static Dict CreateDict(int maxBits) {
+        static Dict CreateDict(int maxBits) {
             var result = new Dict();
             FillHexStrings(result, maxBits);
             FillDecimalStrings(result, maxBits);
             return result;
         }
 
-        private static void FillHexStrings(Dict dict, int maxBits) {
+        static void FillHexStrings(Dict dict, int maxBits) {
             var now = new StringBuilder(maxBits / 4);
             var flow = new[] { '2', '4', '8', '0' };
             for (var g = 0; g < maxBits; g += 4) {
@@ -91,7 +92,7 @@ namespace REC.AST
             }
         }
 
-        private static void FillDecimalStrings(Dict dict, int maxBits) {
+        static void FillDecimalStrings(Dict dict, int maxBits) {
             var decimalStr = "1";
             for (var i = 0; i < maxBits; i++) {
                 dict[new Pair(i, 10)] = decimalStr;

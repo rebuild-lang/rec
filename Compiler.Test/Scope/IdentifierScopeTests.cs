@@ -3,12 +3,12 @@ using System.Linq;
 using NUnit.Framework;
 using REC.Scope;
 
-namespace REC.Tests
+namespace REC.Tests.Scope
 {
     [TestFixture()]
     public class IdentifierScopeTests
     {
-        private class Entry : IEntry
+        class Entry : IEntry
         {
             public string Name { get; set; }
         }

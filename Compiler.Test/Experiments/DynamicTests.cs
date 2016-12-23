@@ -2,25 +2,25 @@
 using System.Linq;
 using NUnit.Framework;
 
-namespace REC.Tests
+namespace REC.Tests.Experiments
 {
     [TestFixture()]
     public class DynamicTests
     {
         // This test shows how a dynamic dispatch without virtual functions works in C#
-        private interface IInterface
+        interface IInterface
         {
         }
 
-        private class Derived2 : IInterface
+        class Derived2 : IInterface
         {
         }
 
-        private class Derived1 : IInterface
+        class Derived1 : IInterface
         {
         }
 
-        private class Runner
+        static class Runner
         {
             // ReSharper disable once UnusedParameter.Local
             public static string Foo(Derived1 derived1) {

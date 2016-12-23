@@ -4,25 +4,25 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 
-namespace REC.Tests
+namespace REC.Tests.Experiments
 {
     [TestFixture()]
     public class GeneratorTests
     {
         // This test models an explicit generator
-        private interface IGenerator<T>
+        interface IGenerator<out T>
         {
             IReadOnlyCollection<T> Build();
         }
 
-        private class GeneratorEnumerator<T> : IEnumerator<T>
+        class GeneratorEnumerator<T> : IEnumerator<T>
         {
             public T Current => _enumerator.Current;
 
             object IEnumerator.Current => Current;
 
-            private IGenerator<T> Generator { get; }
-            private IEnumerator<T> _enumerator;
+            IGenerator<T> Generator { get; }
+            IEnumerator<T> _enumerator;
 
             public GeneratorEnumerator(IGenerator<T> generator) {
                 Generator = generator;
@@ -45,7 +45,7 @@ namespace REC.Tests
             }
         }
 
-        private abstract class AEnumerableGenerator<T> : IEnumerable<T>, IGenerator<T>
+        abstract class AEnumerableGenerator<T> : IEnumerable<T>, IGenerator<T>
         {
             public IEnumerator<T> GetEnumerator() {
                 return new GeneratorEnumerator<T>(this);
@@ -55,7 +55,7 @@ namespace REC.Tests
             public abstract IReadOnlyCollection<T> Build();
         }
 
-        private enum Token
+        enum Token
         {
             VarDecl,
             Call,
@@ -64,7 +64,7 @@ namespace REC.Tests
 
         class ParserMoc : AEnumerableGenerator<Token>
         {
-            public int State { get; private set; }
+            int State { get; set; }
 
 
             public override IReadOnlyCollection<Token> Build() {

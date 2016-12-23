@@ -9,7 +9,7 @@
         bool IsUnrolled { get;  }
     }
 
-    internal class ArgumentDeclaration : VariableDeclaration, IArgumentDeclaration
+    class ArgumentDeclaration : VariableDeclaration, IArgumentDeclaration
     {
         public bool IsUnrolled { get; set;  }
     }
