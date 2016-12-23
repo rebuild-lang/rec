@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+// ReSharper disable ArgumentsStyleStringLiteral
+// ReSharper disable ArgumentsStyleLiteral
 
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
@@ -19,5 +21,5 @@ using System.Runtime.InteropServices;
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("24681601-36eb-41e7-a9da-12cdea0aedb9")]
 
-[assembly: InternalsVisibleTo("RECTests")]
-[assembly: InternalsVisibleTo("Compiler.Tests")]
+[assembly: InternalsVisibleTo("REC.Test")]
+[assembly: InternalsVisibleTo("Compiler.Test")]
