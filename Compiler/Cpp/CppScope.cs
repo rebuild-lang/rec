@@ -19,10 +19,10 @@ namespace REC.Cpp
 
     class CppScope : ICppScope
     {
+        public int LocalNameCount { get; set; }
         public Dictionary<string, string> Globals { get; set; } = new Dictionary<string, string>();
         public IIndentedTextBuilder Declaration { get; set; } = new IndentedTextBuilder();
-        public IIndentedTextBuilder Runtime { get; set; } = new IndentedTextBuilder { Indentation = "  "};
-        public int LocalNameCount { get; set; }
+        public IIndentedTextBuilder Runtime { get; set; } = new IndentedTextBuilder {Indentation = "  "};
 
         public string MakeLocalName(string hint = "temp") {
             return $"_rebuild_{hint}{LocalNameCount++}";
@@ -53,7 +53,7 @@ namespace REC.Cpp
                         Globals = Globals,
                         Declaration = Declaration,
                         Runtime = subRuntime,
-                        LocalNameCount = LocalNameCount,
+                        LocalNameCount = LocalNameCount
                     };
                     action(sub);
                 });

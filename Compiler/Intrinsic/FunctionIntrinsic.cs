@@ -7,17 +7,17 @@ namespace REC.Intrinsic
     // allowed for Collection<> and Dictionary<String, T> types
     [AttributeUsage(AttributeTargets.Field)]
     class ArgumentUnrolled : Attribute
-    { }
+    {}
 
     // mark classes for use as left arguments
     public interface ILeftArguments
-    { }
+    {}
 
     public interface IRightArguments
-    { }
+    {}
 
     public interface IResultArguments
-    { }
+    {}
 
     public interface IFunctionIntrinsic : IIntrinsic
     {

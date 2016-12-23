@@ -3,15 +3,15 @@ using REC.Scanner;
 
 namespace REC.Tests.Scanner
 {
-    [TestFixture()]
+    [TestFixture]
     public class StringLiteralScannerTests
     {
-        [TestCase("\"\"", "")]
-        [TestCase("\" \"", " ")]
-        [TestCase("\"text\"", "text")]
-        [TestCase("\"line1\nline2\"", "line1line2")]
-        [TestCase("\"hello \\\"world\\\"\"", "hello \"world\"")]
-        [TestCase("\"line1\\nline2\"", "line1\nline2")]
+        [TestCase(arg1: "\"\"", arg2: "")]
+        [TestCase(arg1: "\" \"", arg2: " ")]
+        [TestCase(arg1: "\"text\"", arg2: "text")]
+        [TestCase(arg1: "\"line1\nline2\"", arg2: "line1line2")]
+        [TestCase(arg1: "\"hello \\\"world\\\"\"", arg2: "hello \"world\"")]
+        [TestCase(arg1: "\"line1\\nline2\"", arg2: "line1\nline2")]
         public void ScanSuccess(string content, string output) {
             var input = new TextInputRange {
                 File = new TextFile {
@@ -25,8 +25,8 @@ namespace REC.Tests.Scanner
             Assert.AreEqual(output, result.Content);
         }
 
-        [TestCase("\"")]
-        [TestCase("\"\\\"")]
+        [TestCase(arg: "\"")]
+        [TestCase(arg: "\"\\\"")]
         public void ScanFailures(string content) {
             var input = new TextInputRange {
                 File = new TextFile {

@@ -7,10 +7,10 @@ namespace REC.Scope
 {
     public enum Associativity
     {
-        None,  // <  <  No same binding strength allowed
-        Left,  // <= <  a+b+c evaluates (a+b)+c
+        None, // <  <  No same binding strength allowed
+        Left, // <= <  a+b+c evaluates (a+b)+c
         Right, // <  <= a+b+c evaluates a+(b+c)
-        Both,  // <= <= does not matter (might give optimizations)
+        Both // <= <= does not matter (might give optimizations)
     }
 
     public enum AddSuccess
@@ -18,7 +18,7 @@ namespace REC.Scope
         Success, // relation was added
         Redundant, // relation was already known
         ConflictingWeaker, // 
-        ConflictingStronger,
+        ConflictingStronger
     }
 
     public interface IBindingLevel : IComparable<IBindingLevel>
@@ -37,7 +37,7 @@ namespace REC.Scope
     public static class BindingLevelFactory
     {
         static IBindingLevel Create(IFunctionDeclaration declaration, Associativity associativity) {
-            var result = new BindingLevel { Associaticity = associativity };
+            var result = new BindingLevel {Associaticity = associativity};
             // add syntax pattern
             return result;
         }
@@ -45,9 +45,10 @@ namespace REC.Scope
 
     class BindingLevel : IBindingLevel
     {
-        public Associativity Associaticity { get; set; }
         public readonly HashSet<SyntaxPattern> Members = new HashSet<SyntaxPattern>();
         BindingLevelGroup Group;
+        public Associativity Associaticity { get; set; }
+
         public int CompareTo(IBindingLevel iother) {
             var other = (BindingLevel) iother;
             if (Group == other.Group) return 0;
@@ -70,14 +71,17 @@ namespace REC.Scope
         public AddSuccess AddStrongerThanRelation(IBindingLevel weaker) {
             var res = weaker.AddWeakerThanRelation(this);
             switch (res) {
-                case AddSuccess.ConflictingWeaker: return AddSuccess.ConflictingStronger;
-                case AddSuccess.ConflictingStronger: return AddSuccess.ConflictingWeaker;
-                default: return res;
+                case AddSuccess.ConflictingWeaker:
+                    return AddSuccess.ConflictingStronger;
+                case AddSuccess.ConflictingStronger:
+                    return AddSuccess.ConflictingWeaker;
+                default:
+                    return res;
             }
         }
 
         public AddSuccess AddSameRelation(IBindingLevel isame) {
-            var same = (BindingLevel)isame;
+            var same = (BindingLevel) isame;
             var sameGroup = same.EnsureGroup();
             var res = EnsureGroup().AddSame(sameGroup);
             if (res == AddSuccess.Success) {
@@ -101,11 +105,16 @@ namespace REC.Scope
 
     class BindingLevelGroup : IComparable<BindingLevelGroup>
     {
-        public IEnumerable<BindingLevel> Levels => _levels;
-
         readonly HashSet<BindingLevel> _levels = new HashSet<BindingLevel>();
         readonly HashSet<BindingLevelGroup> _stronger = new HashSet<BindingLevelGroup>();
         readonly HashSet<BindingLevelGroup> _weaker = new HashSet<BindingLevelGroup>();
+        public IEnumerable<BindingLevel> Levels => _levels;
+
+        public int CompareTo(BindingLevelGroup other) {
+            if (_stronger.Contains(other)) return -1;
+            if (_weaker.Contains(other)) return 1;
+            return 0;
+        }
 
         public void Clear() {
             _levels.Clear();
@@ -166,12 +175,6 @@ namespace REC.Scope
             _weaker.UnionWith(sameLevel._weaker);
 
             return AddSuccess.Success;
-        }
-
-        public int CompareTo(BindingLevelGroup other) {
-            if (_stronger.Contains(other)) return -1;
-            if (_weaker.Contains(other)) return 1;
-            return 0;
         }
     }
 }

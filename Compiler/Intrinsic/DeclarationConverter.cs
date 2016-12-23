@@ -22,9 +22,7 @@ namespace REC.Intrinsic
         }
 
         void ConvertNetTypes(ICollection<IExpression> expressions, IIntrinsicDict intrinsicDict) {
-            foreach (var expression in expressions) {
-                ConvertNetTypes((dynamic)expression, intrinsicDict);
-            }
+            foreach (var expression in expressions) ConvertNetTypes((dynamic) expression, intrinsicDict);
         }
 
         void ConvertNetTypes(IModuleDeclaration moduleDeclaration, IIntrinsicDict intrinsicDict) {
@@ -32,8 +30,8 @@ namespace REC.Intrinsic
             if (intrinsic == null) return;
             ConvertNetTypes(moduleDeclaration.Expressions, intrinsic.Children);
             if (moduleDeclaration.IsType()) {
-                var typeEntry = moduleDeclaration.Scope.Identifiers["type"] as IModuleEntry;
-                var sizeEntry = typeEntry?.ModuleDeclaration.Scope.Identifiers["size"] as IVariableEntry;
+                var typeEntry = moduleDeclaration.Scope.Identifiers[key: "type"] as IModuleEntry;
+                var sizeEntry = typeEntry?.ModuleDeclaration.Scope.Identifiers[key: "size"] as IVariableEntry;
                 if (sizeEntry != null) {
                     ((VariableDeclaration) sizeEntry.Variable).Type = NetTypeToRebuildType(typeof(ulong));
                     ((TypedValue) sizeEntry.Variable.Value).Type = sizeEntry.Variable.Type;
@@ -54,7 +52,7 @@ namespace REC.Intrinsic
         }
 
         IDeclaration DeclareIntrinsic(ModuleIntrinsic moduleIntrinsic, IScope parentScope) {
-            var scope = new Parser.Scope { Parent = parentScope };
+            var scope = new Parser.Scope {Parent = parentScope};
             var expressions = DeclareIntrinsics(moduleIntrinsic.Children, scope);
             var moduleDeclaration = new ModuleDeclaration {
                 Name = moduleIntrinsic.Name,
@@ -66,7 +64,7 @@ namespace REC.Intrinsic
         }
 
         IDeclaration DeclareIntrinsic(TypeModuleIntrinsic typeIntrinsic, IScope parentScope) {
-            var scope = new Parser.Scope { Parent = parentScope };
+            var scope = new Parser.Scope {Parent = parentScope};
             var expressions = DeclareIntrinsics(typeIntrinsic.Children, scope);
             var moduleDeclaration = new IntrinsicModuleDeclaration {
                 Name = typeIntrinsic.Name,
@@ -75,16 +73,14 @@ namespace REC.Intrinsic
                 FromLiteral = typeIntrinsic.FromLiteral,
                 NetType = typeIntrinsic.NetType,
                 ToNetType = typeIntrinsic.ToNetType,
-                FromNetType = typeIntrinsic.FromNetType,
+                FromNetType = typeIntrinsic.FromNetType
             };
             AddTypeSizeDeclaration(typeIntrinsic.TypeSize, moduleDeclaration);
             // TODO: add Construct/Destruct
             // TODO: add conversions
 
-            if (typeIntrinsic.NetType != null) {
-                _netTypes[typeIntrinsic.NetType] = moduleDeclaration;
-            }
-            parentScope.Identifiers.Add(new ModuleEntry { ModuleDeclaration = moduleDeclaration });
+            if (typeIntrinsic.NetType != null) _netTypes[typeIntrinsic.NetType] = moduleDeclaration;
+            parentScope.Identifiers.Add(new ModuleEntry {ModuleDeclaration = moduleDeclaration});
             return moduleDeclaration;
         }
 
@@ -97,12 +93,12 @@ namespace REC.Intrinsic
             };
             var typeModule = new ModuleDeclaration {
                 Name = "type",
-                Scope = new Parser.Scope { Parent = moduleDeclaration.Scope },
+                Scope = new Parser.Scope {Parent = moduleDeclaration.Scope},
                 Expressions = {
                     sizeDefine
                 }
             };
-            typeModule.Scope.Identifiers.Add(new VariableEntry { Variable = sizeDefine });
+            typeModule.Scope.Identifiers.Add(new VariableEntry {Variable = sizeDefine});
             moduleDeclaration.Scope.Identifiers.Add(new ModuleEntry {ModuleDeclaration = typeModule});
             moduleDeclaration.Expressions.Add(typeModule);
         }
@@ -110,7 +106,7 @@ namespace REC.Intrinsic
         IDeclaration DeclareIntrinsic(IFunctionIntrinsic functionIntrinsic, IScope parentScope) {
             var functionDeclaration = new FunctionDeclaration {
                 Name = functionIntrinsic.Name,
-                StaticScope = new Parser.Scope { Parent = parentScope},
+                StaticScope = new Parser.Scope {Parent = parentScope},
                 IsCompileTimeOnly = functionIntrinsic.IsCompileTimeOnly,
                 Implementation = new ExpressionBlock {
                     Expressions = {
@@ -120,9 +116,10 @@ namespace REC.Intrinsic
                     }
                 }
             };
-            parentScope.Identifiers.Add(new FunctionEnty {
-                FunctionDeclarations = { functionDeclaration }
-            });
+            parentScope.Identifiers.Add(
+                new FunctionEnty {
+                    FunctionDeclarations = {functionDeclaration}
+                });
             return functionDeclaration;
         }
 
@@ -130,12 +127,13 @@ namespace REC.Intrinsic
             var result = new NamedCollection<IArgumentDeclaration>();
             if (type == null) return result;
             foreach (var field in type.GetRuntimeFields()) {
-                result.Add(new ArgumentDeclaration {
-                    IsUnrolled = field.GetCustomAttributes(typeof(ArgumentUnrolled)).Any(),
-                    Name = field.Name,
-                    Type = NetTypeToRebuildType(field.FieldType),
-                    //Value = field.V
-                });
+                result.Add(
+                    new ArgumentDeclaration {
+                        IsUnrolled = field.GetCustomAttributes(typeof(ArgumentUnrolled)).Any(),
+                        Name = field.Name,
+                        Type = NetTypeToRebuildType(field.FieldType)
+                        //Value = field.V
+                    });
             }
             return result;
         }

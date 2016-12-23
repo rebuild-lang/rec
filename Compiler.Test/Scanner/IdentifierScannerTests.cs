@@ -16,7 +16,6 @@ namespace REC.Tests.Scanner
         [TestCase(arg1: "a,b", arg2: "a")] // comma is not part of id
         [TestCase(arg1: "a.b", arg2: "a")] // dot is nod part of id
         [TestCase(arg1: ".add", arg2: ".add")] // used for self shortcut
-
         public void ScanNewSuccess(string content, string id) {
             var input = new TextInputRange {
                 File = new TextFile {

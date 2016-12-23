@@ -17,7 +17,7 @@ namespace REC.Intrinsic
     {
         public Dict Dict { get; } = new Dict();
 
-        public IIntrinsic this[string key] => Dict.GetOr(key, ()=>null);
+        public IIntrinsic this[string key] => Dict.GetOr(key, () => null);
 
         public IEnumerator<IIntrinsic> GetEnumerator() {
             return Dict.Values.GetEnumerator();
@@ -30,10 +30,9 @@ namespace REC.Intrinsic
         public void Add(IIntrinsic value) {
             Dict[value.Name] = value;
         }
+
         public void Add(IFunctionIntrinsic[] value) {
-            foreach (var intrinsic in value) {
-                Add(intrinsic);
-            }
+            foreach (var intrinsic in value) Add(intrinsic);
         }
     }
 

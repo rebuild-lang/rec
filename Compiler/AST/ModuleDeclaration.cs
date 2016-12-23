@@ -36,27 +36,32 @@ namespace REC.AST
     public static class ModuleDeclarationExt
     {
         public static bool IsType(this IModuleDeclaration module) {
-            var typeSize = (((module.Scope.Identifiers["type"] as IDeclaredEntry)?.Declaration as IModuleDeclaration)?.Scope?.Identifiers?["size"] as IDeclaredEntry);
+            var typeSize =
+                ((module.Scope.Identifiers[key: "type"] as IDeclaredEntry)?.Declaration as IModuleDeclaration)?.Scope?.Identifiers?[key: "size"] as
+                IDeclaredEntry;
             if (null == typeSize) return false;
             // TODO: read compile time value & check for != 0
             return true;
         }
 
         public static ulong GetTypeSize(this IModuleDeclaration module) {
-            var entry = (((module.Scope.Identifiers["type"] as IDeclaredEntry)?.Declaration as IModuleDeclaration)?.Scope?.Identifiers?["size"] as IDeclaredEntry);
+            var entry =
+                ((module.Scope.Identifiers[key: "type"] as IDeclaredEntry)?.Declaration as IModuleDeclaration)?.Scope?.Identifiers?[key: "size"] as
+                IDeclaredEntry;
             // TODO extract the real value
             return entry != null ? 8u : 0u;
         }
 
         public static IFuntionEntry GetConstructor(this IModuleDeclaration module) {
-            return module.Scope.Identifiers["Construct"] as IFuntionEntry;
+            return module.Scope.Identifiers[key: "Construct"] as IFuntionEntry;
         }
+
         public static IFuntionEntry GetDestructor(this IModuleDeclaration module) {
-            return module.Scope.Identifiers["Destruct"] as IFuntionEntry;
+            return module.Scope.Identifiers[key: "Destruct"] as IFuntionEntry;
         }
 
         public static IFuntionEntry GetImplicitFrom(this IModuleDeclaration module) {
-            return module.Scope.Identifiers["ImplicitFrom"] as IFuntionEntry;
+            return module.Scope.Identifiers[key: "ImplicitFrom"] as IFuntionEntry;
         }
 
         public static FromLiteralFunc GetFromLiteral(this IModuleDeclaration module) {
@@ -70,7 +75,6 @@ namespace REC.AST
         public static FromNetTypeAction GetFromNetType(this IModuleDeclaration module) {
             return (module as IntrinsicModuleDeclaration)?.FromNetType;
         }
-
     }
 
     class ModuleDeclaration : Declaration, IModuleDeclaration

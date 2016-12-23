@@ -16,8 +16,8 @@ namespace REC.Cpp
     class IndentedTextBuilder : IIndentedTextBuilder
     {
         bool _blocked;
-        public string Indentation { get; set; } = string.Empty;
         IList<string> Lines { get; set; } = new List<string>();
+        public string Indentation { get; set; } = string.Empty;
 
         public void AddLine(string line) {
             Debug.Assert(!_blocked);

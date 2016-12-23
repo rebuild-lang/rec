@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace REC.Tests.Experiments
 {
-    [TestFixture()]
+    [TestFixture]
     public class GeneratorTests
     {
         // This test models an explicit generator
@@ -17,16 +17,16 @@ namespace REC.Tests.Experiments
 
         class GeneratorEnumerator<T> : IEnumerator<T>
         {
-            public T Current => _enumerator.Current;
-
-            object IEnumerator.Current => Current;
-
-            IGenerator<T> Generator { get; }
             IEnumerator<T> _enumerator;
 
             public GeneratorEnumerator(IGenerator<T> generator) {
                 Generator = generator;
             }
+
+            IGenerator<T> Generator { get; }
+            public T Current => _enumerator.Current;
+
+            object IEnumerator.Current => Current;
 
             public void Dispose() {}
 
@@ -82,7 +82,7 @@ namespace REC.Tests.Experiments
         }
 
 
-        [Test()]
+        [Test]
         public void TestParserMoc() {
             var p = new ParserMoc();
             Assert.AreEqual(new List<Token> {Token.VarDecl, Token.Identifier, Token.Call}, p.ToList());

@@ -5,7 +5,7 @@ using REC.Scope;
 
 namespace REC.Tests.Scope
 {
-    [TestFixture()]
+    [TestFixture]
     public class IdentifierScopeTests
     {
         class Entry : IEntry
@@ -14,7 +14,7 @@ namespace REC.Tests.Scope
         }
 
 
-        [Test()]
+        [Test]
         public void Add() {
             var parentScope = new IdentifierScope();
             var childScope = new IdentifierScope {Parent = parentScope};
@@ -23,7 +23,7 @@ namespace REC.Tests.Scope
             var myEntry = new Entry {Name = "label"};
             myScope.Add(myEntry);
 
-            var testIdentifier = new Entry { Name = myEntry.Name };
+            var testIdentifier = new Entry {Name = myEntry.Name};
 
             var result = parentScope.Add(testIdentifier);
             Assert.IsTrue(result);
@@ -35,16 +35,16 @@ namespace REC.Tests.Scope
             Assert.AreNotEqual(testIdentifier, myScope[testIdentifier.Name]);
         }
 
-        [Test()]
+        [Test]
         public void GetEnumerator() {
-            var parentScope = new IdentifierScope { new Entry { Name = "label" } };
+            var parentScope = new IdentifierScope {new Entry {Name = "label"}};
             var childScope = new IdentifierScope {Parent = parentScope};
             var myScope = new IdentifierScope {Parent = childScope};
-            myScope.Add(new Entry { Name = "fun" });
+            myScope.Add(new Entry {Name = "fun"});
 
             var result = myScope.Select(i => i.Name).ToList();
 
-            Assert.AreEqual(new List<string>() { "fun", "label" }, result);
+            Assert.AreEqual(new List<string> {"fun", "label"}, result);
         }
     }
 }

@@ -22,6 +22,7 @@ namespace REC.AST
         public string Name { get; set; }
         public bool IsCompileTimeUsable { get; set; } = true;
         public bool IsRuntimeUsable { get; set; } = true;
+
         public bool IsCompileTimeOnly {
             get { return IsCompileTimeUsable && !IsRuntimeUsable; }
             set {
@@ -29,9 +30,7 @@ namespace REC.AST
                     IsCompileTimeUsable = true;
                     IsRuntimeUsable = false;
                 }
-                else {
-                    IsRuntimeUsable = true;
-                }
+                else IsRuntimeUsable = true;
             }
         }
 
@@ -42,9 +41,7 @@ namespace REC.AST
                     IsCompileTimeUsable = false;
                     IsRuntimeUsable = true;
                 }
-                else {
-                    IsCompileTimeUsable = true;
-                }
+                else IsCompileTimeUsable = true;
             }
         }
     }

@@ -3,7 +3,7 @@ using REC.AST;
 
 namespace REC.Tests.AST
 {
-    [TestFixture()]
+    [TestFixture]
     public class NumberLiteralTests
     {
         [TestCase(10, "0", 1, true)]
@@ -11,11 +11,10 @@ namespace REC.Tests.AST
         [TestCase(10, "256", 1, false)]
         [TestCase(16, "FF", 1, true)]
         [TestCase(16, "100", 1, false)]
-        public void FitsUnsignedTest(int radix, string integerPart, int byteCount, bool fits)
-        {
-            var num = new NumberLiteral
-            {
-                Radix = radix, IntegerPart = integerPart
+        public void FitsUnsignedTest(int radix, string integerPart, int byteCount, bool fits) {
+            var num = new NumberLiteral {
+                Radix = radix,
+                IntegerPart = integerPart
             };
 
             var result = num.FitsUnsigned(byteCount);
@@ -30,7 +29,8 @@ namespace REC.Tests.AST
         [TestCase(16, "81", 1, false)]
         public void FitsNegativeTest(int radix, string integerPart, int byteCount, bool fits) {
             var num = new NumberLiteral {
-                Radix = radix, IntegerPart = integerPart
+                Radix = radix,
+                IntegerPart = integerPart
             };
 
             var result = num.FitsNegative(byteCount);
@@ -45,7 +45,8 @@ namespace REC.Tests.AST
         [TestCase(16, "80", 1, false)]
         public void FitsPositiveTest(int radix, string integerPart, int byteCount, bool fits) {
             var num = new NumberLiteral {
-                Radix = radix, IntegerPart = integerPart
+                Radix = radix,
+                IntegerPart = integerPart
             };
 
             var result = num.FitsPositive(byteCount);

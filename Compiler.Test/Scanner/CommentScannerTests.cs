@@ -1,23 +1,20 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 using REC.Scanner;
-using System;
 
 namespace REC.Tests.Scanner
 {
     [TestFixture]
     public class CommentScannerTests
     {
-        [TestCase("#comment")]
-        [TestCase("# comment")]
-        [TestCase("# comment#")]
-        [TestCase("#com ment#comment#")]
-        [TestCase("#comment #comment##")]
-        public void TestPositiveLineComments(string content)
-        {
-            var input = new TextInputRange
-            {
-                File = new TextFile
-                {
+        [TestCase(arg: "#comment")]
+        [TestCase(arg: "# comment")]
+        [TestCase(arg: "# comment#")]
+        [TestCase(arg: "#com ment#comment#")]
+        [TestCase(arg: "#comment #comment##")]
+        public void TestPositiveLineComments(string content) {
+            var input = new TextInputRange {
+                File = new TextFile {
                     Content = content,
                     Filename = ""
                 }
@@ -28,13 +25,10 @@ namespace REC.Tests.Scanner
             Assert.IsFalse(input.IsEndValid);
         }
 
-        [TestCase("#comment\n comment#")]
-        public void TestNegativeLineEndLineComments(string content)
-        {
-            var input = new TextInputRange
-            {
-                File = new TextFile
-                {
+        [TestCase(arg: "#comment\n comment#")]
+        public void TestNegativeLineEndLineComments(string content) {
+            var input = new TextInputRange {
+                File = new TextFile {
                     Content = content,
                     Filename = ""
                 }
@@ -43,16 +37,13 @@ namespace REC.Tests.Scanner
             var output = CommentScanner.Scan(input);
             Assert.IsTrue(output);
             Assert.IsTrue(input.IsEndValid);
-            Assert.AreEqual('\n', input.EndChar);
+            Assert.AreEqual(expected: '\n', actual: input.EndChar);
         }
 
-        [TestCase("a#jkdajslk")]
-        public void TestNegativeLineComments(string content)
-        {
-            var input = new TextInputRange
-            {
-                File = new TextFile
-                {
+        [TestCase(arg: "a#jkdajslk")]
+        public void TestNegativeLineComments(string content) {
+            var input = new TextInputRange {
+                File = new TextFile {
                     Content = content,
                     Filename = ""
                 }
@@ -60,26 +51,23 @@ namespace REC.Tests.Scanner
 
             var output = CommentScanner.Scan(input);
             Assert.IsFalse(output);
-            Assert.AreEqual(content[0], input.EndChar);
+            Assert.AreEqual(content[index: 0], input.EndChar);
         }
 
-        [TestCase("####",1)]
-        [TestCase("###A#\n#A##",2)]
-        [TestCase("###A#\n#A# ##",2)]
-        [TestCase("##\n##",2)]
-        [TestCase("##AAA##",1)]
-        [TestCase("#A##A#",1)]
-        [TestCase("#A#\n#A#",2)]
-        [TestCase("#A#\n####\n#A#",3)]
-        [TestCase("#A#\n#B##B#\n#A#",3)]
-        [TestCase("#A##B##B##A#",1)]
-        [TestCase("#A#A#A#",1)]
-        public void TestPositiveBlockComments(string content,int line)
-        {
-            var input = new TextInputRange
-            {
-                File = new TextFile
-                {
+        [TestCase(arg1: "####", arg2: 1)]
+        [TestCase(arg1: "###A#\n#A##", arg2: 2)]
+        [TestCase(arg1: "###A#\n#A# ##", arg2: 2)]
+        [TestCase(arg1: "##\n##", arg2: 2)]
+        [TestCase(arg1: "##AAA##", arg2: 1)]
+        [TestCase(arg1: "#A##A#", arg2: 1)]
+        [TestCase(arg1: "#A#\n#A#", arg2: 2)]
+        [TestCase(arg1: "#A#\n####\n#A#", arg2: 3)]
+        [TestCase(arg1: "#A#\n#B##B#\n#A#", arg2: 3)]
+        [TestCase(arg1: "#A##B##B##A#", arg2: 1)]
+        [TestCase(arg1: "#A#A#A#", arg2: 1)]
+        public void TestPositiveBlockComments(string content, int line) {
+            var input = new TextInputRange {
+                File = new TextFile {
                     Content = content,
                     Filename = ""
                 }
@@ -91,20 +79,17 @@ namespace REC.Tests.Scanner
             Assert.AreEqual(line, input.End.Line);
         }
 
-        [TestCase("## Kill")]
-        public void TestNegativeBlockComments(string content)
-        {
-            var input = new TextInputRange
-            {
-                File = new TextFile
-                {
+        [TestCase(arg: "## Kill")]
+        public void TestNegativeBlockComments(string content) {
+            var input = new TextInputRange {
+                File = new TextFile {
                     Content = content,
                     Filename = ""
                 }
             };
 
             var exception = Assert.Throws<Exception>(() => CommentScanner.Scan(input));
-            Assert.True(exception.Message.Equals("Line Comment not Escaped."));
+            Assert.True(exception.Message.Equals(value: "Line Comment not Escaped."));
         }
     }
 }

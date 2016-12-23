@@ -6,11 +6,11 @@
     public interface IArgumentDeclaration : IVariableDeclaration
     {
         // if true this argument is an array or nested arguments, which captures without separation
-        bool IsUnrolled { get;  }
+        bool IsUnrolled { get; }
     }
 
     class ArgumentDeclaration : VariableDeclaration, IArgumentDeclaration
     {
-        public bool IsUnrolled { get; set;  }
+        public bool IsUnrolled { get; set; }
     }
 }

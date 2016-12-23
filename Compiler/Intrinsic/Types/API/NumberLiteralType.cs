@@ -16,15 +16,14 @@ namespace REC.Intrinsic.Types.API
                 Construct = Construct,
                 Destruct = Destruct,
                 FromLiteral = FromLiteral,
-
                 NetType = typeof(INumberLiteral),
                 ToNetType = ToNetType,
-                FromNetType = FromNetType,
+                FromNetType = FromNetType
             };
         }
 
         static void FromNetType(dynamic net, byte[] bytes) {
-            var value = (INumberLiteral)net;
+            var value = (INumberLiteral) net;
             var handle = NumberLiterals.GetHandle(value);
             NumberLiterals.AddRef(handle);
             BitConverter.GetBytes(handle).CopyTo(bytes, index: 0);
@@ -38,6 +37,7 @@ namespace REC.Intrinsic.Types.API
         static void Construct(byte[] data) {
             Array.Clear(data, index: 0, length: data.Length);
         }
+
         static void Destruct(byte[] data) {
             var handle = BitConverter.ToInt32(data, startIndex: 0);
             NumberLiterals.RemoveRef(handle);

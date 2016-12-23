@@ -4,6 +4,8 @@ using System.IO;
 using REC.Cpp;
 using REC.Intrinsic;
 using REC.Intrinsic.IO;
+using REC.Intrinsic.Types;
+using REC.Intrinsic.Types.API;
 using REC.Parser;
 
 namespace REC
@@ -15,8 +17,8 @@ namespace REC
             DeclarationConverter.BuildScope(
                 InjectedScope,
                 new IntrinsicDict {
-                    Intrinsic.Types.U64Type.Get(),
-                    Intrinsic.Types.API.NumberLiteralType.Get(),
+                    U64Type.Get(),
+                    NumberLiteralType.Get(),
                     PrintIntrinsic.Get(),
                     SimpleMathIntrinsic<ulong, UlongMath>.Get()
                 });
@@ -25,7 +27,7 @@ namespace REC
         IScope InjectedScope { get; }
 
         static string GetTempFileName(string basename = "", string extension = "tmp") {
-            return Path.GetTempPath() + basename + Guid.NewGuid().ToString() + '.' + extension;
+            return Path.GetTempPath() + basename + Guid.NewGuid() + '.' + extension;
         }
 
         public void CompileFile(TextFile file) {
@@ -33,7 +35,7 @@ namespace REC
             var prepared = TokenPreparation.Apply(raw);
             var block = new BlockLineGrouping().Group(prepared);
             var ast = Parser.Parser.ParseBlock(block, InjectedScope);
-            var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp"); 
+            var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
             //var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp"); // use this for debugging cpp output
             using (var writer = File.CreateText(cppFileName)) {
                 CppGenerator.Generate(writer, ast);
@@ -66,6 +68,7 @@ namespace REC
                         "/DNDEBUG", // omit debug code
                         #endregion
                         #region debug
+
                         //"/MDd", // multi threaded DLL debug
                         //"/Zi", // complete debug infos  
                         #endregion

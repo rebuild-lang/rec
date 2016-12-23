@@ -11,5 +11,4 @@ namespace REC.AST
     {
         public IIntrinsic Intrinsic { get; set; }
     }
-
 }

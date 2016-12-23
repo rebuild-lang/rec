@@ -6,7 +6,7 @@ using REC.Scanner;
 
 namespace REC.Tests.Parser
 {
-    [TestFixture()]
+    [TestFixture]
     public class BlockLineGroupingTests
     {
         public struct TestData
@@ -73,7 +73,7 @@ namespace REC.Tests.Parser
             };
         }
 
-        static readonly TestData[] GroupTests = new[] {
+        static readonly TestData[] GroupTests = {
             new TestData {
                 Input = new[] {
                     Id(text: "if"), Id(text: "a"), NewLineIndentation(column: 4),
@@ -81,13 +81,16 @@ namespace REC.Tests.Parser
                     Id(text: "print"), StringLiteral(text: "a"), NewLineIndentation(column: 4),
                     Id(text: "print"), StringLiteral(text: "b"), NewLineIndentation(column: 1),
                     Id(text: "else"), BlockStart(column: 4),
-                    Id(text: "print"), StringLiteral(text: "b"), BlockEnd(column: 1),
+                    Id(text: "print"), StringLiteral(text: "b"), BlockEnd(column: 1)
                 },
                 Output = new BlockLiteral {
                     Lines = {
                         new TokenLine {
                             Tokens = {
-                                Id(text: "if"), Id(text: "a"), Op(text: "&&"), Id(text: "b"),
+                                Id(text: "if"),
+                                Id(text: "a"),
+                                Op(text: "&&"),
+                                Id(text: "b"),
                                 BlockStart(
                                     column: 4,
                                     block: new BlockLiteral {
@@ -114,7 +117,7 @@ namespace REC.Tests.Parser
                         }
                     }
                 }
-            },
+            }
         };
 
 
@@ -127,16 +130,12 @@ namespace REC.Tests.Parser
 
         void AssertBlock(IBlockLiteral expected, IBlockLiteral actual, string label) {
             Assert.That(actual.Lines.Count, Is.EqualTo(expected.Lines.Count), $"{label}.Lines.Count");
-            for (var i = 0; i < actual.Lines.Count; i++) {
-                AssertLine(expected.Lines[i], actual.Lines[i], $"{label}.Lines[{i}]");
-            }
+            for (var i = 0; i < actual.Lines.Count; i++) AssertLine(expected.Lines[i], actual.Lines[i], $"{label}.Lines[{i}]");
         }
 
         void AssertLine(ITokenLine expected, ITokenLine actual, string label) {
             Assert.That(actual.Tokens.Count, Is.EqualTo(expected.Tokens.Count), $"{label}.Tokens.Count");
-            for (var i = 0; i < actual.Tokens.Count; i++) {
-                AssertToken(expected.Tokens[i], actual.Tokens[i], $"{label}.Tokens[{i}]");
-            }
+            for (var i = 0; i < actual.Tokens.Count; i++) AssertToken(expected.Tokens[i], actual.Tokens[i], $"{label}.Tokens[{i}]");
         }
 
         void AssertToken(TokenData expected, TokenData actual, string label) {

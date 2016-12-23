@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace REC.Tools
 {
-
     class ObjRef<T>
     {
         public T Obj;
@@ -15,16 +10,16 @@ namespace REC.Tools
 
     public class HandleCache<T>
     {
-        readonly IDictionary<T, int> ToHandle = new Dictionary<T, int>();
         readonly IDictionary<int, ObjRef<T>> HandleToObj = new Dictionary<int, ObjRef<T>>();
-        int handle = 0;
+        readonly IDictionary<T, int> ToHandle = new Dictionary<T, int>();
+        int handle;
 
         public int GetHandle(T obj) {
             return ToHandle.GetOrAdd(
                 obj,
                 () => {
                     var newHandle = handle++;
-                    HandleToObj[handle] = new ObjRef<T> { Obj = obj, RefCount = 0};
+                    HandleToObj[handle] = new ObjRef<T> {Obj = obj, RefCount = 0};
                     return handle;
                 });
         }

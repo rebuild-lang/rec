@@ -11,18 +11,23 @@ namespace REC.Scope
 
     public class SyntaxPattern : IComparable<SyntaxPattern>
     {
-        public int MinArgumentCount;
-        public int? MaxArgumentCount; // null means possible endless arguments
-
         public readonly HashSet<IFunctionDeclaration> Members = new HashSet<IFunctionDeclaration>();
         public IBindingLevel BindingLevel;
-
-        public string Name => Members.First().Name;
+        public int? MaxArgumentCount; // null means possible endless arguments
+        public int MinArgumentCount;
 
         public SyntaxPattern(IFunctionDeclaration declaration) {
             MinArgumentCount = declaration.MandatoryRightArgumentCount();
             MaxArgumentCount = declaration.MaxRightArgumentCount();
             Members.Add(declaration);
+        }
+
+        public string Name => Members.First().Name;
+
+        public int CompareTo(SyntaxPattern other) {
+            if (Overlaps(other)) return 0;
+            if (LessThan(other)) return -1;
+            return 1;
         }
 
         bool LessThan(SyntaxPattern other) {
@@ -31,14 +36,8 @@ namespace REC.Scope
         }
 
         public bool Overlaps(SyntaxPattern other) {
-            return (!other.MaxArgumentCount.HasValue || MinArgumentCount <= other.MaxArgumentCount.Value) 
+            return (!other.MaxArgumentCount.HasValue || MinArgumentCount <= other.MaxArgumentCount.Value)
                 && (!MaxArgumentCount.HasValue || MaxArgumentCount.Value >= other.MinArgumentCount);
-        }
-
-        public int CompareTo(SyntaxPattern other) {
-            if (Overlaps(other)) return 0;
-            if (LessThan(other)) return -1;
-            return 1;
         }
     }
 
@@ -60,9 +59,7 @@ namespace REC.Scope
                 default: // multiple overlaps => join them to new pattern
                     // overlap is a view - only valid when _sorted is not changed
                     foreach (var pattern in overlap) {
-                        foreach (var member in pattern.Members) {
-                            MergeDeclaration(syntaxPattern, member);
-                        }
+                        foreach (var member in pattern.Members) MergeDeclaration(syntaxPattern, member);
                     }
                     _sorted.RemoveWhere(x => x.Overlaps(syntaxPattern)); // remove existing overlaps
                     _sorted.Add(syntaxPattern); // add the new bundle
@@ -77,8 +74,9 @@ namespace REC.Scope
             syntaxPattern.MinArgumentCount = Math.Min(syntaxPattern.MinArgumentCount, declaration.MandatoryRightArgumentCount());
             if (syntaxPattern.MaxArgumentCount.HasValue) {
                 var max = declaration.MaxRightArgumentCount();
-                syntaxPattern.MaxArgumentCount = !max.HasValue ? null : 
-                    (int?) Math.Max(syntaxPattern.MaxArgumentCount.Value, max.Value);
+                syntaxPattern.MaxArgumentCount = !max.HasValue
+                    ? null
+                    : (int?) Math.Max(syntaxPattern.MaxArgumentCount.Value, max.Value);
             }
             syntaxPattern.Members.Add(declaration);
         }

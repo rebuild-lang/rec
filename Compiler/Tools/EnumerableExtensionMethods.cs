@@ -14,6 +14,7 @@ namespace REC.Tools
         public static IEnumerable<T> FlattenTo<T>(this IEnumerable<dynamic> enumerable) {
             return Flattener<T>.Flatten(enumerable);
         }
+
         public static IEnumerator<T> GetFlatEnumerator<T>(this IEnumerable<dynamic> enumerable) {
             return FlattenTo<T>(enumerable).GetEnumerator();
         }
@@ -25,7 +26,9 @@ namespace REC.Tools
             }
 
             static IEnumerable<T> Flatten(IEnumerator<T> d) {
-                while (d.MoveNext()) yield return d.Current; // allow already flattened enumerators
+                while (d.MoveNext()) {
+                    yield return d.Current; // allow already flattened enumerators
+                }
             }
 
             public static IEnumerable<T> Flatten(IEnumerable<dynamic> d) {

@@ -23,11 +23,11 @@ namespace REC.Tools
                     rC -= 10;
                 }
                 else overflow = 0;
-                result.Insert(0, (char)(Zero + rC));
+                result.Insert(index: 0, value: (char) (Zero + rC));
                 aI--;
                 bI--;
             }
-            if (1 == overflow) result.Insert(0, One);
+            if (1 == overflow) result.Insert(index: 0, value: One);
             return result.ToString();
         }
 
@@ -39,16 +39,18 @@ namespace REC.Tools
                 var rC = aC - 1;
                 if (rC < Zero) {
                     rC += 10;
-                    result[index] = (char)rC;
+                    result[index] = (char) rC;
                     index--;
                     continue;
                 }
-                result[index] = (char)rC;
+                result[index] = (char) rC;
                 break;
             }
-            if (index < 0) throw new IndexOutOfRangeException("below 0");
+            if (index < 0) throw new IndexOutOfRangeException(message: "below 0");
             if (index == 0) {
-                while (result[0] == Zero) result.Remove(0, 1);
+                while (result[index: 0] == Zero) {
+                    result.Remove(startIndex: 0, length: 1);
+                }
             }
             return result.ToString();
         }

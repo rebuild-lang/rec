@@ -73,6 +73,7 @@ namespace REC.Scope
     {
         IArgumentDeclaration Argument { get; }
     }
+
     class ArgumentEntry : DeclaredEntry, IArgumentEntry
     {
         public IArgumentDeclaration Argument { get; set; }

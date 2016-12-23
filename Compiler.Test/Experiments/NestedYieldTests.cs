@@ -4,7 +4,7 @@ using REC.Tools;
 
 namespace REC.Tests.Experiments
 {
-    [TestFixture()]
+    [TestFixture]
     public class NestedYieldTests
     {
         // This test shows how a nested yield generator can be flattened
@@ -47,28 +47,28 @@ namespace REC.Tests.Experiments
             }
         }
 
-        [Test()]
+        [Test]
         public void PeekCharStartTest() {
             var p = new ParserMoc();
             //var x = p.Parse().ToList();
             //Assert.AreEqual(new Expressions<Token> {Token.VarDecl, Token.entry}, x);
             using (var i = p.Parse().GetEnumerator()) {
-                Assert.AreEqual(0, p.State);
+                Assert.AreEqual(expected: 0, actual: p.State);
 
                 Assert.IsTrue(i.MoveNext());
-                Assert.AreEqual(1, p.State);
+                Assert.AreEqual(expected: 1, actual: p.State);
                 Assert.AreEqual(Token.VarDecl, i.Current);
 
                 Assert.IsTrue(i.MoveNext());
-                Assert.AreEqual(2, p.State);
+                Assert.AreEqual(expected: 2, actual: p.State);
                 Assert.AreEqual(Token.Identifier, i.Current);
 
                 Assert.IsTrue(i.MoveNext());
-                Assert.AreEqual(3, p.State);
+                Assert.AreEqual(expected: 3, actual: p.State);
                 Assert.AreEqual(Token.Call, i.Current);
 
                 Assert.IsFalse(i.MoveNext());
-                Assert.AreEqual(4, p.State);
+                Assert.AreEqual(expected: 4, actual: p.State);
             }
         }
     }

@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Globalization;
-
+using REC.AST;
 
 namespace REC.Scanner
 {
-    using IIdentifierLiteral = AST.IIdentifierLiteral;
-    using IdentifierLiteral = AST.IdentifierLiteral;
-
     public static class IdentifierScanner
     {
         // this will scan the longest valid regular entry

@@ -11,10 +11,10 @@ namespace REC.Scanner
          * block comments
          * #<optional># 
          */
+
         public static bool Scan(TextInputRange range) {
             if (range.EndChar != '#') return false;
-            do
-            {
+            do {
                 range.Extend();
             } while (range.IsEndValid && !range.IsEndNewline && !range.IsEndWhitespace && range.EndChar != '#');
 
@@ -22,36 +22,23 @@ namespace REC.Scanner
             if (range.IsEndNewline) return true;
 
             // is block comment
-            if (range.EndChar == '#')
-            {
+            if (range.EndChar == '#') {
                 range.Extend();
-                string commentMarker = range.Text;
-                
-                while (range.IsEndValid && range.EndString(commentMarker.Length) != commentMarker)
-                {
+                var commentMarker = range.Text;
+
+                while (range.IsEndValid && range.EndString(commentMarker.Length) != commentMarker) {
                     if (range.IsEndNewline)
-                    {
                         range.NewLine();
-                    }
                     else
-                    {
                         range.Extend();
-                    }
                 }
 
-                if(range.EndString(commentMarker.Length) != commentMarker)
-                {
-                    throw new Exception("Line Comment not Escaped.");
-                }
-                else
-                {
-                    range.Extend(commentMarker.Length);
-                }
+                if (range.EndString(commentMarker.Length) != commentMarker)
+                    throw new Exception(message: "Line Comment not Escaped.");
+                range.Extend(commentMarker.Length);
             }
-            else
-            {
-                do
-                {
+            else {
+                do {
                     range.Extend();
                 } while (range.IsEndValid && !range.IsEndNewline);
             }

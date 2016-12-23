@@ -58,7 +58,7 @@ namespace REC.Scope
 
             public bool MoveNext() {
                 while (!_enumerator.MoveNext()) {
-                    _identifierScope = (IdentifierScope)_identifierScope?.Parent;
+                    _identifierScope = (IdentifierScope) _identifierScope?.Parent;
                     if (null == _identifierScope) return false;
                     _enumerator = _identifierScope._locals.Values.GetEnumerator();
                 }

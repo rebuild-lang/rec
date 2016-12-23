@@ -23,17 +23,16 @@ namespace REC.AST
     public static class FunctionDeclarationExt
     {
         public static int MandatoryRightArgumentCount(this IFunctionDeclaration declaration) {
-            return declaration.RightArguments.Count(arg => 
-                !arg.IsUnrolled // TODO: check for fixed array size
-                || arg.Value == null);
+            return declaration.RightArguments.Count(
+                arg =>
+                    !arg.IsUnrolled // TODO: check for fixed array size
+                    || arg.Value == null);
         }
 
         public static int? MaxRightArgumentCount(this IFunctionDeclaration declaration) {
             var count = declaration.RightArguments.Count;
             foreach (var argument in declaration.RightArguments) {
-                if (argument.IsUnrolled) {
-                    return null; // TODO: check for fixed array size
-                }
+                if (argument.IsUnrolled) return null; // TODO: check for fixed array size
             }
             return count;
         }

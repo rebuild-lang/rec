@@ -11,15 +11,14 @@ namespace REC.Intrinsic.Types
                 TypeSize = 8,
                 Construct = Construct,
                 FromLiteral = FromLiteral,
-
                 NetType = typeof(ulong),
                 ToNetType = ToNetType,
-                FromNetType = FromNetType,
+                FromNetType = FromNetType
             };
         }
 
         static void FromNetType(dynamic net, byte[] bytes) {
-            var value = (ulong)net;
+            var value = (ulong) net;
             BitConverter.GetBytes(value).CopyTo(bytes, index: 0);
         }
 
@@ -33,15 +32,13 @@ namespace REC.Intrinsic.Types
 
         static LiteralConversion FromLiteral(byte[] dest, ILiteral literal) {
             var numberLiteral = literal as INumberLiteral;
-            if (numberLiteral != null) {
-                return FromNumberLiteral(dest, numberLiteral);
-            }
+            if (numberLiteral != null) return FromNumberLiteral(dest, numberLiteral);
             return LiteralConversion.Failed;
         }
 
         static LiteralConversion FromNumberLiteral(byte[] dest, INumberLiteral numberLiteral) {
-            if (numberLiteral.FitsUnsigned(8)) {
-                Array.Copy(numberLiteral.ToUnsigned(8), dest, 8);
+            if (numberLiteral.FitsUnsigned(byteCount: 8)) {
+                Array.Copy(numberLiteral.ToUnsigned(byteCount: 8), dest, length: 8);
                 return LiteralConversion.Ok;
             }
             return LiteralConversion.Failed;

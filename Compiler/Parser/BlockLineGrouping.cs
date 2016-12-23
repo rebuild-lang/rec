@@ -5,42 +5,42 @@ using REC.Scanner;
 
 namespace REC.Parser
 {
-
     /**
-     * Preparation step that allows to defer block processing
-     * 
-     * * Lines are joined with all continuations
-     * * BlockStart gets ITokenBlock as Data containing all lines
-     * * Semicolons are splitten into separate lines
-     * 
-     * example:S
-     *   'if' 'a'[NewLine
-     *      ]'&&' 'b'[BlockStart
-     *     ]'print' "a"[NewLine
-     *   ]'else'[BlockStart
-     *     ]'print' "b"[BlockEnd
-     *   ]
-     * 
-     *  is turned into:
-     *   Lines:
-     *   - - 'if'
-     *     - 'a'
-     *     - '&&'
-     *     - 'b'
-     *     - BlockStart:
-     *         Lines:
-     *         - - 'print'
-     *           - "a"
-     *     - 'else'
-     *     - BlockStart:
-     *         Lines:
-     *         - - 'print'
-     *           - "b"
-     */
+         * Preparation step that allows to defer block processing
+         * 
+         * * Lines are joined with all continuations
+         * * BlockStart gets ITokenBlock as Data containing all lines
+         * * Semicolons are splitten into separate lines
+         * 
+         * example:S
+         *   'if' 'a'[NewLine
+         *      ]'&&' 'b'[BlockStart
+         *     ]'print' "a"[NewLine
+         *   ]'else'[BlockStart
+         *     ]'print' "b"[BlockEnd
+         *   ]
+         * 
+         *  is turned into:
+         *   Lines:
+         *   - - 'if'
+         *     - 'a'
+         *     - '&&'
+         *     - 'b'
+         *     - BlockStart:
+         *         Lines:
+         *         - - 'print'
+         *           - "a"
+         *     - 'else'
+         *     - BlockStart:
+         *         Lines:
+         *         - - 'print'
+         *           - "b"
+         */
+
     public class BlockLineGrouping
     {
-        char _indentChar = '\0';
         bool _done; // marks that we hit the end of input
+        char _indentChar = '\0';
 
         public IBlockLiteral Group(IEnumerable<TokenData> input) {
             _indentChar = '\0';
@@ -49,7 +49,8 @@ namespace REC.Parser
                 if (!it.MoveNext()) return new BlockLiteral();
                 var blockColumn = 1;
                 if (it.Current.Type == Token.NewLineIndentation
-                    || it.Current.Type == Token.WhiteSpaceSeperator) { // first whitespace is an indentation
+                    || it.Current.Type == Token.WhiteSpaceSeperator) {
+                    // first whitespace is an indentation
                     blockColumn = GetIndent(it);
                     if (!it.MoveNext()) return new BlockLiteral();
                 }
@@ -160,7 +161,8 @@ namespace REC.Parser
                                 line.Tokens.Add(current);
                                 return line;
                             }
-                            if (nextColumn == parentBlockColumn) { // empty block
+                            if (nextColumn == parentBlockColumn) {
+                                // empty block
                                 current.Data = new BlockLiteral();
                                 line.Tokens.Add(current);
                                 if (!it.MoveNext()) _done = true;
@@ -178,8 +180,8 @@ namespace REC.Parser
         void ExtractLineTokens(IEnumerator<TokenData> it, ITokenLine line) {
             var current = it.Current;
             while (current.Type != Token.NewLineIndentation
-                   && current.Type != Token.BlockStartIndentation
-                   && current.Type != Token.BlockEndIndentation) {
+                && current.Type != Token.BlockStartIndentation
+                && current.Type != Token.BlockEndIndentation) {
                 line.Tokens.Add(current);
                 if (!it.MoveNext()) {
                     _done = true;
@@ -194,10 +196,8 @@ namespace REC.Parser
             if (range == null) return 1;
             if (range.Length != 0) {
                 var text = range.Text;
-                if (_indentChar == '\0') {
-                    _indentChar = text[index: 0];
-                }
-                if (text.Any(x => x != _indentChar)) { } // TODO warning
+                if (_indentChar == '\0') _indentChar = text[index: 0];
+                if (text.Any(x => x != _indentChar)) {} // TODO warning
             }
             return range.End.Column;
         }

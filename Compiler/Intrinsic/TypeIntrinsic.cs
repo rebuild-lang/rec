@@ -13,7 +13,7 @@ namespace REC.Intrinsic
 
     [AttributeUsage(AttributeTargets.Class)]
     class CompileTimeOnly : Attribute
-    { }
+    {}
 
     public enum LiteralConversion
     {
@@ -21,7 +21,7 @@ namespace REC.Intrinsic
         Failed, // no conversion possible
         TruncatedMajor, // input number > range (1000 => byte)
         TruncatedMinor, // not enough precision (1.5 => int)
-        TruncatedRepresentation, // decimal float => binary float loss
+        TruncatedRepresentation // decimal float => binary float loss
     }
 
     public interface ITypeModuleIntrinsic : IModuleIntrinsic

@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using REC.AST;
 using REC.Tools;
 
 namespace REC.Scanner
 {
-    using IIdentifierLiteral = AST.IIdentifierLiteral;
-    using IdentifierLiteral = AST.IdentifierLiteral;
-
     using BracketEntry = KeyValuePair<char, TextPosition>;
     using BracketStack = Stack<KeyValuePair<char, TextPosition>>;
 
@@ -38,7 +36,7 @@ namespace REC.Scanner
                 if (input.Length == 0) return null;
             }
 
-            return new IdentifierLiteral { Content = input.Text, Range = input.Clone() };
+            return new IdentifierLiteral {Content = input.Text, Range = input.Clone()};
         }
 
         static bool IsStart(TextInputRange input, BracketStack brackets) {

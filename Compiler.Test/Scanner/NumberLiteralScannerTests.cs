@@ -31,12 +31,9 @@ namespace REC.Tests.Scanner
         [TestCase("0o0.", 8, "", "", null)]
         [TestCase("0b0", 2, "", null, null)]
         [TestCase("0b0.", 2, "", "", null)]
-        public void ScanSuccess(string content, int radix, string integerPart, string fractionalPart, string exponentPart)
-        {
-            var input = new TextInputRange
-            {
-                File = new TextFile
-                {
+        public void ScanSuccess(string content, int radix, string integerPart, string fractionalPart, string exponentPart) {
+            var input = new TextInputRange {
+                File = new TextFile {
                     Content = content,
                     Filename = ""
                 }
@@ -51,13 +48,12 @@ namespace REC.Tests.Scanner
             Assert.AreEqual(exponentPart, result.ExponentPart);
         }
 
-        [TestCase("0x")]
-        [TestCase("0o")]
-        [TestCase("0b")]
-        [TestCase("0.e")]
-        [TestCase(".0")]
-        public void ScanFailures(string content)
-        {
+        [TestCase(arg: "0x")]
+        [TestCase(arg: "0o")]
+        [TestCase(arg: "0b")]
+        [TestCase(arg: "0.e")]
+        [TestCase(arg: ".0")]
+        public void ScanFailures(string content) {
             var input = new TextInputRange {
                 File = new TextFile {
                     Content = content,

@@ -20,6 +20,7 @@ namespace REC.Cpp
         public ICppScope Scope { get; set; }
 
         public IIndentedTextBuilder Runtime => Scope.Runtime;
+
         public string MakeLocalName(string hint = "temp") {
             return Scope.MakeLocalName(hint);
         }

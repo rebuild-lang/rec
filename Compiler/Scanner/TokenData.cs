@@ -17,7 +17,7 @@
         NumberLiteral,
         IdentifierLiteral,
         OperatorLiteral,
-        InvalidCharacter,
+        InvalidCharacter
     }
 
     public struct TokenData

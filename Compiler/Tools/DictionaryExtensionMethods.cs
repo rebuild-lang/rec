@@ -16,8 +16,7 @@ namespace REC.Tools
             return value;
         }
 
-        public static TValue GetOr<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, Func<TValue> notFound)
-        {
+        public static TValue GetOr<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, Func<TValue> notFound) {
             //if (dictionary == null) throw new ArgumentNullException("dictionary");
             //if (key == null) throw new ArgumentNullException("key");
             //if (notFound == null) throw new ArgumentNullException("valueFactory");

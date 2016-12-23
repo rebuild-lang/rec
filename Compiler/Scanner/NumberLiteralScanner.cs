@@ -1,10 +1,9 @@
+using System;
+using REC.AST;
 using REC.Tools;
 
 namespace REC.Scanner
 {
-    using INumberLiteral = AST.INumberLiteral;
-    using NumberLiteral = AST.NumberLiteral;
-
     public static class NumberLiteralScanner
     {
         public static INumberLiteral Scan(TextInputRange input) {
@@ -16,15 +15,15 @@ namespace REC.Scanner
                 switch (next) {
                     case 'x':
                     case 'X':
-                        input.Extend(2);
+                        input.Extend(nChars: 2);
                         return ScanNumber(input, radix: 16, isDigit: IsHexDigit);
                     case 'o':
                     case 'O':
-                        input.Extend(2);
+                        input.Extend(nChars: 2);
                         return ScanNumber(input, radix: 8, isDigit: IsOctalDigit);
                     case 'b':
                     case 'B':
-                        input.Extend(2);
+                        input.Extend(nChars: 2);
                         return ScanNumber(input, radix: 2, isDigit: IsBinaryDigit);
                 }
             }
@@ -36,9 +35,7 @@ namespace REC.Scanner
             var chr = input.EndChar;
             while (IsDecimalDigit(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";
-                if (!IsZero(chr) || !result.IntegerPart.IsEmpty()) {
-                    result.IntegerPart += chr;
-                }
+                if (!IsZero(chr) || !result.IntegerPart.IsEmpty()) result.IntegerPart += chr;
                 do {
                     input.Extend();
                     chr = input.EndChar;
@@ -66,9 +63,7 @@ namespace REC.Scanner
                 }
                 while (IsDecimalDigit(chr)) {
                     if (result.ExponentPart == null) result.ExponentPart = "";
-                    if (!IsZero(chr) || !result.ExponentPart.IsEmpty()) {
-                        result.ExponentPart += chr;
-                    }
+                    if (!IsZero(chr) || !result.ExponentPart.IsEmpty()) result.ExponentPart += chr;
                     do {
                         input.Extend();
                         chr = input.EndChar;
@@ -79,14 +74,12 @@ namespace REC.Scanner
             return result.IsValid ? result : null;
         }
 
-        static NumberLiteral ScanNumber(TextInputRange input, int radix, System.Func<char,bool> isDigit) {
+        static NumberLiteral ScanNumber(TextInputRange input, int radix, Func<char, bool> isDigit) {
             var result = new NumberLiteral {Radix = radix};
             var chr = input.EndChar;
             while (isDigit(chr)) {
                 if (result.IntegerPart == null) result.IntegerPart = "";
-                if (!IsZero(chr) || !result.IntegerPart.IsEmpty()) {
-                    result.IntegerPart += chr;
-                }
+                if (!IsZero(chr) || !result.IntegerPart.IsEmpty()) result.IntegerPart += chr;
                 do {
                     input.Extend();
                     chr = input.EndChar;
@@ -114,9 +107,7 @@ namespace REC.Scanner
                 }
                 while (IsDecimalDigit(chr)) {
                     if (result.ExponentPart == null) result.ExponentPart = "";
-                    if (!IsZero(chr) || !result.ExponentPart.IsEmpty()) {
-                        result.ExponentPart += chr;
-                    }
+                    if (!IsZero(chr) || !result.ExponentPart.IsEmpty()) result.ExponentPart += chr;
                     do {
                         input.Extend();
                         chr = input.EndChar;
@@ -129,7 +120,7 @@ namespace REC.Scanner
 
         static bool IsIgnored(char chr) => chr == '\'';
 
-        static bool IsPlus(char chr) => (chr == '+');
+        static bool IsPlus(char chr) => chr == '+';
 
         static bool IsSign(char chr) => chr == '+' || chr == '-';
 
@@ -141,12 +132,12 @@ namespace REC.Scanner
 
         static bool IsZero(char chr) => chr == '0';
 
-        static bool IsBinaryDigit(char chr) => (chr == '0' || chr == '1');
+        static bool IsBinaryDigit(char chr) => chr == '0' || chr == '1';
 
-        static bool IsOctalDigit(char chr) => (chr >= '0' && chr <= '7');
+        static bool IsOctalDigit(char chr) => chr >= '0' && chr <= '7';
 
-        static bool IsDecimalDigit(char chr) => (chr >= '0' && chr <= '9');
+        static bool IsDecimalDigit(char chr) => chr >= '0' && chr <= '9';
 
-        static bool IsHexDigit(char chr) => (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
+        static bool IsHexDigit(char chr) => chr >= '0' && chr <= '9' || chr >= 'a' && chr <= 'f' || chr >= 'A' && chr <= 'F';
     }
 }

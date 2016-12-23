@@ -10,13 +10,11 @@ namespace REC.Cpp
     static class CppGenerator
     {
         public static void Generate(TextWriter writer, IExpressionBlock block) {
-            writer.WriteLine("#include <stdint.h>");
-            writer.WriteLine("#include <tuple>");
+            writer.WriteLine(value: "#include <stdint.h>");
+            writer.WriteLine(value: "#include <tuple>");
             var scope = new CppScope();
             Dynamic(block, scope);
-            foreach (var global in scope.Globals) {
-                writer.WriteLine(global.Value);
-            }
+            foreach (var global in scope.Globals) writer.WriteLine(global.Value);
             writer.WriteLine(scope.Declaration.Build());
             writer.WriteLine(value: "int main(int argc, char** argv) {");
             writer.WriteLine(scope.Runtime.Build());
@@ -25,9 +23,7 @@ namespace REC.Cpp
         }
 
         static void Dynamic(IExpressionBlock block, ICppScope scope) {
-            foreach (var blockExpression in block.Expressions) {
-                Dynamic((dynamic)blockExpression, scope);
-            }
+            foreach (var blockExpression in block.Expressions) Dynamic((dynamic) blockExpression, scope);
         }
 
         // ReSharper disable once UnusedParameter.Local
@@ -46,26 +42,19 @@ namespace REC.Cpp
 
         static void Dynamic(IIntrinsicExpression intrinsicExpression, ICppScope scope) {
             var func = intrinsicExpression.Intrinsic as IFunctionIntrinsic;
-            if (func != null) {
-                func.GenerateCpp(new CppIntrinsic {Scope = scope});
-            }
+            if (func != null) func.GenerateCpp(new CppIntrinsic {Scope = scope});
         }
 
         static string Dynamic(INamedExpressionTuple expressionTuple, ICppScope scope) {
             string result = null;
-            foreach (var sub in expressionTuple.Tuple) {
-                result = Dynamic((dynamic)sub.Expression, scope);
-            }
+            foreach (var sub in expressionTuple.Tuple) result = Dynamic((dynamic) sub.Expression, scope);
             return result;
         }
 
         static string Dynamic(IFunctionInvocation functionInvocation, ICppScope scope) {
             var function = functionInvocation.Function;
-            if (function.Implementation.Expressions.Count == 1 && function.Implementation.Expressions.First() is IIntrinsicExpression) {
-                scope.EnsureGlobal(function.Name, () => {
-                    return CreateGlobalDeclaration(scope, subScope => DeclareFunction(function, subScope));
-                });
-            }
+            if (function.Implementation.Expressions.Count == 1 && function.Implementation.Expressions.First() is IIntrinsicExpression)
+                scope.EnsureGlobal(function.Name, () => { return CreateGlobalDeclaration(scope, subScope => DeclareFunction(function, subScope)); });
 
             var leftArgs = BuildArgumentValues(function, function.LeftArguments, functionInvocation.Left, scope, kind: "Left");
             var rightArgs = BuildArgumentValues(function, function.RightArguments, functionInvocation.Right, scope, kind: "Right");
@@ -93,7 +82,12 @@ namespace REC.Cpp
             return $"_rebuild_{function}_{kind}";
         }
 
-        static string BuildArgumentValues(IFunctionDeclaration function, NamedCollection<IArgumentDeclaration> arguments, INamedExpressionTuple expressions, ICppScope scope, string kind) {
+        static string BuildArgumentValues(
+            IFunctionDeclaration function,
+            NamedCollection<IArgumentDeclaration> arguments,
+            INamedExpressionTuple expressions,
+            ICppScope scope,
+            string kind) {
             if (arguments.IsEmpty()) return string.Empty;
             var name = scope.MakeLocalName();
             var typeName = GetFunctionTypeName(function.Name, kind);
@@ -134,11 +128,11 @@ namespace REC.Cpp
             var right = string.Empty;
             var rightLocal = string.Empty;
             if (!noLeft) {
-                leftLocal = scope.MakeLocalName("left");
+                leftLocal = scope.MakeLocalName(hint: "left");
                 left = GetFunctionTypeName(function.Name, kind: "Left") + " " + leftLocal;
             }
             if (!noRight) {
-                rightLocal = scope.MakeLocalName("right");
+                rightLocal = scope.MakeLocalName(hint: "right");
                 right = (noLeft ? "" : ", ") + GetFunctionTypeName(function.Name, kind: "Right") + " " + rightLocal;
             }
 
@@ -152,7 +146,7 @@ namespace REC.Cpp
                     Dynamic(function.Implementation, innerScope);
 
                     if (!noResult) {
-                        var resultLocal = scope.MakeLocalName("result");
+                        var resultLocal = scope.MakeLocalName(hint: "result");
                         innerScope.Runtime.AddLine($"{resultType} {resultLocal};");
                         AssignResultsFromLocals(resultLocal, function.Results, innerScope);
                         innerScope.Runtime.AddLine($"return {resultLocal};");
@@ -162,9 +156,7 @@ namespace REC.Cpp
         }
 
         static void AssignResultsFromLocals(string resultLocal, IEnumerable<IArgumentDeclaration> results, ICppScope scope) {
-            foreach (var result in results) {
-                scope.Runtime.AddLine($"{resultLocal}.{result.Name} = std::move({result.Name});");
-            }
+            foreach (var result in results) scope.Runtime.AddLine($"{resultLocal}.{result.Name} = std::move({result.Name});");
         }
 
         static void MakeResultLocals(IEnumerable<IArgumentDeclaration> results, ICppScope scope) {
@@ -190,9 +182,7 @@ namespace REC.Cpp
                     foreach (var argument in arguments) {
                         var argTypeName = GetArgumentTypeName(argument.Type);
                         innerScope.Declaration.AddLine($"{argTypeName} {argument.Name};");
-                        if (arguments.Count == 1) {
-                            innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return {argument.Name}; }}");
-                        }
+                        if (arguments.Count == 1) innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return {argument.Name}; }}");
                     }
                 });
             scope.Declaration.AddLine(line: "};");
