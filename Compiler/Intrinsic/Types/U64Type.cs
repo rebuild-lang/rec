@@ -26,7 +26,7 @@ namespace REC.Intrinsic.Types
         }
 
         static LiteralConversion FromLiteral(byte[] dest, ILiteral literal) {
-            return literal is INumberLiteral ? FromNumberLiteral(dest, (INumberLiteral) literal) : LiteralConversion.Failed;
+            return literal is INumberLiteral numberLiteral ? FromNumberLiteral(dest, numberLiteral) : LiteralConversion.Failed;
         }
 
         static LiteralConversion FromNumberLiteral(byte[] dest, INumberLiteral numberLiteral) {

@@ -14,6 +14,7 @@ namespace REC.Intrinsic
     class DeclarationConverter
     {
         readonly NetTypes _netTypes = new NetTypes();
+        const string SizeTypeName = "u64";
 
         public static void BuildScope(IScope scope, IIntrinsicDict intrinsicDict) {
             var converter = new DeclarationConverter();
@@ -21,37 +22,22 @@ namespace REC.Intrinsic
             converter.ConvertNetTypes(declared, intrinsicDict);
         }
 
-        void ConvertNetTypes(ICollection<IExpression> expressions, IIntrinsicDict intrinsicDict) {
-            foreach (var expression in expressions) ConvertNetTypes((dynamic) expression, intrinsicDict);
-        }
-
-        void ConvertNetTypes(IModuleDeclaration moduleDeclaration, IIntrinsicDict intrinsicDict) {
-            var intrinsic = intrinsicDict[moduleDeclaration.Name] as IModuleIntrinsic;
-            if (intrinsic == null) return;
-            ConvertNetTypes(moduleDeclaration.Expressions, intrinsic.Children);
-            if (moduleDeclaration.IsType()) {
-                var typeEntry = moduleDeclaration.Scope.Identifiers[key: "type"] as IModuleEntry;
-                var sizeEntry = typeEntry?.ModuleDeclaration.Scope.Identifiers[key: "size"] as IVariableEntry;
-                if (sizeEntry != null) {
-                    ((VariableDeclaration) sizeEntry.Variable).Type = NetTypeToRebuildType(typeof(ulong));
-                    ((TypedValue) sizeEntry.Variable.Value).Type = sizeEntry.Variable.Type;
+        void ConvertNetTypes(IEnumerable<IExpression> expressions, IIntrinsicDict intrinsicDict) {
+            foreach (var expression in expressions) {
+                if (expression is FunctionDeclaration functionDeclaration
+                    && intrinsicDict[functionDeclaration.Name] is IFunctionIntrinsic intrinsic) {
+                    functionDeclaration.LeftArguments = TypeToArguments(intrinsic.LeftArgumentsType);
+                    functionDeclaration.RightArguments = TypeToArguments(intrinsic.RightArgumentsType);
+                    functionDeclaration.Results = TypeToArguments(intrinsic.ResultType);
                 }
             }
-        }
-
-        void ConvertNetTypes(FunctionDeclaration functionDeclaration, IIntrinsicDict intrinsicDict) {
-            var intrinsic = intrinsicDict[functionDeclaration.Name] as IFunctionIntrinsic;
-            if (intrinsic == null) return;
-            functionDeclaration.LeftArguments = TypeToArguments(intrinsic.LeftArgumentsType);
-            functionDeclaration.RightArguments = TypeToArguments(intrinsic.RightArgumentsType);
-            functionDeclaration.Results = TypeToArguments(intrinsic.ResultType);
         }
 
         IList<IExpression> DeclareIntrinsics(IEnumerable<IIntrinsic> intrinsics, IScope scope) {
             return intrinsics.Select(intrinsic => (IExpression) DeclareIntrinsic((dynamic) intrinsic, scope)).ToList();
         }
 
-        IDeclaration DeclareIntrinsic(ModuleIntrinsic moduleIntrinsic, IScope parentScope) {
+        IDeclaration DeclareIntrinsic(IModuleIntrinsic moduleIntrinsic, IScope parentScope) {
             var scope = new Parser.Scope {Parent = parentScope};
             var expressions = DeclareIntrinsics(moduleIntrinsic.Children, scope);
             var moduleDeclaration = new ModuleDeclaration {
@@ -63,7 +49,7 @@ namespace REC.Intrinsic
             return moduleDeclaration;
         }
 
-        IDeclaration DeclareIntrinsic(TypeModuleIntrinsic typeIntrinsic, IScope parentScope) {
+        IDeclaration DeclareIntrinsic(ITypeModuleIntrinsic typeIntrinsic, IScope parentScope) {
             var scope = new Parser.Scope {Parent = parentScope};
             var expressions = DeclareIntrinsics(typeIntrinsic.Children, scope);
             var moduleDeclaration = new IntrinsicModuleDeclaration {
@@ -75,7 +61,7 @@ namespace REC.Intrinsic
                 ToNetType = typeIntrinsic.ToNetType,
                 FromNetType = typeIntrinsic.FromNetType
             };
-            AddTypeSizeDeclaration(typeIntrinsic.TypeSize, moduleDeclaration);
+            AddTypeSizeDeclaration(typeIntrinsic.TypeSize, moduleDeclaration, parentScope);
             // TODO: add Construct/Destruct
             // TODO: add conversions
 
@@ -84,10 +70,15 @@ namespace REC.Intrinsic
             return moduleDeclaration;
         }
 
-        void AddTypeSizeDeclaration(ulong typeIntrinsicTypeSize, ModuleDeclaration moduleDeclaration) {
+        void AddTypeSizeDeclaration(ulong typeIntrinsicTypeSize, IModuleDeclaration moduleDeclaration, IScope parentScope) {
+            var sizeType = moduleDeclaration.Name == SizeTypeName
+                ? moduleDeclaration
+                : (parentScope.Identifiers[SizeTypeName] as IModuleEntry)?.ModuleDeclaration;
             var sizeDefine = new VariableDeclaration {
                 Name = "size",
+                Type = sizeType,
                 Value = new TypedValue {
+                    Type = sizeType,
                     Data = BitConverter.GetBytes(typeIntrinsicTypeSize)
                 }
             };

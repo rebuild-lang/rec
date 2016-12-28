@@ -91,8 +91,7 @@ namespace REC.Execution
             {
                 var argument = arguments[argN];
                 argN++;
-                if (argument.IsAssignable && expression.Expression is ITypedReference) {
-                    var reference = (ITypedReference) expression.Expression;
+                if (argument.IsAssignable && expression.Expression is ITypedReference reference) {
                     var referenceDecl = argumentScope.Values[reference.Declaration];
                     var value = innerScope.Values[argument.Name];
                     var casted = ImplicitCast(value, referenceDecl.Type);
@@ -137,8 +136,7 @@ namespace REC.Execution
         }
 
         static IExpression Dynamic(IIntrinsicExpression intrinsicExpression, IScope scope) {
-            var func = intrinsicExpression.Intrinsic as IFunctionIntrinsic;
-            if (func != null) {
+            if (intrinsicExpression.Intrinsic is IFunctionIntrinsic func) {
                 var leftArguments = (ILeftArguments) (func.LeftArgumentsType != null ? Activator.CreateInstance(func.LeftArgumentsType) : null);
                 var rightArguments = (IRightArguments) (func.RightArgumentsType != null ? Activator.CreateInstance(func.RightArgumentsType) : null);
                 var results = (IResultArguments) (func.ResultType != null ? Activator.CreateInstance(func.ResultType) : null);

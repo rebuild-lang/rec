@@ -36,20 +36,23 @@ namespace REC.AST
     public static class ModuleDeclarationExt
     {
         public static bool IsType(this IModuleDeclaration module) {
-            var typeSize =
-                ((module.Scope.Identifiers[key: "type"] as IDeclaredEntry)?.Declaration as IModuleDeclaration)?.Scope?.Identifiers?[key: "size"] as
-                IDeclaredEntry;
-            if (null == typeSize) return false;
+            return module.Scope.Identifiers[key: "type"] is IDeclaredEntry type
+                && type.Declaration is IModuleDeclaration typeModule
+                && typeModule.Scope.Identifiers[key: "size"] is IDeclaredEntry size
+                && size.Declaration is IVariableDeclaration sizeVariable
+                && sizeVariable.Type.Name == "u64";
             // TODO: read compile time value & check for != 0
-            return true;
         }
 
         public static ulong GetTypeSize(this IModuleDeclaration module) {
-            var entry =
-                ((module.Scope.Identifiers[key: "type"] as IDeclaredEntry)?.Declaration as IModuleDeclaration)?.Scope?.Identifiers?[key: "size"] as
-                IDeclaredEntry;
+            return module.Scope.Identifiers[key: "type"] is IDeclaredEntry type
+                && type.Declaration is IModuleDeclaration typeModule
+                && typeModule.Scope.Identifiers[key: "size"] is IDeclaredEntry size
+                && size.Declaration is IVariableDeclaration sizeVariable
+                && sizeVariable.Type.Name == "u64"
+                    ? 8u
+                    : 0u;
             // TODO extract the real value
-            return entry != null ? 8u : 0u;
         }
 
         public static IFunctionEntry GetConstructor(this IModuleDeclaration module) {

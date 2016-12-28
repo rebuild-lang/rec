@@ -41,8 +41,8 @@ namespace REC.Cpp
         }
 
         static void Dynamic(IIntrinsicExpression intrinsicExpression, ICppScope scope) {
-            var func = intrinsicExpression.Intrinsic as IFunctionIntrinsic;
-            func?.GenerateCpp(new CppIntrinsic {Scope = scope});
+            if (intrinsicExpression.Intrinsic is IFunctionIntrinsic func)
+                func.GenerateCpp(new CppIntrinsic {Scope = scope});
         }
 
         static string Dynamic(INamedExpressionTuple expressionTuple, ICppScope scope) {

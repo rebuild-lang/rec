@@ -25,11 +25,10 @@ namespace REC.Parser
                         var inner = Parse(tokens, scope, ref done);
                         var execResult = CompileTime.Execute(inner, scope);
                         if (execResult != null) {
-                            if (execResult is INamedExpressionTuple) {
-                                result.Tuple.AddRange((execResult as INamedExpressionTuple).Tuple);
-                            }
+                            if (execResult is INamedExpressionTuple execNamedTuple)
+                                result.Tuple.AddRange(execNamedTuple.Tuple);
                             else
-                                result.Tuple.Add(new NamedExpression { Expression = execResult });
+                                result.Tuple.Add(new NamedExpression {Expression = execResult});
                         }
                         break;
                     }
@@ -98,7 +97,7 @@ namespace REC.Parser
             filteredPool = ParseAndFilterFunctionRightArguments(filteredPool, ref rightArguments, tokens, scope, ref done);
             if (filteredPool.Count != 1) return null;
             // TODO: proper error handling
-            return CreateFunctionInvocation(ListExtensionMethods.First<IFunctionDeclaration>(filteredPool), range, leftArguments, rightArguments);
+            return CreateFunctionInvocation(filteredPool.First(), range, leftArguments, rightArguments);
         }
 
         static IList<IFunctionDeclaration> ParseAndFilterFunctionRightArguments(
@@ -135,13 +134,9 @@ namespace REC.Parser
 
         static IList<IFunctionDeclaration> FilterFunctionRightArguments(IList<IFunctionDeclaration> pool, INamedExpressionTuple rightArguments) {
             return pool.Where(
-                f => {
-                    if (f.RightArguments == null) return true;
-                    if (f.MandatoryRightArgumentCount() > rightArguments.Tuple.Count
-                        || f.MaxRightArgumentCount() != null && f.MaxRightArgumentCount() < rightArguments.Tuple.Count)
-                        return false;
-                    return true;
-                }).ToList();
+                f => f.RightArguments == null ||
+                    f.MandatoryRightArgumentCount() <= rightArguments.Tuple.Count &&
+                    (f.MaxRightArgumentCount() == null || !(f.MaxRightArgumentCount() < rightArguments.Tuple.Count))).ToList();
         }
 
         static IExpression CreateFunctionInvocation(
@@ -151,9 +146,8 @@ namespace REC.Parser
             INamedExpressionTuple rightArguments) {
             var filteredPool = FilterFunctionLeftArguments(pool, leftArguments);
             filteredPool = FilterFunctionRightArguments(filteredPool, rightArguments);
-            if (filteredPool.Count != 1) return null;
+            return filteredPool.Count != 1 ? null : CreateFunctionInvocation(filteredPool.First(), range, leftArguments, rightArguments);
             // TODO: proper error handling
-            return CreateFunctionInvocation(filteredPool.First(), range, leftArguments, rightArguments);
         }
 
         static IExpression CreateFunctionInvocation(

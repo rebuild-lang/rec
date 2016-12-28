@@ -44,12 +44,15 @@ namespace REC.Intrinsic.Types.API
         }
 
         static LiteralConversion FromLiteral(byte[] dest, ILiteral literal) {
-            var numberLiteral = literal as INumberLiteral;
-            if (null == numberLiteral) return LiteralConversion.Failed;
-            var handle = NumberLiterals.GetHandle(numberLiteral);
-            NumberLiterals.AddRef(handle);
-            BitConverter.GetBytes(handle).CopyTo(dest, index: 0);
-            return LiteralConversion.Ok;
+            if (literal is INumberLiteral numberLiteral) {
+                var handle = NumberLiterals.GetHandle(numberLiteral);
+                NumberLiterals.AddRef(handle);
+                BitConverter.GetBytes(handle).CopyTo(dest, index: 0);
+                return LiteralConversion.Ok;
+            }
+            else {
+                return LiteralConversion.Failed;
+            }
         }
     }
 }

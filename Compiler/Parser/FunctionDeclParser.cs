@@ -130,9 +130,13 @@ namespace REC.Parser
                     // TODO: expand ParseTypeExpression
                     if (token.Type == Token.IdentifierLiteral) {
                         var typeName = ((IIdentifierLiteral) token.Data).Content;
-                        var typeEntry = scope.Identifiers[typeName] as IModuleEntry;
-                        if (typeEntry != null && typeEntry.ModuleDeclaration.IsType()) argument.Type = typeEntry.ModuleDeclaration;
-                        // TODO: report missing type
+                        if (scope.Identifiers[typeName] is IModuleEntry typeEntry
+                            && typeEntry.ModuleDeclaration.IsType()) {
+                            argument.Type = typeEntry.ModuleDeclaration;
+                        }
+                        else {
+                            // TODO: report missing type   
+                        }
 
                         if (!tokens.MoveNext()) done = true;
                         if (done) return result; // TODO: report dangling open bracket
