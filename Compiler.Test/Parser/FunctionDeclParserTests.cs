@@ -61,20 +61,6 @@ namespace REC.Tests.Parser
             };
         }
 
-        static TokenData NumberLiteral(string text) {
-            return new TokenData {
-                Type = Token.NumberLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                },
-                Data = new NumberLiteral {
-                    Radix = 10,
-                    IntegerPart = text
-                }
-            };
-        }
-
         static TokenData BlockStart(int column, IBlockLiteral block = null) {
             return new TokenData {
                 Type = Token.BlockStartIndentation,

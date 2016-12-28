@@ -41,28 +41,6 @@ namespace REC.Tests.Parser
             };
         }
 
-        static TokenData BracketOpen() {
-            const string text = "(";
-            return new TokenData {
-                Type = Token.BracketOpen,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                }
-            };
-        }
-
-        static TokenData BracketClose() {
-            const string text = ")";
-            return new TokenData {
-                Type = Token.BracketClose,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                }
-            };
-        }
-
         static TokenData NumberLit(string text) {
             return new TokenData {
                 Type = Token.NumberLiteral,
