@@ -10,34 +10,35 @@ namespace REC.Tools
 
     public class HandleCache<T>
     {
-        readonly IDictionary<int, ObjRef<T>> HandleToObj = new Dictionary<int, ObjRef<T>>();
-        readonly IDictionary<T, int> ToHandle = new Dictionary<T, int>();
-        int handle;
+        readonly IDictionary<int, ObjRef<T>> _handleToObj = new Dictionary<int, ObjRef<T>>();
+        readonly IDictionary<T, int> _toHandle = new Dictionary<T, int>();
+        int _handle;
 
         public int GetHandle(T obj) {
-            return ToHandle.GetOrAdd(
+            return _toHandle.GetOrAdd(
                 obj,
                 () => {
-                    var newHandle = handle++;
-                    HandleToObj[handle] = new ObjRef<T> {Obj = obj, RefCount = 0};
-                    return handle;
+                    _handle++;
+                    var objHandle = _handle;
+                    _handleToObj[objHandle] = new ObjRef<T> {Obj = obj, RefCount = 0};
+                    return objHandle;
                 });
         }
 
         public T GetValue(int handle) {
-            return HandleToObj[handle].Obj;
+            return _handleToObj[handle].Obj;
         }
 
         public void AddRef(int handle) {
-            HandleToObj[handle].RefCount++;
+            _handleToObj[handle].RefCount++;
         }
 
         public void RemoveRef(int handle) {
-            var objref = HandleToObj[handle];
+            var objref = _handleToObj[handle];
             objref.RefCount--;
             if (objref.RefCount == 0) {
-                ToHandle.Remove(objref.Obj);
-                HandleToObj.Remove(handle);
+                _toHandle.Remove(objref.Obj);
+                _handleToObj.Remove(handle);
             }
         }
     }

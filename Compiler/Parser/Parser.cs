@@ -1,10 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using REC.AST;
-using REC.Execution;
 using REC.Scanner;
-using REC.Scope;
-using REC.Tools;
 
 namespace REC.Parser
 {

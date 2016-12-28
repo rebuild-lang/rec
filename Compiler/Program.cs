@@ -36,7 +36,7 @@ namespace REC
             var block = new BlockLineGrouping().Group(prepared);
             var ast = Parser.Parser.ParseBlock(block, InjectedScope);
             //var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
-            var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp"); // use this for debugging cpp output
+            var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp") ?? "test.cpp"; // use this for debugging cpp output
             using (var writer = File.CreateText(cppFileName)) {
                 CppGenerator.Generate(writer, ast);
             }

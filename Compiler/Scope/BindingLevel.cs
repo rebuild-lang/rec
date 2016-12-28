@@ -46,21 +46,21 @@ namespace REC.Scope
     class BindingLevel : IBindingLevel
     {
         public readonly HashSet<SyntaxPattern> Members = new HashSet<SyntaxPattern>();
-        BindingLevelGroup Group;
+        BindingLevelGroup _group;
         public Associativity Associaticity { get; set; }
 
         public int CompareTo(IBindingLevel iother) {
             var other = (BindingLevel) iother;
-            if (Group == other.Group) return 0;
-            if (Group == null) return -1;
-            if (other.Group == null) return 1;
-            return Group.CompareTo(other.Group);
+            if (_group == other._group) return 0;
+            if (_group == null) return -1;
+            if (other._group == null) return 1;
+            return _group.CompareTo(other._group);
         }
 
         public void ClearRelations() {
-            if (null == Group) return;
-            Group.RemoveLevel(this);
-            Group = null;
+            if (null == _group) return;
+            _group.RemoveLevel(this);
+            _group = null;
         }
 
         public AddSuccess AddWeakerThanRelation(IBindingLevel istronger) {
@@ -86,8 +86,8 @@ namespace REC.Scope
             var res = EnsureGroup().AddSame(sameGroup);
             if (res == AddSuccess.Success) {
                 foreach (var level in sameGroup.Levels) {
-                    level.Group = Group;
-                    Group.AddLevel(level);
+                    level._group = _group;
+                    _group.AddLevel(level);
                 }
                 sameGroup.Clear();
             }
@@ -95,11 +95,11 @@ namespace REC.Scope
         }
 
         BindingLevelGroup EnsureGroup() {
-            if (null == Group) {
-                Group = new BindingLevelGroup();
-                Group.AddLevel(this);
+            if (null == _group) {
+                _group = new BindingLevelGroup();
+                _group.AddLevel(this);
             }
-            return Group;
+            return _group;
         }
     }
 
