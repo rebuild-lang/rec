@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using REC.AST;
 using REC.Intrinsic;
 using REC.Tools;
@@ -67,7 +69,7 @@ namespace REC.Cpp
         static string BuildInvocation(string function, string leftArgs, string rightArgs, string resultArgs) {
             var left = leftArgs.IsEmpty() ? "" : $"std::move({leftArgs})";
             var right = rightArgs.IsEmpty() ? "" : (leftArgs.IsEmpty() ? "" : ", ") + $"std::move({rightArgs})";
-            return $"{resultArgs}{function}({left}{right});";
+            return $"{resultArgs}{CppEscape(function)}({left}{right});";
         }
 
         static string BuildResultValues(IFunctionDeclaration function, ICppScope scope, ref string name) {
@@ -78,8 +80,20 @@ namespace REC.Cpp
             return $"{typeName} {name} = ";
         }
 
+        static readonly Dictionary<char, string> EscapeMap = new Dictionary<char, string> {
+            {'+', "_Add"},
+            {'-', "_Minus"},
+            {'/', "_Div"},
+            {'*', "_Mul"},
+            {'_', "__"},
+        };
+
+        static string CppEscape(string name) {
+            return string.Join(separator: "", values: name.Select(c => EscapeMap.Fetch(c, c.ToString())));
+        }
+
         static string GetFunctionTypeName(string function, string kind) {
-            return $"_rebuild_{function}_{kind}";
+            return $"_rebuild_{CppEscape(function)}_{kind}";
         }
 
         static string BuildArgumentValues(
@@ -98,10 +112,10 @@ namespace REC.Cpp
                 argN++;
                 var value = Dynamic((dynamic) expression.Expression, scope);
                 if (argument.IsAssignable) {
-                    scope.Runtime.AddLine($"{name}.{argument.Name} = &{value};");
+                    scope.Runtime.AddLine($"{name}.{CppEscape(argument.Name)} = &{value};");
                 }
                 else {
-                    scope.Runtime.AddLine($"{name}.{argument.Name} = {value};");
+                    scope.Runtime.AddLine($"{name}.{CppEscape(argument.Name)} = {value};");
                 }
             }
             return name;
@@ -141,7 +155,7 @@ namespace REC.Cpp
                 right = (noLeft ? "" : ", ") + GetFunctionTypeName(function.Name, kind: "Right") + " " + rightLocal;
             }
 
-            scope.Declaration.AddLine($"inline {resultType} {function.Name}({left}{right}) {{");
+            scope.Declaration.AddLine($"inline {resultType} {CppEscape(function.Name)}({left}{right}) {{");
             scope.WithDeclarationIndented(
                 innerScope => {
                     MakeArgumentLocals(function.LeftArguments, leftLocal, innerScope);
@@ -161,24 +175,29 @@ namespace REC.Cpp
         }
 
         static void AssignResultsFromLocals(string resultLocal, IEnumerable<IArgumentDeclaration> results, ICppScope scope) {
-            foreach (var result in results) scope.Runtime.AddLine($"{resultLocal}.{result.Name} = std::move({result.Name});");
+            foreach (var result in results) {
+                var resultName = CppEscape(result.Name);
+                scope.Runtime.AddLine($"{resultLocal}.{resultName} = std::move({resultName});");
+            }
         }
 
         static void MakeResultLocals(IEnumerable<IArgumentDeclaration> results, ICppScope scope) {
             foreach (var result in results) {
                 var resultType = GetArgumentTypeName(result.Type);
-                scope.Runtime.AddLine($"{resultType} {result.Name};"); // TODO: initialize to default value
+                var resultName = CppEscape(result.Name);
+                scope.Runtime.AddLine($"{resultType} {resultName};"); // TODO: initialize to default value
             }
         }
 
         static void MakeArgumentLocals(IEnumerable<IArgumentDeclaration> arguments, string arg, ICppScope scope) {
             foreach (var argument in arguments) {
                 var argumentType = GetArgumentTypeName(argument.Type);
+                var argName = CppEscape(argument.Name);
                 if (argument.IsAssignable) {
-                    scope.Runtime.AddLine($"{argumentType} &{argument.Name} = *std::move({arg}.{argument.Name});");
+                    scope.Runtime.AddLine($"{argumentType} &{argName} = *std::move({arg}.{argName});");
                 }
                 else {
-                    scope.Runtime.AddLine($"{argumentType} {argument.Name} = std::move({arg}.{argument.Name});");
+                    scope.Runtime.AddLine($"{argumentType} {argName} = std::move({arg}.{argName});");
                 }
             }
         }
@@ -191,15 +210,16 @@ namespace REC.Cpp
                 innerScope => {
                     foreach (var argument in arguments) {
                         var argTypeName = GetArgumentTypeName(argument.Type);
+                        var argName = CppEscape(argument.Name);
                         if (argument.IsAssignable && kind != "Result") {
-                            innerScope.Declaration.AddLine($"{argTypeName}* {argument.Name};");
+                            innerScope.Declaration.AddLine($"{argTypeName}* {argName};");
                             if (arguments.Count == 1)
-                                innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return *{argument.Name}; }}");
+                                innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return *{argName}; }}");
                         }
                         else {
-                            innerScope.Declaration.AddLine($"{argTypeName} {argument.Name};");
+                            innerScope.Declaration.AddLine($"{argTypeName} {argName};");
                             if (arguments.Count == 1)
-                                innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return {argument.Name}; }}");
+                                innerScope.Declaration.AddLine($"operator {argTypeName}() const {{ return {argName}; }}");
                         }
                     }
                 });

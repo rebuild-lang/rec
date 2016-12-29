@@ -23,5 +23,10 @@ namespace REC.Tools
 
             return dictionary.ContainsKey(key) ? dictionary[key] : notFound();
         }
+
+        public static TValue Fetch<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue)
+        {
+            return dictionary.ContainsKey(key) ? dictionary[key] : defaultValue;
+        }
     }
 }

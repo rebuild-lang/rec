@@ -107,16 +107,16 @@ namespace REC
 fn (*l : u64) mov (r : u64):
     Assign l, r
 end
-fn (a : u64) add (b : u64) -> *r : u64:
+fn (a : u64) + (b : u64) -> *r : u64:
     Assign r, Add a b
 end
 fn test (x : u64):
     Print x
 end
 #test Add 23 12
-&Print 42 add 23
+&Print 42 + 23
 #&test Add 23 32
-Print 42 add 22",
+Print 42 + 22",
                     Filename = "Test.rebuild"
                 });
         }
