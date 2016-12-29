@@ -35,7 +35,7 @@ namespace REC.Parser
                 if (done) return null; // TODO: report missing name
             }
 
-            if (token.Type != Token.IdentifierLiteral && token.Type != Token.IdentifierLiteral) {
+            if (token.Type != Token.IdentifierLiteral && token.Type != Token.OperatorLiteral) {
                 // TODO: error handling name missing
                 // handling: mark functionDecl as error and continue to parse
                 return null;

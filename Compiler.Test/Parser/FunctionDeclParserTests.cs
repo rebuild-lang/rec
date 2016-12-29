@@ -193,6 +193,42 @@ namespace REC.Tests.Parser
                     Implementation = new ExpressionBlock()
                 }
             },
+            new ParseFunctionDeclTestData {
+                Name = "operator with args",
+                Scope = new REC.Parser.Scope {Parent = TestScope},
+                Input = new[] {
+                    Id(text: "fn"),
+                    BracketOpen(),
+                    Id(text: "leftarg"), Op(text: ":"), Id(text: "u64"),
+                    BracketClose(),
+                    Op(text: "+"),
+                    BracketOpen(),
+                    Id(text: "rightarg"), Op(text: ":"), Id(text: "u64"),
+                    BracketClose(),
+                    BlockStart(
+                        column: 4,
+                        block: new BlockLiteral {
+                            Lines = {new TokenLine()}
+                        })
+                },
+                Output = new FunctionDeclaration {
+                    Name = "+",
+                    LeftArguments = new NamedCollection<IArgumentDeclaration> {
+                        new ArgumentDeclaration {
+                            Name = "leftarg",
+                            Type = (TestScope.Identifiers[key: "u64"] as IModuleEntry)?.ModuleDeclaration
+                        }
+                    },
+                    RightArguments = new NamedCollection<IArgumentDeclaration> {
+                        new ArgumentDeclaration {
+                            Name = "rightarg",
+                            Type = (TestScope.Identifiers[key: "u64"] as IModuleEntry)?.ModuleDeclaration
+                        }
+                    },
+                    Results = new NamedCollection<IArgumentDeclaration>(),
+                    Implementation = new ExpressionBlock()
+                }
+            },
         };
 
         [TestCaseSource(nameof(ParseFunctionDeclTests))]
