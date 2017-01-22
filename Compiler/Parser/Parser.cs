@@ -6,31 +6,36 @@ namespace REC.Parser
 {
     public static class Parser
     {
-        public static IExpressionBlock ParseBlock(IBlockLiteral tokenBlock, IScope parentScope) {
+        public static IExpressionBlock ParseBlock(IBlockLiteral tokenBlock, IContext parentContext) {
+            var context = new Context {Parent = parentContext};
+            return ParseBlockWithContext(tokenBlock, context);
+        }
+
+        public static IExpressionBlock ParseBlockWithContext(IBlockLiteral tokenBlock, IContext context) {
             var block = new ExpressionBlock();
-            var scope = new Scope {Parent = parentScope};
             foreach (var tokenLine in tokenBlock.Lines) {
                 using (var it = tokenLine.Tokens.GetEnumerator()) {
                     if (it.MoveNext()) {
                         var done = false;
-                        var expression = ParseLineExpression(it, scope, ref done);
-                        if (expression != null) block.Expressions.Add(expression);
+                        var expression = ParseLineExpression(it, context, ref done);
+                        if (expression != null)
+                            block.Expressions.Add(expression);
                     }
                 }
             }
             return block;
         }
 
-        static IExpression ParseLineExpression(IEnumerator<TokenData> tokens, IScope scope, ref bool done) {
+        static IExpression ParseLineExpression(IEnumerator<TokenData> tokens, IContext context, ref bool done) {
             var token = tokens.Current;
             if (token.Type == Token.IdentifierLiteral) {
-                var identifier = (IIdentifierLiteral) token.Data;
-                if (identifier.Content == "let") return null; // ParseVariableDecl(tokens, scope, ref done);
-                if (identifier.Content == "fn") return FunctionDeclParser.Parse(tokens, scope, ref done);
-                if (identifier.Content == "module") return null; // ParseModuleDecl(tokens, scope, ref done);
-                if (identifier.Content == "with") return null; // ParseWithExpression(tokens, scope, ref done);
+                var identifier = ((IIdentifierLiteral) token.Data).Content;
+                if (identifier == "let") return null; // VariableDeclParser.Parse(tokens, context, ref done);
+                if (identifier == "fn") return FunctionDeclParser.Parse(tokens, context, ref done);
+                if (identifier == "module") return ModuleDeclParser.Parse(tokens, context, ref done);
+                if (identifier == "with") return null; // WithExpressionParser.Parse(tokens, context, ref done);
             }
-            return ExpressionParser.Parse(tokens, scope, ref done);
+            return ExpressionParser.Parse(tokens, context, ref done);
         }
     }
 }

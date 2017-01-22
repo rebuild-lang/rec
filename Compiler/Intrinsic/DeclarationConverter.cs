@@ -1,79 +1,70 @@
-﻿using System;
+﻿using REC.AST;
+using REC.Parser;
+using REC.Tools;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using REC.AST;
-using REC.Parser;
 using REC.Scope;
-using REC.Tools;
+using REC.Instance;
 
 namespace REC.Intrinsic
 {
-    using NetTypes = Dictionary<Type, IModuleDeclaration>;
+    using FieldToInstance = Dictionary<FieldInfo, ITypedInstance>;
+    using NetTypes = Dictionary<Type, IModuleInstance>;
 
     class DeclarationConverter
     {
         readonly NetTypes _netTypes = new NetTypes();
         const string SizeTypeName = "u64";
 
-        public static void BuildScope(IScope scope, IIntrinsicDict intrinsicDict) {
+        public static void BuildContext(IContext context, IIntrinsicDict intrinsicDict) {
             var converter = new DeclarationConverter();
-            var declared = converter.DeclareIntrinsics(intrinsicDict, scope);
-            converter.ConvertNetTypes(declared, intrinsicDict);
+            var declared = converter.DeclareIntrinsics(intrinsicDict, new ParentedIdentifierScope(context.Identifiers));
+            converter.ConvertNetTypes(declared);
         }
 
-        void ConvertNetTypes(IEnumerable<IExpression> expressions, IIntrinsicDict intrinsicDict) {
-            foreach (var expression in expressions) {
-                if (expression is FunctionDeclaration functionDeclaration
-                    && intrinsicDict[functionDeclaration.Name] is IFunctionIntrinsic intrinsic) {
-                    functionDeclaration.LeftArguments = TypeToArguments(intrinsic.LeftArgumentsType);
-                    functionDeclaration.RightArguments = TypeToArguments(intrinsic.RightArgumentsType);
-                    functionDeclaration.Results = TypeToArguments(intrinsic.ResultType);
+        void ConvertNetTypes(IEnumerable<IInstance> declared) {
+            foreach (var instance in declared) {
+                if (instance is IntrinsicFunctionInstance function) {
+                    var expression = function.IntrinsicExpression;
+                    TypeToArguments(function.LeftArguments, function.Declaration.LeftArguments, function.ArgumentIdentifiers, ArgumentSide.Left, expression.Intrinsic.LeftArgumentsType, expression.LeftFields);
+                    TypeToArguments(function.RightArguments, function.Declaration.RightArguments, function.ArgumentIdentifiers, ArgumentSide.Right, expression.Intrinsic.RightArgumentsType, expression.RightFields);
+                    TypeToArguments(function.Results, function.Declaration.Results, function.ArgumentIdentifiers, ArgumentSide.Result, expression.Intrinsic.ResultType, expression.ResultFields);
                 }
             }
         }
 
-        IList<IExpression> DeclareIntrinsics(IEnumerable<IIntrinsic> intrinsics, IScope scope) {
-            return intrinsics.Select(intrinsic => (IExpression) DeclareIntrinsic((dynamic) intrinsic, scope)).ToList();
+
+        IList<IInstance> DeclareIntrinsics(IEnumerable<IIntrinsic> intrinsics, IParentedIdentifierScope scope) {
+            return intrinsics.Select(intrinsic => (IInstance) DeclareIntrinsic((dynamic) intrinsic, scope)).ToList();
         }
 
-        IDeclaration DeclareIntrinsic(IModuleIntrinsic moduleIntrinsic, IScope parentScope) {
-            var scope = new Parser.Scope {Parent = parentScope};
-            var expressions = DeclareIntrinsics(moduleIntrinsic.Children, scope);
-            var moduleDeclaration = new ModuleDeclaration {
-                Name = moduleIntrinsic.Name,
-                Scope = scope,
-                Expressions = expressions
-            };
-            parentScope.Identifiers.Add(new ModuleEntry {ModuleDeclaration = moduleDeclaration});
-            return moduleDeclaration;
+        IInstance DeclareIntrinsic(IModuleIntrinsic moduleIntrinsic, IParentedIdentifierScope scope) {
+            var module = new ModuleInstance(moduleIntrinsic.Name);
+            DeclareIntrinsics(moduleIntrinsic.Children, new ParentedIdentifierScope(module.Identifiers) {Parent = scope});
+
+            scope.Add(module);
+            return module;
         }
 
-        IDeclaration DeclareIntrinsic(ITypeModuleIntrinsic typeIntrinsic, IScope parentScope) {
-            var scope = new Parser.Scope {Parent = parentScope};
-            var expressions = DeclareIntrinsics(typeIntrinsic.Children, scope);
-            var moduleDeclaration = new IntrinsicModuleDeclaration {
-                Name = typeIntrinsic.Name,
-                Scope = scope,
-                Expressions = expressions,
-                FromLiteral = typeIntrinsic.FromLiteral,
-                NetType = typeIntrinsic.NetType,
-                ToNetType = typeIntrinsic.ToNetType,
-                FromNetType = typeIntrinsic.FromNetType
-            };
-            AddTypeSizeDeclaration(typeIntrinsic.TypeSize, moduleDeclaration, parentScope);
+        IInstance DeclareIntrinsic(ITypeModuleIntrinsic typeIntrinsic, IParentedIdentifierScope scope) {
+            var module = new IntrinsicTypeModuleInstance(typeIntrinsic);
+            DeclareIntrinsics(typeIntrinsic.Children, new ParentedIdentifierScope(module.Identifiers) {Parent = scope});
+
+            AddTypeSizeDeclaration(typeIntrinsic.TypeSize, module, scope);
             // TODO: add Construct/Destruct
             // TODO: add conversions
 
-            if (typeIntrinsic.NetType != null) _netTypes[typeIntrinsic.NetType] = moduleDeclaration;
-            parentScope.Identifiers.Add(new ModuleEntry {ModuleDeclaration = moduleDeclaration});
-            return moduleDeclaration;
+            if (typeIntrinsic.NetType != null) _netTypes[typeIntrinsic.NetType] = module;
+            scope.Add(module);
+            return module;
         }
 
-        void AddTypeSizeDeclaration(ulong typeIntrinsicTypeSize, IModuleDeclaration moduleDeclaration, IScope parentScope) {
-            var sizeType = moduleDeclaration.Name == SizeTypeName
-                ? moduleDeclaration
-                : (parentScope.Identifiers[SizeTypeName] as IModuleEntry)?.ModuleDeclaration;
+        static void AddTypeSizeDeclaration(ulong typeIntrinsicTypeSize, IModuleInstance module, IParentedIdentifierScope scope) {
+            var sizeType = module.Name == SizeTypeName
+                ? module
+                : (scope[SizeTypeName] as IModuleInstance);
             var sizeDefine = new VariableDeclaration {
                 Name = "size",
                 Type = sizeType,
@@ -82,55 +73,42 @@ namespace REC.Intrinsic
                     Data = BitConverter.GetBytes(typeIntrinsicTypeSize)
                 }
             };
-            var typeModule = new ModuleDeclaration {
-                Name = "type",
-                Scope = new Parser.Scope {Parent = moduleDeclaration.Scope},
-                Expressions = {
-                    sizeDefine
-                }
-            };
-            typeModule.Scope.Identifiers.Add(new VariableEntry {Variable = sizeDefine});
-            moduleDeclaration.Scope.Identifiers.Add(new ModuleEntry {ModuleDeclaration = typeModule});
-            moduleDeclaration.Expressions.Add(typeModule);
+            var typeModule = new ModuleInstance(name: "type");
+            typeModule.Identifiers.Add(new VariableInstance {Variable = sizeDefine});
+
+            module.Identifiers.Add(typeModule);
         }
 
-        IDeclaration DeclareIntrinsic(IFunctionIntrinsic functionIntrinsic, IScope parentScope) {
-            var functionDeclaration = new FunctionDeclaration {
-                Name = functionIntrinsic.Name,
-                StaticScope = new Parser.Scope {Parent = parentScope},
-                IsCompileTimeOnly = functionIntrinsic.IsCompileTimeOnly,
-                Implementation = new ExpressionBlock {
-                    Expressions = {
-                        new IntrinsicExpression {
-                            Intrinsic = functionIntrinsic
-                        }
-                    }
-                }
-            };
-            parentScope.Identifiers.Add(
-                new FunctionEntry {
-                    FunctionDeclarations = {functionDeclaration}
-                });
-            return functionDeclaration;
+        IInstance DeclareIntrinsic(IFunctionIntrinsic functionIntrinsic, IParentedIdentifierScope scope) {
+            var function = new IntrinsicFunctionInstance(functionIntrinsic);
+            scope.Add(function);
+            return function;
         }
 
-        NamedCollection<IArgumentDeclaration> TypeToArguments(Type type) {
-            var result = new NamedCollection<IArgumentDeclaration>();
-            if (type == null) return result;
+        private void TypeToArguments(NamedCollection<IArgumentInstance> arguments, NamedCollection<IArgumentDeclaration> declarations, ILocalIdentifierScope identifiers, ArgumentSide side, Type type, FieldToInstance fields)
+        {
+            if (type == null)
+                return;
             foreach (var field in type.GetRuntimeFields()) {
-                result.Add(
-                    new ArgumentDeclaration {
-                        IsUnrolled = field.GetCustomAttributes(typeof(ArgumentUnrolled)).Any(),
-                        IsAssignable = field.GetCustomAttributes(typeof(ArgumentAssignable)).Any(),
-                        Name = field.Name,
-                        Type = NetTypeToRebuildType(field.FieldType)
-                        //Value = field.V
-                    });
+                var argumentDecl = new ArgumentDeclaration {
+                    IsUnrolled = field.GetCustomAttributes(typeof(ArgumentUnrolled)).Any(),
+                    IsAssignable = field.GetCustomAttributes(typeof(ArgumentAssignable)).Any(),
+                    Name = field.Name,
+                    Type = NetTypeToRebuildType(field.FieldType)
+                    //Value = field.V
+                };
+                var argument = new ArgumentInstance {
+                    Argument = argumentDecl,
+                    Side = side
+                };
+                declarations.Add(argumentDecl);
+                identifiers.Add(argument);
+                arguments.Add(argument);
+                fields.Add(field, argument);
             }
-            return result;
         }
 
-        IModuleDeclaration NetTypeToRebuildType(Type type) {
+        IModuleInstance NetTypeToRebuildType(Type type) {
             return _netTypes[type];
         }
     }

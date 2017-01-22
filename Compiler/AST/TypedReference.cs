@@ -1,18 +1,20 @@
-﻿namespace REC.AST
+﻿using REC.Instance;
+
+namespace REC.AST
 {
     // reference to any typed declaration
     // usages:
     // * reference a variable, argument or define
     public interface ITypedReference : IExpression
     {
-        IModuleDeclaration Type { get; }
+        IModuleInstance Type { get; }
 
-        ITypedDeclaration Declaration { get; }
+        ITypedInstance Instance { get; }
     }
 
     class TypedReference : Expression, ITypedReference
     {
-        public IModuleDeclaration Type { get; set; }
-        public ITypedDeclaration Declaration { get; set; }
+        public IModuleInstance Type { get; set; }
+        public ITypedInstance Instance { get; set; }
     }
 }

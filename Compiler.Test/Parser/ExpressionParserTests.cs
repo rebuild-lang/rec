@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using REC.AST;
+using REC.Instance;
 using REC.Intrinsic;
 using REC.Intrinsic.IO;
 using REC.Intrinsic.Types;
 using REC.Intrinsic.Types.API;
 using REC.Parser;
 using REC.Scanner;
-using REC.Scope;
-using REC.Tools;
+using System.Collections.Generic;
 
 namespace REC.Tests.Parser
 {
@@ -56,27 +55,27 @@ namespace REC.Tests.Parser
         }
 
 
-        static IScope BuildTestScope() {
-            var scope = new REC.Parser.Scope();
-            DeclarationConverter.BuildScope(
-                scope,
+        static IContext BuildTestContext() {
+            var context = new Context();
+            DeclarationConverter.BuildContext(
+                context,
                 new IntrinsicDict {
                     U64Type.Get(),
                     NumberLiteralType.Get(),
                     SimpleMathIntrinsic<ulong, UlongMath>.Get()
                 });
-            return scope;
+            return context;
         }
 
-        static readonly IScope TestScope = BuildTestScope();
+        static readonly IContext TestContext = BuildTestContext();
 
-        static readonly IScope TestVariableResScope = new REC.Parser.Scope {
-            Parent = TestScope,
+        static readonly IContext TestVariableResContext = new Context {
+            Parent = TestContext,
             Identifiers = {
-                new VariableEntry {
+                new VariableInstance {
                     Variable = new VariableDeclaration {
                         Name = "res",
-                        Type = (TestScope.Identifiers[key: "u64"] as IModuleEntry)?.ModuleDeclaration,
+                        Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
                         IsAssignable = true,
                     }
                 }
@@ -86,7 +85,7 @@ namespace REC.Tests.Parser
         public struct ParseTestData
         {
             public string Name;
-            public IScope Scope;
+            public IContext Context;
             public IEnumerable<TokenData> Input;
             public INamedExpressionTuple Output;
 
@@ -96,7 +95,7 @@ namespace REC.Tests.Parser
         static readonly ParseTestData[] ParseExpressionTestData = {
             new ParseTestData {
                 Name = "Compile time Add",
-                Scope = new REC.Parser.Scope {Parent = TestScope},
+                Context = new Context {Parent = TestContext},
                 Input = new[] {
                     Op(text: "&"),
                     Id(text: "Add"), NumberLit(text: "3"), NumberLit(text: "20")
@@ -106,7 +105,7 @@ namespace REC.Tests.Parser
                         new NamedExpression {
                             Name = "Value",
                             Expression = new TypedValue {
-                                Type = (TestScope.Identifiers[key: "u64"] as IModuleEntry)?.ModuleDeclaration,
+                                Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
                                 Data = new NumberLiteral {IntegerPart = "23"}.ToUnsigned(byteCount: 8)
                             }
                         }
@@ -115,8 +114,8 @@ namespace REC.Tests.Parser
             },
             new ParseTestData {
                 Name = "Assign and Add",
-                Scope = new REC.Parser.Scope {
-                    Parent = TestVariableResScope,
+                Context = new Context {
+                    Parent = TestVariableResContext,
                 },
                 Input = new[] {
                     Id(text: "Assign"),
@@ -127,19 +126,19 @@ namespace REC.Tests.Parser
                     Tuple = {
                         new NamedExpression {
                             Expression = new FunctionInvocation {
-                                Function = (TestScope.Identifiers[key: "Assign"] as IFunctionEntry)?.FunctionDeclarations?.First(),
+                                Function = TestContext.Identifiers[key: "Assign"] as IFunctionInstance,
                                 Left = new NamedExpressionTuple(),
                                 Right = new NamedExpressionTuple {
                                     Tuple = {
                                         new NamedExpression {
                                             Expression = new TypedReference {
-                                                Declaration = (TestVariableResScope.Identifiers[key: "res"] as IVariableEntry)?.Variable,
-                                                Type = (TestScope.Identifiers[key: "u64"] as IModuleEntry)?.ModuleDeclaration,
+                                                Instance = (TestVariableResContext.Identifiers[key: "res"] as IVariableInstance),
+                                                Type = TestContext.Identifiers[key: "u64"] as IModuleInstance,
                                             }
                                         },
                                         new NamedExpression {
                                             Expression = new FunctionInvocation {
-                                                Function = (TestScope.Identifiers[key: "Add"] as IFunctionEntry)?.FunctionDeclarations?.First(),
+                                                Function = TestContext.Identifiers[key: "Add"] as IFunctionInstance,
                                                 Left = new NamedExpressionTuple(),
                                                 Right = new NamedExpressionTuple {
                                                     Tuple = {
@@ -171,7 +170,7 @@ namespace REC.Tests.Parser
             using (var it = data.Input.GetEnumerator()) {
                 it.MoveNext();
                 var done = false;
-                var result = ExpressionParser.Parse(it, data.Scope, done: ref done);
+                var result = ExpressionParser.Parse(it, data.Context, done: ref done);
                 Assert.IsTrue(done);
                 AssertNamedExpressionTuple(data.Output, result);
             }
@@ -203,7 +202,7 @@ namespace REC.Tests.Parser
 
         void AssertExpression(ITypedReference expected, ITypedReference actual, string label) {
             Assert.AreEqual(expected.Type, actual.Type, $"{label}.Type");
-            Assert.AreEqual(expected.Declaration, actual.Declaration, $"{label}.Declaration");
+            Assert.AreEqual(expected.Instance, actual.Instance, $"{label}.Instance");
         }
 
         void AssertExpression(INumberLiteral expected, INumberLiteral actual, string label)

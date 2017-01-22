@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using REC.AST;
 using REC.Tools;
 
-namespace REC.Scope
+namespace REC.Function
 {
     public enum Associativity
     {

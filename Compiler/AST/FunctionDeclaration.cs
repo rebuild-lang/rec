@@ -1,7 +1,5 @@
-﻿using System.Linq;
-using REC.Parser;
-using REC.Scope;
-using REC.Tools;
+﻿using REC.Tools;
+using System.Linq;
 
 namespace REC.AST
 {
@@ -9,13 +7,9 @@ namespace REC.AST
 
     public interface IFunctionDeclaration : IDeclaration
     {
-        IScope StaticScope { get; }
-
         ArgumentDeclarationCollection LeftArguments { get; }
         ArgumentDeclarationCollection RightArguments { get; }
         ArgumentDeclarationCollection Results { get; }
-
-        IBindingLevel BindingLevel { get; set; }
 
         IExpressionBlock Implementation { get; }
     }
@@ -44,15 +38,11 @@ namespace REC.AST
         //}
     }
 
-
     class FunctionDeclaration : Declaration, IFunctionDeclaration
     {
-        public IScope StaticScope { get; set; }
-        public ArgumentDeclarationCollection LeftArguments { get; set; }
-        public ArgumentDeclarationCollection RightArguments { get; set; }
-        public ArgumentDeclarationCollection Results { get; set; }
-
-        public IBindingLevel BindingLevel { get; set; }
+        public ArgumentDeclarationCollection LeftArguments { get; set; } = new ArgumentDeclarationCollection();
+        public ArgumentDeclarationCollection RightArguments { get; set; } = new ArgumentDeclarationCollection();
+        public ArgumentDeclarationCollection Results { get; set; } = new ArgumentDeclarationCollection();
 
         public IExpressionBlock Implementation { get; set; }
     }

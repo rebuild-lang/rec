@@ -4,7 +4,7 @@ using System.Linq;
 using REC.AST;
 using REC.Tools;
 
-namespace REC.Scope
+namespace REC.Function
 {
     using SortedSyntaxPatterns = SortedSet<SyntaxPattern>;
     using NameToSortedSyntax = Dictionary<string, SyntaxPatternPool>;

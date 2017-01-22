@@ -2,28 +2,33 @@
 using System.Linq;
 using NUnit.Framework;
 using REC.Scope;
+using REC.Instance;
 
 namespace REC.Tests.Scope
 {
     [TestFixture]
     public class IdentifierScopeTests
     {
-        class Entry : IEntry
+        class TestInstance : AbstractInstance
         {
-            public string Name { get; set; }
+            public override string Name { get; }
+
+            internal TestInstance(string name) {
+                Name = name;
+            }
         }
 
-
         [Test]
-        public void Add() {
-            var parentScope = new IdentifierScope();
-            var childScope = new IdentifierScope {Parent = parentScope};
-            var myScope = new IdentifierScope {Parent = childScope};
+        public void Add()
+        {
+            var parentScope = new ParentedIdentifierScope();
+            var childScope = new ParentedIdentifierScope { Parent = parentScope };
+            var myScope = new ParentedIdentifierScope { Parent = childScope };
 
-            var myEntry = new Entry {Name = "label"};
+            var myEntry = new TestInstance(name: "label");
             myScope.Add(myEntry);
 
-            var testIdentifier = new Entry {Name = myEntry.Name};
+            var testIdentifier = new TestInstance(myEntry.Name);
 
             var result = parentScope.Add(testIdentifier);
             Assert.IsTrue(result);
@@ -36,15 +41,16 @@ namespace REC.Tests.Scope
         }
 
         [Test]
-        public void GetEnumerator() {
-            var parentScope = new IdentifierScope {new Entry {Name = "label"}};
-            var childScope = new IdentifierScope {Parent = parentScope};
-            var myScope = new IdentifierScope {Parent = childScope};
-            myScope.Add(new Entry {Name = "fun"});
+        public void GetEnumerator()
+        {
+            var parentScope = new ParentedIdentifierScope { new TestInstance(name: "label") };
+            var childScope = new ParentedIdentifierScope { Parent = parentScope };
+            var myScope = new ParentedIdentifierScope { Parent = childScope };
+            myScope.Add(new TestInstance(name: "fun"));
 
             var result = myScope.Select(i => i.Name).ToList();
 
-            Assert.AreEqual(new List<string> {"fun", "label"}, result);
+            Assert.AreEqual(new List<string> { "fun", "label" }, result);
         }
     }
 }

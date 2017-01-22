@@ -5,7 +5,6 @@ namespace REC.AST
     // Expression Blocks are the result of parsing a TokenBlock
     public interface IExpressionBlock : IExpression
     {
-        // Modules, Declarations, Invocations & nested blocks are allowed
         IList<IExpression> Expressions { get; }
     }
 

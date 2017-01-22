@@ -13,9 +13,9 @@ namespace REC
     class Compiler
     {
         public Compiler() {
-            InjectedScope = new Parser.Scope();
-            DeclarationConverter.BuildScope(
-                InjectedScope,
+            InjectedContext = new Context();
+            DeclarationConverter.BuildContext(
+                InjectedContext,
                 new IntrinsicDict {
                     U64Type.Get(),
                     NumberLiteralType.Get(),
@@ -24,7 +24,7 @@ namespace REC
                 });
         }
 
-        IScope InjectedScope { get; }
+        IContext InjectedContext { get; }
 
         static string GetTempFileName(string basename = "", string extension = "tmp") {
             return Path.GetTempPath() + basename + Guid.NewGuid() + '.' + extension;
@@ -34,7 +34,7 @@ namespace REC
             var raw = Scanner.Scanner.ScanFile(file);
             var prepared = TokenPreparation.Apply(raw);
             var block = new BlockLineGrouping().Group(prepared);
-            var ast = Parser.Parser.ParseBlock(block, InjectedScope);
+            var ast = Parser.Parser.ParseBlock(block, InjectedContext);
             //var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
             var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp") ?? "test.cpp"; // use this for debugging cpp output
             using (var writer = File.CreateText(cppFileName)) {

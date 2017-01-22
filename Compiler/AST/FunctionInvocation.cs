@@ -1,11 +1,16 @@
 ﻿//using REC.Tools;
 
+using REC.Instance;
+
 namespace REC.AST
 {
-    // backbone of the AST, that gets the work done
+    /* backbone of the AST, that gets the work done
+     * 
+     * This is a fully parsed invocation (if argument types are not fixed it is not parsed fully)
+     */
     public interface IFunctionInvocation : IExpression
     {
-        IFunctionDeclaration Function { get; }
+        IFunctionInstance Function { get; }
         INamedExpressionTuple Left { get; }
         INamedExpressionTuple Right { get; }
     }
@@ -13,7 +18,7 @@ namespace REC.AST
 
     class FunctionInvocation : Expression, IFunctionInvocation
     {
-        public IFunctionDeclaration Function { get; set; }
+        public IFunctionInstance Function { get; set; }
         public INamedExpressionTuple Left { get; set; }
         public INamedExpressionTuple Right { get; set; }
     }

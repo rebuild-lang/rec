@@ -6,24 +6,6 @@ using REC.Cpp;
 
 namespace REC.Intrinsic.IO
 {
-    interface ISimpleMath<T>
-    {
-        T Add(T l, T r);
-        T Sub(T l, T r);
-        // TODO: add more
-    }
-
-    class UlongMath : ISimpleMath<ulong>
-    {
-        public ulong Add(ulong l, ulong r) {
-            return l + r;
-        }
-
-        public ulong Sub(ulong l, ulong r) {
-            return l - r;
-        }
-    }
-
     static class SimpleMathIntrinsic<T, TA> where TA : ISimpleMath<T>, new()
     {
         static readonly TA Api = new TA();

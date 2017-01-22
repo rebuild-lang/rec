@@ -1,11 +1,11 @@
-﻿using System;
+﻿using REC.AST;
+using REC.Instance;
+using REC.Intrinsic;
+using REC.Tools;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using REC.AST;
-using REC.Intrinsic;
-using REC.Tools;
 
 namespace REC.Cpp
 {
@@ -35,7 +35,7 @@ namespace REC.Cpp
 
         // ReSharper disable once UnusedParameter.Local
         static string Dynamic(ITypedReference typedReference, ICppScope scope) {
-            return typedReference.Declaration.Name;
+            return typedReference.Instance.Name;
         }
 
         static void Dynamic(IFunctionDeclaration functionDeclaration, ICppScope scope) {
@@ -55,11 +55,11 @@ namespace REC.Cpp
 
         static string Dynamic(IFunctionInvocation functionInvocation, ICppScope scope) {
             var function = functionInvocation.Function;
-            if (function.Implementation.Expressions.Count == 1 && function.Implementation.Expressions.First() is IIntrinsicExpression)
-                scope.EnsureGlobal(function.Name, () => { return CreateGlobalDeclaration(scope, subScope => DeclareFunction(function, subScope)); });
+            if (function.Declaration.Implementation.Expressions.Count == 1 && function.Declaration.Implementation.Expressions.First() is IIntrinsicExpression)
+                scope.EnsureGlobal(function.Name, () => { return CreateGlobalDeclaration(scope, subScope => DeclareFunction(function.Declaration, subScope)); });
 
-            var leftArgs = BuildArgumentValues(function, function.LeftArguments, functionInvocation.Left, scope, kind: "Left");
-            var rightArgs = BuildArgumentValues(function, function.RightArguments, functionInvocation.Right, scope, kind: "Right");
+            var leftArgs = BuildArgumentValues(function, function.Declaration.LeftArguments, functionInvocation.Left, scope, kind: "Left");
+            var rightArgs = BuildArgumentValues(function, function.Declaration.RightArguments, functionInvocation.Right, scope, kind: "Right");
             var resultName = string.Empty;
             var resultArgs = BuildResultValues(function, scope, ref resultName);
             scope.Runtime.AddLine(BuildInvocation(function.Name, leftArgs, rightArgs, resultArgs));
@@ -72,8 +72,8 @@ namespace REC.Cpp
             return $"{resultArgs}{CppEscape(function)}({left}{right});";
         }
 
-        static string BuildResultValues(IFunctionDeclaration function, ICppScope scope, ref string name) {
-            var argumentDeclarations = function.Results;
+        static string BuildResultValues(IFunctionInstance function, ICppScope scope, ref string name) {
+            var argumentDeclarations = function.Declaration.Results;
             if (argumentDeclarations.IsEmpty()) return string.Empty;
             name = scope.MakeLocalName();
             var typeName = GetFunctionTypeName(function.Name, kind: "Result");
@@ -97,7 +97,7 @@ namespace REC.Cpp
         }
 
         static string BuildArgumentValues(
-            IFunctionDeclaration function,
+            IFunctionInstance function,
             NamedCollection<IArgumentDeclaration> arguments,
             INamedExpressionTuple expressions,
             ICppScope scope,
@@ -226,7 +226,7 @@ namespace REC.Cpp
             scope.Declaration.AddLine(line: "};");
         }
 
-        static string GetArgumentTypeName(IModuleDeclaration argumentType) {
+        static string GetArgumentTypeName(IModuleInstance argumentType) {
             return "uint64_t"; // TODO: make this real
         }
     }

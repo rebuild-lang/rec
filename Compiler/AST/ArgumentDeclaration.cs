@@ -1,6 +1,6 @@
 ﻿namespace REC.AST
 {
-    // Argument Declaration is part of a function declaration
+    // Argument Instance is part of a function declaration
     // Inside the function implementation block its treated like a variable
     // On calling the function it is used to associate argument values
     public interface IArgumentDeclaration : IVariableDeclaration
