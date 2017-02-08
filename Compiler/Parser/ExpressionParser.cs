@@ -15,46 +15,86 @@ namespace REC.Parser
             while (!done) {
                 var token = tokens.Current;
                 switch (token.Type) {
-                case Token.OperatorLiteral:
-                    var operatorLiteral = (IIdentifierLiteral) token.Data;
-                    // TODO: split operators with context
-                    if (operatorLiteral.Content == "&") {
-                        if (!tokens.MoveNext()) done = true;
-                        if (done) return result; // TODO: report error: missing tokens
+                    case Token.OperatorLiteral:
+                        var operatorLiteral = (IIdentifierLiteral) token.Data;
+                        string operatorLiteralContent = operatorLiteral.Content;
+                        string operatorLiteralContentTail = "";
+                        string notFoundLiteral = "";
+                        while (!operatorLiteralContent.IsEmpty())
+                        {
+                            if (operatorLiteralContent == "&")
+                            {
+                                if (!tokens.MoveNext()) done = true;
+                                if (done) return result; // TODO: report error: missing tokens
 
-                        var inner = Parse(tokens, context, ref done);
-                        var execResult = CompileTime.Execute(inner, context);
-                        if (execResult != null) {
-                            if (execResult is INamedExpressionTuple execNamedTuple)
-                                result.Tuple.AddRange(execNamedTuple.Tuple);
+                                var inner = Parse(tokens, context, ref done);
+                                var execResult = CompileTime.Execute(inner, context);
+                                if (execResult != null)
+                                {
+                                    if (execResult is INamedExpressionTuple execNamedTuple)
+                                        result.Tuple.AddRange(execNamedTuple.Tuple);
+                                    else
+                                        result.Tuple.Add(new NamedExpression { Expression = execResult });
+                                }
+                                continue;
+                            }
+
+                            var resolve = context.Identifiers[operatorLiteralContent];
+                            if(resolve == null)
+                            {
+                                if(operatorLiteralContent.Length == 1)
+                                {
+                                    notFoundLiteral += operatorLiteralContent;
+                                    operatorLiteralContent = operatorLiteralContentTail;
+                                    operatorLiteralContentTail = "";
+                                }
+                                else
+                                {
+                                    operatorLiteralContentTail = operatorLiteralContent.Last() + operatorLiteralContentTail;
+                                    operatorLiteralContent = operatorLiteralContent.Substring(0, operatorLiteralContent.Length - 2);
+                                }
+                            }
                             else
-                                result.Tuple.Add(new NamedExpression {Expression = execResult});
+                            {
+                                if (!notFoundLiteral.IsEmpty())
+                                {
+                                    result.Tuple.Add(new NamedExpression { Expression = new IdentifierLiteral { Content = notFoundLiteral } });
+                                    notFoundLiteral = "";
+                                }
+                                var subexpression = ParseResolved((dynamic)resolve, result, tokens, context, ref done);
+                                result.Tuple.Add(new NamedExpression { Expression = subexpression });
+                                operatorLiteralContent = operatorLiteralContentTail;
+                                operatorLiteralContentTail = "";
+                            }
                         }
-                        continue;
-                    }
-                    goto case Token.IdentifierLiteral;
-                case Token.IdentifierLiteral:
-                    var identifierLiteral = (IIdentifierLiteral) token.Data;
-                    var resolved = context.Identifiers[identifierLiteral.Content];
-                    if (null != resolved) {
-                        var subexpression = ParseResolved((dynamic) resolved, result, tokens, context, ref done);
-                        result.Tuple.Add(new NamedExpression {Expression = subexpression ?? identifierLiteral});
-                        continue;
-                    }
-                    result.Tuple.Add(new NamedExpression {Expression = identifierLiteral});
-                    break;
-                case Token.StringLiteral:
-                    var stringLiteral = (IStringLiteral) token.Data;
-                    result.Tuple.Add(new NamedExpression {Expression = stringLiteral});
-                    break;
-                case Token.NumberLiteral:
-                    var numberLiteral = (INumberLiteral) token.Data;
-                    result.Tuple.Add(new NamedExpression {Expression = numberLiteral});
-                    break;
-                case Token.BlockStartIndentation:
-                    var tokenBlock = (IBlockLiteral) token.Data;
-                    result.Tuple.Add(new NamedExpression {Expression = tokenBlock});
-                    break;
+                        if (!notFoundLiteral.IsEmpty())
+                        {
+                            result.Tuple.Add(new NamedExpression { Expression = new IdentifierLiteral { Content = notFoundLiteral } });
+                        }
+                        return result;
+                        
+                    case Token.IdentifierLiteral:
+                        var identifierLiteral = (IIdentifierLiteral) token.Data;
+                        var resolved = context.Identifiers[identifierLiteral.Content];
+                        if (null != resolved) {
+                            var subexpression = ParseResolved((dynamic) resolved, result, tokens, context, ref done);
+                            result.Tuple.Add(new NamedExpression {Expression = subexpression ?? identifierLiteral});
+                            continue;
+                        }
+                        result.Tuple.Add(new NamedExpression {Expression = identifierLiteral});
+                        break;
+                    case Token.StringLiteral:
+                        var stringLiteral = (IStringLiteral) token.Data;
+                        result.Tuple.Add(new NamedExpression {Expression = stringLiteral});
+                        break;
+                    case Token.NumberLiteral:
+                        var numberLiteral = (INumberLiteral) token.Data;
+                        result.Tuple.Add(new NamedExpression {Expression = numberLiteral});
+                        break;
+                    case Token.BlockStartIndentation:
+                        var tokenBlock = (IBlockLiteral) token.Data;
+                        result.Tuple.Add(new NamedExpression {Expression = tokenBlock});
+                        break;
                 }
                 if (done) break;
                 if (!tokens.MoveNext()) done = true;

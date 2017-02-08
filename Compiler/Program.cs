@@ -109,6 +109,9 @@ end
 fn (a : u64) + (b : u64) -> *r : u64:
     r = Add a b
 end
+fn (*l : u64) += (r : u64):
+    l = l+r
+end
 fn test (x : u64):
     Print x
 end
