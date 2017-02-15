@@ -4,8 +4,15 @@ using System.Linq;
 namespace REC.Tools
 {
     public static class EnumerableExtensionMethods
-    {
-        public static IEnumerable<T> Yield<T>(this T self) {
+    { 
+
+        public static IEnumerable<T> Before<T>(this IEnumerable<T> enumerable, IEnumerator<T> rest)
+        {
+            return Flattener<T>.Flatten(new List<object> { enumerable, rest });
+        }
+
+        public static IEnumerable<T> Yield<T>(this T self)
+        {
             yield return self;
         }
 
@@ -25,10 +32,17 @@ namespace REC.Tools
                 yield return t; // normal case
             }
 
-            static IEnumerable<T> Flatten(IEnumerator<T> d) {
-                while (d.MoveNext()) {
+            static IEnumerable<T> Flatten(IEnumerator<T> d)
+            {
+                while (d.MoveNext())
+                {
                     yield return d.Current; // allow already flattened enumerators
                 }
+            }
+
+            static IEnumerable<T> Flatten(IEnumerable<T> d)
+            {
+                return d;
             }
 
             public static IEnumerable<T> Flatten(IEnumerable<dynamic> d) {

@@ -82,6 +82,70 @@ namespace REC.Tests.Parser
             }
         };
 
+        static readonly IContext TestOperatorContext = new Context
+        {
+            Parent = TestContext,
+            Identifiers = {
+                new VariableInstance {
+                    Variable = new VariableDeclaration {
+                        Name = "i",
+                        Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
+                        IsAssignable = true,
+                    }
+                },
+                new FunctionOverloads
+                {
+                    Overloads =
+                    {
+                        new FunctionInstance(new FunctionDeclaration{
+                            LeftArguments = {
+                                new ArgumentDeclaration { Type= (TestContext.Identifiers[key: "u64"] as IModuleInstance) },
+                            },
+                            Name ="++"
+                        })
+                        {
+                            LeftArguments = {
+                                new ArgumentInstance
+                                {
+                                    Argument = new ArgumentDeclaration { Type= (TestContext.Identifiers[key: "u64"] as IModuleInstance) },
+
+                                }
+                            }
+                        }
+                    }
+                },
+                new FunctionOverloads
+                {
+                    Overloads =
+                    {
+                        new FunctionInstance(new FunctionDeclaration{
+                            LeftArguments ={
+                                new ArgumentDeclaration { Type= (TestContext.Identifiers[key: "u64"] as IModuleInstance) },
+                            },
+                            RightArguments ={
+                                new ArgumentDeclaration { Type= (TestContext.Identifiers[key: "u64"] as IModuleInstance) },
+                            },
+                            Name ="-"
+                        })
+                        {
+                            LeftArguments = {
+                                new ArgumentInstance{
+                                    Argument = new ArgumentDeclaration { Type= (TestContext.Identifiers[key: "u64"] as IModuleInstance) },
+
+                                }
+                            },
+                            RightArguments = {
+                                new ArgumentInstance
+                                {
+                                    Argument = new ArgumentDeclaration { Type= (TestContext.Identifiers[key: "u64"] as IModuleInstance) },
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
         public struct ParseTestData
         {
             public string Name;
@@ -107,6 +171,53 @@ namespace REC.Tests.Parser
                             Expression = new TypedValue {
                                 Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
                                 Data = new NumberLiteral {IntegerPart = "23"}.ToUnsigned(byteCount: 8)
+                            }
+                        }
+                    }
+                }
+            },
+            new ParseTestData {
+                Name = "split multiple operators ''i++-1''",
+                Context = new Context {Parent = TestOperatorContext},
+                Input = new[] {
+                    Id(text:"i"), Op(text: "++-"),NumberLit(text:"1")
+                },
+                Output = new NamedExpressionTuple {
+                    Tuple = {
+                        new NamedExpression {
+                            Expression = new FunctionInvocation
+                            {
+                                Left = new NamedExpressionTuple{
+                                    Tuple = {
+                                        new NamedExpression {
+                                            Expression = new FunctionInvocation
+                                            {
+                                                Left = new NamedExpressionTuple{
+                                                    Tuple = {
+                                                        new NamedExpression {
+                                                            Expression = new TypedReference {
+                                                                Type= (TestContext.Identifiers[key: "u64"] as IModuleInstance),
+                                                                Instance = (TestOperatorContext.Identifiers [key:"i"] as IVariableInstance)
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                Right = new NamedExpressionTuple(),
+                                                Function = (TestOperatorContext.Identifiers [key:"++"] as IFunctionOverloads).Overloads[0]
+                                            }
+                                        }
+                                    }
+                                },
+                                Right = new NamedExpressionTuple{
+                                    Tuple = {
+                                        new NamedExpression{
+                                            Expression = new NumberLiteral{
+                                                IntegerPart = "1"
+                                            }
+                                        }
+                                    }
+                                },
+                                Function = (TestOperatorContext.Identifiers [key:"-"] as IFunctionOverloads).Overloads[0]
                             }
                         }
                     }
@@ -205,8 +316,7 @@ namespace REC.Tests.Parser
             Assert.AreEqual(expected.Instance, actual.Instance, $"{label}.Instance");
         }
 
-        void AssertExpression(INumberLiteral expected, INumberLiteral actual, string label)
-        {
+        void AssertExpression(INumberLiteral expected, INumberLiteral actual, string label){
             Assert.AreEqual(expected.IntegerPart, actual.IntegerPart, $"{label}.IntegerPart");
         }
     }
