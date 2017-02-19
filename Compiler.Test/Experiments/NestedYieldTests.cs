@@ -27,10 +27,11 @@ namespace REC.Tests.Experiments
             IEnumerable<dynamic> ParseNested() {
                 State = 1;
                 yield return Token.VarDecl;
-                var x = ParseVarDecl().GetFlatEnumerator<Token>();
-                if (x.MoveNext()) {
-                    yield return x.Current;
-                    yield return x;
+                using (var x = ParseVarDecl().FlattenTo<Token>().GetEnumerator()) {
+                    if (x.MoveNext()) {
+                        yield return x.Current;
+                        yield return x;
+                    }
                 }
                 State = 4;
             }
