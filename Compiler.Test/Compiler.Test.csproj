@@ -43,6 +43,7 @@
     <Compile Include="Experiments\DynamicTests.cs" />
     <Compile Include="Experiments\GeneratorTests.cs" />
     <Compile Include="Experiments\NestedYieldTests.cs" />
+    <Compile Include="Parser\InstanceHelpers.cs" />
     <Compile Include="Parser\BlockLineGroupingTests.cs" />
     <Compile Include="Parser\ExpressionParserTests.cs" />
     <Compile Include="Parser\FunctionDeclParserTests.cs" />

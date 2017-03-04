@@ -3,7 +3,7 @@ using REC.Scanner;
 
 namespace REC.Tests.Parser
 {
-    public class TokenHelpers
+    class TokenHelpers
     {
         internal static TokenData Id(string text) {
             return new TokenData {

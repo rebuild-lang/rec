@@ -9,13 +9,15 @@ using REC.Intrinsic.Types.API;
 using REC.Parser;
 using REC.Scanner;
 using System.Collections.Generic;
-using REC.Scope;
 using TypedReference = REC.AST.TypedReference;
 
 namespace REC.Tests.Parser
 {
+    using static TokenHelpers;
+    using static InstanceHelpers;
+
     [TestFixture]
-    public class ExpressionParserTests : TokenHelpers
+    public class ExpressionParserTests
     {
         static readonly IContext TestContext = new Func<IContext>(
             () => {
@@ -42,30 +44,6 @@ namespace REC.Tests.Parser
                 }
             }
         };
-
-        static IFunctionOverloads ToFunctionInstance(params IFunctionDeclaration[] declarations) {
-            var result = new FunctionOverloads();
-            foreach (var declaration in declarations) {
-                var instance = new FunctionInstance(declaration);
-                ToArgumentInstances(instance.LeftArguments, instance.ArgumentIdentifiers, declaration.LeftArguments, ArgumentSide.Left);
-                ToArgumentInstances(instance.RightArguments, instance.ArgumentIdentifiers, declaration.RightArguments, ArgumentSide.Right);
-                ToArgumentInstances(instance.Results, instance.ArgumentIdentifiers, declaration.Results, ArgumentSide.Result);
-                result.Overloads.Add(instance);
-            }
-            return result;
-        }
-
-        static void ToArgumentInstances(
-            ICollection<IArgumentInstance> instances,
-            ILocalIdentifierScope scope,
-            IEnumerable<IArgumentDeclaration> declarations,
-            ArgumentSide side) {
-            foreach (var declaration in declarations) {
-                var instance = new ArgumentInstance {Argument = declaration, Side = side};
-                scope.Add(instance);
-                instances.Add(instance);
-            }
-        }
 
         static readonly IContext TestOperatorContext = new Context {
             Parent = TestContext,

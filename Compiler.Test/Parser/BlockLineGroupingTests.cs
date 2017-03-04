@@ -6,8 +6,10 @@ using REC.Scanner;
 
 namespace REC.Tests.Parser
 {
+    using static TokenHelpers;
+
     [TestFixture]
-    public class BlockLineGroupingTests : TokenHelpers
+    public class BlockLineGroupingTests
     {
         public struct TestData
         {

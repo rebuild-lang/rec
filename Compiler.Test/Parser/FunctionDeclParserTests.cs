@@ -10,8 +10,10 @@ using System.Collections.Generic;
 
 namespace REC.Tests.Parser
 {
+    using static TokenHelpers;
+
     [TestFixture]
-    public class FunctionDeclParserTests : TokenHelpers
+    public class FunctionDeclParserTests
     {
         public struct ParseFunctionDeclTestData
         {
