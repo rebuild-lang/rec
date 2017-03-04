@@ -63,6 +63,7 @@
     <Compile Include="AST\IntrinsicExpression.cs" />
     <Compile Include="AST\Literal.cs" />
     <Compile Include="AST\ModuleDeclaration.cs" />
+    <Compile Include="AST\ModuleReference.cs" />
     <Compile Include="AST\NamedExpressionTuple.cs" />
     <Compile Include="AST\NumberLiteral.cs" />
     <Compile Include="AST\StringLiteral.cs" />

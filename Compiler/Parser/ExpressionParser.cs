@@ -143,12 +143,29 @@ namespace REC.Parser
         }
 
         static IExpression ParseResolved(
+            IModuleInstance module,
+            INamedExpressionTuple leftArguments,
+            IEnumerator<TokenData> tokens,
+            IContext context,
+            ref bool done) {
+            if (!tokens.MoveNext()) done = true;
+            if (done) return new ModuleReference {Reference = module};
+
+            if (tokens.Current.Type != Token.IdentifierLiteral) return new ModuleReference {Reference = module};
+            var nextIdentifier = (IIdentifierLiteral) tokens.Current.Data;
+            if (nextIdentifier.Content.First() != '.') return new ModuleReference {Reference = module};
+            var realIdentifier = nextIdentifier.Content; // .Substring(startIndex: 1);
+            var resolved = module.Identifiers.LocalIdentifiers[realIdentifier];
+            return ParseResolved((dynamic) resolved, leftArguments, tokens, context, ref done);
+        }
+
+        static IExpression ParseResolved(
             IFunctionInstance function,
             INamedExpressionTuple leftArguments,
             IEnumerator<TokenData> tokens,
             IContext context,
             ref bool done) {
-            var pool = new List<IFunctionInstance> { function };
+            var pool = new List<IFunctionInstance> {function};
 
             return ParseFunctionOverloads(pool, leftArguments, tokens, context, ref done);
         }
@@ -163,13 +180,16 @@ namespace REC.Parser
             return ParseFunctionOverloads(pool, leftArguments, tokens, context, ref done);
         }
 
-        static IExpression ParseFunctionOverloads(IList<IFunctionInstance> pool, INamedExpressionTuple leftArguments, IEnumerator<TokenData> tokens, IContext context, ref bool done)
-        {
+        static IExpression ParseFunctionOverloads(
+            IList<IFunctionInstance> pool,
+            INamedExpressionTuple leftArguments,
+            IEnumerator<TokenData> tokens,
+            IContext context,
+            ref bool done) {
             var range = tokens.Current.Range;
             INamedExpressionTuple rightArguments = new NamedExpressionTuple();
 
-            if (!tokens.MoveNext())
-            {
+            if (!tokens.MoveNext()) {
                 done = true;
                 return CreateFunctionInvocation(pool, range, leftArguments, rightArguments);
             }

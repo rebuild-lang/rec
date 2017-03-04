@@ -75,6 +75,23 @@ namespace REC.Tests.Parser
             }
         };
 
+        static readonly IContext TestModuleContext = new Context {
+            Parent = TestContext,
+            Identifiers = {
+                new ModuleInstance(name: "Module") {
+                    Identifiers = {
+                        new VariableInstance {
+                            Variable = new VariableDeclaration {
+                                Name = ".var",
+                                Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
+                                IsAssignable = true,
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
         public struct ParseTestData
         {
             public string Name;
@@ -146,7 +163,7 @@ namespace REC.Tests.Parser
                         Left = new NamedExpressionTuple(),
                         Right = new NamedExpressionTuple(
                             new TypedReference {
-                                Instance = (TestVariableResContext.Identifiers[key: "res"] as IVariableInstance),
+                                Instance = TestVariableResContext.Identifiers[key: "res"] as IVariableInstance,
                                 Type = TestContext.Identifiers[key: "u64"] as IModuleInstance,
                             },
                             new FunctionInvocation {
@@ -160,8 +177,20 @@ namespace REC.Tests.Parser
                     }
                 )
             },
+            new ParseTestData {
+                Name = "Module access",
+                Context = new Context {Parent = TestModuleContext},
+                Input = new[] {
+                    Id(text: "Module"),
+                    Id(text: ".var")
+                },
+                Output = new NamedExpressionTuple(
+                    new TypedReference {
+                        Instance = (TestModuleContext.Identifiers[key: "Module"] as IModuleInstance)?.Identifiers[key: ".var"] as IVariableInstance,
+                        Type = TestContext.Identifiers[key: "u64"] as IModuleInstance,
+                    })
+            }
         };
-
 
         [TestCaseSource(nameof(ParseExpressionTestData))]
         public void ParseExpressionTest(ParseTestData data) {
@@ -189,7 +218,7 @@ namespace REC.Tests.Parser
 
         void AssertExpression(ITypedValue expected, ITypedValue actual, string label) {
             Assert.That(actual.Type, Is.SameAs(expected.Type), $"{label}.Type");
-            Assert.That(actual.Data, Is.EqualTo(expected.Data) , $"{label}.Data");
+            Assert.That(actual.Data, Is.EqualTo(expected.Data), $"{label}.Data");
         }
 
         void AssertExpression(IFunctionInvocation expected, IFunctionInvocation actual, string label) {
