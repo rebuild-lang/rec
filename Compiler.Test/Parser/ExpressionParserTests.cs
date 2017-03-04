@@ -188,7 +188,7 @@ namespace REC.Tests.Parser
         }
 
         void AssertExpression(ITypedValue expected, ITypedValue actual, string label) {
-            Assert.That(actual.Type, Is.EqualTo(expected.Type), $"{label}.Type");
+            Assert.That(actual.Type, Is.SameAs(expected.Type), $"{label}.Type");
             Assert.That(actual.Data, Is.EqualTo(expected.Data) , $"{label}.Data");
         }
 
@@ -199,8 +199,8 @@ namespace REC.Tests.Parser
         }
 
         void AssertExpression(ITypedReference expected, ITypedReference actual, string label) {
-            Assert.That(actual.Type, Is.EqualTo(expected.Type), $"{label}.Type");
-            Assert.That(actual.Instance, Is.EqualTo(expected.Instance), $"{label}.Instance");
+            Assert.That(actual.Type, Is.SameAs(expected.Type), $"{label}.Type");
+            Assert.That(actual.Instance, Is.SameAs(expected.Instance), $"{label}.Instance");
         }
 
         void AssertExpression(INumberLiteral expected, INumberLiteral actual, string label) {
