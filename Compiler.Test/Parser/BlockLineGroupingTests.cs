@@ -7,7 +7,7 @@ using REC.Scanner;
 namespace REC.Tests.Parser
 {
     [TestFixture]
-    public class BlockLineGroupingTests
+    public class BlockLineGroupingTests : TokenHelpers
     {
         public struct TestData
         {
@@ -15,64 +15,6 @@ namespace REC.Tests.Parser
             public IEnumerable<TokenData> Input;
             public IBlockLiteral Output;
             public override string ToString() => Name;
-        }
-
-        static TokenData Id(string text) {
-            return new TokenData {
-                Type = Token.IdentifierLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                }
-            };
-        }
-
-        static TokenData Op(string text) {
-            return new TokenData {
-                Type = Token.OperatorLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                }
-            };
-        }
-
-        static TokenData StringLiteral(string text) {
-            return new TokenData {
-                Type = Token.StringLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                }
-            };
-        }
-
-        static TokenData NewLineIndentation(int column) {
-            return new TokenData {
-                Type = Token.NewLineIndentation,
-                Range = new TextFileRange {
-                    End = new TextPosition {Column = column}
-                }
-            };
-        }
-
-        static TokenData BlockStart(int column, IBlockLiteral block = null) {
-            return new TokenData {
-                Type = Token.BlockStartIndentation,
-                Range = new TextFileRange {
-                    End = new TextPosition {Column = column}
-                },
-                Data = block
-            };
-        }
-
-        static TokenData BlockEnd(int column) {
-            return new TokenData {
-                Type = Token.BlockEndIndentation,
-                Range = new TextFileRange {
-                    End = new TextPosition {Column = column}
-                }
-            };
         }
 
         static readonly TestData[] GroupTests = {
@@ -123,7 +65,6 @@ namespace REC.Tests.Parser
             }
         };
 
-
         [TestCaseSource(nameof(GroupTests))]
         public void Group(TestData data) {
             var grouping = new BlockLineGrouping();
@@ -144,19 +85,19 @@ namespace REC.Tests.Parser
         void AssertToken(TokenData expected, TokenData actual, string label) {
             Assert.That(actual.Type, Is.EqualTo(expected.Type), $"{label}.Type");
             switch (actual.Type) {
-                case Token.BlockStartIndentation:
-                    Assert.That(actual.Range.End.Column, Is.EqualTo(expected.Range.End.Column));
-                    var actualBlock = actual.Data as IBlockLiteral;
-                    var expectedBlock = expected.Data as IBlockLiteral;
-                    AssertBlock(expectedBlock, actualBlock, $"{label}.Data");
-                    break;
+            case Token.BlockStartIndentation:
+                Assert.That(actual.Range.End.Column, Is.EqualTo(expected.Range.End.Column));
+                var actualBlock = actual.Data as IBlockLiteral;
+                var expectedBlock = expected.Data as IBlockLiteral;
+                AssertBlock(expectedBlock, actualBlock, $"{label}.Data");
+                break;
 
-                case Token.StringLiteral:
-                case Token.NumberLiteral:
-                case Token.IdentifierLiteral:
-                case Token.OperatorLiteral:
-                    Assert.That(actual.Range.Text, Is.EqualTo(expected.Range.Text));
-                    break;
+            case Token.StringLiteral:
+            case Token.NumberLiteral:
+            case Token.IdentifierLiteral:
+            case Token.OperatorLiteral:
+                Assert.That(actual.Range.Text, Is.EqualTo(expected.Range.Text));
+                break;
             }
         }
     }

@@ -11,66 +11,8 @@ using System.Collections.Generic;
 namespace REC.Tests.Parser
 {
     [TestFixture]
-    public class FunctionDeclParserTests
+    public class FunctionDeclParserTests : TokenHelpers
     {
-        static TokenData Id(string text) {
-            return new TokenData {
-                Type = Token.IdentifierLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                },
-                Data = new IdentifierLiteral {
-                    Content = text
-                }
-            };
-        }
-
-        static TokenData Op(string text) {
-            return new TokenData {
-                Type = Token.OperatorLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                },
-                Data = new IdentifierLiteral {
-                    Content = text
-                }
-            };
-        }
-
-        static TokenData BracketOpen() {
-            const string text = "(";
-            return new TokenData {
-                Type = Token.BracketOpen,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                }
-            };
-        }
-
-        static TokenData BracketClose() {
-            const string text = ")";
-            return new TokenData {
-                Type = Token.BracketClose,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                }
-            };
-        }
-
-        static TokenData BlockStart(int column, IBlockLiteral block = null) {
-            return new TokenData {
-                Type = Token.BlockStartIndentation,
-                Range = new TextFileRange {
-                    End = new TextPosition {Column = column}
-                },
-                Data = block
-            };
-        }
-
         public struct ParseFunctionDeclTestData
         {
             public string Name;

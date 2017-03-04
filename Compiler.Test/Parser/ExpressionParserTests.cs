@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 using REC.AST;
 using REC.Instance;
 using REC.Intrinsic;
@@ -9,66 +10,25 @@ using REC.Parser;
 using REC.Scanner;
 using System.Collections.Generic;
 using REC.Scope;
+using TypedReference = REC.AST.TypedReference;
 
 namespace REC.Tests.Parser
 {
     [TestFixture]
-    public class ExpressionParserTests
+    public class ExpressionParserTests : TokenHelpers
     {
-        static TokenData Id(string text) {
-            return new TokenData {
-                Type = Token.IdentifierLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                },
-                Data = new IdentifierLiteral {
-                    Content = text
-                }
-            };
-        }
-
-        static TokenData Op(string text) {
-            return new TokenData {
-                Type = Token.OperatorLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                },
-                Data = new IdentifierLiteral {
-                    Content = text
-                }
-            };
-        }
-
-        static TokenData NumberLit(string text) {
-            return new TokenData {
-                Type = Token.NumberLiteral,
-                Range = new TextFileRange {
-                    File = new TextFile {Content = text},
-                    End = new TextPosition {Column = text.Length, Index = text.Length}
-                },
-                Data = new NumberLiteral {
-                    Radix = 10,
-                    IntegerPart = text
-                }
-            };
-        }
-
-
-        static IContext BuildTestContext() {
-            var context = new Context();
-            DeclarationConverter.BuildContext(
-                context,
-                new IntrinsicDict {
-                    U64Type.Get(),
-                    NumberLiteralType.Get(),
-                    SimpleMathIntrinsic<ulong, UlongMath>.Get()
-                });
-            return context;
-        }
-
-        static readonly IContext TestContext = BuildTestContext();
+        static readonly IContext TestContext = new Func<IContext>(
+            () => {
+                var context = new Context();
+                DeclarationConverter.BuildContext(
+                    context,
+                    new IntrinsicDict {
+                        U64Type.Get(),
+                        NumberLiteralType.Get(),
+                        SimpleMathIntrinsic<ulong, UlongMath>.Get()
+                    });
+                return context;
+            })();
 
         static readonly IContext TestVariableResContext = new Context {
             Parent = TestContext,
