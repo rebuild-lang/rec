@@ -29,8 +29,8 @@ namespace REC.Tests.Scanner
 
             var result = OperatorScanner.Scan(input);
 
-            Assert.IsNotNull(result);
-            Assert.AreEqual(id, result.Content);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Content, Is.EqualTo(id));
         }
 
         [TestCase(arg: "normalId ", TestName = "normalId")]
@@ -49,7 +49,7 @@ namespace REC.Tests.Scanner
 
             var result = OperatorScanner.Scan(input);
 
-            Assert.IsNull(result);
+            Assert.That(result, Is.Null);
         }
     }
 }

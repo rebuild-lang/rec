@@ -19,7 +19,7 @@ namespace REC.Tests.AST
 
             var result = num.FitsUnsigned(byteCount);
 
-            Assert.AreEqual(fits, result);
+            Assert.That(result, Is.EqualTo(fits));
         }
 
         [TestCase(10, "0", 1, true)]
@@ -35,7 +35,7 @@ namespace REC.Tests.AST
 
             var result = num.FitsNegative(byteCount);
 
-            Assert.AreEqual(fits, result);
+            Assert.That(result, Is.EqualTo(fits));
         }
 
         [TestCase(10, "0", 1, true)]
@@ -51,7 +51,7 @@ namespace REC.Tests.AST
 
             var result = num.FitsPositive(byteCount);
 
-            Assert.AreEqual(fits, result);
+            Assert.That(result, Is.EqualTo(fits));
         }
     }
 }

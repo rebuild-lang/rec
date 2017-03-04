@@ -85,7 +85,7 @@ namespace REC.Tests.Experiments
         [Test]
         public void TestParserMoc() {
             var p = new ParserMoc();
-            Assert.AreEqual(new List<Token> {Token.VarDecl, Token.Identifier, Token.Call}, p.ToList());
+            Assert.That(p.ToList(), Is.EquivalentTo(new[] {Token.VarDecl, Token.Identifier, Token.Call}));
         }
     }
 }

@@ -19,11 +19,10 @@ namespace REC.Tests.Scope
         }
 
         [Test]
-        public void Add()
-        {
+        public void Add() {
             var parentScope = new ParentedIdentifierScope();
-            var childScope = new ParentedIdentifierScope { Parent = parentScope };
-            var myScope = new ParentedIdentifierScope { Parent = childScope };
+            var childScope = new ParentedIdentifierScope {Parent = parentScope};
+            var myScope = new ParentedIdentifierScope {Parent = childScope};
 
             var myEntry = new TestInstance(name: "label");
             myScope.Add(myEntry);
@@ -31,26 +30,25 @@ namespace REC.Tests.Scope
             var testIdentifier = new TestInstance(myEntry.Name);
 
             var result = parentScope.Add(testIdentifier);
-            Assert.IsTrue(result);
-            Assert.IsFalse(parentScope.Add(testIdentifier));
+            Assert.That(result, Is.True);
+            Assert.That(parentScope.Add(testIdentifier), Is.False);
 
-            Assert.AreEqual(testIdentifier, parentScope[testIdentifier.Name]);
-            Assert.AreEqual(testIdentifier, childScope[testIdentifier.Name]);
-            Assert.AreEqual(myEntry, myScope[testIdentifier.Name]);
-            Assert.AreNotEqual(testIdentifier, myScope[testIdentifier.Name]);
+            Assert.That(parentScope[testIdentifier.Name], Is.EqualTo(testIdentifier));
+            Assert.That(childScope[testIdentifier.Name], Is.EqualTo(testIdentifier));
+            Assert.That(myScope[testIdentifier.Name], Is.EqualTo(myEntry));
+            Assert.That(myScope[testIdentifier.Name], Is.Not.EqualTo(testIdentifier));
         }
 
         [Test]
-        public void GetEnumerator()
-        {
-            var parentScope = new ParentedIdentifierScope { new TestInstance(name: "label") };
-            var childScope = new ParentedIdentifierScope { Parent = parentScope };
-            var myScope = new ParentedIdentifierScope { Parent = childScope };
+        public void GetEnumerator() {
+            var parentScope = new ParentedIdentifierScope {new TestInstance(name: "label")};
+            var childScope = new ParentedIdentifierScope {Parent = parentScope};
+            var myScope = new ParentedIdentifierScope {Parent = childScope};
             myScope.Add(new TestInstance(name: "fun"));
 
             var result = myScope.Select(i => i.Name).ToList();
 
-            Assert.AreEqual(new List<string> { "fun", "label" }, result);
+            Assert.That(result, Is.EquivalentTo(new[] {"fun", "label"}));
         }
     }
 }

@@ -36,7 +36,7 @@ namespace REC.Tests.Experiments
 
             var result = list.Select(i => Runner.Foo((dynamic) i)).Cast<string>().ToList();
 
-            Assert.AreEqual(new List<string> {"Derived1", "Derived2"}, result);
+            Assert.That(result, Is.EquivalentTo(new[] {"Derived1", "Derived2"}));
         }
     }
 }

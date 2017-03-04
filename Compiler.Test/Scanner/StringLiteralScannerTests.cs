@@ -21,8 +21,8 @@ namespace REC.Tests.Scanner
             };
 
             var result = StringLiteralScanner.Scan(input);
-            Assert.IsNotNull(result);
-            Assert.AreEqual(output, result.Content);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Content, Is.EqualTo(output));
         }
 
         [TestCase(arg: "\"")]
@@ -36,7 +36,7 @@ namespace REC.Tests.Scanner
             };
 
             var result = StringLiteralScanner.Scan(input);
-            Assert.IsNull(result);
+            Assert.That(result, Is.Null);
         }
     }
 }

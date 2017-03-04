@@ -162,48 +162,49 @@ namespace REC.Tests.Parser
             },
         };
 
+
         [TestCaseSource(nameof(ParseExpressionTestData))]
         public void ParseExpressionTest(ParseTestData data) {
             using (var it = data.Input.GetEnumerator()) {
                 it.MoveNext();
                 var done = false;
                 var result = ExpressionParser.Parse(it, data.Context, ref done);
-                Assert.IsTrue(done);
+                Assert.That(done, Is.True);
                 AssertNamedExpressionTuple(data.Output, result);
             }
         }
 
         void AssertNamedExpressionTuple(INamedExpressionTuple expected, INamedExpressionTuple actual, string label = "") {
-            Assert.AreEqual(expected.Tuple.Count, actual.Tuple.Count, $"{label}.Tuple.Count");
+            Assert.That(actual.Tuple, Has.Count.EqualTo(actual.Tuple.Count), $"{label}.Tuple.Count");
             for (var i = 0; i < expected.Tuple.Count; i++) {
                 AssertNamedExpression(expected.Tuple[i], actual.Tuple[i], $"{label}.Tuple[{i}]");
             }
         }
 
         void AssertNamedExpression(INamedExpression expected, INamedExpression actual, string label) {
-            Assert.AreEqual(expected.Name, actual.Name, $"{label}.Name");
-            Assert.AreEqual(expected.Expression?.GetType(), actual.Expression?.GetType(), $"{label}.Expression.Type");
+            Assert.That(actual.Name, Is.EqualTo(expected.Name), $"{label}.Name");
+            Assert.That(actual.Expression, Is.TypeOf(expected.Expression?.GetType()), $"{label}.Expression.Type");
             AssertExpression((dynamic) expected.Expression, (dynamic) actual.Expression, $"{label}.Expression");
         }
 
         void AssertExpression(ITypedValue expected, ITypedValue actual, string label) {
-            Assert.AreEqual(expected.Type, actual.Type, $"{label}.Type");
-            Assert.AreEqual(expected.Data, actual.Data, $"{label}.Data");
+            Assert.That(actual.Type, Is.EqualTo(expected.Type), $"{label}.Type");
+            Assert.That(actual.Data, Is.EqualTo(expected.Data) , $"{label}.Data");
         }
 
         void AssertExpression(IFunctionInvocation expected, IFunctionInvocation actual, string label) {
-            Assert.AreEqual(expected.Function, actual.Function, $"{label}.Function");
+            Assert.That(actual.Function, Is.EqualTo(expected.Function), $"{label}.Function");
             AssertNamedExpressionTuple(expected.Left, actual.Left, $"{label}.Left");
             AssertNamedExpressionTuple(expected.Right, actual.Right, $"{label}.Right");
         }
 
         void AssertExpression(ITypedReference expected, ITypedReference actual, string label) {
-            Assert.AreEqual(expected.Type, actual.Type, $"{label}.Type");
-            Assert.AreEqual(expected.Instance, actual.Instance, $"{label}.Instance");
+            Assert.That(actual.Type, Is.EqualTo(expected.Type), $"{label}.Type");
+            Assert.That(actual.Instance, Is.EqualTo(expected.Instance), $"{label}.Instance");
         }
 
         void AssertExpression(INumberLiteral expected, INumberLiteral actual, string label) {
-            Assert.AreEqual(expected.IntegerPart, actual.IntegerPart, $"{label}.IntegerPart");
+            Assert.That(actual.IntegerPart, Is.EqualTo(expected.IntegerPart), $"{label}.IntegerPart");
         }
     }
 }

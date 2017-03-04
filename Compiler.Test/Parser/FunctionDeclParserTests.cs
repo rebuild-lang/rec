@@ -181,30 +181,30 @@ namespace REC.Tests.Parser
                 it.MoveNext();
                 var done = false;
                 var functionDecl = FunctionDeclParser.Parse(it, data.Context, done: ref done);
-                Assert.IsTrue(done);
+                Assert.That(done, Is.True);
                 AssertFunctionDecl(data.Output, (dynamic) functionDecl);
             }
         }
 
         void AssertFunctionDecl(IFunctionDeclaration expected, IFunctionDeclaration actual) {
-            Assert.AreEqual(expected.Name, actual.Name);
-            //Assert.AreEqual(expected.IsRuntimeUsable, actual.IsRuntimeUsable);
-            //Assert.AreEqual(expected.IsCompileTimeUsable, actual.IsCompileTimeUsable);
+            Assert.That(actual.Name, Is.EqualTo(expected.Name));
+            //Assert.That(actual.IsRuntimeUsable, Is.EqualTo(expected.IsRuntimeUsable));
+            //Assert.That(actual.IsCompileTimeUsable, Is.EqualTo(expected.IsCompileTimeUsable));
             AssertArguments(expected.LeftArguments, actual.LeftArguments, name: "Left");
             AssertArguments(expected.RightArguments, actual.RightArguments, name: "Right");
             AssertArguments(expected.Results, actual.Results, name: "Results");
         }
 
         void AssertArguments(NamedCollection<IArgumentDeclaration> expected, NamedCollection<IArgumentDeclaration> actual, string name) {
-            Assert.AreEqual(expected.Count, actual.Count, $"{name}Arguments.Count");
+            Assert.That(actual.Count, Is.EqualTo(expected.Count), $"{name}Arguments.Count");
             for (var i = 0; i < expected.Count; i++) AssertArgument(expected[i], actual[i], name: $"{name}Arguments[{i}]");
         }
 
         void AssertArgument(IArgumentDeclaration expected, IArgumentDeclaration actual, string name) {
-            Assert.AreEqual(expected.Name, actual.Name, $"{name}.Name");
-            Assert.AreEqual(expected.IsAssignable, actual.IsAssignable, $"{name}.IsAssignable");
-            Assert.AreEqual(expected.IsUnrolled, actual.IsUnrolled, $"{name}.IsUnrolled");
-            Assert.AreEqual(expected.Type.Name, actual.Type.Name, $"{name}.Type.Name");
+            Assert.That(actual.Name, Is.EqualTo(expected.Name), $"{name}.Name");
+            Assert.That(actual.IsAssignable, Is.EqualTo(expected.IsAssignable), $"{name}.IsAssignable");
+            Assert.That(actual.IsUnrolled, Is.EqualTo(expected.IsUnrolled), $"{name}.IsUnrolled");
+            Assert.That(actual.Type.Name, Is.EqualTo(expected.Type.Name), $"{name}.Type.Name");
         }
     }
 }

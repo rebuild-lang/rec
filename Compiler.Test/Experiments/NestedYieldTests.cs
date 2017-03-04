@@ -52,24 +52,24 @@ namespace REC.Tests.Experiments
         public void PeekCharStartTest() {
             var p = new ParserMoc();
             //var x = p.Parse().ToList();
-            //Assert.AreEqual(new Expressions<Token> {Token.VarDecl, Token.entry}, x);
+            //Assert.That(x, Is.EqualTo(new Expressions<Token> {Token.VarDecl, Token.entry}));
             using (var i = p.Parse().GetEnumerator()) {
-                Assert.AreEqual(expected: 0, actual: p.State);
+                Assert.That(p.State, Is.Zero);
 
-                Assert.IsTrue(i.MoveNext());
-                Assert.AreEqual(expected: 1, actual: p.State);
-                Assert.AreEqual(Token.VarDecl, i.Current);
+                Assert.That(i.MoveNext(), Is.True);
+                Assert.That(p.State, Is.EqualTo(expected: 1));
+                Assert.That(i.Current, Is.EqualTo(Token.VarDecl));
 
-                Assert.IsTrue(i.MoveNext());
-                Assert.AreEqual(expected: 2, actual: p.State);
-                Assert.AreEqual(Token.Identifier, i.Current);
+                Assert.That(i.MoveNext(), Is.True);
+                Assert.That(p.State, Is.EqualTo(expected: 2));
+                Assert.That(i.Current, Is.EqualTo(Token.Identifier));
 
-                Assert.IsTrue(i.MoveNext());
-                Assert.AreEqual(expected: 3, actual: p.State);
-                Assert.AreEqual(Token.Call, i.Current);
+                Assert.That(i.MoveNext(), Is.True);
+                Assert.That(p.State, Is.EqualTo(expected: 3));
+                Assert.That(i.Current, Is.EqualTo(Token.Call));
 
-                Assert.IsFalse(i.MoveNext());
-                Assert.AreEqual(expected: 4, actual: p.State);
+                Assert.That(i.MoveNext(), Is.False);
+                Assert.That(p.State, Is.EqualTo(expected: 4));
             }
         }
     }

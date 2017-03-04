@@ -21,8 +21,8 @@ namespace REC.Tests.Scanner
             };
 
             var output = CommentScanner.Scan(input);
-            Assert.IsTrue(output);
-            Assert.IsFalse(input.IsEndValid);
+            Assert.That(output, Is.True);
+            Assert.That(input.IsEndValid, Is.False);
         }
 
         [TestCase(arg: "#comment\n comment#")]
@@ -35,9 +35,9 @@ namespace REC.Tests.Scanner
             };
 
             var output = CommentScanner.Scan(input);
-            Assert.IsTrue(output);
-            Assert.IsTrue(input.IsEndValid);
-            Assert.AreEqual(expected: '\n', actual: input.EndChar);
+            Assert.That(output, Is.True);
+            Assert.That(input.IsEndValid, Is.True);
+            Assert.That(input.EndChar, Is.EqualTo(expected: '\n'));
         }
 
         [TestCase(arg: "a#jkdajslk")]
@@ -50,8 +50,8 @@ namespace REC.Tests.Scanner
             };
 
             var output = CommentScanner.Scan(input);
-            Assert.IsFalse(output);
-            Assert.AreEqual(content[index: 0], input.EndChar);
+            Assert.That(output, Is.False);
+            Assert.That(input.EndChar, Is.EqualTo(content[index: 0]));
         }
 
         [TestCase(arg1: "####", arg2: 1)]
@@ -74,9 +74,9 @@ namespace REC.Tests.Scanner
             };
 
             var output = CommentScanner.Scan(input);
-            Assert.IsTrue(output);
-            Assert.IsFalse(input.IsEndValid);
-            Assert.AreEqual(line, input.End.Line);
+            Assert.That(output, Is.True);
+            Assert.That(input.IsEndValid, Is.False);
+            Assert.That(input.End.Line, Is.EqualTo(line));
         }
 
         [TestCase(arg: "## Kill")]
@@ -88,8 +88,11 @@ namespace REC.Tests.Scanner
                 }
             };
 
-            var exception = Assert.Throws<Exception>(() => CommentScanner.Scan(input));
-            Assert.True(exception.Message.Equals(value: "Line Comment not Escaped."));
+            Assert.That(
+                () => CommentScanner.Scan(input),
+                Throws.TypeOf<Exception>()
+                    .With.Property(name: "Message")
+                    .EqualTo(expected: "Line Comment not Escaped."));
         }
     }
 }

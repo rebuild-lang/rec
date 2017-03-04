@@ -15,8 +15,8 @@ namespace REC.Tests
             };
             input.Extend(nChars: 2);
             input.CollapseWhitespaces();
-            Assert.AreEqual(expected: 'C', actual: input.EndChar);
-            Assert.AreEqual(expected: "", actual: input.Text);
+            Assert.That(input.EndChar, Is.EqualTo(expected: 'C'));
+            Assert.That(input.Text, Is.Empty);
         }
 
         [Test]
@@ -27,8 +27,7 @@ namespace REC.Tests
                     Filename = ""
                 }
             };
-            var s = input.EndString(nChars: 4);
-            Assert.AreEqual(expected: "ABC", actual: s);
+            Assert.That(input.EndString(nChars: 4), Is.EqualTo(expected: "ABC"));
         }
 
         [Test]
@@ -40,8 +39,8 @@ namespace REC.Tests
                 }
             };
             input.Extend(nChars: 2);
-            Assert.AreEqual(expected: "AB", actual: input.Text);
-            Assert.AreEqual(expected: 3, actual: input.End.Column);
+            Assert.That(input.Text, Is.EqualTo(expected: "AB"));
+            Assert.That(input.End.Column, Is.EqualTo(expected: 3));
         }
 
         [Test]
@@ -52,8 +51,7 @@ namespace REC.Tests
                     Filename = ""
                 }
             };
-            var s = input.IsKeyword(word: "ABC");
-            Assert.AreEqual(expected: true, actual: s);
+            Assert.That(input.IsKeyword(word: "ABC"), Is.True);
         }
 
         [Test]
@@ -64,8 +62,7 @@ namespace REC.Tests
                     Filename = ""
                 }
             };
-            var s = input.IsKeyword(word: "ABC");
-            Assert.AreEqual(expected: false, actual: s);
+            Assert.That(input.IsKeyword(word: "ABC"), Is.False);
         }
 
         [Test]
@@ -76,8 +73,7 @@ namespace REC.Tests
                     Filename = ""
                 }
             };
-
-            Assert.AreEqual(expected: '\0', actual: input.PeekChar());
+            Assert.That(input.PeekChar(), Is.EqualTo(expected: '\0'));
         }
 
         [Test]
@@ -88,10 +84,7 @@ namespace REC.Tests
                     Filename = ""
                 }
             };
-
-            var t = input.PeekChar();
-
-            Assert.AreEqual(expected: 'B', actual: t);
+            Assert.That(input.PeekChar(), Is.EqualTo(expected: 'B'));
         }
 
         [Test]
@@ -103,7 +96,7 @@ namespace REC.Tests
                 }
             };
             input.Skip(nChars: 2);
-            Assert.AreEqual(expected: 'C', actual: input.EndChar);
+            Assert.That(input.EndChar, Is.EqualTo(expected: 'C'));
         }
     }
 }

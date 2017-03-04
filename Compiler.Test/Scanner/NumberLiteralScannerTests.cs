@@ -41,11 +41,11 @@ namespace REC.Tests.Scanner
 
             var result = NumberLiteralScanner.Scan(input);
 
-            Assert.IsNotNull(result);
-            Assert.AreEqual(radix, result.Radix);
-            Assert.AreEqual(integerPart, result.IntegerPart);
-            Assert.AreEqual(fractionalPart, result.FractionalPart);
-            Assert.AreEqual(exponentPart, result.ExponentPart);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Radix, Is.EqualTo(radix));
+            Assert.That(result.IntegerPart, Is.EqualTo(integerPart));
+            Assert.That(result.FractionalPart, Is.EqualTo(fractionalPart));
+            Assert.That(result.ExponentPart, Is.EqualTo(exponentPart));
         }
 
         [TestCase(arg: "0x")]
@@ -63,7 +63,7 @@ namespace REC.Tests.Scanner
 
             var result = NumberLiteralScanner.Scan(input);
 
-            Assert.IsNull(result);
+            Assert.That(result, Is.Null);
         }
     }
 }
