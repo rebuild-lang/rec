@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 using REC.AST;
 using REC.Instance;
 using REC.Intrinsic;
@@ -25,17 +26,17 @@ namespace REC.Tests.Parser
             public override string ToString() => Name;
         }
 
-        static IContext BuildTestContext() {
-            var context = new Context();
-            DeclarationConverter.BuildContext(
-                context,
-                new IntrinsicDict {
-                    U64Type.Get(),
-                });
-            return context;
-        }
-
-        static readonly IContext TestContext = BuildTestContext();
+        static readonly IContext TestContext = new Func<IContext>(
+            () => {
+                var context = new Context();
+                DeclarationConverter.BuildContext(
+                    context,
+                    new IntrinsicDict {
+                        U64Type.Get(),
+                    });
+                return context;
+            }
+        )();
 
         static readonly ParseFunctionDeclTestData[] ParseFunctionDeclTests = {
             new ParseFunctionDeclTestData {
@@ -183,28 +184,59 @@ namespace REC.Tests.Parser
                 var functionDecl = FunctionDeclParser.Parse(it, data.Context, done: ref done);
                 Assert.That(done, Is.True);
                 AssertFunctionDecl(data.Output, (dynamic) functionDecl);
+                AssertFunctionInstance(data.Output, (dynamic)data.Context.Identifiers[data.Output.Name]);
             }
         }
 
-        void AssertFunctionDecl(IFunctionDeclaration expected, IFunctionDeclaration actual) {
+        static void AssertFunctionDecl(IFunctionDeclaration expected, IFunctionDeclaration actual) {
             Assert.That(actual.Name, Is.EqualTo(expected.Name));
             //Assert.That(actual.IsRuntimeUsable, Is.EqualTo(expected.IsRuntimeUsable));
             //Assert.That(actual.IsCompileTimeUsable, Is.EqualTo(expected.IsCompileTimeUsable));
-            AssertArguments(expected.LeftArguments, actual.LeftArguments, name: "Left");
-            AssertArguments(expected.RightArguments, actual.RightArguments, name: "Right");
-            AssertArguments(expected.Results, actual.Results, name: "Results");
+            AssertArgumentsDecl(expected.LeftArguments, actual.LeftArguments, name: "Left");
+            AssertArgumentsDecl(expected.RightArguments, actual.RightArguments, name: "Right");
+            AssertArgumentsDecl(expected.Results, actual.Results, name: "Results");
         }
 
-        void AssertArguments(NamedCollection<IArgumentDeclaration> expected, NamedCollection<IArgumentDeclaration> actual, string name) {
-            Assert.That(actual.Count, Is.EqualTo(expected.Count), $"{name}Arguments.Count");
-            for (var i = 0; i < expected.Count; i++) AssertArgument(expected[i], actual[i], name: $"{name}Arguments[{i}]");
+        static void AssertFunctionInstance(IFunctionDeclaration expected, IFunctionOverloads actual)
+        {
+            Assert.That(actual.Name, Is.EqualTo(expected.Name));
+            Assert.That(actual.Overloads, Has.Count.EqualTo(expected: 1));
+            AssertFunctionInstance(expected, actual.Overloads[index: 0]);
         }
 
-        void AssertArgument(IArgumentDeclaration expected, IArgumentDeclaration actual, string name) {
+        static void AssertFunctionInstance(IFunctionDeclaration expected, IFunctionInstance actual)
+        {
+            Assert.That(actual.Name, Is.EqualTo(expected.Name));
+            AssertArgumentsInstance(expected.LeftArguments, actual.LeftArguments, ArgumentSide.Left, name: "instance.LeftArguments");
+            AssertArgumentsInstance(expected.RightArguments, actual.RightArguments, ArgumentSide.Right, name: "instance.RightArguments");
+            AssertArgumentsInstance(expected.Results, actual.Results, ArgumentSide.Result, name: "instance.Results");
+            AssertFunctionDecl(expected, actual.Declaration);
+        }
+
+        static void AssertArgumentsDecl(NamedCollection<IArgumentDeclaration> expected, NamedCollection<IArgumentDeclaration> actual, string name) {
+            Assert.That(actual, Has.Count.EqualTo(expected.Count), $"{name}Arguments.Count");
+            for (var i = 0; i < expected.Count; i++) AssertArgumentDecl(expected[i], actual[i], $"{name}Arguments[{i}]");
+        }
+
+        static void AssertArgumentsInstance(NamedCollection<IArgumentDeclaration> expected, NamedCollection<IArgumentInstance> actual, ArgumentSide side, string name)
+        {
+            Assert.That(actual, Has.Count.EqualTo(expected.Count), $"{name}Arguments.Count");
+            for (var i = 0; i < expected.Count; i++) AssertArgumentInstance(expected[i], actual[i], side, $"{name}Arguments[{i}]");
+        }
+
+        static void AssertArgumentDecl(IArgumentDeclaration expected, IArgumentDeclaration actual, string name) {
             Assert.That(actual.Name, Is.EqualTo(expected.Name), $"{name}.Name");
             Assert.That(actual.IsAssignable, Is.EqualTo(expected.IsAssignable), $"{name}.IsAssignable");
             Assert.That(actual.IsUnrolled, Is.EqualTo(expected.IsUnrolled), $"{name}.IsUnrolled");
-            Assert.That(actual.Type.Name, Is.EqualTo(expected.Type.Name), $"{name}.Type.Name");
+            Assert.That(actual.Type, Is.SameAs(expected.Type), $"{name}.Type");
+        }
+
+        static void AssertArgumentInstance(IArgumentDeclaration expected, IArgumentInstance actual, ArgumentSide side, string name)
+        {
+            Assert.That(actual.Name, Is.EqualTo(expected.Name), $"{name}.Name");
+            Assert.That(actual.Type, Is.SameAs(expected.Type), $"{name}.Type");
+            Assert.That(actual.Side, Is.EqualTo(side), $"{name}.SIde");
+            AssertArgumentDecl(expected, actual.Argument, $"{name}.Argument");
         }
     }
 }
