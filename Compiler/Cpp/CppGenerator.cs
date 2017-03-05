@@ -42,6 +42,12 @@ namespace REC.Cpp
             DeclareFunction(functionDeclaration, scope);
         }
 
+        static string Dynamic(IVariableDeclaration variableDeclaration, ICppScope scope)
+        {
+            DeclareVariable(variableDeclaration, scope);
+            return string.Empty;
+        }
+
         static void Dynamic(IIntrinsicExpression intrinsicExpression, ICppScope scope) {
             if (intrinsicExpression.Intrinsic is IFunctionIntrinsic func)
                 func.GenerateCpp(new CppIntrinsic {Scope = scope});
@@ -64,6 +70,15 @@ namespace REC.Cpp
             var resultArgs = BuildResultValues(function, scope, ref resultName);
             scope.Runtime.AddLine(BuildInvocation(function.Name, leftArgs, rightArgs, resultArgs));
             return resultName;
+        }
+
+        static void DeclareVariable(IVariableDeclaration variable, ICppScope scope) {
+            var typeName = GetArgumentTypeName(variable.Type);
+            var varName = CppEscape(variable.Name);
+            scope.Runtime.AddLine($"{typeName} {varName};");
+            if (variable.Value != null) {
+                scope.Runtime.AddLine($"{varName} = {Dynamic((dynamic)variable.Value, scope)}");
+            }
         }
 
         static string BuildInvocation(string function, string leftArgs, string rightArgs, string resultArgs) {

@@ -110,13 +110,15 @@ fn (a : u64) + (b : u64) -> *r : u64:
     r = Add a b
 end
 fn (*l : u64) += (r : u64):
-    l = l+r
+    l = l + r
 end
 fn test (x : u64):
     Print x
 end
-test Add 23 12
-&Print 42 + 23
+let *x : u64
+x = 23 + 12
+test x
+&Print 42 + 12
 &test Add 23 32
 Print 42 + 22",
                     Filename = "Test.rebuild"
