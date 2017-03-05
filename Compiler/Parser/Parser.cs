@@ -30,7 +30,7 @@ namespace REC.Parser
             var token = tokens.Current;
             if (token.Type == Token.IdentifierLiteral) {
                 var identifier = ((IIdentifierLiteral) token.Data).Content;
-                if (identifier == "let") return null; // VariableDeclParser.Parse(tokens, context, ref done);
+                if (identifier == "let") return VariableDeclParser.Parse(tokens, context, ref done);
                 if (identifier == "fn") return FunctionDeclParser.Parse(tokens, context, ref done);
                 if (identifier == "module") return ModuleDeclParser.Parse(tokens, context, ref done);
                 if (identifier == "with") return null; // WithExpressionParser.Parse(tokens, context, ref done);

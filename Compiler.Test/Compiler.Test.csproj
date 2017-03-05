@@ -49,6 +49,7 @@
     <Compile Include="Parser\FunctionDeclParserTests.cs" />
     <Compile Include="Parser\TokenHelpers.cs" />
     <Compile Include="Parser\TokenPreparationTests.cs" />
+    <Compile Include="Parser\VariableDeclParserTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scanner\CommentScannerTests.cs" />
     <Compile Include="Scanner\IdentifierScannerTests.cs" />
