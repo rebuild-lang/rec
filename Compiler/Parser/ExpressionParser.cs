@@ -14,111 +14,51 @@ namespace REC.Parser
             return ParseResult(new NamedExpressionTuple(), tokens, context, ref done);
         }
 
-        static INamedExpressionTuple ParseResult(INamedExpressionTuple result, IEnumerator<TokenData> tokens, IContext context, ref bool done)
-        {
-            while (!done)
-            {
+        static INamedExpressionTuple ParseResult(INamedExpressionTuple result, IEnumerator<TokenData> tokens, IContext context, ref bool done) {
+            while (!done) {
                 var token = tokens.Current;
-                switch (token.Type)
-                {
-                    case Token.OperatorLiteral:
-                        var operatorLiteral = (IIdentifierLiteral)token.Data;
-                        var itentifyerLiteralList = new List<TokenData>();
-                        string operatorLiteralContent = operatorLiteral.Content;
-                        string operatorLiteralContentTail = "";
-                        string notFoundLiteral = "";
-                        while (!operatorLiteralContent.IsEmpty())
-                        {
-                            if (operatorLiteralContent == "&")
-                            {
-                                if (!tokens.MoveNext()) done = true;
-                                if (done) return result; // TODO: report error: missing tokens
+                switch (token.Type) {
+                case Token.OperatorLiteral:
+                    var operatorLiteral = (IIdentifierLiteral) token.Data;
+                    if (operatorLiteral.Content == "&") {
+                        if (!tokens.MoveNext()) done = true;
+                        if (done) return result; // TODO: report error: missing tokens
 
-                                var inner = Parse(tokens, context, ref done);
-                                var execResult = CompileTime.Execute(inner, context);
-                                if (execResult != null)
-                                {
-                                    if (execResult is INamedExpressionTuple execNamedTuple)
-                                        result.Tuple.AddRange(execNamedTuple.Tuple);
-                                    else
-                                        result.Tuple.Add(new NamedExpression { Expression = execResult });
-                                }
-                                continue;
-                            }
-
-                            var resolve = context.Identifiers[operatorLiteralContent];
-                            if (resolve == null)
-                            {
-                                if (operatorLiteralContent.Length == 1)
-                                {
-                                    notFoundLiteral += operatorLiteralContent;
-                                    operatorLiteralContent = operatorLiteralContentTail;
-                                    operatorLiteralContentTail = "";
-                                }
-                                else
-                                {
-                                    operatorLiteralContentTail = operatorLiteralContent.Last() + operatorLiteralContentTail;
-                                    operatorLiteralContent = operatorLiteralContent.Substring(0, operatorLiteralContent.Length - 1);
-                                }
-                            }
+                        var inner = Parse(tokens, context, ref done);
+                        var execResult = CompileTime.Execute(inner, context);
+                        if (execResult != null) {
+                            if (execResult is INamedExpressionTuple execNamedTuple)
+                                result.Tuple.AddRange(execNamedTuple.Tuple);
                             else
-                            {
-                                if (!notFoundLiteral.IsEmpty())
-                                {
-                                    itentifyerLiteralList.Add(new TokenData
-                                    {
-                                        Type = Token.IdentifierLiteral,
-                                        Data = new IdentifierLiteral { Content = notFoundLiteral }
-                                    });
-                                    notFoundLiteral = "";
-                                }
-                                itentifyerLiteralList.Add(new TokenData
-                                {
-                                    Type = Token.IdentifierLiteral,
-                                    Data = new IdentifierLiteral { Content = operatorLiteralContent }
-                                    // TODO Error and Range
-                                });
-                                operatorLiteralContent = operatorLiteralContentTail;
-                                operatorLiteralContentTail = "";
-                            }
+                                result.Tuple.Add(new NamedExpression {Expression = execResult});
                         }
-
-                        if (!notFoundLiteral.IsEmpty())
-                        {
-                            itentifyerLiteralList.Add(new TokenData
-                            {
-                                Type = Token.IdentifierLiteral,
-                                Data = new IdentifierLiteral { Content = notFoundLiteral }
-                            });
-                        }
-
-                        using (var newTokens = itentifyerLiteralList.Before(tokens).GetEnumerator())
-                        {
-                            return ParseResult(result, newTokens, context, ref done);
-                        }
-                    case Token.IdentifierLiteral:
-                        var identifierLiteral = (IIdentifierLiteral)token.Data;
-                        var resolved = context.Identifiers[identifierLiteral.Content];
-                        if (null != resolved)
-                        {
-                            var subexpression = ParseResolved((dynamic)resolved, result, tokens, context, ref done);
-                            result.Tuple.Add(new NamedExpression { Expression = subexpression ?? identifierLiteral });
-                            continue;
-                        }
-                        result.Tuple.Add(new NamedExpression { Expression = identifierLiteral });
-                        break;
-                    case Token.StringLiteral:
-                        var stringLiteral = (IStringLiteral)token.Data;
-                        result.Tuple.Add(new NamedExpression { Expression = stringLiteral });
-                        break;
-                    case Token.NumberLiteral:
-                        var numberLiteral = (INumberLiteral)token.Data;
-                        result.Tuple.Add(new NamedExpression { Expression = numberLiteral });
-                        break;
-                    case Token.BlockStartIndentation:
-                        var tokenBlock = (IBlockLiteral)token.Data;
-                        result.Tuple.Add(new NamedExpression { Expression = tokenBlock });
-                        break;
+                        continue;
+                    }
+                    using (var newTokens = OperatorLiteralSplitter.Split(operatorLiteral, context, ref done).Before(tokens).GetEnumerator()) {
+                        return ParseResult(result, newTokens, context, ref done);
+                    }
+                case Token.IdentifierLiteral:
+                    var identifierLiteral = (IIdentifierLiteral) token.Data;
+                    var resolved = context.Identifiers[identifierLiteral.Content];
+                    if (null != resolved) {
+                        var subexpression = ParseResolved((dynamic) resolved, result, tokens, context, ref done);
+                        result.Tuple.Add(new NamedExpression {Expression = subexpression ?? identifierLiteral});
+                        continue;
+                    }
+                    result.Tuple.Add(new NamedExpression {Expression = identifierLiteral});
+                    break;
+                case Token.StringLiteral:
+                    var stringLiteral = (IStringLiteral) token.Data;
+                    result.Tuple.Add(new NamedExpression {Expression = stringLiteral});
+                    break;
+                case Token.NumberLiteral:
+                    var numberLiteral = (INumberLiteral) token.Data;
+                    result.Tuple.Add(new NamedExpression {Expression = numberLiteral});
+                    break;
+                case Token.BlockStartIndentation:
+                    var tokenBlock = (IBlockLiteral) token.Data;
+                    result.Tuple.Add(new NamedExpression {Expression = tokenBlock});
+                    break;
                 }
                 if (done) break;
                 if (!tokens.MoveNext()) done = true;

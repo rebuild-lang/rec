@@ -27,6 +27,14 @@ namespace REC
                 Index = Index
             };
         }
+
+        public TextPosition ColumnMoved(int columnOffset) {
+            return new TextPosition {
+                Line = Line,
+                Column = Column + columnOffset,
+                Index = Index + columnOffset
+            };
+        }
     }
 
     public class TextFileRange
@@ -51,6 +59,14 @@ namespace REC
                 File = File,
                 Start = Start.Clone(),
                 End = End.Clone()
+            };
+        }
+
+        public TextFileRange SubRange(int left, int count) {
+            return new TextFileRange {
+                File = File,
+                Start = Start.ColumnMoved(left),
+                End = Start.ColumnMoved(left + count)
             };
         }
     }

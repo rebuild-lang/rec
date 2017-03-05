@@ -115,6 +115,7 @@
     <Compile Include="Parser\ExpressionParser.cs" />
     <Compile Include="Parser\FunctionDeclParser.cs" />
     <Compile Include="Parser\ModuleDeclParser.cs" />
+    <Compile Include="Parser\OperatorLiteralSplitter.cs" />
     <Compile Include="Parser\Parser.cs" />
     <Compile Include="Parser\TokenPreparation.cs" />
     <Compile Include="Parser\VariableDeclParser.cs" />
