@@ -157,17 +157,18 @@ namespace REC.Parser
 
         static IList<IFunctionInstance> FilterFunctionLeftArguments(IList<IFunctionInstance> pool, INamedExpressionTuple leftArguments) {
             return pool.Where(
-                f => {
-                    if (f.Declaration.LeftArguments == null) return true;
-                    if (f.Declaration.LeftArguments.Count > leftArguments.Tuple.Count) return false;
-                    var o = leftArguments.Tuple.Count - f.Declaration.LeftArguments.Count;
-                    foreach (var fArg in f.Declaration.LeftArguments) {
-                        var givenArg = leftArguments.Tuple[o];
-                        if (!CanImplicitConvertExpressionTo(givenArg.Expression, fArg.Type)) return false;
-                        o++;
-                    }
-                    return f.Declaration.LeftArguments.Count <= leftArguments.Tuple.Count;
-                }).ToList();
+                    f => {
+                        if (f.Declaration.LeftArguments == null) return true;
+                        if (f.Declaration.LeftArguments.Count > leftArguments.Tuple.Count) return false;
+                        var o = leftArguments.Tuple.Count - f.Declaration.LeftArguments.Count;
+                        foreach (var fArg in f.Declaration.LeftArguments) {
+                            var givenArg = leftArguments.Tuple[o];
+                            if (!CanImplicitConvertExpressionTo(givenArg.Expression, fArg.Type)) return false;
+                            o++;
+                        }
+                        return f.Declaration.LeftArguments.Count <= leftArguments.Tuple.Count;
+                    })
+                .ToList();
         }
 
         static bool CanImplicitConvertExpressionTo(IExpression givenArgExpression, IModuleInstance fArgType) {
@@ -176,9 +177,10 @@ namespace REC.Parser
 
         static IList<IFunctionInstance> FilterFunctionRightArguments(IList<IFunctionInstance> pool, INamedExpressionTuple rightArguments) {
             return pool.Where(
-                f => f.Declaration.RightArguments == null ||
-                    f.Declaration.MandatoryRightArgumentCount() <= rightArguments.Tuple.Count &&
-                    (f.Declaration.MaxRightArgumentCount() == null || !(f.Declaration.MaxRightArgumentCount() < rightArguments.Tuple.Count))).ToList();
+                    f => f.Declaration.RightArguments == null ||
+                        f.Declaration.MandatoryRightArgumentCount() <= rightArguments.Tuple.Count &&
+                        (f.Declaration.MaxRightArgumentCount() == null || !(f.Declaration.MaxRightArgumentCount() < rightArguments.Tuple.Count)))
+                .ToList();
         }
 
         static IExpression CreateFunctionInvocation(
