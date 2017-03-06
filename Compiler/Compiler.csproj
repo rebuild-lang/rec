@@ -139,6 +139,7 @@
     <Compile Include="Tools\HandleCache.cs" />
     <Compile Include="Tools\ListExtensionMethods.cs" />
     <Compile Include="Tools\NamedCollection.cs" />
+    <Compile Include="Tools\TypeExtensionMethods.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

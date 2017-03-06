@@ -58,17 +58,17 @@ namespace REC.Execution
             return null;
         }
 
-        static IExpression Dynamic(IFunctionInvocation functionInvocation, IContext callerContext) {
+        static IExpression Dynamic(IFunctionInvocation invocation, IContext callerContext) {
             var localValues = new LocalValueScope();
-            var argumentIdentifiers = functionInvocation.Function.ArgumentIdentifiers;
+            var argumentIdentifiers = invocation.Function.ArgumentIdentifiers;
             var localContext = new Context(argumentIdentifiers, localValues);
-            BuildArgumentValues(localValues, functionInvocation.Left, argumentIdentifiers, functionInvocation.Function.LeftArguments, callerContext, localContext);
-            BuildArgumentValues(localValues, functionInvocation.Right, argumentIdentifiers, functionInvocation.Function.RightArguments, callerContext, localContext);
-            BuildResultValues(localValues, functionInvocation.Function.Results, localContext);
-            var result = Dynamic(functionInvocation.Function.Declaration.Implementation, localContext);
-            ExtractArgumentReferenceValues(localValues, functionInvocation.Left, functionInvocation.Function.LeftArguments, callerContext);
-            ExtractArgumentReferenceValues(localValues, functionInvocation.Right, functionInvocation.Function.RightArguments, callerContext);
-            return ExtractResultValues(localValues, result, functionInvocation.Function.Results);
+            BuildArgumentValues(localValues, invocation.Left, argumentIdentifiers, invocation.Function.LeftArguments, callerContext, localContext);
+            BuildArgumentValues(localValues, invocation.Right, argumentIdentifiers, invocation.Function.RightArguments, callerContext, localContext);
+            BuildResultValues(localValues, invocation.Function.Results, localContext);
+            var result = Dynamic(invocation.Function.Declaration.Implementation, localContext);
+            ExtractArgumentReferenceValues(localValues, invocation.Left, invocation.Function.LeftArguments, callerContext);
+            ExtractArgumentReferenceValues(localValues, invocation.Right, invocation.Function.RightArguments, callerContext);
+            return ExtractResultValues(localValues, result, invocation.Function.Results);
         }
 
         static void BuildArgumentValues(
@@ -159,21 +159,22 @@ namespace REC.Execution
         }
 
         static IExpression Dynamic(IIntrinsicExpression intrinsicExpression, IContext context) {
-            if (intrinsicExpression.Intrinsic is IFunctionIntrinsic func) {
-                var leftArguments = (ILeftArguments) (func.LeftArgumentsType != null ? Activator.CreateInstance(func.LeftArgumentsType) : null);
-                var rightArguments = (IRightArguments) (func.RightArgumentsType != null ? Activator.CreateInstance(func.RightArgumentsType) : null);
-                var results = (IResultArguments) (func.ResultType != null ? Activator.CreateInstance(func.ResultType) : null);
+            var function = intrinsicExpression.Intrinsic;
 
-                RebuildToNetTypes(context.Values, leftArguments, intrinsicExpression.LeftFields);
-                RebuildToNetTypes(context.Values, rightArguments, intrinsicExpression.RightFields);
-                RebuildToNetTypes(context.Values, results, intrinsicExpression.ResultFields);
+            var leftArguments = (ILeftArguments) function.LeftArgumentsType?.CreateInstance();
+            var rightArguments = (IRightArguments) function.RightArgumentsType?.CreateInstance();
+            var results = (IResultArguments) function.ResultType?.CreateInstance();
 
-                func.CompileTime(leftArguments, rightArguments, results);
+            RebuildToNetTypes(context.Values, leftArguments, intrinsicExpression.LeftFields);
+            RebuildToNetTypes(context.Values, rightArguments, intrinsicExpression.RightFields);
+            RebuildToNetTypes(context.Values, results, intrinsicExpression.ResultFields);
 
-                NetTypesToRebuild(leftArguments, intrinsicExpression.LeftFields, context.Values);
-                NetTypesToRebuild(rightArguments, intrinsicExpression.RightFields, context.Values);
-                NetTypesToRebuild(results, intrinsicExpression.ResultFields, context.Values);
-            }
+            function.CompileTime(leftArguments, rightArguments, results);
+
+            NetTypesToRebuild(leftArguments, intrinsicExpression.LeftFields, context.Values);
+            NetTypesToRebuild(rightArguments, intrinsicExpression.RightFields, context.Values);
+            NetTypesToRebuild(results, intrinsicExpression.ResultFields, context.Values);
+
             return null;
         }
 
