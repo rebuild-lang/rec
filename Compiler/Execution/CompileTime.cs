@@ -23,13 +23,17 @@ namespace REC.Execution
 
         static IExpression Dynamic(INamedExpressionTuple expressionTuple, IContext context) {
             IExpression result = null;
-            foreach (var sub in expressionTuple.Tuple) result = Dynamic((dynamic) sub.Expression, context);
+            foreach (var sub in expressionTuple.Tuple) {
+                result = Dynamic((dynamic) sub.Expression, context);
+            }
             return result;
         }
 
         static IExpression Dynamic(IExpressionBlock expressionBlock, IContext context) {
             IExpression result = null;
-            foreach (var sub in expressionBlock.Expressions) result = Dynamic((dynamic) sub, context);
+            foreach (var sub in expressionBlock.Expressions) {
+                result = Dynamic((dynamic) sub, context);
+            }
             return result;
         }
 
@@ -49,7 +53,7 @@ namespace REC.Execution
 
         static IExpression Dynamic(IVariableDeclaration variableDecl, IContext context) {
             var variable = context.Identifiers[variableDecl.Name] as IVariableInstance;
-            var value = variableDecl.Value != null ? Dynamic((dynamic)variableDecl.Value, context) : CreateValue(variableDecl.Type);
+            var value = variableDecl.Value != null ? Dynamic((dynamic) variableDecl.Value, context) : CreateValue(variableDecl.Type);
             context.Values.Add(variable, value);
             return null;
         }
@@ -81,8 +85,8 @@ namespace REC.Execution
                     argumentName = arguments[argN].Name;
                     argN++;
                 }
-                var argument = (IArgumentInstance)argumentScope[argumentName];
-                var value = Dynamic((dynamic)expression.Expression, argumentContext);
+                var argument = (IArgumentInstance) argumentScope[argumentName];
+                var value = Dynamic((dynamic) expression.Expression, argumentContext);
                 var casted = ImplicitCast(value, argument.Type);
                 localValues.Add(argument, casted);
             }
@@ -104,11 +108,9 @@ namespace REC.Execution
             ILocalValueScope localValues,
             INamedExpressionTuple expressions,
             ArgumentInstanceCollection arguments,
-            IContext callerContext)
-        {
+            IContext callerContext) {
             var argN = 0;
-            foreach (var expression in expressions.Tuple)
-            {
+            foreach (var expression in expressions.Tuple) {
                 var argument = arguments[argN];
 
                 argN++;
