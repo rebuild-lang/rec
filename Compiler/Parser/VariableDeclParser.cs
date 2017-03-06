@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using REC.AST;
+using REC.Execution;
 using REC.Instance;
 using REC.Scanner;
 
@@ -15,11 +16,25 @@ namespace REC.Parser
 
             while (true) {
                 var isAssignable = false;
-                if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "*") {
-                    isAssignable = true;
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result; // TODO: report missing value
-                    token = tokens.Current;
+                var isCompileTime = false;
+                while (true) {
+                    if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral)token.Data).Content == "*")
+                    {
+                        isAssignable = true;
+                        if (!tokens.MoveNext()) done = true;
+                        if (done) return result; // TODO: report missing value
+                        token = tokens.Current;
+                        continue;
+                    }
+                    if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral)token.Data).Content == "&")
+                    {
+                        isCompileTime = true;
+                        if (!tokens.MoveNext()) done = true;
+                        if (done) return result; // TODO: report missing value
+                        token = tokens.Current;
+                        continue;
+                    }
+                    break;
                 }
 
                 #region Identifier
@@ -28,56 +43,70 @@ namespace REC.Parser
                 var name = ((IIdentifierLiteral) token.Data).Content;
                 // TODO: check for duplicate names
 
-                var variable = new VariableDeclaration {Name = name, IsAssignable = isAssignable};
-                result.Tuple.Add(new NamedExpression {Expression = variable});
-                context.Identifiers.Add(new VariableInstance {Variable = variable});
+                var variable = new VariableDeclaration {Name = name, IsAssignable = isAssignable, IsCompileTimeOnly = isCompileTime};
 
-                if (!tokens.MoveNext()) done = true;
-                if (done) return result; // TODO: report missing type
-                token = tokens.Current;
+                try {
 
-                #endregion
-
-                #region Type
-
-                if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == ":") {
                     if (!tokens.MoveNext()) done = true;
                     if (done) return result; // TODO: report missing type
                     token = tokens.Current;
 
-                    // TODO: expand ParseTypeExpression
-                    // TODO: ensure we get instancable type
-                    if (token.Type == Token.IdentifierLiteral) {
-                        var typeName = ((IIdentifierLiteral) token.Data).Content;
-                        if (context.Identifiers[typeName] is IModuleInstance typeEntry
-                            && typeEntry.IsType()) {
-                            variable.Type = typeEntry;
-                        }
-                        else {
-                            // TODO: report missing type   
-                        }
+                    #endregion
 
+                    #region Type
+
+                    if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == ":") {
                         if (!tokens.MoveNext()) done = true;
+                        if (done) return result; // TODO: report missing type
+                        token = tokens.Current;
+
+                        // TODO: expand ParseTypeExpression
+                        // TODO: ensure we get instancable type
+                        if (token.Type == Token.IdentifierLiteral) {
+                            var typeName = ((IIdentifierLiteral) token.Data).Content;
+                            if (context.Identifiers[typeName] is IModuleInstance typeEntry
+                                && typeEntry.IsType()) {
+                                variable.Type = typeEntry;
+                            }
+                            else {
+                                // TODO: report missing type   
+                            }
+
+                            if (!tokens.MoveNext()) done = true;
+                            if (done) return result; // done
+                            token = tokens.Current;
+                        }
+                    }
+
+                    #endregion
+
+                    #region Initializer Value
+
+                    if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "=") {
+                        if (!tokens.MoveNext()) done = true;
+                        if (done) return result; // TODO: report missing value
+                        variable.Value = ExpressionParser.Parse(tokens, context, ref done);
                         if (done) return result; // done
                         token = tokens.Current;
                     }
+
+                    #endregion
+
                 }
+                finally {
+                    // TODO: ensure variable got a type!
 
-                #endregion
+                    result.Tuple.Add(new NamedExpression { Expression = variable });
+                    context.Identifiers.Add(new VariableInstance { Variable = variable });
 
-                #region Initializer Value
+                    #region Do the compile time stuff
 
-                if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "=") {
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result; // TODO: report missing value
-                    variable.Value = ExpressionParser.Parse(tokens, context, ref done);
-                    if (done) return result; // done
-                    token = tokens.Current;
+                    if (isCompileTime) {
+                        CompileTime.Execute(variable, context);
+                    }
+
+                    #endregion
                 }
-
-                #endregion
-
-                // TODO: ensure variable got a type!
 
                 #region Comma Separator
 

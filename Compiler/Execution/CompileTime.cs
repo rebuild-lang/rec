@@ -47,6 +47,13 @@ namespace REC.Execution
             return context.Values[reference.Instance];
         }
 
+        static IExpression Dynamic(IVariableDeclaration variableDecl, IContext context) {
+            var variable = context.Identifiers[variableDecl.Name] as IVariableInstance;
+            var value = variableDecl.Value != null ? Dynamic((dynamic)variableDecl.Value, context) : CreateValue(variableDecl.Type);
+            context.Values.Add(variable, value);
+            return null;
+        }
+
         static IExpression Dynamic(IFunctionInvocation functionInvocation, IContext callerContext) {
             var localValues = new LocalValueScope();
             var argumentIdentifiers = functionInvocation.Function.ArgumentIdentifiers;

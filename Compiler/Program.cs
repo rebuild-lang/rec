@@ -118,7 +118,11 @@ end
 let *x : u64
 x = 23 + 12
 test x
-&Print 42 + 12
+
+let & *y : u64
+&y = 42 + 12
+&Print y
+
 &test Add 23 32
 Print 42 + 22",
                     Filename = "Test.rebuild"
