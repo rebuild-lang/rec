@@ -101,7 +101,8 @@ namespace REC.Cpp
             {'/', "_Div"},
             {'*', "_Mul"},
             {'_', "__"},
-            {'=', "_Eq" }
+            {'=', "_Eq" },
+            {'.', "_Dot" }
         };
 
         static string CppEscape(string name) {

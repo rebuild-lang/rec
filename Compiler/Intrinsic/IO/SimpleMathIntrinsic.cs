@@ -13,20 +13,20 @@ namespace REC.Intrinsic.IO
         public static IFunctionIntrinsic[] Get() {
             return new IFunctionIntrinsic[] {
                 new FunctionIntrinsic {
-                    Name = "Assign",
+                    Name = ".Assign",
                     RightArgumentsType = typeof(AssignArguments),
                     CompileTime = (left, right, result) => CompileTimeAssign((AssignArguments) right),
                     GenerateCpp = GenerateCppAssign
                 },
                 new FunctionIntrinsic {
-                    Name = "Add",
+                    Name = ".Add",
                     RightArgumentsType = typeof(BinaryArguments),
                     ResultType = typeof(Result),
                     CompileTime = (left, right, result) => CompileTimeAdd((BinaryArguments) right, (Result) result),
                     GenerateCpp = GenerateCppAdd
                 },
                 new FunctionIntrinsic {
-                    Name = "Sub",
+                    Name = ".Sub",
                     RightArgumentsType = typeof(BinaryArguments),
                     ResultType = typeof(Result),
                     CompileTime = (left, right, result) => CompileTimeSub((BinaryArguments) right, (Result) result),

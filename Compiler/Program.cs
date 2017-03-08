@@ -18,9 +18,14 @@ namespace REC
                 InjectedContext,
                 new IntrinsicDict {
                     U64Type.Get(),
-                    NumberLiteralType.Get(),
-                    PrintIntrinsic.Get(),
-                    SimpleMathIntrinsic<ulong, UlongMath>.Get()
+                    new ModuleIntrinsic {
+                        Name = "Rebuild",
+                        Children = {
+                            NumberLiteralType.Get(),
+                            PrintIntrinsic.Get(),
+                            SimpleMathIntrinsic<ulong, UlongMath>.Get()
+                        }
+                    }
                 });
         }
 
@@ -104,16 +109,16 @@ namespace REC
                 new TextFile {
                     Content = @"
 fn (*l : u64) = (r : u64):
-    Assign l, r
+    Rebuild.Assign l, r
 end
 fn (a : u64) + (b : u64) -> *r : u64:
-    r = Add a b
+    r = Rebuild.Add a b
 end
 fn (*l : u64) += (r : u64):
     l = l + r
 end
 fn test (x : u64):
-    Print x
+    Rebuild.Print x
 end
 let *x : u64
 x = 23 + 12
@@ -121,10 +126,10 @@ test x
 
 let & *y : u64
 &y = 42 + 12
-&Print y
+&Rebuild.Print y
 
-&test Add 23 32
-Print 42 + 22",
+&test Rebuild.Add 23 32
+Rebuild.Print 42 + 22",
                     Filename = "Test.rebuild"
                 });
         }

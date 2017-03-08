@@ -26,11 +26,16 @@ namespace REC.Intrinsic
 
         void ConvertNetTypes(IEnumerable<IInstance> declared) {
             foreach (var instance in declared) {
-                if (instance is IntrinsicFunctionInstance function) {
+                switch (instance) {
+                case IntrinsicFunctionInstance function:
                     var expression = function.IntrinsicExpression;
                     TypeToArguments(function.LeftArguments, function.Declaration.LeftArguments, function.ArgumentIdentifiers, ArgumentSide.Left, expression.Intrinsic.LeftArgumentsType, expression.LeftFields);
                     TypeToArguments(function.RightArguments, function.Declaration.RightArguments, function.ArgumentIdentifiers, ArgumentSide.Right, expression.Intrinsic.RightArgumentsType, expression.RightFields);
                     TypeToArguments(function.Results, function.Declaration.Results, function.ArgumentIdentifiers, ArgumentSide.Result, expression.Intrinsic.ResultType, expression.ResultFields);
+                    break;
+                case IModuleInstance module:
+                    ConvertNetTypes(module.Identifiers.LocalIdentifiers.Values);
+                    break;
                 }
             }
         }

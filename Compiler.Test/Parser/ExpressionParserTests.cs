@@ -108,7 +108,7 @@ namespace REC.Tests.Parser
                 Context = new Context {Parent = TestContext},
                 Input = new[] {
                     Op(text: "&"),
-                    Id(text: "Add"), NumberLit(text: "3"), NumberLit(text: "20")
+                    Id(text: ".Add"), NumberLit(text: "3"), NumberLit(text: "20")
                 },
                 Output = new NamedExpressionTuple(
                     name: "Value",
@@ -153,13 +153,13 @@ namespace REC.Tests.Parser
                     Parent = TestVariableResContext,
                 },
                 Input = new[] {
-                    Id(text: "Assign"),
+                    Id(text: ".Assign"),
                     Id(text: "res"),
-                    Id(text: "Add"), NumberLit(text: "3"), NumberLit(text: "20")
+                    Id(text: ".Add"), NumberLit(text: "3"), NumberLit(text: "20")
                 },
                 Output = new NamedExpressionTuple(
                     new FunctionInvocation {
-                        Function = TestContext.Identifiers[key: "Assign"] as IFunctionInstance,
+                        Function = TestContext.Identifiers[key: ".Assign"] as IFunctionInstance,
                         Left = new NamedExpressionTuple(),
                         Right = new NamedExpressionTuple(
                             new TypedReference {
@@ -167,7 +167,7 @@ namespace REC.Tests.Parser
                                 Type = TestContext.Identifiers[key: "u64"] as IModuleInstance,
                             },
                             new FunctionInvocation {
-                                Function = TestContext.Identifiers[key: "Add"] as IFunctionInstance,
+                                Function = TestContext.Identifiers[key: ".Add"] as IFunctionInstance,
                                 Left = new NamedExpressionTuple(),
                                 Right = new NamedExpressionTuple(
                                     new NumberLiteral {IntegerPart = "3"},

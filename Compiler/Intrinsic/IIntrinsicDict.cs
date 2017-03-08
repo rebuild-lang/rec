@@ -7,5 +7,8 @@ namespace REC.Intrinsic
         Dictionary<string, IIntrinsic> Dict { get; }
 
         IIntrinsic this[string key] { get; }
+
+        void Add(IIntrinsic value);
+        void Add(IFunctionIntrinsic[] value);
     }
 }
