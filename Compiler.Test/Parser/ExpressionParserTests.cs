@@ -5,7 +5,6 @@ using REC.Instance;
 using REC.Intrinsic;
 using REC.Intrinsic.IO;
 using REC.Intrinsic.Types;
-using REC.Intrinsic.Types.API;
 using REC.Parser;
 using REC.Scanner;
 using System.Collections.Generic;
@@ -26,7 +25,6 @@ namespace REC.Tests.Parser
                     context,
                     new IntrinsicDict {
                         U64Type.Get(),
-                        NumberLiteralType.Get(),
                         SimpleMathIntrinsic<ulong, UlongMath>.Get()
                     });
                 return context;

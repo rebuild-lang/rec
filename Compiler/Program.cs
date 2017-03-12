@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using REC.AST;
 using REC.Cpp;
 using REC.Intrinsic;
 using REC.Intrinsic.IO;
@@ -22,8 +23,8 @@ namespace REC
                         new ModuleIntrinsic {
                             Name = "Rebuild",
                             Children = {
-                                NumberLiteralType.Get(),
-                                BlockLiteralType.Get(),
+                                LiteralType<INumberLiteral>.Get(name: "NumberLiteral"),
+                                LiteralType<IBlockLiteral>.Get(name: "BlockLiteral"),
                                 PrintIntrinsic.Get(),
                                 SimpleMathIntrinsic<ulong, UlongMath>.Get()
                             }
