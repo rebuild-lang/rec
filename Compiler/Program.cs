@@ -23,6 +23,7 @@ namespace REC
                             Name = "Rebuild",
                             Children = {
                                 NumberLiteralType.Get(),
+                                BlockLiteralType.Get(),
                                 PrintIntrinsic.Get(),
                                 SimpleMathIntrinsic<ulong, UlongMath>.Get()
                             }

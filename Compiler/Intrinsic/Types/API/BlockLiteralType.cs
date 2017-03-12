@@ -5,33 +5,33 @@ using REC.Tools;
 namespace REC.Intrinsic.Types.API
 {
     [CompileTimeOnly]
-    static class NumberLiteralType
+    static class BlockLiteralType
     {
-        static readonly HandleCache<INumberLiteral> NumberLiterals = new HandleCache<INumberLiteral>();
+        static readonly HandleCache<IBlockLiteral> BlockLiterals = new HandleCache<IBlockLiteral>();
 
         public static ITypeModuleIntrinsic Get() {
             return new TypeModuleIntrinsic {
-                Name = "NumberLiteral",
+                Name = "BlockLiteral",
                 TypeSize = 8,
                 Construct = Construct,
                 Destruct = Destruct,
                 FromLiteral = FromLiteral,
-                NetType = typeof(INumberLiteral),
+                NetType = typeof(IBlockLiteral),
                 ToNetType = ToNetType,
                 FromNetType = FromNetType
             };
         }
 
         static void FromNetType(dynamic net, byte[] bytes) {
-            var value = (INumberLiteral) net;
-            var handle = NumberLiterals.GetHandle(value);
-            NumberLiterals.AddRef(handle);
+            var value = (IBlockLiteral) net;
+            var handle = BlockLiterals.GetHandle(value);
+            BlockLiterals.AddRef(handle);
             BitConverter.GetBytes(handle).CopyTo(bytes, index: 0);
         }
 
         static object ToNetType(byte[] arg) {
             var handle = BitConverter.ToInt32(arg, startIndex: 0);
-            return NumberLiterals.GetValue(handle);
+            return BlockLiterals.GetValue(handle);
         }
 
         static void Construct(byte[] data) {
@@ -40,13 +40,13 @@ namespace REC.Intrinsic.Types.API
 
         static void Destruct(byte[] data) {
             var handle = BitConverter.ToInt32(data, startIndex: 0);
-            NumberLiterals.RemoveRef(handle);
+            BlockLiterals.RemoveRef(handle);
         }
 
         static LiteralConversion FromLiteral(byte[] dest, ILiteral literal) {
-            if (!(literal is INumberLiteral numberLiteral)) return LiteralConversion.Failed;
-            var handle = NumberLiterals.GetHandle(numberLiteral);
-            NumberLiterals.AddRef(handle);
+            if (!(literal is IBlockLiteral blockLiteral)) return LiteralConversion.Failed;
+            var handle = BlockLiterals.GetHandle(blockLiteral);
+            BlockLiterals.AddRef(handle);
             BitConverter.GetBytes(handle).CopyTo(dest, index: 0);
             return LiteralConversion.Ok;
         }

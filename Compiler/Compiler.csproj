@@ -108,6 +108,7 @@
     <Compile Include="Intrinsic\ModuleIntrinsic.cs" />
     <Compile Include="Intrinsic\CompileTimeOnly.cs" />
     <Compile Include="Intrinsic\TypeModuleIntrinsic.cs" />
+    <Compile Include="Intrinsic\Types\API\BlockLiteralType.cs" />
     <Compile Include="Intrinsic\Types\API\NumberLiteralType.cs" />
     <Compile Include="Intrinsic\Types\U64Type.cs" />
     <Compile Include="Parser\BlockLineGrouping.cs" />
