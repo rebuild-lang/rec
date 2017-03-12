@@ -12,24 +12,24 @@ namespace REC
 {
     class Compiler
     {
-        public Compiler() {
-            InjectedContext = new Context();
-            DeclarationConverter.BuildContext(
-                InjectedContext,
-                new IntrinsicDict {
-                    U64Type.Get(),
-                    new ModuleIntrinsic {
-                        Name = "Rebuild",
-                        Children = {
-                            NumberLiteralType.Get(),
-                            PrintIntrinsic.Get(),
-                            SimpleMathIntrinsic<ulong, UlongMath>.Get()
+        readonly IContext _injectedContext = new Func<IContext>(
+            () => {
+                var context = new Context();
+                DeclarationConverter.BuildContext(
+                    context,
+                    new IntrinsicDict {
+                        U64Type.Get(),
+                        new ModuleIntrinsic {
+                            Name = "Rebuild",
+                            Children = {
+                                NumberLiteralType.Get(),
+                                PrintIntrinsic.Get(),
+                                SimpleMathIntrinsic<ulong, UlongMath>.Get()
+                            }
                         }
-                    }
-                });
-        }
-
-        IContext InjectedContext { get; }
+                    });
+                return context;
+            })();
 
         static string GetTempFileName(string basename = "", string extension = "tmp") {
             return Path.GetTempPath() + basename + Guid.NewGuid() + '.' + extension;
@@ -39,7 +39,7 @@ namespace REC
             var raw = Scanner.Scanner.ScanFile(file);
             var prepared = TokenPreparation.Apply(raw);
             var block = new BlockLineGrouping().Group(prepared);
-            var ast = Parser.Parser.ParseBlock(block, InjectedContext);
+            var ast = Parser.Parser.ParseBlock(block, _injectedContext);
             //var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
             var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp") ?? "test.cpp"; // use this for debugging cpp output
             using (var writer = File.CreateText(cppFileName)) {

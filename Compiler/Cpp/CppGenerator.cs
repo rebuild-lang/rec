@@ -42,8 +42,7 @@ namespace REC.Cpp
             DeclareFunction(functionDeclaration, scope);
         }
 
-        static string Dynamic(IVariableDeclaration variableDeclaration, ICppScope scope)
-        {
+        static string Dynamic(IVariableDeclaration variableDeclaration, ICppScope scope) {
             DeclareVariable(variableDeclaration, scope);
             return string.Empty;
         }
@@ -59,13 +58,17 @@ namespace REC.Cpp
             return result;
         }
 
-        static string Dynamic(IFunctionInvocation functionInvocation, ICppScope scope) {
-            var function = functionInvocation.Function;
-            if (function.Declaration.Implementation.Expressions.Count == 1 && function.Declaration.Implementation.Expressions.First() is IIntrinsicExpression)
-                scope.EnsureGlobal(function.Name, () => { return CreateGlobalDeclaration(scope, subScope => DeclareFunction(function.Declaration, subScope)); });
+        static string Dynamic(IFunctionInvocation invocation, ICppScope scope) {
+            var function = invocation.Function;
+            var declaration = function.Declaration;
+            if (declaration.Implementation.Expressions.Count == 1 &&
+                declaration.Implementation.Expressions.First() is IIntrinsicExpression)
+                scope.EnsureGlobal(
+                    function.Name,
+                    () => { return CreateGlobalDeclaration(scope, subScope => DeclareFunction(declaration, subScope)); });
 
-            var leftArgs = BuildArgumentValues(function, function.Declaration.LeftArguments, functionInvocation.Left, scope, kind: "Left");
-            var rightArgs = BuildArgumentValues(function, function.Declaration.RightArguments, functionInvocation.Right, scope, kind: "Right");
+            var leftArgs = BuildArgumentValues(function, declaration.LeftArguments, invocation.Left, scope, kind: "Left");
+            var rightArgs = BuildArgumentValues(function, declaration.RightArguments, invocation.Right, scope, kind: "Right");
             var resultName = string.Empty;
             var resultArgs = BuildResultValues(function, scope, ref resultName);
             scope.Runtime.AddLine(BuildInvocation(function.Name, leftArgs, rightArgs, resultArgs));
@@ -77,7 +80,7 @@ namespace REC.Cpp
             var varName = CppEscape(variable.Name);
             scope.Runtime.AddLine($"{typeName} {varName};");
             if (variable.Value != null) {
-                scope.Runtime.AddLine($"{varName} = {Dynamic((dynamic)variable.Value, scope)}");
+                scope.Runtime.AddLine($"{varName} = {Dynamic((dynamic) variable.Value, scope)}");
             }
         }
 
@@ -101,8 +104,8 @@ namespace REC.Cpp
             {'/', "_Div"},
             {'*', "_Mul"},
             {'_', "__"},
-            {'=', "_Eq" },
-            {'.', "_Dot" }
+            {'=', "_Eq"},
+            {'.', "_Dot"}
         };
 
         static string CppEscape(string name) {

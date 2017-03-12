@@ -21,12 +21,10 @@ namespace REC.Instance
         public bool IsCompileTimeUsable { get; set; } = true;
         public bool IsRuntimeUsable { get; set; } = true;
 
-        public bool IsCompileTimeOnly
-        {
+        public bool IsCompileTimeOnly {
             get { return IsCompileTimeUsable && !IsRuntimeUsable; }
             set {
-                if (value)
-                {
+                if (value) {
                     IsCompileTimeUsable = true;
                     IsRuntimeUsable = false;
                 }
@@ -35,12 +33,10 @@ namespace REC.Instance
             }
         }
 
-        public bool IsRuntimeOnly
-        {
+        public bool IsRuntimeOnly {
             get { return !IsCompileTimeUsable && IsRuntimeUsable; }
             set {
-                if (value)
-                {
+                if (value) {
                     IsCompileTimeUsable = false;
                     IsRuntimeUsable = true;
                 }
