@@ -19,6 +19,7 @@ namespace REC.Parser
                     continue; // Parse function moved the token!
                 }
                 var token = tokens.Current;
+                // ReSharper disable once SwitchStatementMissingSomeCases
                 switch (token.Type) {
                 case Token.BracketClose:
                 case Token.SemicolonSeparator:
@@ -87,13 +88,14 @@ namespace REC.Parser
                 }
 
                 if (tokens.Done) break;
-                var token = tokens.Current;
-                switch (token.Type) {
+                // ReSharper disable once SwitchStatementMissingSomeCases
+                switch (tokens.Current.Type) {
                 case Token.CommaSeparator:
                     tokens.MoveNext();
                     continue;
 
                 case Token.BracketClose:
+                case Token.SemicolonSeparator:
                     return result;
                 }
             }
