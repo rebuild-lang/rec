@@ -39,15 +39,26 @@ namespace REC.Parser
                 // handling: mark functionDecl as error and continue to parse
                 return null;
             }
+
             // TODO: allow more complex identifiers?
-            functionDecl.Name = ((IIdentifierLiteral) token.Data).Content;
+            var identifierLiteral = (IIdentifierLiteral) token.Data;
+            if (identifierLiteral.SplittedFrom != null) {
+                identifierLiteral = identifierLiteral.SplittedFrom;
+                while (tokens.MoveNext()) {
+                    token = tokens.Current;
+                    if (token.Type != Token.IdentifierLiteral || ((IIdentifierLiteral) token.Data).SplittedFrom != identifierLiteral) break;
+                }
+            }
+            else tokens.MoveNext();
+
+            functionDecl.Name = identifierLiteral.Content;
 
             // TODO: restrict valid identifiers (->, keywords are not allowed)
             // TODO: check for duplicate identifiers & function overloads
             var functionInstance = new FunctionInstance(functionDecl) {ArgumentIdentifiers = argumentContext.Identifiers};
             parentContext.AddFunctionInstance(functionInstance);
             AssignArgumentInstances(functionInstance.LeftArguments, argumentContext.Identifiers, functionDecl.LeftArguments);
-            if (!tokens.MoveNext()) return functionDecl; // fully forward declared
+            if (tokens.Done) return functionDecl; // fully forward declared
 
             #endregion
 
@@ -62,7 +73,7 @@ namespace REC.Parser
             #region Results
 
             token = tokens.Current;
-            if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "->") {
+            if (token.Type == Token.IdentifierLiteral && ((IIdentifierLiteral) token.Data).Content == "->") {
                 if (!tokens.MoveNext()) return functionDecl;
                 functionDecl.Results = ParseArgumentsDecl(tokens, argumentContext, ArgumentSide.Result);
                 AssignArgumentInstances(functionInstance.Results, argumentContext.Identifiers, functionDecl.Results);
@@ -109,13 +120,15 @@ namespace REC.Parser
             var withComma = false;
             while (true) {
                 var isAssignable = false;
-                if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "*") {
+                if (token.Type == Token.IdentifierLiteral && ((IIdentifierLiteral) token.Data).Content == "*") {
                     isAssignable = true;
                     if (!tokens.MoveNext()) return result; // TODO: report missing value & dangling open bracket
                     token = tokens.Current;
                 }
                 if (token.Type != Token.IdentifierLiteral) break;
-                var argName = ((IIdentifierLiteral) token.Data).Content;
+                var argIdentifierLiteral = (IIdentifierLiteral) token.Data;
+                if (argIdentifierLiteral.SplittedFrom != null) break; //splitted from operator
+                var argName = argIdentifierLiteral.Content;
                 // TODO: check for duplicate argument names
 
                 var argument = new ArgumentDeclaration {Name = argName, IsAssignable = isAssignable};
@@ -151,7 +164,7 @@ namespace REC.Parser
 
                 #region Default Value
 
-                if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "=") {
+                if (token.Type == Token.IdentifierLiteral && ((IIdentifierLiteral) token.Data).Content == "=") {
                     if (!tokens.MoveNext()) return result; // TODO: report missing value & dangling open bracket
                     argument.Value = ExpressionParser.Parse(tokens, context);
                     if (tokens.Done) return result; // TODO: report missing dangling open bracket

@@ -17,7 +17,9 @@ namespace REC.Parser
 
             var identifiers = (ILocalIdentifierScope) new LocalIdentifierScope();
             if (token.Type == Token.IdentifierLiteral) {
-                moduleDecl.Name = ((IIdentifierLiteral) token.Data).Content;
+                var identifierLiteral = (IIdentifierLiteral) token.Data;
+                if (identifierLiteral.SplittedFrom != null) return null; // is a splitted operator
+                moduleDecl.Name = identifierLiteral.Content;
                 identifiers = parentContext.AddModule(moduleDecl);
                 if (!tokens.MoveNext()) return moduleDecl; // fully forward declared
                 token = tokens.Current;

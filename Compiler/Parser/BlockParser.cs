@@ -15,15 +15,10 @@ namespace REC.Parser
         public static IExpressionBlock ParseWithContext(IBlockLiteral tokenBlock, IContext context) {
             var block = new ExpressionBlock();
             foreach (var tokenLine in tokenBlock.Lines) {
-                using (var it = tokenLine.Tokens.GetIterator()) {
+                var tokens = OperatorLiteralSplitter.SplitAll(tokenLine.Tokens, context);
+                using (var it = tokens.GetIterator()) {
                     if (it.Active) {
-                        var expression = ParseLineExpression(it, context,
-                            () => {
-                                var tokens = OperatorLiteralSplitter.SplitAll(tokenLine.Tokens, context);
-                                using (var splitted = tokens.GetIterator()) {
-                                    return ExpressionParser.Parse(splitted, context);
-                                }
-                            });
+                        var expression = ParseLineExpression(it, context);
                         if (expression != null)
                             block.Expressions.Add(expression);
                     }
@@ -32,7 +27,7 @@ namespace REC.Parser
             return block;
         }
 
-        static IExpression ParseLineExpression(ITokenIterator tokens, IContext context, Func<IExpression> fallback) {
+        static IExpression ParseLineExpression(ITokenIterator tokens, IContext context) {
             var token = tokens.Current;
             if (token.Type == Token.IdentifierLiteral) {
                 var identifier = ((IIdentifierLiteral) token.Data).Content;
@@ -41,7 +36,7 @@ namespace REC.Parser
                 if (identifier == "module") return ModuleDeclParser.Parse(tokens, context);
                 if (identifier == "with") return null; // WithExpressionParser.Parse(tokens, context, ref done);
             }
-            return fallback();
+            return ExpressionParser.Parse(tokens, context);
         }
     }
 }

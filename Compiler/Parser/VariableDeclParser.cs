@@ -16,14 +16,14 @@ namespace REC.Parser
                 var isAssignable = false;
                 var isCompileTime = false;
                 while (true) {
-                    if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral)token.Data).Content == "*")
+                    if (token.Type == Token.IdentifierLiteral && ((IIdentifierLiteral)token.Data).Content == "*")
                     {
                         isAssignable = true;
                         if (!tokens.MoveNext()) return result; // TODO: report missing value
                         token = tokens.Current;
                         continue;
                     }
-                    if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral)token.Data).Content == "&")
+                    if (token.Type == Token.IdentifierLiteral && ((IIdentifierLiteral)token.Data).Content == "&")
                     {
                         isCompileTime = true;
                         if (!tokens.MoveNext()) return result; // TODO: report missing value
@@ -36,7 +36,9 @@ namespace REC.Parser
                 #region Identifier
 
                 if (token.Type != Token.IdentifierLiteral) break;
-                var name = ((IIdentifierLiteral) token.Data).Content;
+                var nameLiteral = (IIdentifierLiteral) token.Data;
+                if (nameLiteral.SplittedFrom != null) break; // if it was splitted it was an operator!
+                var name = nameLiteral.Content;
                 // TODO: check for duplicate names
 
                 var variable = new VariableDeclaration {Name = name, IsAssignable = isAssignable, IsCompileTimeOnly = isCompileTime};
@@ -74,7 +76,7 @@ namespace REC.Parser
 
                     #region Initializer Value
 
-                    if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "=") {
+                    if (token.Type == Token.IdentifierLiteral && ((IIdentifierLiteral) token.Data).Content == "=") {
                         if (!tokens.MoveNext()) return result; // TODO: report missing value
                         variable.Value = ExpressionParser.Parse(tokens, context);
                         if (tokens.Done) return result; // done
