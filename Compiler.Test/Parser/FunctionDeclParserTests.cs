@@ -178,11 +178,9 @@ namespace REC.Tests.Parser
 
         [TestCaseSource(nameof(ParseFunctionDeclTests))]
         public void ParseFunctionDeclTest(ParseFunctionDeclTestData data) {
-            using (var it = data.Input.GetEnumerator()) {
-                it.MoveNext();
-                var done = false;
-                var functionDecl = FunctionDeclParser.Parse(it, data.Context, done: ref done);
-                Assert.That(done, Is.True);
+            using (var it = data.Input.GetIterator()) {
+                var functionDecl = FunctionDeclParser.Parse(it, data.Context);
+                Assert.That(it.Done, Is.True);
                 AssertFunctionDecl(data.Output, (dynamic) functionDecl);
                 AssertFunctionInstance(data.Output, (dynamic)data.Context.Identifiers[data.Output.Name]);
             }

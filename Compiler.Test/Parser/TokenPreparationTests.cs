@@ -143,7 +143,7 @@ namespace REC.Tests.Parser
                     return new TokenData {Type = t};
                 });
 
-            var prepared = TokenPreparation.Apply(input).ToArray();
+            var prepared = TokenPreparation.Prepare(input).ToArray();
 
             Assert.That(prepared.Select(t => t.Type), Is.EqualTo(expectedTokens));
         }
@@ -211,7 +211,7 @@ namespace REC.Tests.Parser
                     return new TokenData {Type = t};
                 });
 
-            var preparedIdentifier = TokenPreparation.Apply(inputIdentifier).ToArray();
+            var preparedIdentifier = TokenPreparation.Prepare(inputIdentifier).ToArray();
             Assert.That(
                 preparedIdentifier.Where(token => token.Type == Token.IdentifierLiteral)
                     .Select(t => (TestNeighor) ((t.Data as IdentifierLiteral)?.NeighborSeparator ?? SeparatorNeighbor.None))
@@ -232,7 +232,7 @@ namespace REC.Tests.Parser
                     return new TokenData {Type = t};
                 });
 
-            var preparedOperator = TokenPreparation.Apply(inputOperator).ToArray();
+            var preparedOperator = TokenPreparation.Prepare(inputOperator).ToArray();
             Assert.That(
                 preparedOperator.Where(token => token.Type == Token.OperatorLiteral)
                     .Select(t => (TestNeighor) ((t.Data as IdentifierLiteral)?.NeighborSeparator ?? SeparatorNeighbor.None))

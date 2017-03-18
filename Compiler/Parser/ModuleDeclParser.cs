@@ -9,9 +9,8 @@ namespace REC.Parser
 {
     static class ModuleDeclParser
     {
-        public static IExpression Parse(IEnumerator<TokenData> tokens, IContext parentContext, ref bool done) {
-            if (!tokens.MoveNext()) done = true;
-            if (done) return null;
+        public static IExpression Parse(ITokenIterator tokens, IContext parentContext) {
+            if (!tokens.MoveNext()) return null;
             var moduleDecl = new ModuleDeclaration();
             var token = tokens.Current;
 
@@ -21,8 +20,7 @@ namespace REC.Parser
             if (token.Type == Token.IdentifierLiteral) {
                 moduleDecl.Name = ((IIdentifierLiteral) token.Data).Content;
                 identifiers = parentContext.AddModule(moduleDecl);
-                if (!tokens.MoveNext()) done = true;
-                if (done) return moduleDecl; // fully forward declared
+                if (!tokens.MoveNext()) return moduleDecl; // fully forward declared
                 token = tokens.Current;
             }
 
@@ -34,8 +32,7 @@ namespace REC.Parser
                 var context = new Context(identifiers, new LocalValueScope()) {Parent = parentContext};
                 var contentBlock = (BlockLiteral) token.Data;
                 moduleDecl.Block = Parser.ParseBlockWithContext(contentBlock, context);
-                if (!tokens.MoveNext()) done = true;
-                if (done) return moduleDecl;
+                if (!tokens.MoveNext()) return moduleDecl;
             }
 
             #endregion

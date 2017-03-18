@@ -192,11 +192,9 @@ namespace REC.Tests.Parser
 
         [TestCaseSource(nameof(ParseExpressionTestData))]
         public void ParseExpressionTest(ParseTestData data) {
-            using (var it = data.Input.GetEnumerator()) {
-                it.MoveNext();
-                var done = false;
-                var result = ExpressionParser.Parse(it, data.Context, ref done);
-                Assert.That(done, Is.True);
+            using (var it = data.Input.GetIterator()) {
+                var result = ExpressionParser.Parse(it, data.Context);
+                Assert.That(it.Done, Is.True);
                 AssertNamedExpressionTuple(data.Output, result);
             }
         }

@@ -69,8 +69,7 @@ namespace REC.Tests.Parser
 
         [TestCaseSource(nameof(GroupTests))]
         public void Group(TestData data) {
-            var grouping = new BlockLineGrouping();
-            var result = grouping.Group(data.Input);
+            var result = BlockLineGrouping.Group(data.Input);
             AssertBlock(data.Output, result, label: "result");
         }
 

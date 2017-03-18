@@ -8,9 +8,8 @@ namespace REC.Parser
 {
     class VariableDeclParser
     {
-        public static IExpression Parse(IEnumerator<TokenData> tokens, IContext context, ref bool done) {
-            if (!tokens.MoveNext()) done = true;
-            if (done) return null;
+        public static IExpression Parse(ITokenIterator tokens, IContext context) {
+            if (!tokens.MoveNext()) return null;
             var token = tokens.Current;
             var result = new NamedExpressionTuple();
 
@@ -21,16 +20,14 @@ namespace REC.Parser
                     if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral)token.Data).Content == "*")
                     {
                         isAssignable = true;
-                        if (!tokens.MoveNext()) done = true;
-                        if (done) return result; // TODO: report missing value
+                        if (!tokens.MoveNext()) return result; // TODO: report missing value
                         token = tokens.Current;
                         continue;
                     }
                     if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral)token.Data).Content == "&")
                     {
                         isCompileTime = true;
-                        if (!tokens.MoveNext()) done = true;
-                        if (done) return result; // TODO: report missing value
+                        if (!tokens.MoveNext()) return result; // TODO: report missing value
                         token = tokens.Current;
                         continue;
                     }
@@ -46,9 +43,7 @@ namespace REC.Parser
                 var variable = new VariableDeclaration {Name = name, IsAssignable = isAssignable, IsCompileTimeOnly = isCompileTime};
 
                 try {
-
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result; // TODO: report missing type
+                    if (!tokens.MoveNext()) return result; // TODO: report missing type
                     token = tokens.Current;
 
                     #endregion
@@ -56,8 +51,7 @@ namespace REC.Parser
                     #region Type
 
                     if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == ":") {
-                        if (!tokens.MoveNext()) done = true;
-                        if (done) return result; // TODO: report missing type
+                        if (!tokens.MoveNext()) return result; // TODO: report missing type
                         token = tokens.Current;
 
                         // TODO: expand ParseTypeExpression
@@ -72,8 +66,7 @@ namespace REC.Parser
                                 // TODO: report missing type   
                             }
 
-                            if (!tokens.MoveNext()) done = true;
-                            if (done) return result; // done
+                            if (!tokens.MoveNext()) return result; // done
                             token = tokens.Current;
                         }
                     }
@@ -83,10 +76,9 @@ namespace REC.Parser
                     #region Initializer Value
 
                     if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "=") {
-                        if (!tokens.MoveNext()) done = true;
-                        if (done) return result; // TODO: report missing value
-                        variable.Value = ExpressionParser.Parse(tokens, context, ref done);
-                        if (done) return result; // done
+                        if (!tokens.MoveNext()) return result; // TODO: report missing value
+                        variable.Value = ExpressionParser.Parse(tokens, context);
+                        if (tokens.Done) return result; // done
                         token = tokens.Current;
                     }
 
@@ -111,8 +103,7 @@ namespace REC.Parser
                 #region Comma Separator
 
                 if (token.Type == Token.CommaSeparator) {
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result;
+                    if (!tokens.MoveNext()) return result;
                 }
                 else {
                     return result; // TODO: report expected comma

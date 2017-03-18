@@ -20,7 +20,7 @@ namespace REC.Parser
             };
         }
 
-        internal static IEnumerable<TokenData> Split(IIdentifierLiteral operatorLiteral, IContext context, ref bool done) {
+        internal static IEnumerable<TokenData> Split(IIdentifierLiteral operatorLiteral, IContext context) {
             var result = new List<TokenData>();
             var content = operatorLiteral.Content;
             var left = 0;

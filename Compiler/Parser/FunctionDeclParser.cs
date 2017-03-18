@@ -9,9 +9,8 @@ namespace REC.Parser
 {
     static class FunctionDeclParser
     {
-        internal static IExpression Parse(IEnumerator<TokenData> tokens, IContext parentContext, ref bool done) {
-            if (!tokens.MoveNext()) done = true;
-            if (done) return null;
+        internal static IExpression Parse(ITokenIterator tokens, IContext parentContext) {
+            if (!tokens.MoveNext()) return null;
             var functionDecl = new FunctionDeclaration();
             var token = tokens.Current;
 
@@ -20,8 +19,8 @@ namespace REC.Parser
             #region Left Arguments
 
             if (token.Type == Token.BracketOpen) {
-                functionDecl.LeftArguments = ParseArgumentsDecl(tokens, argumentContext, ArgumentSide.Left, ref done);
-                if (done) return null;
+                functionDecl.LeftArguments = ParseArgumentsDecl(tokens, argumentContext, ArgumentSide.Left);
+                if (tokens.Done) return null;
                 token = tokens.Current;
             }
             else functionDecl.LeftArguments = new NamedCollection<IArgumentDeclaration>();
@@ -32,8 +31,7 @@ namespace REC.Parser
 
             if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "&") {
                 functionDecl.IsCompileTimeOnly = true;
-                if (!tokens.MoveNext()) done = true;
-                if (done) return null; // TODO: report missing name
+                if (!tokens.MoveNext()) return null; // TODO: report missing name
             }
 
             if (token.Type != Token.IdentifierLiteral && token.Type != Token.OperatorLiteral) {
@@ -49,16 +47,15 @@ namespace REC.Parser
             var functionInstance = new FunctionInstance(functionDecl) {ArgumentIdentifiers = argumentContext.Identifiers};
             parentContext.AddFunctionInstance(functionInstance);
             AssignArgumentInstances(functionInstance.LeftArguments, argumentContext.Identifiers, functionDecl.LeftArguments);
-            if (!tokens.MoveNext()) done = true;
-            if (done) return functionDecl; // fully forward declared
+            if (!tokens.MoveNext()) return functionDecl; // fully forward declared
 
             #endregion
 
             #region Right Arguments
 
-            functionDecl.RightArguments = ParseArgumentsDecl(tokens, argumentContext, ArgumentSide.Right, ref done);
+            functionDecl.RightArguments = ParseArgumentsDecl(tokens, argumentContext, ArgumentSide.Right);
             AssignArgumentInstances(functionInstance.RightArguments, argumentContext.Identifiers, functionDecl.RightArguments);
-            if (done) return functionDecl;
+            if (tokens.Done) return functionDecl;
 
             #endregion
 
@@ -66,11 +63,10 @@ namespace REC.Parser
 
             token = tokens.Current;
             if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "->") {
-                if (!tokens.MoveNext()) done = true; // jump over the arrow
-                if (done) return functionDecl;
-                functionDecl.Results = ParseArgumentsDecl(tokens, argumentContext, ArgumentSide.Result, ref done);
+                if (!tokens.MoveNext()) return functionDecl;
+                functionDecl.Results = ParseArgumentsDecl(tokens, argumentContext, ArgumentSide.Result);
                 AssignArgumentInstances(functionInstance.Results, argumentContext.Identifiers, functionDecl.Results);
-                if (done) return functionDecl;
+                if (tokens.Done) return functionDecl;
                 token = tokens.Current;
                 // TODO: check for uninitialized unassignable results
             }
@@ -83,8 +79,7 @@ namespace REC.Parser
             if (token.Type == Token.BlockStartIndentation) {
                 var contentBlock = (BlockLiteral) token.Data;
                 functionDecl.Implementation = Parser.ParseBlock(contentBlock, argumentContext);
-                if (!tokens.MoveNext()) done = true;
-                if (done) return functionDecl;
+                if (!tokens.MoveNext()) return functionDecl;
             }
 
             #endregion
@@ -101,16 +96,14 @@ namespace REC.Parser
         }
 
         static NamedCollection<IArgumentDeclaration> ParseArgumentsDecl(
-            IEnumerator<TokenData> tokens,
+            ITokenIterator tokens,
             IContext context,
-            ArgumentSide side,
-            ref bool done) {
+            ArgumentSide side) {
             var result = new NamedCollection<IArgumentDeclaration>();
             var token = tokens.Current;
             var withBracket = token.Type == Token.BracketOpen;
             if (withBracket) {
-                if (!tokens.MoveNext()) done = true;
-                if (done) return result; // TODO: report error dangling open bracket
+                if (!tokens.MoveNext()) return result; // TODO: report error dangling open bracket
                 token = tokens.Current;
             }
             var withComma = false;
@@ -118,8 +111,7 @@ namespace REC.Parser
                 var isAssignable = false;
                 if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "*") {
                     isAssignable = true;
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result; // TODO: report missing value & dangling open bracket
+                    if (!tokens.MoveNext()) return result; // TODO: report missing value & dangling open bracket
                     token = tokens.Current;
                 }
                 if (token.Type != Token.IdentifierLiteral) break;
@@ -130,15 +122,13 @@ namespace REC.Parser
                 result.Add(argument);
                 context.Identifiers.Add(new ArgumentInstance {Argument = argument, Side = side});
 
-                if (!tokens.MoveNext()) done = true;
-                if (done) return result; // TODO: report error dangling open bracket
+                if (!tokens.MoveNext()) return result; // TODO: report error dangling open bracket
                 token = tokens.Current;
 
                 #region Argument Type
 
                 if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == ":") {
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result; // TODO: report missing type & dangling open bracket
+                    if (!tokens.MoveNext()) return result; // TODO: report missing type & dangling open bracket
                     token = tokens.Current;
 
                     // TODO: expand ParseTypeExpression
@@ -152,8 +142,7 @@ namespace REC.Parser
                             // TODO: report missing type   
                         }
 
-                        if (!tokens.MoveNext()) done = true;
-                        if (done) return result; // TODO: report dangling open bracket
+                        if (!tokens.MoveNext()) return result; // TODO: report dangling open bracket
                         token = tokens.Current;
                     }
                 }
@@ -163,10 +152,9 @@ namespace REC.Parser
                 #region Default Value
 
                 if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "=") {
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result; // TODO: report missing value & dangling open bracket
-                    argument.Value = ExpressionParser.Parse(tokens, context, ref done);
-                    if (done) return result; // TODO: report missing dangling open bracket
+                    if (!tokens.MoveNext()) return result; // TODO: report missing value & dangling open bracket
+                    argument.Value = ExpressionParser.Parse(tokens, context);
+                    if (tokens.Done) return result; // TODO: report missing dangling open bracket
                     token = tokens.Current;
                 }
 
@@ -180,8 +168,7 @@ namespace REC.Parser
                         // handling: ignore
                     }
                     withComma = true;
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result;
+                    if (!tokens.MoveNext()) return result;
                 }
                 else if (withComma) {
                     // TODO: report inconsistent use of commas
@@ -192,8 +179,7 @@ namespace REC.Parser
             }
             if (withBracket) {
                 if (token.Type == Token.BracketClose) {
-                    if (!tokens.MoveNext()) done = true;
-                    if (done) return result;
+                    if (!tokens.MoveNext()) return result;
                 }
                 else {
                     // TODO: report error

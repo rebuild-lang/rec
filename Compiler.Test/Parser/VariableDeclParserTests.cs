@@ -53,11 +53,9 @@ namespace REC.Tests.Parser
 
         [TestCaseSource(nameof(ParseVariableDeclTests))]
         public void ParseFunctionDeclTest(ParseVariableDeclTestData data) {
-            using (var it = data.Input.GetEnumerator()) {
-                it.MoveNext();
-                var done = false;
-                var variableDecl = VariableDeclParser.Parse(it, data.Context, ref done);
-                Assert.That(done, Is.True);
+            using (var it = data.Input.GetIterator()) {
+                var variableDecl = VariableDeclParser.Parse(it, data.Context);
+                Assert.That(it.Done, Is.True);
                 AssertVariableDecl(data.Output, (dynamic) variableDecl);
                 AssertVariableInstance(data.Output, (dynamic) data.Context.Identifiers[data.Output.Name]);
             }
