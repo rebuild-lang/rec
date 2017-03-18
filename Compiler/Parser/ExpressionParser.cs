@@ -127,97 +127,49 @@ namespace REC.Parser
             IContext context,
             ref bool done) {
             var range = tokens.Current.Range;
-            INamedExpressionTuple rightArguments = new NamedExpressionTuple();
+            var overloadBuilder = pool.Select(
+                    f => (IOverloadInvocationBuilder)new OverloadInvocationBuilder(f, range))
+                .ToList();
+
+            foreach (var builder in overloadBuilder) {
+                builder.RetireLeftArguments(leftArguments);
+            }
 
             if (!tokens.MoveNext()) {
                 done = true;
-                return CreateFunctionInvocation(pool, range, leftArguments, rightArguments);
+                return CreateFunctionInvocation(overloadBuilder);
             }
 
-            var filteredPool = FilterFunctionLeftArguments(pool, leftArguments);
-            filteredPool = ParseAndFilterFunctionRightArguments(filteredPool, ref rightArguments, tokens, context, ref done);
-            if (filteredPool.Count != 1)
-                return null;
-            // TODO: proper error handling
-            return CreateFunctionInvocation(filteredPool.First(), range, leftArguments, rightArguments);
+            ParseFunctionRightArguments(overloadBuilder, tokens, context, ref done);
+
+            return CreateFunctionInvocation(overloadBuilder);
         }
 
-        static IList<IFunctionInstance> ParseAndFilterFunctionRightArguments(
-            IList<IFunctionInstance> pool,
-            ref INamedExpressionTuple rightArguments,
+        static void ParseFunctionRightArguments(
+            IList<IOverloadInvocationBuilder> builders,
             IEnumerator<TokenData> tokens,
             IContext context,
             ref bool done) {
-            if (!pool.IsEmpty() && (pool.Count != 1 || pool[0].RightArguments.Count != 0)) {
-                rightArguments = Parse(tokens, context, ref done);
-                return FilterFunctionRightArguments(pool, rightArguments);
+            while (builders.Any(b => b.IsActive)) {
+                var rightArguments = Parse(tokens, context, ref done);
+                foreach (var builder in builders) {
+                    if (!builder.IsActive) continue;
+                    foreach (var rightArgument in rightArguments.Tuple)
+                    {
+                        if (!builder.IsActive) continue;
+                        builder.RetireRightArgument(rightArgument);
+                    }
+                }
             }
-            return pool;
         }
 
-        static IList<IFunctionInstance> FilterFunctionLeftArguments(IList<IFunctionInstance> pool, INamedExpressionTuple leftArguments) {
-            return pool.Where(
-                    f => {
-                        if (f.Declaration.LeftArguments == null) return true;
-                        if (f.Declaration.LeftArguments.Count > leftArguments.Tuple.Count) return false;
-                        var o = leftArguments.Tuple.Count - f.Declaration.LeftArguments.Count;
-                        foreach (var fArg in f.Declaration.LeftArguments) {
-                            var givenArg = leftArguments.Tuple[o];
-                            if (!CanImplicitConvertExpressionTo(givenArg.Expression, fArg.Type)) return false;
-                            o++;
-                        }
-                        return f.Declaration.LeftArguments.Count <= leftArguments.Tuple.Count;
-                    })
-                .ToList();
-        }
-
-        static bool CanImplicitConvertExpressionTo(IExpression givenArgExpression, IModuleInstance fArgType) {
-            return true;
-        }
-
-        static IList<IFunctionInstance> FilterFunctionRightArguments(IList<IFunctionInstance> pool, INamedExpressionTuple rightArguments) {
-            return pool.Where(
-                    f => f.Declaration.RightArguments == null ||
-                        f.Declaration.MandatoryRightArgumentCount() <= rightArguments.Tuple.Count &&
-                        (f.Declaration.MaxRightArgumentCount() == null || !(f.Declaration.MaxRightArgumentCount() < rightArguments.Tuple.Count)))
-                .ToList();
-        }
-
-        static IExpression CreateFunctionInvocation(
-            IList<IFunctionInstance> pool,
-            TextFileRange range,
-            INamedExpressionTuple leftArguments,
-            INamedExpressionTuple rightArguments) {
-            var filteredPool = FilterFunctionLeftArguments(pool, leftArguments);
-            filteredPool = FilterFunctionRightArguments(filteredPool, rightArguments);
-            return filteredPool.Count != 1 ? null : CreateFunctionInvocation(filteredPool.First(), range, leftArguments, rightArguments);
-            // TODO: proper error handling
-        }
-
-        static IExpression CreateFunctionInvocation(
-            IFunctionInstance function,
-            TextFileRange range,
-            INamedExpressionTuple leftArguments,
-            INamedExpressionTuple rightArguments) {
-            var invocation = new FunctionInvocation {
-                Function = function,
-                Range = range,
-                Left = AssignArguments(function.LeftArguments, leftArguments),
-                Right = AssignArguments(function.RightArguments, rightArguments)
-            };
-            return invocation;
-        }
-
-        static INamedExpressionTuple AssignArguments(NamedCollection<IArgumentInstance> instances, INamedExpressionTuple arguments) {
-            var result = new NamedExpressionTuple();
-            var o = arguments.Tuple.Count - instances.Count;
-            foreach (var instance in instances) {
-                // TODO: check that conversion exists
-                result.Tuple.Add(arguments.Tuple[o]);
-                arguments.Tuple.RemoveAt(o);
+        static IExpression CreateFunctionInvocation(IEnumerable<IOverloadInvocationBuilder> builders) {
+            var completable = builders.Where(b => b.IsCompletable).ToList();
+            if (completable.Count != 1) {
+                // TODO: proper error handling
+                return null;
             }
-            // TODO: check that enough arguments are given
-            return result;
+            return completable.First().Build();
         }
     }
 }
