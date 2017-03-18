@@ -1,5 +1,6 @@
 ﻿using System;
 using REC.Cpp;
+using REC.Parser;
 
 namespace REC.Intrinsic
 {
@@ -15,6 +16,7 @@ namespace REC.Intrinsic
         public Type LeftArgumentsType { get; set; }
         public Type RightArgumentsType { get; set; }
         public Action<ILeftArguments, IRightArguments, IResultArguments> CompileTime { get; set; }
+        public Action<ILeftArguments, IRightArguments, IResultArguments, IContext> CompileTimeApi { get; set; }
         public Action<ICppIntrinsic> GenerateCpp { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using REC.AST;
 using REC.Scanner;
 using REC.Tools;
@@ -7,17 +8,13 @@ namespace REC.Parser
 {
     class OperatorLiteralSplitter
     {
-        static TokenData MakeSubIdentifier(IIdentifierLiteral identifier, int left, int right) {
-            var range = identifier.Range?.SubRange(left, right - left);
-            var content = identifier.Content.Substring(left, right - left);
-            return new TokenData {
-                Type = Token.IdentifierLiteral,
-                Range = range,
-                Data = new IdentifierLiteral {
-                    Content = content,
-                    Range = range
-                }
-            };
+        internal static IEnumerable<TokenData> SplitAll(IEnumerable<TokenData> tokens, IContext context) {
+            return tokens.SelectMany(
+                token => {
+                    if (token.Type != Token.OperatorLiteral) return new[] {token};
+                    var operatorLiteral = (IIdentifierLiteral) token.Data;
+                    return OperatorLiteralSplitter.Split(operatorLiteral, context);
+                });
         }
 
         internal static IEnumerable<TokenData> Split(IIdentifierLiteral operatorLiteral, IContext context) {
@@ -36,7 +33,8 @@ namespace REC.Parser
                     continue;
                 }
 
-                if (leftover != left) { // we have some not identified parts
+                if (leftover != left) {
+                    // we have some not identified parts
                     result.Add(MakeSubIdentifier(operatorLiteral, leftover, left));
                 }
                 result.Add(MakeSubIdentifier(operatorLiteral, left, right));
@@ -44,7 +42,8 @@ namespace REC.Parser
                 leftover = left;
                 right = content.Length;
             }
-            if (leftover != left) { // some not identified parts
+            if (leftover != left) {
+                // some not identified parts
                 result.Add(MakeSubIdentifier(operatorLiteral, leftover, left));
             }
 
@@ -52,6 +51,20 @@ namespace REC.Parser
             ((IdentifierLiteral) result.First().Data).LeftSeparates = operatorLiteral.LeftSeparates;
             ((IdentifierLiteral) result.Last().Data).RightSeparates = operatorLiteral.RightSeparates;
             return result;
+        }
+
+        static TokenData MakeSubIdentifier(IIdentifierLiteral identifier, int left, int right) {
+            var range = identifier.Range?.SubRange(left, right - left);
+            var content = identifier.Content.Substring(left, right - left);
+            return new TokenData {
+                Type = Token.IdentifierLiteral,
+                Range = range,
+                Data = new IdentifierLiteral {
+                    Content = content,
+                    Range = range,
+                    SplittedFrom = identifier,
+                }
+            };
         }
     }
 }

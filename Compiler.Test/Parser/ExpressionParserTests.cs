@@ -101,21 +101,22 @@ namespace REC.Tests.Parser
         }
 
         static readonly ParseTestData[] ParseExpressionTestData = {
-            new ParseTestData {
-                Name = "Compile time Add",
-                Context = new Context {Parent = TestContext},
-                Input = new[] {
-                    Op(text: "&"),
-                    Id(text: ".Add"), NumberLit(text: "3"), NumberLit(text: "20")
-                },
-                Output = new NamedExpressionTuple(
-                    name: "Value",
-                    expression: new TypedValue {
-                        Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
-                        Data = new NumberLiteral {IntegerPart = "23"}.ToUnsigned(byteCount: 8)
-                    }
-                )
-            },
+            // & is no longer part of the language
+            //new ParseTestData {
+            //    Name = "Compile time Add",
+            //    Context = new Context {Parent = TestContext},
+            //    Input = new[] {
+            //        Op(text: "&"),
+            //        Id(text: ".Add"), NumberLit(text: "3"), NumberLit(text: "20")
+            //    },
+            //    Output = new NamedExpressionTuple(
+            //        name: "Value",
+            //        expression: new TypedValue {
+            //            Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
+            //            Data = new NumberLiteral {IntegerPart = "23"}.ToUnsigned(byteCount: 8)
+            //        }
+            //    )
+            //},
             new ParseTestData {
                 Name = "split multiple operators ''i++-1''",
                 Context = new Context {Parent = TestOperatorContext},
@@ -192,7 +193,8 @@ namespace REC.Tests.Parser
 
         [TestCaseSource(nameof(ParseExpressionTestData))]
         public void ParseExpressionTest(ParseTestData data) {
-            using (var it = data.Input.GetIterator()) {
+            var tokens = OperatorLiteralSplitter.SplitAll(data.Input, data.Context);
+            using (var it = tokens.GetIterator()) {
                 var result = ExpressionParser.Parse(it, data.Context);
                 Assert.That(it.Done, Is.True);
                 AssertNamedExpressionTuple(data.Output, result);

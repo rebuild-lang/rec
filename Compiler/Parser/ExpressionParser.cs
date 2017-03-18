@@ -18,29 +18,6 @@ namespace REC.Parser
             while (tokens.Active) {
                 var token = tokens.Current;
                 switch (token.Type) {
-                case Token.OperatorLiteral:
-                    var operatorLiteral = (IIdentifierLiteral) token.Data;
-                    if (operatorLiteral.Content == "&") {
-                        if (!tokens.MoveNext()) return result; // TODO: report error: missing tokens
-
-                        var inner = Parse(tokens, context);
-                        var execResult = CompileTime.Execute(inner, context);
-                        if (execResult != null) {
-                            if (execResult is INamedExpressionTuple execNamedTuple)
-                                result.Tuple.AddRange(execNamedTuple.Tuple);
-                            else
-                                result.Tuple.Add(new NamedExpression {Expression = execResult});
-                        }
-                        continue;
-                    }
-                    using (var newTokens = OperatorLiteralSplitter.Split(operatorLiteral, context).Before(tokens.Enumerator).GetIterator()) {
-                        try {
-                            return ParseResult(result, newTokens, context);
-                        }
-                        finally {
-                            tokens.Active = newTokens.Active;
-                        }
-                    }
                 case Token.IdentifierLiteral:
                     var identifierLiteral = (IIdentifierLiteral) token.Data;
                     var resolved = context.Identifiers[identifierLiteral.Content];
@@ -52,16 +29,10 @@ namespace REC.Parser
                     result.Tuple.Add(new NamedExpression {Expression = identifierLiteral});
                     break;
                 case Token.StringLiteral:
-                    var stringLiteral = (IStringLiteral) token.Data;
-                    result.Tuple.Add(new NamedExpression {Expression = stringLiteral});
-                    break;
                 case Token.NumberLiteral:
-                    var numberLiteral = (INumberLiteral) token.Data;
-                    result.Tuple.Add(new NamedExpression {Expression = numberLiteral});
-                    break;
                 case Token.BlockStartIndentation:
-                    var tokenBlock = (IBlockLiteral) token.Data;
-                    result.Tuple.Add(new NamedExpression {Expression = tokenBlock});
+                    var literal = (ILiteral) token.Data;
+                    result.Tuple.Add(new NamedExpression {Expression = literal});
                     break;
                 }
                 if (tokens.Done) break;
@@ -146,7 +117,7 @@ namespace REC.Parser
             IList<IOverloadInvocationBuilder> builders,
             ITokenIterator tokens,
             IContext context) {
-            while (builders.Any(b => b.IsActive)) {
+            while (builders.Any(b => b.IsActive) && tokens.Active) {
                 var rightArguments = Parse(tokens, context);
                 foreach (var builder in builders) {
                     if (!builder.IsActive) continue;

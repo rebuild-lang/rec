@@ -139,11 +139,11 @@ let *x : u64
 x = 23 + 12
 test x
 
-let & *y : u64
-&y = 42 + 12
-&Rebuild.Print y
+# let & *y : u64
+# &y = 42 + 12
+# &Rebuild.Print y
 
-&test Rebuild.Add 23 32
+# &test Rebuild.Add 23 32
 Rebuild.Print 42 + 22",
                     Filename = "Test.rebuild"
                 });

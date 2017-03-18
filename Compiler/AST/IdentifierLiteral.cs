@@ -15,6 +15,7 @@ namespace REC.AST
     public interface IIdentifierLiteral : ILiteral
     {
         string Content { get; }
+        IIdentifierLiteral SplittedFrom { get; }
         bool LeftSeparates { get; set; }
         bool RightSeparates { get; set; }
     }
@@ -24,6 +25,7 @@ namespace REC.AST
         public SeparatorNeighbor NeighborSeparator { get; set; }
 
         public string Content { get; set; }
+        public IIdentifierLiteral SplittedFrom { get; set; }
 
         public bool LeftSeparates {
             get { return (NeighborSeparator & SeparatorNeighbor.Left) != 0; }
