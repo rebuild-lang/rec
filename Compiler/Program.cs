@@ -19,9 +19,9 @@ namespace REC
                 DeclarationConverter.BuildContext(
                     context,
                     new IntrinsicDict {
-                        U64Type.Get(),
+                        U64Type.Get(), // TODO: move to Rebuild.Intrinsic when we can alias types
                         new ModuleIntrinsic {
-                            Name = "Rebuild",
+                            Name = "Rebuild", // TODO: split to "Intrinsic" and "API"
                             Children = {
                                 LiteralType<INumberLiteral>.Get(name: "NumberLiteral"),
                                 LiteralType<IBlockLiteral>.Get(name: "BlockLiteral"),
@@ -42,8 +42,11 @@ namespace REC
             var prepared = TokenPreparation.Prepare(raw);
             var block = BlockLineGrouping.Group(prepared);
             var ast = Parser.Parser.ParseBlock(block, _injectedContext);
-            //var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
+#if DEBUG
             var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp") ?? "test.cpp"; // use this for debugging cpp output
+#else
+            var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
+#endif
             using (var writer = File.CreateText(cppFileName)) {
                 CppGenerator.Generate(writer, ast);
             }
@@ -69,16 +72,22 @@ namespace REC
                         "cl.exe",
                         "/nologo", // clean output
                         "/EHsc", // enable exceptions for STL
+
                         #region optimized
+
                         "/O2", // optimize
                         "/MD", // multi threaded DLL
                         "/DNDEBUG", // omit debug code
+
                         #endregion
+
                         #region debug
 
                         //"/MDd", // multi threaded DLL debug
                         //"/Zi", // complete debug infos  
+
                         #endregion
+
                         "/TP", // force to C++
                         Escape($"/Fo{objPath}"),
                         Escape(sourcePath),
