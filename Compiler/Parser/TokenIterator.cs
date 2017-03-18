@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using REC.Instance;
 using REC.Scanner;
 
 namespace REC.Parser
@@ -7,6 +8,7 @@ namespace REC.Parser
     public interface ITokenIterator : IDisposable
     {
         TokenData Current { get; }
+        IInstance CurrentInstance { get; set; }
         TokenData Next { get; }
         bool Active { get; set; }
         bool Done { get; }
@@ -21,6 +23,7 @@ namespace REC.Parser
         public bool Active { get; set; }
 
         public TokenData Current { get; set; }
+        public IInstance CurrentInstance { get; set; }
         public bool Done => !Active;
         public bool HasNext { get; set; }
         public TokenData Next => Enumerator.Current;
@@ -36,6 +39,7 @@ namespace REC.Parser
         }
 
         public bool MoveNext() {
+            CurrentInstance = null;
             Active = HasNext;
             if (Active) {
                 Current = Next;

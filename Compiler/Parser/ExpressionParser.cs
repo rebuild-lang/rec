@@ -12,6 +12,12 @@ namespace REC.Parser
         internal static IExpression Parse(ITokenIterator tokens, IContext context) {
             IExpression result = null;
             while (tokens.Active) {
+                if (null != tokens.CurrentInstance) {
+                    var parsed = ParseInstance(result, tokens, context);
+                    if (parsed == result) return result;
+                    result = parsed;
+                    continue; // Parse function moved the token!
+                }
                 var token = tokens.Current;
                 switch (token.Type) {
                 case Token.BracketClose:
@@ -35,10 +41,8 @@ namespace REC.Parser
                         result = identifierLiteral;
                         break;
                     }
-                    var parsed = ParseInstance(instance, result, tokens, context);
-                    if (parsed == result) return result;
-                    result = parsed;
-                    continue; // Parse function moved the token!
+                    tokens.CurrentInstance = instance;
+                    continue; // trigger instance cache handling
 
                 case Token.StringLiteral:
                 case Token.NumberLiteral:
@@ -107,8 +111,9 @@ namespace REC.Parser
             return literal.Content;
         }
 
-        static IExpression ParseInstance(IInstance instance, IExpression left, ITokenIterator tokens, IContext context) {
+        static IExpression ParseInstance(IExpression left, ITokenIterator tokens, IContext context) {
             var token = tokens.Current;
+            var instance = tokens.CurrentInstance;
             var range = token.Range;
             switch (instance) {
             case ITypedInstance typed:
@@ -144,7 +149,8 @@ namespace REC.Parser
             var instance = module.Identifiers.LocalIdentifiers[realIdentifier];
             if (instance == null) return null;
             tokens.MoveNext();
-            return ParseInstance(instance, left, tokens, context);
+            tokens.CurrentInstance = instance;
+            return ParseInstance(left, tokens, context);
         }
 
         static IExpression ParseFunctionOverloads(IList<IFunctionInstance> pool, IExpression left, ITokenIterator tokens, IContext context) {
