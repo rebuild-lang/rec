@@ -195,14 +195,14 @@ namespace REC.Tests.Parser
         public void ParseExpressionTest(ParseTestData data) {
             var tokens = OperatorLiteralSplitter.SplitAll(data.Input, data.Context);
             using (var it = tokens.GetIterator()) {
-                var result = ExpressionParser.Parse(it, data.Context);
+                var result = ExpressionParser.ParseTuple(it, data.Context);
                 Assert.That(it.Done, Is.True);
                 AssertNamedExpressionTuple(data.Output, result);
             }
         }
 
         void AssertNamedExpressionTuple(INamedExpressionTuple expected, INamedExpressionTuple actual, string label = "") {
-            Assert.That(actual.Tuple, Has.Count.EqualTo(actual.Tuple.Count), $"{label}.Tuple.Count");
+            Assert.That(actual.Tuple, Has.Count.EqualTo(expected.Tuple.Count), $"{label}.Tuple.Count");
             for (var i = 0; i < expected.Tuple.Count; i++) {
                 AssertNamedExpression(expected.Tuple[i], actual.Tuple[i], $"{label}.Tuple[{i}]");
             }

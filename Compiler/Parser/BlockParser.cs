@@ -36,7 +36,7 @@ namespace REC.Parser
                 if (identifier == "module") return ModuleDeclParser.Parse(tokens, context);
                 if (identifier == "with") return null; // WithExpressionParser.Parse(tokens, context, ref done);
             }
-            return ExpressionParser.Parse(tokens, context);
+            return ExpressionParser.ParseTuple(tokens, context);
         }
     }
 }

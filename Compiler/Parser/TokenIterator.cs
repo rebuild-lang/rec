@@ -6,10 +6,11 @@ namespace REC.Parser
 {
     public interface ITokenIterator : IDisposable
     {
-        IEnumerator<TokenData> Enumerator { get; }
         TokenData Current { get; }
+        TokenData Next { get; }
         bool Active { get; set; }
         bool Done { get; }
+        bool HasNext { get; }
 
         bool MoveNext();
     }
@@ -19,11 +20,14 @@ namespace REC.Parser
         public IEnumerator<TokenData> Enumerator { get; }
         public bool Active { get; set; }
 
-        public TokenData Current => Enumerator.Current;
+        public TokenData Current { get; set; }
         public bool Done => !Active;
+        public bool HasNext { get; set; }
+        public TokenData Next => Enumerator.Current;
 
         public TokenIterator(IEnumerable<TokenData> enumerable) {
             Enumerator = enumerable.GetEnumerator();
+            HasNext = Enumerator.MoveNext();
             MoveNext();
         }
 
@@ -32,7 +36,13 @@ namespace REC.Parser
         }
 
         public bool MoveNext() {
-            return Active = Enumerator.MoveNext();
+            Active = HasNext;
+            if (Active) {
+                Current = Next;
+                HasNext = Enumerator.MoveNext();
+            }
+            else Current = new TokenData();
+            return Active;
         }
     }
 

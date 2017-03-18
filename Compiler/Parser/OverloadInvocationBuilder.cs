@@ -21,7 +21,7 @@ namespace REC.Parser
         // TODO: add reasons for being inactive
         bool IsCompletable { get; } // has all mandatory right arguments
 
-        void RetireLeftArguments(INamedExpressionTuple leftArguments); // TODO: allow only single left argument
+        void RetireLeftArgument(IExpression left);
         void RetireRightArgument(INamedExpression argument);
 
         ITokenToExpressionParser[] NextRightArgumentParsers();
@@ -44,7 +44,10 @@ namespace REC.Parser
             Range = range;
         }
 
-        public void RetireLeftArguments(INamedExpressionTuple leftArguments) {
+        public void RetireLeftArgument(IExpression left) {
+            var leftArguments = null == left
+                ? new NamedExpressionTuple()
+                : (left is INamedExpressionTuple args ? args : new NamedExpressionTuple(left));
             if (!DoLeftArgumentsMatch(leftArguments)) {
                 IsActive = false;
                 return;
@@ -57,15 +60,15 @@ namespace REC.Parser
         bool DoLeftArgumentsMatch(INamedExpressionTuple leftArguments) {
             var f = FunctionIntance;
             // TODO: do not use declaration!
-            if (f.Declaration.LeftArguments == null) return true;
-            if (f.Declaration.LeftArguments.Count > leftArguments.Tuple.Count) return false;
-            var o = leftArguments.Tuple.Count - f.Declaration.LeftArguments.Count;
+            if (f.Declaration.LeftArguments == null) return leftArguments.Tuple.IsEmpty();
+            if (f.Declaration.LeftArguments.Count != leftArguments.Tuple.Count) return false;
+            var o = 0;
             foreach (var fArg in f.Declaration.LeftArguments) {
                 var givenArg = leftArguments.Tuple[o];
                 if (!CanImplicitConvertExpressionTo(givenArg.Expression, fArg.Type)) return false;
                 o++;
             }
-            return f.Declaration.LeftArguments.Count <= leftArguments.Tuple.Count;
+            return true;
         }
 
         public void RetireRightArgument(INamedExpression argument) {
