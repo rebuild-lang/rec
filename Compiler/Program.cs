@@ -39,8 +39,8 @@ namespace REC
 
         public void CompileFile(TextFile file) {
             var raw = Scanner.Scanner.ScanFile(file);
-            var prepared = TokenPreparation.Apply(raw);
-            var block = new BlockLineGrouping().Group(prepared);
+            var prepared = TokenPreparation.Prepare(raw);
+            var block = BlockLineGrouping.Group(prepared);
             var ast = Parser.Parser.ParseBlock(block, _injectedContext);
             //var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
             var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp") ?? "test.cpp"; // use this for debugging cpp output

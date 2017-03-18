@@ -42,7 +42,11 @@ namespace REC.Parser
         bool _done; // marks that we hit the end of input
         char _indentChar = '\0';
 
-        public IBlockLiteral Group(IEnumerable<TokenData> input) {
+        public static IBlockLiteral Group(IEnumerable<TokenData> input) {
+            return new BlockLineGrouping().GroupInput(input);
+        }
+
+        IBlockLiteral GroupInput(IEnumerable<TokenData> input) {
             _indentChar = '\0';
             _done = false;
             using (var it = input.GetEnumerator()) {

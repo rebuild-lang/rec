@@ -86,7 +86,7 @@ namespace REC.Parser
          * * this code is independent of : being an operator or literal
          */
 
-        public static IEnumerable<TokenData> Apply(IEnumerable<TokenData> input) {
+        public static IEnumerable<TokenData> Prepare(IEnumerable<TokenData> input) {
             using (var it = input.GetEnumerator()) {
                 do {
                     if (!it.MoveNext()) yield break;
