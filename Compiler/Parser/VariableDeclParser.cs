@@ -49,7 +49,7 @@ namespace REC.Parser
 
                     #region Type
 
-                    if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == ":") {
+                    if (token.Type == Token.ColonSeparator) {
                         if (!tokens.MoveNext()) return result; // TODO: report missing type
                         token = tokens.Current;
 

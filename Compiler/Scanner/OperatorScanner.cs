@@ -60,7 +60,7 @@ namespace REC.Scanner
                 case UnicodeCategory.CurrencySymbol: // ¢¥$€
                     return chr != '$'; // $ is used to start pattern literals (we might want to disambiguate this later)
                 case UnicodeCategory.OtherPunctuation: // like !?#.
-                    return chr != '#' && chr != '.' && chr != ',';
+                    return chr != '#' && chr != '.' && chr != ',' && chr != ':';
                 case UnicodeCategory.OpenPunctuation: // [{(
                 case UnicodeCategory.InitialQuotePunctuation: // “«
                     if (!OpenCloseDict.ContainsKey(chr)) return false;

@@ -91,7 +91,7 @@ namespace REC.Tests.Parser
             TestName = "Mutate block end")]
         [TestCase(
             new object[] {
-                Token.NewLineIndentation, "begin", ":", Token.NewLineIndentation,
+                Token.NewLineIndentation, "begin", Token.ColonSeparator, Token.NewLineIndentation,
             },
             new[] {
                 Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
@@ -99,7 +99,7 @@ namespace REC.Tests.Parser
             TestName = "Mutate identifier block start")]
         [TestCase(
             new object[] {
-                "begin", ":", Token.WhiteSpaceSeperator, Token.Comment, Token.NewLineIndentation,
+                "begin", Token.ColonSeparator, Token.WhiteSpaceSeperator, Token.Comment, Token.NewLineIndentation,
             },
             new[] {
                 Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
@@ -107,7 +107,7 @@ namespace REC.Tests.Parser
             TestName = "Mutate identifier block start with comment")]
         [TestCase(
             new object[] {
-                Token.NewLineIndentation, "begin", ':', Token.NewLineIndentation,
+                Token.NewLineIndentation, "begin", Token.ColonSeparator, Token.NewLineIndentation,
             },
             new[] {
                 Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
@@ -115,7 +115,7 @@ namespace REC.Tests.Parser
             TestName = "Mutate operator block start")]
         [TestCase(
             new object[] {
-                "begin", ':', Token.WhiteSpaceSeperator, Token.Comment, Token.NewLineIndentation,
+                "begin", Token.ColonSeparator, Token.WhiteSpaceSeperator, Token.Comment, Token.NewLineIndentation,
             },
             new[] {
                 Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,

@@ -12,6 +12,7 @@ namespace REC.Parser
                 case Token.WhiteSpaceSeperator:
                 case Token.NewLineIndentation:
                 case Token.Comment:
+                case Token.ColonSeparator:
                 case Token.CommaSeparator:
                 case Token.SemicolonSeparator:
                 case Token.SquareBracketClose:
@@ -39,6 +40,7 @@ namespace REC.Parser
                 case Token.NewLineIndentation: // [NL]tok
                 case Token.Comment: // #* *#tok
                 case Token.CommaSeparator: // ,tok
+                case Token.ColonSeparator: // :tok
                 case Token.SemicolonSeparator: // ;tok
                 case Token.SquareBracketOpen: // [tok
                 case Token.BracketOpen: // (tok
@@ -76,9 +78,9 @@ namespace REC.Parser
          * * comments
          * * newline + indentations preceding comments
          * * two adjacent newline + indentations (basically multiple newlines)
-         * * ":" between two indentations (error)
+         * * colon between two indentations (error)
          * mutates
-         * * ":" before indentation => block start
+         * * colon before indentation => block start
          * * "end" after indentation => block end
          * * identifiers separators around identifiers and operators
          * 
@@ -112,17 +114,20 @@ namespace REC.Parser
                     var previousOrSkippedType = current.Type;
                     current = it.Current;
                     if (previous.Type == Token.IdentifierLiteral || previous.Type == Token.OperatorLiteral) {
-                        if (current.Type.IsRightSeparator()) MarkRightSeparator((dynamic) previous.Data);
-                        if (previous.Range.Text == ":") {
-                            // this might be a block start, keep it in buffer
-                            while (current.Type == Token.WhiteSpaceSeperator
-                                || current.Type == Token.Comment) {
-                                if (!it.MoveNext()) {
-                                    yield return previous; // report the regular token
-                                    yield break; // finished
-                                }
-                                current = it.Current;
+                        if (current.Type.IsRightSeparator()) MarkRightSeparator((dynamic) previous.Data);                       
+                    }
+                    if (previous.Type == Token.ColonSeparator)
+                    {
+                        // this might be a block start, keep it in buffer
+                        while (current.Type == Token.WhiteSpaceSeperator
+                            || current.Type == Token.Comment)
+                        {
+                            if (!it.MoveNext())
+                            {
+                                yield return previous; // report the regular token
+                                yield break; // finished
                             }
+                            current = it.Current;
                         }
                     }
                     switch (current.Type) {
@@ -132,8 +137,7 @@ namespace REC.Parser
                             continue;
 
                         case Token.NewLineIndentation:
-                            if ((previous.Type == Token.IdentifierLiteral || previous.Type == Token.OperatorLiteral)
-                                && previous.Range.Text == ":") {
+                            if (previous.Type == Token.ColonSeparator) {
                                 if (lastYieldType == Token.NewLineIndentation
                                     || lastYieldType == Token.BlockStartIndentation) {
                                     // TODO: report as error

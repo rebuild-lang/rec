@@ -1,5 +1,4 @@
 using REC.AST;
-using REC.Execution;
 using REC.Instance;
 using REC.Scanner;
 using REC.Tools;

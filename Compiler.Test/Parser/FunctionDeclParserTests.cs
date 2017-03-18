@@ -82,7 +82,7 @@ namespace REC.Tests.Parser
                 Context = new Context {Parent = TestContext},
                 Input = new[] {
                     Id(text: "fn"), Id(text: "a"),
-                    Id(text: "arg"), Op(text: ":"), Id(text: "u64"),
+                    Id(text: "arg"), Colon(), Id(text: "u64"),
                     BlockStart(
                         column: 4,
                         block: new BlockLiteral {
@@ -108,11 +108,11 @@ namespace REC.Tests.Parser
                 Input = new[] {
                     Id(text: "fn"),
                     BracketOpen(),
-                    Id(text: "leftarg"), Op(text: ":"), Id(text: "u64"),
+                    Id(text: "leftarg"), Colon(), Id(text: "u64"),
                     BracketClose(),
                     Id(text: "a"),
                     BracketOpen(),
-                    Id(text: "rightarg"), Op(text: ":"), Id(text: "u64"),
+                    Id(text: "rightarg"), Colon(), Id(text: "u64"),
                     BracketClose(),
                     BlockStart(
                         column: 4,
@@ -144,11 +144,11 @@ namespace REC.Tests.Parser
                 Input = new[] {
                     Id(text: "fn"),
                     BracketOpen(),
-                    Id(text: "leftarg"), Op(text: ":"), Id(text: "u64"),
+                    Id(text: "leftarg"), Colon(), Id(text: "u64"),
                     BracketClose(),
-                    Op(text: "+"),
+                    Id(text: "+"),
                     BracketOpen(),
-                    Id(text: "rightarg"), Op(text: ":"), Id(text: "u64"),
+                    Id(text: "rightarg"), Colon(), Id(text: "u64"),
                     BracketClose(),
                     BlockStart(
                         column: 4,

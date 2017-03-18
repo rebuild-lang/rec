@@ -69,6 +69,17 @@ namespace REC.Tests.Parser
             };
         }
 
+        internal static TokenData Colon() {
+            const string text = ":";
+            return new TokenData {
+                Type = Token.ColonSeparator,
+                Range = new TextFileRange {
+                    File = new TextFile {Content = text},
+                    End = new TextPosition {Column = text.Length, Index = text.Length}
+                }
+            };
+        }
+
         internal static TokenData BracketOpen() {
             const string text = "(";
             return new TokenData {

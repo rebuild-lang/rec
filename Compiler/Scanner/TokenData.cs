@@ -7,6 +7,7 @@
         BlockStartIndentation, // used later
         BlockEndIndentation, // used later
         Comment,
+        ColonSeparator,
         CommaSeparator,
         SemicolonSeparator,
         SquareBracketOpen,

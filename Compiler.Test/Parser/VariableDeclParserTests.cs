@@ -42,7 +42,7 @@ namespace REC.Tests.Parser
                 Name = "uninitialized simple type",
                 Context = new Context {Parent = TestContext},
                 Input = new[] {
-                    Id(text: "let"), Id(text: "x"), Op(text: ":"), Id(text: "u64")
+                    Id(text: "let"), Id(text: "x"), Colon(), Id(text: "u64")
                 },
                 Output = new VariableDeclaration {
                     Name = "x",

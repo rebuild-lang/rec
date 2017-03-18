@@ -29,12 +29,12 @@ namespace REC.Parser
 
             #region Identifier
 
-            if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == "&") {
+            if (token.Type == Token.IdentifierLiteral && ((IIdentifierLiteral) token.Data).Content == "&") {
                 functionDecl.IsCompileTimeOnly = true;
                 if (!tokens.MoveNext()) return null; // TODO: report missing name
             }
 
-            if (token.Type != Token.IdentifierLiteral && token.Type != Token.OperatorLiteral) {
+            if (token.Type != Token.IdentifierLiteral) {
                 // TODO: error handling name missing
                 // handling: mark functionDecl as error and continue to parse
                 return null;
@@ -127,7 +127,7 @@ namespace REC.Parser
 
                 #region Argument Type
 
-                if (token.Type == Token.OperatorLiteral && ((IIdentifierLiteral) token.Data).Content == ":") {
+                if (token.Type == Token.ColonSeparator) {
                     if (!tokens.MoveNext()) return result; // TODO: report missing type & dangling open bracket
                     token = tokens.Current;
 

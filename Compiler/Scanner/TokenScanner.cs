@@ -12,52 +12,55 @@ namespace REC.Scanner
                 var chr = input.EndChar;
                 // ReSharper disable once SwitchStatementMissingSomeCases
                 switch (chr) {
-                    case '\0':
-                        yield break;
-                    case ' ':
-                    case '\t':
-                        yield return ScanWhitespaces(input);
-                        continue;
-                    case '\n':
-                    case '\r':
-                        yield return ScanNewLine(input);
-                        continue;
-                    case '#':
-                        yield return ScanComment(input);
-                        continue;
-                    case ',':
-                        yield return ScanSingleChar(input, Token.CommaSeparator);
-                        continue;
-                    case ';':
-                        yield return ScanSingleChar(input, Token.SemicolonSeparator);
-                        continue;
-                    case '[':
-                        yield return ScanSingleChar(input, Token.SquareBracketOpen);
-                        continue;
-                    case ']':
-                        yield return ScanSingleChar(input, Token.SquareBracketClose);
-                        continue;
-                    case '(':
-                        yield return ScanSingleChar(input, Token.BracketOpen);
-                        continue;
-                    case ')':
-                        yield return ScanSingleChar(input, Token.BracketClose);
-                        continue;
-                    case '"':
-                        yield return ScanStringLiteral(input);
-                        continue;
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                        yield return ScanNumberLiteral(input);
-                        continue;
+                case '\0':
+                    yield break;
+                case ' ':
+                case '\t':
+                    yield return ScanWhitespaces(input);
+                    continue;
+                case '\n':
+                case '\r':
+                    yield return ScanNewLine(input);
+                    continue;
+                case '#':
+                    yield return ScanComment(input);
+                    continue;
+                case ':':
+                    yield return ScanSingleChar(input, Token.ColonSeparator);
+                    continue;
+                case ',':
+                    yield return ScanSingleChar(input, Token.CommaSeparator);
+                    continue;
+                case ';':
+                    yield return ScanSingleChar(input, Token.SemicolonSeparator);
+                    continue;
+                case '[':
+                    yield return ScanSingleChar(input, Token.SquareBracketOpen);
+                    continue;
+                case ']':
+                    yield return ScanSingleChar(input, Token.SquareBracketClose);
+                    continue;
+                case '(':
+                    yield return ScanSingleChar(input, Token.BracketOpen);
+                    continue;
+                case ')':
+                    yield return ScanSingleChar(input, Token.BracketClose);
+                    continue;
+                case '"':
+                    yield return ScanStringLiteral(input);
+                    continue;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    yield return ScanNumberLiteral(input);
+                    continue;
                 }
                 var identifierLiteral = IdentifierScanner.Scan(input);
                 if (identifierLiteral != null) {
