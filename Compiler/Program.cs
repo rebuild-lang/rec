@@ -8,6 +8,7 @@ using REC.Intrinsic.IO;
 using REC.Intrinsic.Types;
 using REC.Intrinsic.Types.API;
 using REC.Parser;
+using REC.Scanner;
 
 namespace REC
 {
@@ -38,10 +39,10 @@ namespace REC
         }
 
         public void CompileFile(TextFile file) {
-            var raw = Scanner.Scanner.ScanFile(file);
+            var raw = TokenScanner.ScanFile(file);
             var prepared = TokenPreparation.Prepare(raw);
             var block = BlockLineGrouping.Group(prepared);
-            var ast = Parser.Parser.ParseBlock(block, _injectedContext);
+            var ast = BlockParser.Parse(block, _injectedContext);
 #if DEBUG
             var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp") ?? "test.cpp"; // use this for debugging cpp output
 #else

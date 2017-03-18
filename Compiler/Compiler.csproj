@@ -117,7 +117,7 @@
     <Compile Include="Parser\ModuleDeclParser.cs" />
     <Compile Include="Parser\OperatorLiteralSplitter.cs" />
     <Compile Include="Parser\OverloadInvocationBuilder.cs" />
-    <Compile Include="Parser\Parser.cs" />
+    <Compile Include="Parser\BlockParser.cs" />
     <Compile Include="Parser\TokenIterator.cs" />
     <Compile Include="Parser\TokenPreparation.cs" />
     <Compile Include="Parser\VariableDeclParser.cs" />
@@ -127,7 +127,7 @@
     <Compile Include="Scanner\IdentifierScanner.cs" />
     <Compile Include="Scanner\NumberLiteralScanner.cs" />
     <Compile Include="Scanner\OperatorScanner.cs" />
-    <Compile Include="Scanner\Scanner.cs" />
+    <Compile Include="Scanner\TokenScanner.cs" />
     <Compile Include="Scanner\StringLiteralScanner.cs" />
     <Compile Include="Scanner\TokenData.cs" />
     <Compile Include="Function\BindingLevel.cs" />

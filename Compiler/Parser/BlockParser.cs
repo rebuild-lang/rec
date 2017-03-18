@@ -3,14 +3,14 @@ using REC.Scanner;
 
 namespace REC.Parser
 {
-    public static class Parser
+    public static class BlockParser
     {
-        public static IExpressionBlock ParseBlock(IBlockLiteral tokenBlock, IContext parentContext) {
+        public static IExpressionBlock Parse(IBlockLiteral tokenBlock, IContext parentContext) {
             var context = new Context {Parent = parentContext};
-            return ParseBlockWithContext(tokenBlock, context);
+            return ParseWithContext(tokenBlock, context);
         }
 
-        public static IExpressionBlock ParseBlockWithContext(IBlockLiteral tokenBlock, IContext context) {
+        public static IExpressionBlock ParseWithContext(IBlockLiteral tokenBlock, IContext context) {
             var block = new ExpressionBlock();
             foreach (var tokenLine in tokenBlock.Lines) {
                 using (var it = tokenLine.Tokens.GetIterator()) {

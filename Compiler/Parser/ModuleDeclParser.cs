@@ -30,7 +30,7 @@ namespace REC.Parser
             if (token.Type == Token.BlockStartIndentation) {
                 var context = new Context(identifiers, new LocalValueScope()) {Parent = parentContext};
                 var contentBlock = (BlockLiteral) token.Data;
-                moduleDecl.Block = Parser.ParseBlockWithContext(contentBlock, context);
+                moduleDecl.Block = BlockParser.ParseWithContext(contentBlock, context);
                 if (!tokens.MoveNext()) return moduleDecl;
             }
 

@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace REC.Scanner
 {
-    public static class Scanner
+    public static class TokenScanner
     {
         public static IEnumerable<TokenData> ScanFile(TextFile file) {
             var input = new TextInputRange {File = file};

@@ -78,7 +78,7 @@ namespace REC.Parser
 
             if (token.Type == Token.BlockStartIndentation) {
                 var contentBlock = (BlockLiteral) token.Data;
-                functionDecl.Implementation = Parser.ParseBlock(contentBlock, argumentContext);
+                functionDecl.Implementation = BlockParser.Parse(contentBlock, argumentContext);
                 if (!tokens.MoveNext()) return functionDecl;
             }
 
