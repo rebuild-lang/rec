@@ -34,10 +34,6 @@ namespace REC
                 return context;
             })();
 
-        static string GetTempFileName(string basename = "", string extension = "tmp") {
-            return Path.GetTempPath() + basename + Guid.NewGuid() + '.' + extension;
-        }
-
         public void CompileFile(TextFile file) {
             var raw = TokenScanner.ScanFile(file);
             var prepared = TokenPreparation.Prepare(raw);
@@ -46,7 +42,7 @@ namespace REC
 #if DEBUG
             var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp") ?? "test.cpp"; // use this for debugging cpp output
 #else
-            var cppFileName = GetTempFileName(Path.GetFileNameWithoutExtension(file.Filename), extension: "cpp");
+            var cppFileName = $"{Path.GetTempPath()}{Path.GetFileNameWithoutExtension(file.Filename)}{Guid.NewGuid()}.cpp";
 #endif
             using (var writer = File.CreateText(cppFileName)) {
                 CppGenerator.Generate(writer, ast);
@@ -54,15 +50,20 @@ namespace REC
             RunCppCompiler(cppFileName, Path.ChangeExtension(file.Filename, extension: "exe"));
         }
 
-        static string Escape(string path) {
-            return $"\"{path}\"";
-        }
+        #region RunCppCompiler
 
-        void RunCppCompiler(string sourcePath, string finalPath) {
-            var shellEnv = @"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64\vcvars64.bat";
+        static void RunCppCompiler(string sourcePath, string finalPath)
+        {
+            const string shellEnv = @"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64\vcvars64.bat";
             var objPath = Path.ChangeExtension(sourcePath, extension: "obj");
 
-            var info = new ProcessStartInfo {
+            string Escape(string path)
+            {
+                return $"\"{path}\"";
+            }
+
+            var info = new ProcessStartInfo
+            {
                 FileName = "cmd.exe",
                 Arguments = string.Join(
                     separator: " ",
@@ -103,7 +104,7 @@ namespace REC
                 WorkingDirectory = Directory.GetCurrentDirectory()
             };
 
-            var process = new Process {StartInfo = info};
+            var process = new Process { StartInfo = info };
             process.OutputDataReceived += (sender, args) => Console.WriteLine(args.Data);
             process.ErrorDataReceived += (sender, args) => Console.WriteLine(args.Data);
             process.Start();
@@ -111,6 +112,8 @@ namespace REC
             process.BeginErrorReadLine();
             process.WaitForExit();
         }
+
+        #endregion
     }
 
     public static class Program
