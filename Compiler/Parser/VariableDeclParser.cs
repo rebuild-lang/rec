@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using REC.AST;
+﻿using REC.AST;
 using REC.Execution;
 using REC.Instance;
 using REC.Scanner;
