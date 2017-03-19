@@ -13,7 +13,7 @@ namespace REC.Parser
                 token => {
                     if (token.Type != Token.OperatorLiteral) return new[] {token};
                     var operatorLiteral = (IIdentifierLiteral) token.Data;
-                    return OperatorLiteralSplitter.Split(operatorLiteral, context);
+                    return Split(operatorLiteral, context);
                 }).ToList();
         }
 

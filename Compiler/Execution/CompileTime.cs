@@ -6,7 +6,6 @@ using REC.AST;
 using REC.Instance;
 using REC.Intrinsic;
 using REC.Parser;
-using REC.Scope;
 using REC.Tools;
 
 namespace REC.Execution
@@ -35,7 +34,7 @@ namespace REC.Execution
                 return null;
 
             case IFunctionInvocation invocation:
-                return Invoce(invocation, context);
+                return Invoke(invocation, context);
 
             case IIntrinsicExpression intrinsic:
                 return ExecuteIntrinsic(intrinsic, context);
@@ -67,26 +66,26 @@ namespace REC.Execution
             context.Values.Add(variable, value);
         }
 
-        static IExpression Invoce(IFunctionInvocation invocation, IContext callerContext) {
+        static IExpression Invoke(IFunctionInvocation invocation, IContext callerContext) {
+            var function = invocation.Function;
             var localValues = new LocalValueScope();
-            var argumentIdentifiers = invocation.Function.ArgumentIdentifiers;
-            var localContext = new Context(argumentIdentifiers, localValues);
-            BuildArgumentValues(localValues, invocation.Left, argumentIdentifiers, invocation.Function.LeftArguments, callerContext, localContext);
-            BuildArgumentValues(localValues, invocation.Right, argumentIdentifiers, invocation.Function.RightArguments, callerContext, localContext);
-            BuildResultValues(localValues, invocation.Function.Results, localContext);
-            var result = ExecuteBlock(invocation.Function.Declaration.Implementation, localContext);
-            ExtractArgumentReferenceValues(localValues, invocation.Left, invocation.Function.LeftArguments, callerContext);
-            ExtractArgumentReferenceValues(localValues, invocation.Right, invocation.Function.RightArguments, callerContext);
-            return ExtractResultValues(localValues, result, invocation.Function.Results);
+            var localContext = new Context(function.ArgumentIdentifiers, localValues);
+            BuildArgumentValues(invocation.Left, function.LeftArguments, callerContext, localContext);
+            BuildArgumentValues(invocation.Right, function.RightArguments, callerContext, localContext);
+            BuildResultValues(function.Results, localContext);
+            var result = ExecuteBlock(function.Declaration.Implementation, localContext);
+            ExtractArgumentReferenceValues(localValues, invocation.Left, function.LeftArguments, callerContext);
+            ExtractArgumentReferenceValues(localValues, invocation.Right, function.RightArguments, callerContext);
+            return ExtractResultValues(localValues, result, function.Results);
         }
 
         static void BuildArgumentValues(
-            ILocalValueScope localValues,
             INamedExpressionTuple expressions,
-            ILocalIdentifierScope argumentScope,
             ArgumentInstanceCollection arguments,
             IContext argumentContext,
             IContext functionContext) {
+            var values = functionContext.Values;
+            var argumentScope = functionContext.LocalIdentifiers;
             var argN = 0;
             foreach (var expression in expressions.Tuple) {
                 var argumentName = expression.Name;
@@ -95,21 +94,31 @@ namespace REC.Execution
                     argN++;
                 }
                 var argument = (IArgumentInstance) argumentScope[argumentName];
-                var value = Execute(expression.Expression, argumentContext);
+                var value = ExecuteArgumentValue(argument, expression.Expression, argumentContext);
                 var casted = ImplicitCast(value, argument.Type);
-                localValues.Add(argument, casted);
+                values.Add(argument, casted);
             }
             for (; argN < arguments.Count; argN++) {
                 var argument = arguments[argN];
                 var value = Execute(argument.Argument.Value, functionContext) as ITypedValue;
-                localValues.Add(argument, value);
+                values.Add(argument, value);
             }
         }
 
-        static void BuildResultValues(LocalValueScope localValues, ArgumentInstanceCollection results, IContext functionContext) {
+        static IExpression ExecuteArgumentValue(IArgumentInstance argument, IExpression expression, IContext context) {
+            if (argument.Type is IIntrinsicTypeModuleInstance intrinsicType
+                && intrinsicType.NetType.IsInstanceOfType(expression)) {
+                return expression; // allow passing unevaluated literals
+            }
+            return Execute(expression, context);
+        }
+
+
+        static void BuildResultValues(ArgumentInstanceCollection results, IContext functionContext) {
+            var values = functionContext.Values;
             foreach (var result in results) {
                 var value = result.Argument.Value != null ? Execute(result.Argument.Value, functionContext) as ITypedValue : CreateValue(result.Type);
-                localValues.Add(result, value);
+                values.Add(result, value);
             }
         }
 
@@ -154,20 +163,16 @@ namespace REC.Execution
                 if (value.Type == type) return value;
                 // TODO: call the cast
                 return null;
-
-            case ILiteral literal:
-                // TODO: make fromLiteral implementable in Rebuild
-                var fromLiteral = type.GetFromLiteral();
-                var literalValue = CreateValue(type);
-                fromLiteral(literalValue.Data, literal);
-                return literalValue;
-
+                    
             case INamedExpressionTuple tuple:
                 if (tuple.Tuple.Count == 1) return ImplicitCast(tuple.Tuple.First().Expression, type);
                 throw new ArgumentException(message: "Invalid argument tuple");
 
             default:
-                throw new ArgumentException(message: "Unknown Cast Source");
+                var fromExpression = type.GetFromExpression();
+                var expressionValue = CreateValue(type);
+                fromExpression(expressionValue.Data, expression);
+                return expressionValue;
             }
         }
 

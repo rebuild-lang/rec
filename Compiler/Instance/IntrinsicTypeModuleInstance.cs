@@ -4,13 +4,13 @@ using REC.Intrinsic;
 
 namespace REC.Instance
 {
-    using FromLiteralFunc = Func<byte[] /*destination*/, ILiteral, LiteralConversion>;
+    using FromExpressionFunc = Func<byte[] /*destination*/, IExpression, ExpressionConversion>;
     using ToNetTypeFunc = Func<byte[] /*source*/, dynamic>;
     using FromNetTypeAction = Action<dynamic, byte[] /*destination*/>;
 
     interface IIntrinsicTypeModuleInstance : IModuleInstance
     {
-        FromLiteralFunc FromLiteral { get; }
+        FromExpressionFunc FromExpression { get; }
         Type NetType { get; }
         ToNetTypeFunc ToNetType { get; }
         FromNetTypeAction FromNetType { get; }
@@ -19,13 +19,14 @@ namespace REC.Instance
 
     class IntrinsicTypeModuleInstance : ModuleInstance, IIntrinsicTypeModuleInstance
     {
-        public FromLiteralFunc FromLiteral { get; }
+        public FromExpressionFunc FromExpression { get; }
         public Type NetType { get; }
         public ToNetTypeFunc ToNetType { get; }
         public FromNetTypeAction FromNetType { get; }
 
         public IntrinsicTypeModuleInstance(ITypeModuleIntrinsic typeIntrinsic) : base(typeIntrinsic.Name) {
-            FromLiteral = typeIntrinsic.FromLiteral;
+            IsCompileTimeOnly = typeIntrinsic.IsCompileTimeOnly;
+            FromExpression = typeIntrinsic.FromExpression;
             NetType = typeIntrinsic.NetType;
             ToNetType = typeIntrinsic.ToNetType;
             FromNetType = typeIntrinsic.FromNetType;
@@ -34,8 +35,8 @@ namespace REC.Instance
 
     static class ModuleInstanceIntrinsicExt
     {
-        public static FromLiteralFunc GetFromLiteral(this IModuleInstance module) {
-            return (module as IIntrinsicTypeModuleInstance)?.FromLiteral;
+        public static FromExpressionFunc GetFromExpression(this IModuleInstance module) {
+            return (module as IIntrinsicTypeModuleInstance)?.FromExpression;
         }
 
         public static ToNetTypeFunc GetToNetType(this IModuleInstance module) {

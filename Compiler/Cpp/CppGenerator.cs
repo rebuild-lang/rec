@@ -1,6 +1,5 @@
 ﻿using REC.AST;
 using REC.Instance;
-using REC.Intrinsic;
 using REC.Tools;
 using System;
 using System.Collections.Generic;
@@ -48,8 +47,7 @@ namespace REC.Cpp
         }
 
         static void Dynamic(IIntrinsicExpression intrinsicExpression, ICppScope scope) {
-            if (intrinsicExpression.Intrinsic is IFunctionIntrinsic func)
-                func.GenerateCpp(new CppIntrinsic {Scope = scope});
+            intrinsicExpression.Intrinsic.GenerateCpp(new CppIntrinsic {Scope = scope});
         }
 
         static string Dynamic(IModuleReference moduleReference, ICppScope scope) {

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using REC.AST;
+﻿using REC.AST;
 using REC.Scanner;
 
 namespace REC.Parser

@@ -109,7 +109,7 @@
     <Compile Include="Intrinsic\IResultArguments.cs" />
     <Compile Include="Intrinsic\IRightArguments.cs" />
     <Compile Include="Intrinsic\ITypeModuleIntrinsic.cs" />
-    <Compile Include="Intrinsic\LiteralConversion.cs" />
+    <Compile Include="Intrinsic\ExpressionConversion.cs" />
     <Compile Include="Intrinsic\ModuleIntrinsic.cs" />
     <Compile Include="Intrinsic\CompileTimeOnly.cs" />
     <Compile Include="Intrinsic\TypeModuleIntrinsic.cs" />

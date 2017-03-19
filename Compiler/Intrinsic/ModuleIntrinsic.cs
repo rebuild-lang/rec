@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace REC.Intrinsic
+﻿namespace REC.Intrinsic
 {
     class ModuleIntrinsic : Intrinsic, IModuleIntrinsic
     {

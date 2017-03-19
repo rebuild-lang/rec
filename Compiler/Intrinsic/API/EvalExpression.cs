@@ -20,12 +20,12 @@ namespace REC.Intrinsic.API
         }
 
         static void EvalCompileTime(RightArguments right, ResultArguments result, IContext context) {
-            result.ResultExpression = CompileTime.Execute(right.EvalExpression.Expression, context);
+            result.ResultExpression = CompileTime.Execute(right.EvalExpression, context);
         }
 
         class RightArguments : IRightArguments
         {
-            public IExpressionLiteral EvalExpression;
+            public IExpression EvalExpression;
         }
 
         [SuppressMessage(category: "ReSharper", checkId: "NotAccessedField.Local")]

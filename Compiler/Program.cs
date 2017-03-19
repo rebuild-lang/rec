@@ -28,8 +28,7 @@ namespace REC
                                 LiteralType<INumberLiteral>.Get(name: "NumberLiteral"),
                                 LiteralType<IBlockLiteral>.Get(name: "BlockLiteral"),
                                 LiteralType<IStringLiteral>.Get(name: "StringLiteral"),
-                                LiteralType<IExpressionLiteral>.Get(name: "Expression"),
-                                LiteralType<IExpression>.Get(name: "Expr"),
+                                LiteralType<IExpression>.Get(name: "Expression"),
                                 PrintIntrinsic.Get(),
                                 EvalExpression.Get(),
                                 SimpleMathIntrinsic<ulong, UlongMath>.Get()

@@ -1,6 +1,6 @@
 namespace REC.Intrinsic
 {
-    public enum LiteralConversion
+    public enum ExpressionConversion
     {
         Ok,
         Failed, // no conversion possible

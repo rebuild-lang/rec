@@ -5,6 +5,7 @@ namespace REC.Intrinsic
 {
     public interface ITypeModuleIntrinsic : IModuleIntrinsic
     {
+        bool IsCompileTimeOnly { get; }
         ulong TypeSize { get; }
 
         Action<byte[]> Construct { get; }
@@ -12,7 +13,7 @@ namespace REC.Intrinsic
 
         Action<byte[], ITypeModuleIntrinsic, byte[]> ImplicitFrom { get; }
 
-        Func<byte[], ILiteral, LiteralConversion> FromLiteral { get; }
+        Func<byte[], IExpression, ExpressionConversion> FromExpression { get; }
 
         Type NetType { get; }
         Func<byte[], dynamic> ToNetType { get; }

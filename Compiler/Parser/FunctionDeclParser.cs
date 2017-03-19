@@ -221,7 +221,6 @@ namespace REC.Parser
             }
             else {
                 // TODO: report error name collision!
-                return; 
             }
         }
     }

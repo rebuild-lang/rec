@@ -27,8 +27,7 @@ namespace REC.Tests.Parser
                     context,
                     new IntrinsicDict {
                         U64Type.Get(),
-                        LiteralType<IExpressionLiteral>.Get(name: "Expression"),
-                        LiteralType<IExpression>.Get(name: "Expr"),
+                        LiteralType<IExpression>.Get(name: "Expression"),
                         EvalExpression.Get(),
                         SimpleMathIntrinsic<ulong, UlongMath>.Get()
                     });

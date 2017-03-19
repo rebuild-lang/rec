@@ -25,17 +25,6 @@ namespace REC.Parser
         }
     }
 
-    class EpressionLiteralParser : IExpressionParser
-    {
-        public bool AllowNamed => true;
-
-        public INamedExpression Parse(ITokenIterator tokens, IContext context, string name) {
-            var expression = ExpressionParser.Parse(tokens, context);
-            var literal = new ExpressionLiteral {Expression = expression};
-            return new NamedExpression {Expression = literal, Name = name};
-        }
-    }
-
     class VariableDeclExpressionParser : IExpressionParser
     {
         public bool AllowNamed => false;
@@ -217,7 +206,7 @@ namespace REC.Parser
             if (result is INamedExpressionTuple tuple 
                 && tuple.Tuple.Count == 1
                 && tuple.Tuple.First().Expression is ITypedValue value
-                && value.Type.Name == "Expr") {
+                && value.Type.Name == "Expression") {
                 return value.Type.GetToNetType()(value.Data);
             }
             return result;
@@ -225,7 +214,7 @@ namespace REC.Parser
 
         static IExpressionParser ParserForType(IModuleInstance type, IContext context) {
             if (null == type) return null;
-            if (type.Name == "Expression") return new EpressionLiteralParser();
+            //if (type.Name == "Expression") return new EpressionLiteralParser();
             return new DefaultExpressionParser();
         }
 

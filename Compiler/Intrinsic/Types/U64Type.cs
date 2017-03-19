@@ -9,7 +9,7 @@ namespace REC.Intrinsic.Types
             return new TypeModuleIntrinsic {
                 Name = "u64",
                 TypeSize = 8,
-                FromLiteral = FromLiteral,
+                FromExpression = FromExpression,
                 NetType = typeof(ulong),
                 ToNetType = ToNetType,
                 FromNetType = FromNetType
@@ -25,16 +25,16 @@ namespace REC.Intrinsic.Types
             return BitConverter.ToUInt64(arg, startIndex: 0);
         }
 
-        static LiteralConversion FromLiteral(byte[] dest, ILiteral literal) {
-            return literal is INumberLiteral numberLiteral ? FromNumberLiteral(dest, numberLiteral) : LiteralConversion.Failed;
+        static ExpressionConversion FromExpression(byte[] dest, IExpression expression) {
+            return expression is INumberLiteral numberLiteral ? FromNumberLiteral(dest, numberLiteral) : ExpressionConversion.Failed;
         }
 
-        static LiteralConversion FromNumberLiteral(byte[] dest, INumberLiteral numberLiteral) {
+        static ExpressionConversion FromNumberLiteral(byte[] dest, INumberLiteral numberLiteral) {
             if (numberLiteral.FitsUnsigned(byteCount: 8)) {
                 Array.Copy(numberLiteral.ToUnsigned(byteCount: 8), dest, length: 8);
-                return LiteralConversion.Ok;
+                return ExpressionConversion.Ok;
             }
-            return LiteralConversion.Failed;
+            return ExpressionConversion.Failed;
         }
     }
 }

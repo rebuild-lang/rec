@@ -11,28 +11,31 @@ namespace REC.Parser
         IContext Parent { get; }
         ILocalIdentifierScope Identifiers { get; }
         ILocalValueScope Values { get; }
+
+        ILocalIdentifierScope LocalIdentifiers { get; }
+        ILocalValueScope LocalValues { get; }
     }
 
     class Context : IContext
     {
         class ParentValueScope : ILocalValueScope
         {
-            readonly ILocalValueScope _local = new LocalValueScope();
+            internal readonly ILocalValueScope Local = new LocalValueScope();
             internal ILocalValueScope Parent;
 
-            public ReadOnlyDictionary<ITypedInstance, ITypedValue> Locals => _local.Locals;
+            public ReadOnlyDictionary<ITypedInstance, ITypedValue> Locals => Local.Locals;
 
-            ITypedValue ILocalValueScope.this[ITypedInstance key] => _local[key] ?? Parent?[key];
+            ITypedValue ILocalValueScope.this[ITypedInstance key] => Local[key] ?? Parent?[key];
 
             internal ParentValueScope() {}
 
             internal ParentValueScope(ILocalValueScope local) {
-                _local = local;
+                Local = local;
             }
 
             public void Add(ITypedInstance instance, ITypedValue value)
             {
-                _local.Add(instance, value);
+                Local.Add(instance, value);
             }
         }
 
@@ -58,5 +61,7 @@ namespace REC.Parser
 
         public ILocalIdentifierScope Identifiers => _identifiers;
         public ILocalValueScope Values => _values;
+        public ILocalIdentifierScope LocalIdentifiers => _identifiers.Locals;
+        public ILocalValueScope LocalValues => _values.Local;
     }
 }

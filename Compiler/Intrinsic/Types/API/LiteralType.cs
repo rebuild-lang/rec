@@ -4,7 +4,6 @@ using REC.Tools;
 
 namespace REC.Intrinsic.Types.API
 {
-    [CompileTimeOnly]
     static class LiteralType<T> where T : class
     {
         static readonly HandleCache<T> Literals = new HandleCache<T>();
@@ -15,10 +14,11 @@ namespace REC.Intrinsic.Types.API
                 TypeSize = 8,
                 Construct = Construct,
                 Destruct = Destruct,
-                FromLiteral = FromLiteral,
+                FromExpression = FromExpression,
                 NetType = typeof(T),
                 ToNetType = ToNetType,
-                FromNetType = FromNetType
+                FromNetType = FromNetType,
+                IsCompileTimeOnly = true,
             };
         }
 
@@ -43,12 +43,12 @@ namespace REC.Intrinsic.Types.API
             Literals.RemoveRef(handle);
         }
 
-        static LiteralConversion FromLiteral(byte[] dest, ILiteral literal) {
-            if (!(literal is T blockLiteral)) return LiteralConversion.Failed;
+        static ExpressionConversion FromExpression(byte[] dest, IExpression expression) {
+            if (!(expression is T blockLiteral)) return ExpressionConversion.Failed;
             var handle = Literals.GetHandle(blockLiteral);
             Literals.AddRef(handle);
             BitConverter.GetBytes(handle).CopyTo(dest, index: 0);
-            return LiteralConversion.Ok;
+            return ExpressionConversion.Ok;
         }
     }
 }
