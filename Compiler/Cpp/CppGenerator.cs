@@ -52,6 +52,10 @@ namespace REC.Cpp
                 func.GenerateCpp(new CppIntrinsic {Scope = scope});
         }
 
+        static string Dynamic(IModuleReference moduleReference, ICppScope scope) {
+            return string.Empty;
+        }
+
         static string Dynamic(INamedExpressionTuple expressionTuple, ICppScope scope) {
             string result = null;
             foreach (var sub in expressionTuple.Tuple) result = Dynamic((dynamic) sub.Expression, scope);

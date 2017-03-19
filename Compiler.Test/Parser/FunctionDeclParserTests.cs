@@ -20,7 +20,7 @@ namespace REC.Tests.Parser
         {
             public string Name;
             public IContext Context;
-            public IEnumerable<TokenData> Input;
+            public IList<TokenData> Input;
             public IFunctionDeclaration Output;
 
             public override string ToString() => Name;

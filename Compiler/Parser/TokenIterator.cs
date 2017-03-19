@@ -5,55 +5,65 @@ using REC.Scanner;
 
 namespace REC.Parser
 {
+    public interface ITokenIteratorBackup
+    {}
+
     public interface ITokenIterator : IDisposable
     {
-        TokenData Current { get; }
         IInstance CurrentInstance { get; set; }
+        TokenData Current { get; }
         TokenData Next { get; }
-        bool Active { get; set; }
+        bool Active { get; }
         bool Done { get; }
         bool HasNext { get; }
 
         bool MoveNext();
+
+        ITokenIteratorBackup Backup();
+        void Restore(ITokenIteratorBackup iteratorBackup);
     }
 
     class TokenIterator : ITokenIterator
     {
-        public IEnumerator<TokenData> Enumerator { get; }
-        public bool Active { get; set; }
+        IList<TokenData> List { get; }
+        int Index { get; set; }
 
-        public TokenData Current { get; set; }
         public IInstance CurrentInstance { get; set; }
+        public TokenData Current => List[Index];
+        public TokenData Next => List[Index + 1];
+        public bool Active => Index < List.Count;
         public bool Done => !Active;
-        public bool HasNext { get; set; }
-        public TokenData Next => Enumerator.Current;
+        public bool HasNext => Index + 1 < List.Count;
 
-        public TokenIterator(IEnumerable<TokenData> enumerable) {
-            Enumerator = enumerable.GetEnumerator();
-            HasNext = Enumerator.MoveNext();
-            MoveNext();
+        public TokenIterator(IList<TokenData> list) {
+            List = list;
         }
 
-        public void Dispose() {
-            Enumerator.Dispose();
-        }
+        public void Dispose() { }
 
         public bool MoveNext() {
             CurrentInstance = null;
-            Active = HasNext;
-            if (Active) {
-                Current = Next;
-                HasNext = Enumerator.MoveNext();
-            }
-            else Current = new TokenData();
+            Index++;
             return Active;
+        }
+
+        public ITokenIteratorBackup Backup() {
+            return new IteratorIteratorBackup { Index = Index };
+        }
+
+        public void Restore(ITokenIteratorBackup iteratorBackup) {
+            Index = ((IteratorIteratorBackup)iteratorBackup).Index;
+        }
+
+        class IteratorIteratorBackup : ITokenIteratorBackup
+        {
+            internal int Index { get; set; }
         }
     }
 
     static class EnumerableTokenDataExt
     {
-        public static TokenIterator GetIterator(this IEnumerable<TokenData> enumerable)
-        {
+        public static TokenIterator GetIterator(this IList<TokenData> enumerable) {
             return new TokenIterator(enumerable);
         }
     }

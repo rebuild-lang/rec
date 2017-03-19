@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using REC.AST;
@@ -18,54 +17,64 @@ namespace REC.Execution
     public static class CompileTime
     {
         public static IExpression Execute(IExpression expression, IContext context) {
-            return Dynamic((dynamic) expression, context);
+            switch (expression) {
+            case ILiteral literal:
+                return literal;
+            case ITypedValue value:
+                return value;
+            case ITypedReference reference:
+                return context.Values[reference.Instance];
+
+            case INamedExpressionTuple tuple:
+                return ExecuteTuple(tuple, context);
+            case IExpressionBlock block:
+                return ExecuteBlock(block, context);
+
+            case IVariableDeclaration variable:
+                InitVariable(variable, context);
+                return null;
+
+            case IFunctionInvocation invocation:
+                return Invoce(invocation, context);
+
+            case IIntrinsicExpression intrinsic:
+                return ExecuteIntrinsic(intrinsic, context);
+
+            default:
+                throw new ArgumentException(message: "unknown expression type");
+            }
         }
 
-        static IExpression Dynamic(INamedExpressionTuple expressionTuple, IContext context) {
+        static IExpression ExecuteTuple(INamedExpressionTuple expressionTuple, IContext context) {
             IExpression result = null;
             foreach (var sub in expressionTuple.Tuple) {
-                result = Dynamic((dynamic) sub.Expression, context);
+                result = Execute(sub.Expression, context);
             }
             return result;
         }
 
-        static IExpression Dynamic(IExpressionBlock expressionBlock, IContext context) {
+        static IExpression ExecuteBlock(IExpressionBlock expressionBlock, IContext context) {
             IExpression result = null;
             foreach (var sub in expressionBlock.Expressions) {
-                result = Dynamic((dynamic) sub, context);
+                result = Execute(sub, context);
             }
             return result;
         }
 
-        [SuppressMessage(category: "ReSharper", checkId: "UnusedParameter.Local")]
-        static IExpression Dynamic(ILiteral literal, IContext context) {
-            return literal;
-        }
-
-        [SuppressMessage(category: "ReSharper", checkId: "UnusedParameter.Local")]
-        static IExpression Dynamic(ITypedValue value, IContext context) {
-            return value;
-        }
-
-        static IExpression Dynamic(ITypedReference reference, IContext context) {
-            return context.Values[reference.Instance];
-        }
-
-        static IExpression Dynamic(IVariableDeclaration variableDecl, IContext context) {
+        static void InitVariable(IVariableDeclaration variableDecl, IContext context) {
             var variable = context.Identifiers[variableDecl.Name] as IVariableInstance;
-            var value = variableDecl.Value != null ? Dynamic((dynamic) variableDecl.Value, context) : CreateValue(variableDecl.Type);
+            var value = variableDecl.Value != null ? Execute(variableDecl.Value, context) as ITypedValue : CreateValue(variableDecl.Type);
             context.Values.Add(variable, value);
-            return null;
         }
 
-        static IExpression Dynamic(IFunctionInvocation invocation, IContext callerContext) {
+        static IExpression Invoce(IFunctionInvocation invocation, IContext callerContext) {
             var localValues = new LocalValueScope();
             var argumentIdentifiers = invocation.Function.ArgumentIdentifiers;
             var localContext = new Context(argumentIdentifiers, localValues);
             BuildArgumentValues(localValues, invocation.Left, argumentIdentifiers, invocation.Function.LeftArguments, callerContext, localContext);
             BuildArgumentValues(localValues, invocation.Right, argumentIdentifiers, invocation.Function.RightArguments, callerContext, localContext);
             BuildResultValues(localValues, invocation.Function.Results, localContext);
-            var result = Dynamic(invocation.Function.Declaration.Implementation, localContext);
+            var result = ExecuteBlock(invocation.Function.Declaration.Implementation, localContext);
             ExtractArgumentReferenceValues(localValues, invocation.Left, invocation.Function.LeftArguments, callerContext);
             ExtractArgumentReferenceValues(localValues, invocation.Right, invocation.Function.RightArguments, callerContext);
             return ExtractResultValues(localValues, result, invocation.Function.Results);
@@ -86,20 +95,20 @@ namespace REC.Execution
                     argN++;
                 }
                 var argument = (IArgumentInstance) argumentScope[argumentName];
-                var value = Dynamic((dynamic) expression.Expression, argumentContext);
+                var value = Execute(expression.Expression, argumentContext);
                 var casted = ImplicitCast(value, argument.Type);
                 localValues.Add(argument, casted);
             }
             for (; argN < arguments.Count; argN++) {
                 var argument = arguments[argN];
-                var value = Dynamic((dynamic) argument.Argument.Value, functionContext);
+                var value = Execute(argument.Argument.Value, functionContext) as ITypedValue;
                 localValues.Add(argument, value);
             }
         }
 
         static void BuildResultValues(LocalValueScope localValues, ArgumentInstanceCollection results, IContext functionContext) {
             foreach (var result in results) {
-                var value = result.Argument.Value != null ? Dynamic((dynamic) result.Argument.Value, functionContext) : CreateValue(result.Type);
+                var value = result.Argument.Value != null ? Execute(result.Argument.Value, functionContext) as ITypedValue : CreateValue(result.Type);
                 localValues.Add(result, value);
             }
         }
@@ -138,27 +147,31 @@ namespace REC.Execution
             return expressionTuple;
         }
 
-        static ITypedValue ImplicitCast(ITypedValue value, IModuleInstance type) {
-            if (null == value) return null;
-            if (value.Type == type) return value;
-            // TODO: call the cast
-            return null;
+        static ITypedValue ImplicitCast(IExpression expression, IModuleInstance type) {
+            if (null == expression) return null;
+            switch (expression) {
+            case ITypedValue value:
+                if (value.Type == type) return value;
+                // TODO: call the cast
+                return null;
+
+            case ILiteral literal:
+                // TODO: make fromLiteral implementable in Rebuild
+                var fromLiteral = type.GetFromLiteral();
+                var literalValue = CreateValue(type);
+                fromLiteral(literalValue.Data, literal);
+                return literalValue;
+
+            case INamedExpressionTuple tuple:
+                if (tuple.Tuple.Count == 1) return ImplicitCast(tuple.Tuple.First().Expression, type);
+                throw new ArgumentException(message: "Invalid argument tuple");
+
+            default:
+                throw new ArgumentException(message: "Unknown Cast Source");
+            }
         }
 
-        static ITypedValue ImplicitCast(ILiteral literal, IModuleInstance type) {
-            // TODO: make fromLiteral implementable in Rebuild
-            var fromLiteral = type.GetFromLiteral();
-            var value = CreateValue(type);
-            fromLiteral(value.Data, literal);
-            return value;
-        }
-
-        static ITypedValue ImplicitCast(INamedExpressionTuple tuple, IModuleInstance type) {
-            if (tuple.Tuple.Count == 1) return ImplicitCast((dynamic) tuple.Tuple.First().Expression, type);
-            throw new ArgumentException(message: "Invalid argument tuple");
-        }
-
-        static IExpression Dynamic(IIntrinsicExpression intrinsicExpression, IContext context) {
+        static IExpression ExecuteIntrinsic(IIntrinsicExpression intrinsicExpression, IContext context) {
             var function = intrinsicExpression.Intrinsic;
 
             var leftArguments = (ILeftArguments) function.LeftArgumentsType?.CreateInstance();
@@ -169,7 +182,12 @@ namespace REC.Execution
             RebuildToNetTypes(context.Values, rightArguments, intrinsicExpression.RightFields);
             RebuildToNetTypes(context.Values, results, intrinsicExpression.ResultFields);
 
-            function.CompileTime(leftArguments, rightArguments, results);
+            if (null != function.CompileTimeApi) {
+                function.CompileTimeApi(leftArguments, rightArguments, results, context);
+            }
+            else {
+                function.CompileTime(leftArguments, rightArguments, results);
+            }
 
             NetTypesToRebuild(leftArguments, intrinsicExpression.LeftFields, context.Values);
             NetTypesToRebuild(rightArguments, intrinsicExpression.RightFields, context.Values);

@@ -5,6 +5,7 @@ using REC.AST;
 using REC.Cpp;
 using REC.Intrinsic;
 using REC.Intrinsic.IO;
+using REC.Intrinsic.API;
 using REC.Intrinsic.Types;
 using REC.Intrinsic.Types.API;
 using REC.Parser;
@@ -26,7 +27,11 @@ namespace REC
                             Children = {
                                 LiteralType<INumberLiteral>.Get(name: "NumberLiteral"),
                                 LiteralType<IBlockLiteral>.Get(name: "BlockLiteral"),
+                                LiteralType<IStringLiteral>.Get(name: "StringLiteral"),
+                                LiteralType<IExpressionLiteral>.Get(name: "Expression"),
+                                LiteralType<IExpression>.Get(name: "Expr"),
                                 PrintIntrinsic.Get(),
+                                EvalExpression.Get(),
                                 SimpleMathIntrinsic<ulong, UlongMath>.Get()
                             }
                         }
@@ -139,11 +144,11 @@ let *x : u64
 x = 23 + 12
 test x
 
-# let & *y : u64
-# &y = 42 + 12
+let & *y : u64
+# Rebuild.Eval(y = 42 + 12)
 # &Rebuild.Print y
 
-# &test Rebuild.Add 23 32
+Rebuild.Eval test Rebuild.Add 23 32
 Rebuild.Print 42 + 22",
                     Filename = "Test.rebuild"
                 });

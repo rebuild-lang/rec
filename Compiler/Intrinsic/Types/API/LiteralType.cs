@@ -5,7 +5,7 @@ using REC.Tools;
 namespace REC.Intrinsic.Types.API
 {
     [CompileTimeOnly]
-    static class LiteralType<T>
+    static class LiteralType<T> where T : class
     {
         static readonly HandleCache<T> Literals = new HandleCache<T>();
 

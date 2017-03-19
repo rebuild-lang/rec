@@ -11,8 +11,10 @@ namespace REC.Instance
             IntrinsicExpression = new IntrinsicExpression {
                 Intrinsic = intrinsic
             };
+            IsCompileTimeOnly = intrinsic.IsCompileTimeOnly;
             Declaration = new FunctionDeclaration {
                 Name = intrinsic.Name,
+                IsCompileTimeOnly = intrinsic.IsCompileTimeOnly,
                 Implementation = new ExpressionBlock {
                     Expressions = { IntrinsicExpression }
                 }

@@ -8,13 +8,13 @@ namespace REC.Parser
 {
     class OperatorLiteralSplitter
     {
-        internal static IEnumerable<TokenData> SplitAll(IEnumerable<TokenData> tokens, IContext context) {
+        internal static IList<TokenData> SplitAll(IEnumerable<TokenData> tokens, IContext context) {
             return tokens.SelectMany(
                 token => {
                     if (token.Type != Token.OperatorLiteral) return new[] {token};
                     var operatorLiteral = (IIdentifierLiteral) token.Data;
                     return OperatorLiteralSplitter.Split(operatorLiteral, context);
-                });
+                }).ToList();
         }
 
         internal static IEnumerable<TokenData> Split(IIdentifierLiteral operatorLiteral, IContext context) {

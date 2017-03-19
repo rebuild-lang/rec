@@ -29,10 +29,29 @@ namespace REC.Intrinsic
                 switch (instance) {
                 case IntrinsicFunctionInstance function:
                     var expression = function.IntrinsicExpression;
-                    TypeToArguments(function.LeftArguments, function.Declaration.LeftArguments, function.ArgumentIdentifiers, ArgumentSide.Left, expression.Intrinsic.LeftArgumentsType, expression.LeftFields);
-                    TypeToArguments(function.RightArguments, function.Declaration.RightArguments, function.ArgumentIdentifiers, ArgumentSide.Right, expression.Intrinsic.RightArgumentsType, expression.RightFields);
-                    TypeToArguments(function.Results, function.Declaration.Results, function.ArgumentIdentifiers, ArgumentSide.Result, expression.Intrinsic.ResultType, expression.ResultFields);
+                    TypeToArguments(
+                        function.LeftArguments,
+                        function.Declaration.LeftArguments,
+                        function.ArgumentIdentifiers,
+                        ArgumentSide.Left,
+                        expression.Intrinsic.LeftArgumentsType,
+                        expression.LeftFields);
+                    TypeToArguments(
+                        function.RightArguments,
+                        function.Declaration.RightArguments,
+                        function.ArgumentIdentifiers,
+                        ArgumentSide.Right,
+                        expression.Intrinsic.RightArgumentsType,
+                        expression.RightFields);
+                    TypeToArguments(
+                        function.Results,
+                        function.Declaration.Results,
+                        function.ArgumentIdentifiers,
+                        ArgumentSide.Result,
+                        expression.Intrinsic.ResultType,
+                        expression.ResultFields);
                     break;
+
                 case IModuleInstance module:
                     ConvertNetTypes(module.Identifiers.LocalIdentifiers.Values);
                     break;
@@ -42,28 +61,35 @@ namespace REC.Intrinsic
 
 
         IList<IInstance> DeclareIntrinsics(IEnumerable<IIntrinsic> intrinsics, IParentedIdentifierScope scope) {
-            return intrinsics.Select(intrinsic => (IInstance) DeclareIntrinsic((dynamic) intrinsic, scope)).ToList();
+            return intrinsics.Select(intrinsic => DeclareIntrinsic(intrinsic, scope)).ToList();
         }
 
-        IInstance DeclareIntrinsic(IModuleIntrinsic moduleIntrinsic, IParentedIdentifierScope scope) {
-            var module = new ModuleInstance(moduleIntrinsic.Name);
-            DeclareIntrinsics(moduleIntrinsic.Children, new ParentedIdentifierScope(module.Identifiers) {Parent = scope});
+        IInstance DeclareIntrinsic(IIntrinsic intrinsic, IParentedIdentifierScope scope) {
+            switch (intrinsic) {
+            case ITypeModuleIntrinsic typeIntrinsic:
+                var typeModule = new IntrinsicTypeModuleInstance(typeIntrinsic);
+                DeclareIntrinsics(typeIntrinsic.Children, new ParentedIdentifierScope(typeModule.Identifiers) {Parent = scope});
+                AddTypeSizeDeclaration(typeIntrinsic.TypeSize, typeModule, scope);
+                // TODO: add Construct/Destruct
+                // TODO: add conversions
+                if (typeIntrinsic.NetType != null) _netTypes[typeIntrinsic.NetType] = typeModule;
+                scope.Add(typeModule);
+                return typeModule;
 
-            scope.Add(module);
-            return module;
-        }
+            case IModuleIntrinsic moduleIntrinsic:
+                var module = new ModuleInstance(moduleIntrinsic.Name);
+                DeclareIntrinsics(moduleIntrinsic.Children, new ParentedIdentifierScope(module.Identifiers) {Parent = scope});
+                scope.Add(module);
+                return module;
 
-        IInstance DeclareIntrinsic(ITypeModuleIntrinsic typeIntrinsic, IParentedIdentifierScope scope) {
-            var module = new IntrinsicTypeModuleInstance(typeIntrinsic);
-            DeclareIntrinsics(typeIntrinsic.Children, new ParentedIdentifierScope(module.Identifiers) {Parent = scope});
+            case IFunctionIntrinsic functionIntrinsic:
+                var function = new IntrinsicFunctionInstance(functionIntrinsic);
+                scope.Add(function);
+                return function;
 
-            AddTypeSizeDeclaration(typeIntrinsic.TypeSize, module, scope);
-            // TODO: add Construct/Destruct
-            // TODO: add conversions
-
-            if (typeIntrinsic.NetType != null) _netTypes[typeIntrinsic.NetType] = module;
-            scope.Add(module);
-            return module;
+            default:
+                throw new ArgumentException(message: "Unknown Type");
+            }
         }
 
         static void AddTypeSizeDeclaration(ulong typeIntrinsicTypeSize, IModuleInstance module, IParentedIdentifierScope scope) {
@@ -84,14 +110,13 @@ namespace REC.Intrinsic
             module.Identifiers.Add(typeModule);
         }
 
-        IInstance DeclareIntrinsic(IFunctionIntrinsic functionIntrinsic, IParentedIdentifierScope scope) {
-            var function = new IntrinsicFunctionInstance(functionIntrinsic);
-            scope.Add(function);
-            return function;
-        }
-
-        private void TypeToArguments(NamedCollection<IArgumentInstance> arguments, NamedCollection<IArgumentDeclaration> declarations, ILocalIdentifierScope identifiers, ArgumentSide side, Type type, FieldToInstance fields)
-        {
+        void TypeToArguments(
+            NamedCollection<IArgumentInstance> arguments,
+            NamedCollection<IArgumentDeclaration> declarations,
+            ILocalIdentifierScope identifiers,
+            ArgumentSide side,
+            Type type,
+            FieldToInstance fields) {
             if (type == null)
                 return;
             foreach (var field in type.GetRuntimeFields()) {

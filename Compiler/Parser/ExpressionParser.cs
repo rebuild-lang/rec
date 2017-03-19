@@ -4,9 +4,49 @@ using REC.Scanner;
 using REC.Tools;
 using System.Collections.Generic;
 using System.Linq;
+using REC.Execution;
+using TypedReference = REC.AST.TypedReference;
 
 namespace REC.Parser
 {
+    internal interface IExpressionParser
+    {
+        bool AllowNamed { get; }
+        INamedExpression Parse(ITokenIterator tokens, IContext context, string name = null);
+    }
+
+    class DefaultExpressionParser : IExpressionParser
+    {
+        public bool AllowNamed => true;
+
+        public INamedExpression Parse(ITokenIterator tokens, IContext context, string name) {
+            var expression = ExpressionParser.Parse(tokens, context);
+            return new NamedExpression {Expression = expression, Name = name};
+        }
+    }
+
+    class EpressionLiteralParser : IExpressionParser
+    {
+        public bool AllowNamed => true;
+
+        public INamedExpression Parse(ITokenIterator tokens, IContext context, string name) {
+            var expression = ExpressionParser.Parse(tokens, context);
+            var literal = new ExpressionLiteral {Expression = expression};
+            return new NamedExpression {Expression = literal, Name = name};
+        }
+    }
+
+    class VariableDeclExpressionParser : IExpressionParser
+    {
+        public bool AllowNamed => false;
+
+        public INamedExpression Parse(ITokenIterator tokens, IContext context, string name) {
+            var variable = VariableDeclParser.Parse(tokens, context);
+            return new NamedExpression {Expression = variable, Name = name};
+        }
+    }
+
+
     static class ExpressionParser
     {
         internal static IExpression Parse(ITokenIterator tokens, IContext context) {
@@ -102,7 +142,7 @@ namespace REC.Parser
             return result;
         }
 
-        static string ParseExpressionName(ITokenIterator tokens) {
+        internal static string ParseExpressionName(ITokenIterator tokens) {
             if (!tokens.HasNext) return null;
             var token = tokens.Current;
             if (token.Type != Token.IdentifierLiteral || tokens.Next.Type != Token.ColonSeparator) return null;
@@ -163,29 +203,105 @@ namespace REC.Parser
             }
             if (!overloadBuilder.Any(b => b.IsActive || b.IsCompletable)) return left; // no overload can succeed
 
-            if (!tokens.MoveNext()) {
-                return CreateFunctionInvocation(overloadBuilder);
+            if (tokens.MoveNext()) {
+                ParseFunctionRightArguments(overloadBuilder, tokens, context);
             }
 
-            ParseFunctionRightArguments(overloadBuilder, tokens, context);
+            var invocation = CreateFunctionInvocation(overloadBuilder);
+            return RunCompileTime(invocation, context);
+        }
 
-            return CreateFunctionInvocation(overloadBuilder);
+        static IExpression RunCompileTime(IFunctionInvocation invocation, IContext context) {
+            if (null == invocation || !invocation.Function.IsCompileTimeOnly) return invocation;
+            var result = CompileTime.Execute(invocation, context);
+            if (result is INamedExpressionTuple tuple 
+                && tuple.Tuple.Count == 1
+                && tuple.Tuple.First().Expression is ITypedValue value
+                && value.Type.Name == "Expr") {
+                return value.Type.GetToNetType()(value.Data);
+            }
+            return result;
+        }
+
+        static IExpressionParser ParserForType(IModuleInstance type, IContext context) {
+            if (null == type) return null;
+            if (type.Name == "Expression") return new EpressionLiteralParser();
+            return new DefaultExpressionParser();
         }
 
         static void ParseFunctionRightArguments(IList<IOverloadInvocationBuilder> builders, ITokenIterator tokens, IContext context) {
-            while (builders.Any(b => b.IsActive) && tokens.Active) {
-                var rightArguments = ParseTuple(tokens, context);
-                foreach (var builder in builders) {
-                    if (!builder.IsActive) continue;
-                    foreach (var rightArgument in rightArguments.Tuple) {
+            var withBracket = tokens.Current.Type == Token.BracketOpen;
+            if (withBracket) tokens.MoveNext(); // move beyond opening bracket
+            try {
+                var tuples = builders.Where(b => b.IsActive).Select(b => (b, tokens.Backup())).ToList();
+                while (builders.Any(b => b.IsActive) && tokens.Active) {
+                    var nextTuples = new List<(IOverloadInvocationBuilder, ITokenIteratorBackup)>();
+                    foreach (var (builder, backup) in tuples) {
                         if (!builder.IsActive) continue;
-                        builder.RetireRightArgument(rightArgument);
+                        var retired = false;
+                        var nextType = builder.NextRightArgumentType();
+                        var parser = ParserForType(nextType, context);
+                        if (null != parser && !parser.AllowNamed) {
+                            tokens.Restore(backup);
+                            var argument = parser.Parse(tokens, context);
+                            if (null != argument) {
+                                builder.RetireRightArgument(argument);
+                                retired = true;
+                            }
+                        }
+                        else {
+                            var argumentName = ParseExpressionName(tokens);
+                            if (null != argumentName) {
+                                nextType = builder.RightArgumentTypeByName(argumentName);
+                                parser = ParserForType(nextType, context);
+                            }
+                            if (null != parser) {
+                                tokens.Restore(backup);
+                                var argument = parser.Parse(tokens, context, argumentName);
+                                if (null != argument) {
+                                    builder.RetireRightArgument(argument);
+                                    retired = true;
+                                }
+                            }
+                        }
+                        if (!retired) continue;
+                        if (!tokens.Active) continue;
+
+                        // ReSharper disable once SwitchStatementMissingSomeCases
+                        switch (tokens.Current.Type) {
+                        case Token.CommaSeparator:
+                            tokens.MoveNext();
+                            break;
+
+                        case Token.BracketClose:
+                        case Token.SemicolonSeparator:
+                            retired = false;
+                            break;
+                        }
+
+                        if (retired && tokens.Active && builder.IsActive) {
+                            nextTuples.Add((builder, tokens.Backup()));
+                        }
+                    }
+                    tuples = nextTuples;
+                }
+            }
+            finally {
+                if (withBracket) {
+                    if (tokens.Done) {
+                        // error
+                    }
+                    else if (tokens.Current.Type != Token.BracketClose) {
+                        // missing closing bracket
+                    }
+                    else {
+                        tokens.MoveNext(); // move beyond closing bracket
                     }
                 }
             }
         }
 
-        static IExpression CreateFunctionInvocation(IEnumerable<IOverloadInvocationBuilder> builders) {
+        static IFunctionInvocation CreateFunctionInvocation(IEnumerable<IOverloadInvocationBuilder> builders) {
             var completable = builders.Where(b => b.IsCompletable).ToList();
             if (completable.Count != 1) {
                 // TODO: proper error handling

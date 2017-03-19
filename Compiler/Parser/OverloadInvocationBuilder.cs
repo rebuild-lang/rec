@@ -4,16 +4,6 @@ using REC.Tools;
 
 namespace REC.Parser
 {
-    public interface ITokenToExpressionParser
-    {
-        bool IsActive { get; }
-        bool IsCompletable { get; }
-
-        void RetireToken(IExpression token);
-
-        INamedExpression Build();
-    }
-
     public interface IOverloadInvocationBuilder
     {
         bool IsActive { get; }
@@ -24,7 +14,8 @@ namespace REC.Parser
         void RetireLeftArgument(IExpression left);
         void RetireRightArgument(INamedExpression argument);
 
-        ITokenToExpressionParser[] NextRightArgumentParsers();
+        IModuleInstance NextRightArgumentType();
+        IModuleInstance RightArgumentTypeByName(string argumentName);
 
         IFunctionInvocation Build();
     }
@@ -71,6 +62,14 @@ namespace REC.Parser
             return true;
         }
 
+        public IModuleInstance NextRightArgumentType() {
+            return FunctionIntance.RightArguments[RightArguments.Tuple.Count].Type;
+        }
+
+        public IModuleInstance RightArgumentTypeByName(string argumentName) {
+            return FunctionIntance.RightArguments[argumentName].Type;
+        }
+
         public void RetireRightArgument(INamedExpression argument) {
             // TODO: Check Convertable!
             RightArguments.Tuple.Add(argument);
@@ -89,10 +88,6 @@ namespace REC.Parser
             if (FunctionIntance.Declaration.MaxRightArgumentCount() == RightArguments.Tuple.Count) {
                 IsActive = false;
             }
-        }
-
-        public ITokenToExpressionParser[] NextRightArgumentParsers() {
-            return new ITokenToExpressionParser[] { };
         }
 
         public IFunctionInvocation Build() {

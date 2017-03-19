@@ -8,6 +8,8 @@ using REC.Intrinsic.Types;
 using REC.Parser;
 using REC.Scanner;
 using System.Collections.Generic;
+using REC.Intrinsic.API;
+using REC.Intrinsic.Types.API;
 using TypedReference = REC.AST.TypedReference;
 
 namespace REC.Tests.Parser
@@ -25,6 +27,9 @@ namespace REC.Tests.Parser
                     context,
                     new IntrinsicDict {
                         U64Type.Get(),
+                        LiteralType<IExpressionLiteral>.Get(name: "Expression"),
+                        LiteralType<IExpression>.Get(name: "Expr"),
+                        EvalExpression.Get(),
                         SimpleMathIntrinsic<ulong, UlongMath>.Get()
                     });
                 return context;
@@ -102,21 +107,23 @@ namespace REC.Tests.Parser
 
         static readonly ParseTestData[] ParseExpressionTestData = {
             // & is no longer part of the language
-            //new ParseTestData {
-            //    Name = "Compile time Add",
-            //    Context = new Context {Parent = TestContext},
-            //    Input = new[] {
-            //        Op(text: "&"),
-            //        Id(text: ".Add"), NumberLit(text: "3"), NumberLit(text: "20")
-            //    },
-            //    Output = new NamedExpressionTuple(
-            //        name: "Value",
-            //        expression: new TypedValue {
-            //            Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
-            //            Data = new NumberLiteral {IntegerPart = "23"}.ToUnsigned(byteCount: 8)
-            //        }
-            //    )
-            //},
+            new ParseTestData {
+                Name = "Compile time Add",
+                Context = new Context {Parent = TestContext},
+                Input = new[] {
+                    Id(text: ".Eval"),
+                    Id(text: ".Add"), NumberLit(text: "3"), NumberLit(text: "20")
+                },
+                Output = new NamedExpressionTuple(
+                    new NamedExpressionTuple(
+                        name: "Value",
+                        expression: new TypedValue {
+                            Type = (TestContext.Identifiers[key: "u64"] as IModuleInstance),
+                            Data = new NumberLiteral {IntegerPart = "23"}.ToUnsigned(byteCount: 8)
+                        }
+                    )
+                )
+            },
             new ParseTestData {
                 Name = "split multiple operators ''i++-1''",
                 Context = new Context {Parent = TestOperatorContext},
@@ -212,6 +219,10 @@ namespace REC.Tests.Parser
             Assert.That(actual.Name, Is.EqualTo(expected.Name), $"{label}.Name");
             Assert.That(actual.Expression, Is.TypeOf(expected.Expression?.GetType()), $"{label}.Expression.Type");
             AssertExpression((dynamic) expected.Expression, (dynamic) actual.Expression, $"{label}.Expression");
+        }
+
+        void AssertExpression(INamedExpressionTuple expected, INamedExpressionTuple actual, string label) {
+            AssertNamedExpressionTuple(expected, actual, label);
         }
 
         void AssertExpression(ITypedValue expected, ITypedValue actual, string label) {

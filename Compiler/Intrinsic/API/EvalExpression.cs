@@ -9,32 +9,29 @@ namespace REC.Intrinsic.API
 {
     public class EvalExpression
     {
-        public static IFunctionIntrinsic Get()
-        {
-            return new FunctionIntrinsic
-            {
+        public static IFunctionIntrinsic Get() {
+            return new FunctionIntrinsic {
                 Name = ".Eval",
                 RightArgumentsType = typeof(RightArguments),
                 ResultType = typeof(ResultArguments),
-                CompileTimeApi = (left, right, result, context) => EvalCompileTime((RightArguments)right, (ResultArguments)result, context),
+                CompileTimeApi = (left, right, result, context) => EvalCompileTime((RightArguments) right, (ResultArguments) result, context),
                 IsCompileTimeOnly = true
             };
         }
 
-        static void EvalCompileTime(RightArguments right, ResultArguments result, IContext context)
-        {
-            result.ResultExpression = CompileTime.Execute(right.EvalExpression, context);
+        static void EvalCompileTime(RightArguments right, ResultArguments result, IContext context) {
+            result.ResultExpression = CompileTime.Execute(right.EvalExpression.Expression, context);
         }
 
         class RightArguments : IRightArguments
         {
-            public IExpression EvalExpression;
+            public IExpressionLiteral EvalExpression;
         }
 
         [SuppressMessage(category: "ReSharper", checkId: "NotAccessedField.Local")]
         class ResultArguments : IResultArguments
         {
-            public IExpression ResultExpression;
+            [ArgumentAssignable] public IExpression ResultExpression;
         }
     }
 }
