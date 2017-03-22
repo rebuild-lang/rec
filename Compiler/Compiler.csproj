@@ -60,7 +60,6 @@
     <Compile Include="AST\Declaration.cs" />
     <Compile Include="AST\Expression.cs" />
     <Compile Include="AST\ExpressionBlock.cs" />
-    <Compile Include="AST\ExpressionLiteral.cs" />
     <Compile Include="AST\FunctionDeclaration.cs" />
     <Compile Include="AST\FunctionInvocation.cs" />
     <Compile Include="AST\IdentifierLiteral.cs" />
