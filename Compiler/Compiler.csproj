@@ -91,6 +91,7 @@
     <Compile Include="Instance\PhaseInstance.cs" />
     <Compile Include="Instance\TypedInstance.cs" />
     <Compile Include="Instance\VariableInstance.cs" />
+    <Compile Include="Intrinsic\API\AddCodeToCompiler.cs" />
     <Compile Include="Intrinsic\API\CompilerInstance.cs" />
     <Compile Include="Intrinsic\API\EvalExpression.cs" />
     <Compile Include="Intrinsic\ArgumentAssignable.cs" />

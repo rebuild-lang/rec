@@ -23,12 +23,12 @@ phase Expr:
 end
 
 let & c = Rebuild.Compiler
-#Rebuild.AddCode c, """"""
+Rebuild.AddCode c, """"""
     let *x : u64
     x = 23 + 12
     x += 5
     test x
-#""""""
+""""""
 #let& e = c.CompileTo Expr
 #&e.Print
 

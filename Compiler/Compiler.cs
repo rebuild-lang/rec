@@ -34,6 +34,7 @@ namespace REC
                                 EvalExpression.Get(),
                                 SimpleMathIntrinsic<ulong, UlongMath>.Get(),
                                 CompilerInstance.Get(),
+                                AddCodeToCompiler.Get()
                             }
                         }
                     });
@@ -120,5 +121,9 @@ namespace REC
         }
 
         #endregion
+
+        public void AddCode(string codeLiteralContent) {
+            Console.WriteLine("AddCode: " + codeLiteralContent);
+        }
     }
 }
