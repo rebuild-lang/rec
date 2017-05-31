@@ -32,6 +32,7 @@ namespace REC.Parser
                 if (identifier == "let") return VariableDeclParser.Parse(tokens, context);
                 if (identifier == "fn") return FunctionDeclParser.Parse(tokens, context);
                 if (identifier == "module") return ModuleDeclParser.Parse(tokens, context);
+                if (identifier == "phase") return PhaseDeclParser.Parse(tokens, context);
                 if (identifier == "with") return null; // WithExpressionParser.Parse(tokens, context, ref done);
             }
             return ExpressionParser.ParseTuple(tokens, context);

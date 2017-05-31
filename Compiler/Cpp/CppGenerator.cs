@@ -27,6 +27,10 @@ namespace REC.Cpp
             foreach (var blockExpression in block.Expressions) Dynamic((dynamic) blockExpression, scope);
         }
 
+        static void Dynamic(IPhaseDeclaration phase, ICppScope scope) {
+            Dynamic(phase.Block, scope);
+        }
+
         // ReSharper disable once UnusedParameter.Local
         static string Dynamic(INumberLiteral numberLiteral, ICppScope scope) {
             return numberLiteral.IntegerPart;

@@ -127,18 +127,21 @@ namespace REC
             compiler.CompileFile(
                 new TextFile {
                     Content = @"
-fn (*l : u64) = (r : u64):
-    Rebuild.Assign l, r
+phase Expr:
+    fn (*l : u64) = (r : u64):
+        Rebuild.Assign l, r
+    end
+    fn (a : u64) + (b : u64) -> *r : u64:
+        r = Rebuild.Add a b
+    end
+    fn (*l : u64) += (r : u64):
+        l = l + r
+    end
+    fn test (x : u64):
+        Rebuild.Print x
+    end
 end
-fn (a : u64) + (b : u64) -> *r : u64:
-    r = Rebuild.Add a b
-end
-fn (*l : u64) += (r : u64):
-    l = l + r
-end
-fn test (x : u64):
-    Rebuild.Print x
-end
+
 let *x : u64
 x = 23 + 12
 test x

@@ -69,6 +69,7 @@
     <Compile Include="AST\ModuleReference.cs" />
     <Compile Include="AST\NamedExpressionTuple.cs" />
     <Compile Include="AST\NumberLiteral.cs" />
+    <Compile Include="AST\PhaseDeclaration.cs" />
     <Compile Include="AST\StringLiteral.cs" />
     <Compile Include="AST\TypedDeclaration.cs" />
     <Compile Include="AST\TypedReference.cs" />
@@ -86,6 +87,7 @@
     <Compile Include="Instance\Instance.cs" />
     <Compile Include="Instance\IntrinsicTypeModuleInstance.cs" />
     <Compile Include="Instance\ModuleInstance.cs" />
+    <Compile Include="Instance\PhaseInstance.cs" />
     <Compile Include="Instance\TypedInstance.cs" />
     <Compile Include="Instance\VariableInstance.cs" />
     <Compile Include="Intrinsic\API\EvalExpression.cs" />
@@ -122,6 +124,7 @@
     <Compile Include="Parser\OperatorLiteralSplitter.cs" />
     <Compile Include="Parser\OverloadInvocationBuilder.cs" />
     <Compile Include="Parser\BlockParser.cs" />
+    <Compile Include="Parser\PhaseDeclParser.cs" />
     <Compile Include="Parser\TokenIterator.cs" />
     <Compile Include="Parser\TokenPreparation.cs" />
     <Compile Include="Parser\VariableDeclParser.cs" />

@@ -10,6 +10,7 @@ namespace REC.Instance
     public interface IFunctionInstance : IInstance
     {
         IBindingLevel BindingLevel { get; set; }
+        IPhaseInstance Phase { get; set; }
 
         ArgumentInstanceCollection LeftArguments { get; }
         ArgumentInstanceCollection RightArguments { get; }
@@ -27,6 +28,7 @@ namespace REC.Instance
     {
         public override string Name { get; }
         public IBindingLevel BindingLevel { get; set; }
+        public IPhaseInstance Phase { get; set; }
 
         public ArgumentInstanceCollection LeftArguments { get; } = new ArgumentInstanceCollection();
         public ArgumentInstanceCollection RightArguments { get; } = new ArgumentInstanceCollection();
