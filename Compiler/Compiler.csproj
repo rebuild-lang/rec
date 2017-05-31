@@ -88,6 +88,8 @@
     <Compile Include="Instance\ModuleInstance.cs" />
     <Compile Include="Instance\TypedInstance.cs" />
     <Compile Include="Instance\VariableInstance.cs" />
+    <Compile Include="Intrinsic\API\DeclareFunction.cs" />
+    <Compile Include="Intrinsic\API\DeclareModule.cs" />
     <Compile Include="Intrinsic\API\EvalExpression.cs" />
     <Compile Include="Intrinsic\ArgumentAssignable.cs" />
     <Compile Include="Intrinsic\ArgumentUnrolled.cs" />

@@ -127,6 +127,9 @@ namespace REC
             compiler.CompileFile(
                 new TextFile {
                     Content = @"
+#Rebuild.DeclareFunction(fn, largs:Rebuild.LeftArguments, 
+#                            name:Rebuild.Identifier, rargs )
+
 fn (*l : u64) = (r : u64):
     Rebuild.Assign l, r
 end

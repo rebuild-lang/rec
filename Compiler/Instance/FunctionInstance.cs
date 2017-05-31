@@ -15,8 +15,6 @@ namespace REC.Instance
         ArgumentInstanceCollection RightArguments { get; }
         ArgumentInstanceCollection Results { get; }
 
-
-        // TODO: how are external functions handled? - another instance type?
         // For now use the simple form
         IFunctionDeclaration Declaration { get; }
 
