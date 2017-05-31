@@ -10,8 +10,16 @@ namespace REC.Tests.Scanner
         [TestCase(arg1: "\" \"", arg2: " ")]
         [TestCase(arg1: "\"text\"", arg2: "text")]
         [TestCase(arg1: "\"line1\nline2\"", arg2: "line1line2")]
-        [TestCase(arg1: "\"hello \\\"world\\\"\"", arg2: "hello \"world\"")]
-        [TestCase(arg1: "\"line1\\nline2\"", arg2: "line1\nline2")]
+        [TestCase(arg1: "\"line1  \nline2\"", arg2: "line1line2")]
+        [TestCase(arg1: @"""hello \""world\""""", arg2: "hello \"world\"")]
+        [TestCase(arg1: @"""line1\nline2""", arg2: "line1\nline2")]
+        [TestCase(arg1: @"""""""hello ""unit""""""""", arg2: "hello \"unit\"")]
+        [TestCase(arg1: "\"\"\"hello \"\"unit\"\"\"\"\"", arg2: "hello \"\"unit\"\"")]
+        [TestCase(arg1: "\"\"\"hello \"\"\"\"\"\"unit\"\"\"\"\"\"\"\"\"", arg2: "hello \"\"\"unit\"\"\"")]
+        [TestCase(arg1: @"""""""  
+line1  
+  line2
+""""""", arg2: "line1\n  line2")]
         public void ScanSuccess(string content, string output) {
             var input = new TextInputRange {
                 File = new TextFile {
