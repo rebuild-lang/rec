@@ -42,10 +42,12 @@ namespace REC.Cpp
         }
 
         static void Dynamic(IFunctionDeclaration functionDeclaration, ICppScope scope) {
+            if (functionDeclaration.IsCompileTimeOnly) return;
             DeclareFunction(functionDeclaration, scope);
         }
 
         static string Dynamic(IVariableDeclaration variableDeclaration, ICppScope scope) {
+            if (variableDeclaration.IsCompileTimeOnly) return string.Empty;
             DeclareVariable(variableDeclaration, scope);
             return string.Empty;
         }

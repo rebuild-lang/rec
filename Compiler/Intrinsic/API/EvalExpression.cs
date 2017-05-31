@@ -7,7 +7,7 @@ using REC.Execution;
 
 namespace REC.Intrinsic.API
 {
-    public class EvalExpression
+    static class EvalExpression
     {
         public static IFunctionIntrinsic Get() {
             return new FunctionIntrinsic {
