@@ -4,7 +4,7 @@
     {
         public static void Main(string[] args) {
             var compiler = new Compiler();
-            compiler.CompileFile(
+            compiler.AddTextFile(
                 new TextFile {
                     Content = @"
 phase Expr:
@@ -40,6 +40,7 @@ Rebuild.Eval test Rebuild.Add 23 32
 Rebuild.Print 42 + 22",
                     Filename = "Test.rebuild"
                 });
+            compiler.CompileToExecutable();
         }
     }
 }

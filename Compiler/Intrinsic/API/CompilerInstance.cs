@@ -20,7 +20,7 @@ namespace REC.Intrinsic.API
         [SuppressMessage(category: "ReSharper", checkId: "NotAccessedField.Local")]
         class ResultArguments : IResultArguments
         {
-            [ArgumentAssignable] public Compiler Compiler;
+            [ArgumentAssignable] public ICompiler Compiler;
         }
     }
 }

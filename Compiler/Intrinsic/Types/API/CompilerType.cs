@@ -5,7 +5,7 @@ namespace REC.Intrinsic.Types.API
 {
     static class CompilerType
     {
-        static readonly HandleCache<Compiler> Instances = new HandleCache<Compiler>();
+        static readonly HandleCache<ICompiler> Instances = new HandleCache<ICompiler>();
 
         public static ITypeModuleIntrinsic Get()
         {
@@ -13,7 +13,7 @@ namespace REC.Intrinsic.Types.API
             {
                 Name = "Compiler",
                 TypeSize = 8,
-                NetType = typeof(Compiler),
+                NetType = typeof(ICompiler),
                 ToNetType = ToNetType,
                 FromNetType = FromNetType,
                 IsCompileTimeOnly = true,
@@ -22,7 +22,7 @@ namespace REC.Intrinsic.Types.API
 
         static void FromNetType(dynamic net, byte[] bytes)
         {
-            var value = (Compiler)net;
+            var value = (ICompiler)net;
             var handle = Instances.GetHandle(value);
             Instances.AddRef(handle);
             BitConverter.GetBytes(handle).CopyTo(bytes, index: 0);

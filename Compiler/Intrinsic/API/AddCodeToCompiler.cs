@@ -16,12 +16,12 @@ namespace REC.Intrinsic.API
         }
 
         static void EvalCompileTime(RightArguments right) {
-            right.Compiler.AddCode(right.CodeLiteral.Content);
+            right.Compiler.AddCode(right.CodeLiteral.Content, right.CodeLiteral.Range.File.Filename, right.CodeLiteral.Range.Start);
         }
 
         class RightArguments : IRightArguments
         {
-            public Compiler Compiler;
+            public ICompiler Compiler;
             public IStringLiteral CodeLiteral;
         }
     }

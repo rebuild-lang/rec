@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using REC.AST;
 using REC.Cpp;
 using REC.Intrinsic;
@@ -10,10 +12,25 @@ using REC.Intrinsic.Types;
 using REC.Intrinsic.Types.API;
 using REC.Parser;
 using REC.Scanner;
+using REC.Tools;
 
 namespace REC
 {
-    class Compiler
+    public interface ICompiler
+    {
+        // used through the API to add static text
+        void AddCode(string code, string fileName = null, TextPosition position = null);
+
+        //void AddFromFile(string fileName);
+
+        void AddTextFile(TextFile file);
+
+        IEnumerable<IExpressionBlock> BuildAst();
+
+        void CompileToExecutable(string fileName = null);
+    }
+
+    class Compiler : ICompiler
     {
         readonly IContext _injectedContext = new Func<IContext>(
             () => {
@@ -41,20 +58,40 @@ namespace REC
                 return context;
             })();
 
-        public void CompileFile(TextFile file) {
-            var raw = TokenScanner.ScanFile(file);
-            var prepared = TokenPreparation.Prepare(raw);
-            var block = BlockLineGrouping.Group(prepared);
-            var ast = BlockParser.Parse(block, _injectedContext);
+        IList<TextFile> _files = new List<TextFile>();
+
+        public void AddCode(string code, string fileName = null, TextPosition position = null) {
+            Console.WriteLine("AddCode: " + code);
+            _files.Add(new TextFile{Content = code, Filename = fileName ?? "__Added__"});
+        }
+
+        public void AddTextFile(TextFile file) {
+            _files.Add(file);
+        }
+
+        public IEnumerable<IExpressionBlock> BuildAst() {
+            return _files.Select(
+                file => {
+                    var raw = TokenScanner.ScanFile(file);
+                    var prepared = TokenPreparation.Prepare(raw);
+                    var block = BlockLineGrouping.Group(prepared);
+                    return BlockParser.Parse(block, _injectedContext);
+                });
+        }
+
+        public void CompileToExecutable(string fileName = null) {
+            if (_files.IsEmpty()) return;
+            if (fileName == null) fileName = Path.ChangeExtension(_files.First().Filename, extension: "exe") ?? "test.exe";
 #if DEBUG
-            var cppFileName = Path.ChangeExtension(file.Filename, extension: "cpp") ?? "test.cpp"; // use this for debugging cpp output
+            var cppFileName = Path.ChangeExtension(fileName, extension: "cpp"); // use this for debugging cpp output
 #else
-            var cppFileName = $"{Path.GetTempPath()}{Path.GetFileNameWithoutExtension(file.Filename)}{Guid.NewGuid()}.cpp";
+            var cppFileName = $"{Path.GetTempPath()}{Path.GetFileNameWithoutExtension(fileName)}{Guid.NewGuid()}.cpp";
 #endif
-            using (var writer = File.CreateText(cppFileName)) {
-                CppGenerator.Generate(writer, ast);
+            using (var writer = File.CreateText(cppFileName))
+            {
+                foreach (var ast in BuildAst()) CppGenerator.Generate(writer, ast);
             }
-            RunCppCompiler(cppFileName, Path.ChangeExtension(file.Filename, extension: "exe"));
+            RunCppCompiler(cppFileName, fileName);
         }
 
         #region RunCppCompiler
@@ -121,9 +158,5 @@ namespace REC
         }
 
         #endregion
-
-        public void AddCode(string codeLiteralContent) {
-            Console.WriteLine("AddCode: " + codeLiteralContent);
-        }
     }
 }
