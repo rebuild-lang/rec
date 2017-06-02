@@ -14,7 +14,7 @@ namespace REC.Cpp
             writer.WriteLine(value: "#include <stdint.h>");
             writer.WriteLine(value: "#include <tuple>");
             var scope = new CppScope();
-            Dynamic(block, scope);
+            ProcessBlock(block, scope);
             foreach (var global in scope.Globals) writer.WriteLine(global.Value);
             writer.WriteLine(scope.Declaration.Build());
             writer.WriteLine(value: "int main(int argc, char** argv) {");
@@ -23,50 +23,43 @@ namespace REC.Cpp
             writer.WriteLine(value: "}");
         }
 
-        static void Dynamic(IExpressionBlock block, ICppScope scope) {
-            foreach (var blockExpression in block.Expressions) Dynamic((dynamic) blockExpression, scope);
+        static void ProcessBlock(IExpressionBlock block, ICppScope scope) {
+            foreach (var blockExpression in block.Expressions) ProcessExpression(blockExpression, scope);
         }
 
-        static void Dynamic(IPhaseDeclaration phase, ICppScope scope) {
-            Dynamic(phase.Block, scope);
-        }
-
-        // ReSharper disable once UnusedParameter.Local
-        static string Dynamic(INumberLiteral numberLiteral, ICppScope scope) {
-            return numberLiteral.IntegerPart;
-        }
-
-        // ReSharper disable once UnusedParameter.Local
-        static string Dynamic(ITypedReference typedReference, ICppScope scope) {
-            return typedReference.Instance.Name;
-        }
-
-        static void Dynamic(IFunctionDeclaration functionDeclaration, ICppScope scope) {
-            if (functionDeclaration.IsCompileTimeOnly) return;
-            DeclareFunction(functionDeclaration, scope);
-        }
-
-        static string Dynamic(IVariableDeclaration variableDeclaration, ICppScope scope) {
-            if (variableDeclaration.IsCompileTimeOnly) return string.Empty;
-            DeclareVariable(variableDeclaration, scope);
-            return string.Empty;
-        }
-
-        static void Dynamic(IIntrinsicExpression intrinsicExpression, ICppScope scope) {
-            intrinsicExpression.Intrinsic.GenerateCpp(new CppIntrinsic {Scope = scope});
-        }
-
-        static string Dynamic(IModuleReference moduleReference, ICppScope scope) {
-            return string.Empty;
-        }
-
-        static string Dynamic(INamedExpressionTuple expressionTuple, ICppScope scope) {
+        static string ProcessTuple(INamedExpressionTuple expressionTuple, ICppScope scope) {
             string result = null;
-            foreach (var sub in expressionTuple.Tuple) result = Dynamic((dynamic) sub.Expression, scope);
+            foreach (var sub in expressionTuple.Tuple) result = ProcessExpression(sub.Expression, scope);
             return result;
         }
 
-        static string Dynamic(IFunctionInvocation invocation, ICppScope scope) {
+        static string ProcessExpression(IExpression expression, ICppScope scope) {
+            switch (expression) {
+            case INumberLiteral numberLiteral: return numberLiteral.IntegerPart;
+            case ITypedReference typedReference: return typedReference.Instance.Name;
+            case IFunctionDeclaration functionDeclaration:
+                DeclareFunction(functionDeclaration, scope);
+                break;
+            case IVariableDeclaration variableDeclaration:
+                DeclareVariable(variableDeclaration, scope);
+                break;
+            case IPhaseDeclaration phase:
+                break;
+            case IIntrinsicExpression intrinsicExpression:
+                intrinsicExpression.Intrinsic.GenerateCpp(new CppIntrinsic {Scope = scope});
+                break;
+            case IModuleReference moduleReference:
+                // TODO
+                break;
+            case INamedExpressionTuple expressionTuple:
+                return ProcessTuple(expressionTuple, scope);
+            case IFunctionInvocation invocation:
+                return ProcessInvocation(invocation, scope);
+            }
+            return string.Empty;
+        }
+
+        static string ProcessInvocation(IFunctionInvocation invocation, ICppScope scope) {
             var function = invocation.Function;
             var declaration = function.Declaration;
             if (declaration.Implementation.Expressions.Count == 1 &&
@@ -84,11 +77,12 @@ namespace REC.Cpp
         }
 
         static void DeclareVariable(IVariableDeclaration variable, ICppScope scope) {
+            if (variable.IsCompileTimeOnly) return;
             var typeName = GetArgumentTypeName(variable.Type);
             var varName = CppEscape(variable.Name);
             scope.Runtime.AddLine($"{typeName} {varName};");
             if (variable.Value != null) {
-                scope.Runtime.AddLine($"{varName} = {Dynamic((dynamic) variable.Value, scope)}");
+                scope.Runtime.AddLine($"{varName} = {ProcessExpression(variable.Value, scope)}");
             }
         }
 
@@ -138,7 +132,7 @@ namespace REC.Cpp
             foreach (var expression in expressions.Tuple) {
                 var argument = arguments[argN];
                 argN++;
-                var value = Dynamic((dynamic) expression.Expression, scope);
+                var value = ProcessExpression(expression.Expression, scope);
                 if (argument.IsAssignable) {
                     scope.Runtime.AddLine($"{name}.{CppEscape(argument.Name)} = &{value};");
                 }
@@ -158,6 +152,7 @@ namespace REC.Cpp
         }
 
         static void DeclareFunction(IFunctionDeclaration function, ICppScope scope) {
+            if (function.IsCompileTimeOnly) return;
             DeclareArguments(function, function.LeftArguments, scope, kind: "Left");
             DeclareArguments(function, function.RightArguments, scope, kind: "Right");
             DeclareArguments(function, function.Results, scope, kind: "Result");
@@ -190,7 +185,7 @@ namespace REC.Cpp
                     MakeArgumentLocals(function.RightArguments, rightLocal, innerScope);
                     MakeResultLocals(function.Results, innerScope);
 
-                    Dynamic(function.Implementation, innerScope);
+                    ProcessBlock(function.Implementation, innerScope);
 
                     if (!noResult) {
                         var resultLocal = scope.MakeLocalName(hint: "result");

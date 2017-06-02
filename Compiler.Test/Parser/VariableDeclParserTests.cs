@@ -57,7 +57,7 @@ namespace REC.Tests.Parser
                 var variableDecl = VariableDeclParser.Parse(it, data.Context);
                 Assert.That(it.Done, Is.True);
                 AssertVariableDecl(data.Output, (dynamic) variableDecl);
-                AssertVariableInstance(data.Output, (dynamic) data.Context.Identifiers[data.Output.Name]);
+                AssertVariableInstance(data.Output, (IVariableInstance) data.Context.Identifiers[data.Output.Name]);
             }
         }
 
