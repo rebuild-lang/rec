@@ -109,12 +109,12 @@ namespace REC.Parser
                 }
                 var previous = current;
                 if (previous.Type == Token.IdentifierLiteral || previous.Type == Token.OperatorLiteral)
-                    MarkLeftSeparator((dynamic) previous.Data); // first identifier has space on the left
+                    MarkLeftSeparator((IIdentifierLiteral) previous.Data); // first identifier has space on the left
                 while (it.MoveNext()) {
                     var previousOrSkippedType = current.Type;
                     current = it.Current;
                     if (previous.Type == Token.IdentifierLiteral || previous.Type == Token.OperatorLiteral) {
-                        if (current.Type.IsRightSeparator()) MarkRightSeparator((dynamic) previous.Data);                       
+                        if (current.Type.IsRightSeparator()) MarkRightSeparator((IIdentifierLiteral) previous.Data);                       
                     }
                     if (previous.Type == Token.ColonSeparator)
                     {
@@ -151,7 +151,7 @@ namespace REC.Parser
                             if (previous.Type == Token.NewLineIndentation) continue; // skip double newlines
                             break;
                         case Token.OperatorLiteral:
-                            if (previousOrSkippedType.IsLeftSeparator()) MarkLeftSeparator((dynamic) current.Data);
+                            if (previousOrSkippedType.IsLeftSeparator()) MarkLeftSeparator((IIdentifierLiteral) current.Data);
                             break;
                         case Token.IdentifierLiteral:
                             if (previous.Type == Token.NewLineIndentation && current.Range.Text == "end") {
@@ -159,7 +159,7 @@ namespace REC.Parser
                                 current = previous; // setup for previousOrSkippedType
                                 continue; // skip "end" token
                             }
-                            if (previousOrSkippedType.IsLeftSeparator()) MarkLeftSeparator((dynamic) current.Data);
+                            if (previousOrSkippedType.IsLeftSeparator()) MarkLeftSeparator((IIdentifierLiteral) current.Data);
                             break;
                     }
                     lastYieldType = previous.Type;
@@ -167,7 +167,7 @@ namespace REC.Parser
                     previous = current;
                 }
                 if (previous.Type == Token.IdentifierLiteral || previous.Type == Token.OperatorLiteral)
-                    MarkRightSeparator((dynamic) previous.Data); // last identifier has space on the right
+                    MarkRightSeparator((IIdentifierLiteral) previous.Data); // last identifier has space on the right
                 if (previous.Type != Token.NewLineIndentation) yield return previous;
             }
         }
