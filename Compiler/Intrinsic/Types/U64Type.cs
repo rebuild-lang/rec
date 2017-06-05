@@ -1,5 +1,6 @@
 ﻿using System;
 using REC.AST;
+using REC.Cpp;
 
 namespace REC.Intrinsic.Types
 {
@@ -12,8 +13,14 @@ namespace REC.Intrinsic.Types
                 FromExpression = FromExpression,
                 NetType = typeof(ulong),
                 ToNetType = ToNetType,
-                FromNetType = FromNetType
+                FromNetType = FromNetType,
+                GenerateCpp = GenerateCpp,
             };
+        }
+
+        static string GenerateCpp(byte[] bytes, ICppIntrinsic cpp) {
+            var value = BitConverter.ToUInt64(bytes, startIndex: 0);
+            return value.ToString();
         }
 
         static void FromNetType(dynamic net, byte[] bytes) {

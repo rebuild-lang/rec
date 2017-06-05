@@ -56,8 +56,19 @@ namespace REC.Cpp
                 return ProcessTuple(expressionTuple, scope);
             case IFunctionInvocation invocation:
                 return ProcessInvocation(invocation, scope);
+            case ITypedValue value:
+                return ProcessValue(value, scope);
+            default:
+                throw new ArgumentOutOfRangeException($"unhandled expression type {expression.GetType().FullName}");
             }
             return string.Empty;
+        }
+
+        static string ProcessValue(ITypedValue value, ICppScope scope) {
+            if (value.Type == null) return string.Empty; // error no type
+            var generateCpp = value.Type.GetGenerateCpp();
+            if (generateCpp == null) return string.Empty; // TODO: allow Rebuild impl
+            return generateCpp(value.Data, new CppIntrinsic {Scope = scope});
         }
 
         static string ProcessInvocation(IFunctionInvocation invocation, ICppScope scope) {

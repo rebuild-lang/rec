@@ -37,7 +37,7 @@ let & *y : u64
 # &Rebuild.Print y
 
 Rebuild.Eval test Rebuild.Add 23 32
-Rebuild.Print 42 + 22",
+Rebuild.Print 42 + Rebuild.Eval(12 + 10)",
                     Filename = "Test.rebuild"
                 });
             compiler.CompileToExecutable();

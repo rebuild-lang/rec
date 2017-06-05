@@ -1,5 +1,6 @@
 using System;
 using REC.AST;
+using REC.Cpp;
 
 namespace REC.Intrinsic
 {
@@ -14,6 +15,8 @@ namespace REC.Intrinsic
         Action<byte[], ITypeModuleIntrinsic, byte[]> ImplicitFrom { get; }
 
         Func<byte[], IExpression, ExpressionConversion> FromExpression { get; }
+
+        Func<byte[], ICppIntrinsic, string> GenerateCpp { get; }
 
         Type NetType { get; }
         Func<byte[], dynamic> ToNetType { get; }
