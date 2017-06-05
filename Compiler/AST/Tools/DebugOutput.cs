@@ -54,179 +54,226 @@ namespace REC.AST.Tools
             }
 
             return new Walker {
-                EnterNode = expr => {
+                Visitor = (expr, @event) => {
+                    if (expr == null) return EnterResponse.None;
                     switch (expr) {
                     case IArgumentDeclaration argument:
                         if (Types.HasFlag(DebugTypes.ArgumentDeclarations)) {
-                            Out.Write($"\n{indentation}argument `{argument.Name}` (type: `{GetTypeName(argument.Type)}`)");
-                            if (null != argument.Value) {
-                                Indent();
-                                Out.Write(value: ":");
+                            switch (@event) {
+                            case NodeEvent.Enter:
+                                Out.Write($"\n{indentation}argument `{argument.Name}` (type: `{GetTypeName(argument.Type)}`)");
+                                if (null != argument.Value) {
+                                    Indent();
+                                    Out.Write(value: ":");
+                                }
+                                return EnterResponse.OpenExpression;
+                            case NodeEvent.Leave:
+                                if (null != argument.Value) Unindent();
+                                break;
                             }
-                            return EnterResponse.OpenExpression;
                         }
                         break;
                     case IExpressionBlock _:
                         if (Types.HasFlag(DebugTypes.ExpressionBlocks)) {
-                            Out.Write(value: "block:");
-                            Indent();
-                            return EnterResponse.OpenBlock;
+                            switch (@event) {
+                            case NodeEvent.Enter:
+                                Out.Write(value: "block:");
+                                Indent();
+                                return EnterResponse.OpenBlock;
+                            case NodeEvent.Leave:
+                                Unindent();
+                                break;
+                            }
                         }
                         break;
                     case IFunctionDeclaration function:
                         if (Types.HasFlag(DebugTypes.FunctionDeclarations)) {
-                            Out.Write($"\n{indentation}function `{function.Name}`:");
-                            Indent();
-                            return Types.HasFlag(DebugTypes.FunctionImplementations) ? EnterResponse.OpenFunction : EnterResponse.OpenDeclarations;
+                            switch (@event) {
+                            case NodeEvent.Enter:
+                                Out.Write($"\n{indentation}function `{function.Name}`:");
+                                Indent();
+                                return Types.HasFlag(DebugTypes.FunctionImplementations)
+                                    ? EnterResponse.OpenFunction
+                                    : EnterResponse.OpenDeclarations;
+                            case NodeEvent.Leave:
+                                Unindent(levels: 2);
+                                Out.Write(value: "\n");
+                                break;
+                            case NodeEvent.Left:
+                                Out.Write($"\n{indentation}left:");
+                                Indent();
+                                break;
+                            case NodeEvent.Right:
+                                Unindent();
+                                Out.Write($"\n{indentation}right:");
+                                Indent();
+                                break;
+                            case NodeEvent.Result:
+                                Unindent();
+                                Out.Write($"\n{indentation}results:");
+                                Indent();
+                                break;
+                            case NodeEvent.Implementation:
+                                Unindent();
+                                Out.Write($"\n{indentation}implementation:");
+                                Indent();
+                                break;
+                            }
                         }
                         break;
                     case IFunctionInvocation invocation:
                         if (Types.HasFlag(DebugTypes.FunctionInvocations)) {
-                            Out.Write($"\n{indentation}invoke `{invocation.Function.Name}`:");
-                            Indent();
-                            return EnterResponse.OpenExpression;
+                            switch (@event) {
+                            case NodeEvent.Enter:
+                                Out.Write($"\n{indentation}invoke `{invocation.Function.Name}`:");
+                                Indent();
+                                return EnterResponse.OpenExpression;
+                            case NodeEvent.Leave:
+                                Unindent();
+                                break;
+                            case NodeEvent.Left:
+                                Out.Write($"\n{indentation}left:");
+                                Indent();
+                                break;
+                            case NodeEvent.Right:
+                                Unindent();
+                                Out.Write($"\n{indentation}right:");
+                                Indent();
+                                break;
+                            }
                         }
                         break;
                     case IIdentifierLiteral identifier:
-                        Out.Write($"\n{indentation}id `{identifier.Content}`");
+                        switch (@event) {
+                        case NodeEvent.Enter:
+                            Out.Write($"\n{indentation}id `{identifier.Content}`");
+                            break;
+                        }
                         break;
                     case IIntrinsicExpression intrinsic:
-                        Out.Write($"\n{indentation}intrinsic `{intrinsic.Intrinsic.Name}`");
+                        switch (@event) {
+                        case NodeEvent.Enter:
+                            Out.Write($"\n{indentation}intrinsic `{intrinsic.Intrinsic.Name}`");
+                            break;
+                        }
                         break;
                     case IModuleDeclaration module:
                         if (Types.HasFlag(DebugTypes.ModuleDeclarations)) {
-                            Out.Write($"\n{indentation}module `{module.Name}`:");
-                            Indent();
-                            return EnterResponse.OpenBlock;
+                            switch (@event) {
+                            case NodeEvent.Enter:
+                                Out.Write($"\n{indentation}module `{module.Name}`:");
+                                Indent();
+                                return EnterResponse.OpenBlock;
+                            case NodeEvent.Leave:
+                                Unindent();
+                                break;
+                            }
                         }
                         break;
                     case IModuleReference reference:
-                        Out.Write($"\n{indentation}reference `{reference.Reference.Name}`");
+                        switch (@event) {
+                        case NodeEvent.Enter:
+                            Out.Write($"\n{indentation}reference `{reference.Reference.Name}`");
+                            break;
+                        }
                         break;
                     case INamedExpression named:
                         if (!string.IsNullOrEmpty(named.Name)) {
-                            Out.Write($"\n{indentation}named `{named.Name}`:");
-                            Indent();
+                            switch (@event) {
+                            case NodeEvent.Enter:
+                                Out.Write($"\n{indentation}named `{named.Name}`:");
+                                Indent();
+                                break;
+                            case NodeEvent.Leave:
+                                Unindent();
+                                break;
+                            }
                         }
                         return EnterResponse.OpenExpression;
                     case INamedExpressionTuple tuple:
-                        if (!tuple.Tuple.IsEmpty()) {
-                            Out.Write($"\n{indentation}tuple:");
-                            Indent();
+                        if (tuple.Tuple.IsEmpty()) break;
+                        if (tuple.Tuple.Count > 1) {
+                            switch (@event) {
+                            case NodeEvent.Enter:
+                                Out.Write($"\n{indentation}tuple:");
+                                Indent();
+                                break;
+                            case NodeEvent.Leave:
+                                Unindent();
+                                break;
+                            }
                         }
                         return EnterResponse.OpenExpression;
                     case INumberLiteral number:
-                        Out.Write($"\n{indentation}number `{number.IntegerPart}`");
+                        switch (@event) {
+                        case NodeEvent.Enter:
+                            Out.Write($"\n{indentation}number `{number.IntegerPart}`");
+                            break;
+                        }
                         break;
                     case IPhaseDeclaration phase:
                         if (Types.HasFlag(DebugTypes.PhaseDeclarations)) {
-                            Out.Write($"\n{indentation}phase `{phase.Name}`:");
-                            Indent();
-                            return EnterResponse.OpenBlock;
+                            switch (@event) {
+                            case NodeEvent.Enter:
+                                Out.Write($"\n{indentation}phase `{phase.Name}`:");
+                                Indent();
+                                return EnterResponse.OpenBlock;
+                            case NodeEvent.Leave:
+                                Unindent();
+                                break;
+                            }
                         }
                         break;
                     case IStringLiteral str:
-                        Out.Write($"\n{indentation}string `{str.Content}`");
+                        switch (@event) {
+                        case NodeEvent.Enter:
+                            Out.Write($"\n{indentation}string `{str.Content}`");
+                            break;
+                        }
                         break;
                     case ITypedReference reference:
-                        Out.Write($"\n{indentation}reference `{reference.Instance.Name}` (type: `{GetTypeName(reference.Type)}`)");
+                        switch (@event) {
+                        case NodeEvent.Enter:
+                            Out.Write($"\n{indentation}reference `{reference.Instance.Name}` (type: `{GetTypeName(reference.Type)}`)");
+                            break;
+                        }
                         break;
                     case ITypedValue value:
-                        Out.Write($"\n{indentation}value (type: `{value.Type.Name}`)");
+                        switch (@event) {
+                        case NodeEvent.Enter:
+                            Out.Write($"\n{indentation}value `{GetValueRepr(value)}` (type: `{value.Type.Name}`)");
+                            break;
+                        }
                         break;
                     case IVariableDeclaration variable:
-                        Out.Write($"\n{indentation}varable `{variable.Name}` (type: `{GetTypeName(variable.Type)}`)");
-                        if (null != variable.Value) {
-                            Indent();
-                            Out.Write(value: ":");
+                        switch (@event) {
+                        case NodeEvent.Enter:
+                            Out.Write($"\n{indentation}varable `{variable.Name}` (type: `{GetTypeName(variable.Type)}`)");
+                            if (null != variable.Value) {
+                                Indent();
+                                Out.Write(value: ":");
+                            }
+                            return EnterResponse.OpenExpression;
+                        case NodeEvent.Leave:
+                            if (null != variable.Value) Unindent();
+                            break;
                         }
-                        return EnterResponse.OpenExpression;
+                        break;
                     default:
                         Out.Write($"Unknown Node Type {expr.GetType().FullName}");
                         break;
                     }
                     return EnterResponse.None;
-                },
-                UpdateNode = (expr, state) => {
-                    switch (expr) {
-                    case null:
-                        //Out.Write($"\n{indentation}");
-                        break;
-
-                    case IFunctionDeclaration _:
-                        switch (state) {
-                        case NodeState.Left:
-                            Out.Write($"\n{indentation}left:");
-                            Indent();
-                            break;
-                        case NodeState.Right:
-                            Unindent();
-                            Out.Write($"\n{indentation}right:");
-                            Indent();
-                            break;
-                        case NodeState.Result:
-                            Unindent();
-                            Out.Write($"\n{indentation}results:");
-                            Indent();
-                            break;
-                        case NodeState.Implementation:
-                            Unindent();
-                            Out.Write($"\n{indentation}implementation:");
-                            Indent();
-                            break;
-                        }
-                        break;
-
-                    case IFunctionInvocation _:
-                        switch (state) {
-                        case NodeState.Left:
-                            Out.Write($"\n{indentation}left:");
-                            Indent();
-                            break;
-                        case NodeState.Right:
-                            Unindent();
-                            Out.Write($"\n{indentation}right:");
-                            Indent();
-                            break;
-                        }
-                        break;
-                    }
-                },
-                LeaveNode = expr => {
-                    switch (expr) {
-                    case IArgumentDeclaration argument:
-                        if (Types.HasFlag(DebugTypes.ArgumentDeclarations)) {
-                            if (null != argument.Value) Unindent();
-                        }
-                        break;
-                    case IExpressionBlock _:
-                        if (Types.HasFlag(DebugTypes.ExpressionBlocks)) Unindent();
-                        break;
-                    case IFunctionDeclaration _:
-                        if (Types.HasFlag(DebugTypes.FunctionDeclarations)) Unindent(levels: 2);
-                        Out.Write(value: "\n");
-                        break;
-                    case IFunctionInvocation _:
-                        if (Types.HasFlag(DebugTypes.FunctionInvocations)) Unindent(levels: 2);
-                        break;
-                    case IModuleDeclaration _:
-                        if (Types.HasFlag(DebugTypes.ModuleDeclarations)) Unindent();
-                        break;
-                    case INamedExpression named:
-                        if (!string.IsNullOrEmpty(named.Name)) Unindent();
-                        break;
-                    case INamedExpressionTuple tuple:
-                        if (!tuple.Tuple.IsEmpty()) Unindent();
-                        break;
-                    case IPhaseDeclaration _:
-                        if (Types.HasFlag(DebugTypes.PhaseDeclarations)) Unindent();
-                        break;
-                    case IVariableDeclaration variable:
-                        if (null != variable.Value) Unindent();
-                        break;
-                    }
                 }
             };
+        }
+
+        static string GetValueRepr(ITypedValue value) {
+            if (null == value.Type) return "<untyped>";
+            var toNet = value.Type.GetToNetType();
+            if (null == toNet) return "<unknown>";
+            var net = toNet(value.Data);
+            return net.ToString();
         }
 
         static string GetTypeName(IModuleInstance type) {

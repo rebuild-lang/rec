@@ -3,9 +3,7 @@ using System.Collections.Generic;
 
 namespace REC.AST.Tools
 {
-    using EnterFunc = Func<IExpression, EnterResponse>;
-    using UpdateAction = Action<IExpression, NodeState>;
-    using LeaveAction = Action<IExpression>;
+    using VisitorFunc = Func<IExpression, NodeEvent, EnterResponse>;
 
     [Flags]
     enum EnterResponse
@@ -17,29 +15,37 @@ namespace REC.AST.Tools
         OpenFunction = OpenBlock | OpenDeclarations,
     }
 
-    enum NodeState
+    enum NodeEvent
     {
-        Left,
-        Right,
-        Result,
-        Implementation,
-        BlockExpression
+        Enter, // node is visited for first time
+        Leave, // node is visited for last time
+        Left, // left part of expression / arguments
+        Right, // right part of expression / arguments
+        Result, // result arguments
+        Implementation, // function implementation
+        BlockExpression,
     }
 
     interface IWalker
     {
-        EnterFunc EnterNode { get; }
-        UpdateAction UpdateNode { get; }
-        LeaveAction LeaveNode { get; }
+        VisitorFunc Visitor { get; }
 
         void Walk(IExpression expression);
     }
 
     class Walker : IWalker
     {
-        public EnterFunc EnterNode { get; set; } = _ => EnterResponse.None;
-        public UpdateAction UpdateNode { get; set; } = (_, __) => { };
-        public LeaveAction LeaveNode { get; set; } = _ => { };
+        public VisitorFunc Visitor { get; set; } = (_, __) => EnterResponse.None;
+
+        EnterResponse EnterNode(IExpression expr) {
+            return Visitor(expr, NodeEvent.Enter);
+        }
+        void UpdateNode(IExpression expr, NodeEvent @event) {
+            Visitor(expr, @event);
+        }
+        void LeaveNode(IExpression expr) {
+            Visitor(expr, NodeEvent.Leave);
+        }
 
         public void Walk(IExpression expression) {
             if (null == expression) return;
@@ -54,23 +60,23 @@ namespace REC.AST.Tools
                     break;
                 case IFunctionDeclaration function:
                     if (response.HasFlag(EnterResponse.OpenDeclarations)) {
-                        UpdateNode(function, NodeState.Left);
+                        UpdateNode(function, NodeEvent.Left);
                         Walk(function.LeftArguments);
-                        UpdateNode(function, NodeState.Right);
+                        UpdateNode(function, NodeEvent.Right);
                         Walk(function.RightArguments);
-                        UpdateNode(function, NodeState.Result);
+                        UpdateNode(function, NodeEvent.Result);
                         Walk(function.Results);
                     }
                     if (response.HasFlag(EnterResponse.OpenBlock)) {
-                        UpdateNode(function, NodeState.Implementation);
+                        UpdateNode(function, NodeEvent.Implementation);
                         Walk(function.Implementation.Expressions);
                     }
                     break;
                 case IFunctionInvocation invocation:
                     if (response.HasFlag(EnterResponse.OpenExpression)) {
-                        UpdateNode(invocation, NodeState.Left);
+                        UpdateNode(invocation, NodeEvent.Left);
                         Walk(invocation.Left);
-                        UpdateNode(invocation, NodeState.Right);
+                        UpdateNode(invocation, NodeEvent.Right);
                         Walk(invocation.Right);
                     }
                     break;
