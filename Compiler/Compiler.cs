@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using REC.AST;
+using REC.AST.Tools;
 using REC.Cpp;
 using REC.Intrinsic;
 using REC.Intrinsic.API;
@@ -58,7 +59,7 @@ namespace REC
                 return context;
             })();
 
-        IList<TextFile> _files = new List<TextFile>();
+        readonly IList<TextFile> _files = new List<TextFile>();
 
         public void AddCode(string code, string fileName = null, TextPosition position = null) {
             Console.WriteLine("AddCode: " + code);
@@ -74,8 +75,10 @@ namespace REC
                 file => {
                     var raw = TokenScanner.ScanFile(file);
                     var prepared = TokenPreparation.Prepare(raw);
-                    var block = BlockLineGrouping.Group(prepared);
-                    return BlockParser.Parse(block, _injectedContext);
+                    var blockLiteral = BlockLineGrouping.Group(prepared);
+                    var ast = BlockParser.Parse(blockLiteral, _injectedContext);
+                    //new DebugOutput().Print(ast);
+                    return ast;
                 });
         }
 

@@ -4,7 +4,7 @@ namespace REC.AST
 {
     using NamedExpressionCollection = NamedCollection<INamedExpression>;
 
-    public interface INamedExpression : INamed
+    public interface INamedExpression : IExpression, INamed
     {
         // name might be null if expression was not named
 
@@ -16,7 +16,7 @@ namespace REC.AST
         NamedExpressionCollection Tuple { get; }
     }
 
-    struct NamedExpression : INamedExpression
+    class NamedExpression : Expression, INamedExpression
     {
         public string Name { get; set; }
         public IExpression Expression { get; set; }

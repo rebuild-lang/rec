@@ -44,11 +44,12 @@ namespace REC.Cpp
                 DeclareVariable(variableDeclaration, scope);
                 break;
             case IPhaseDeclaration phase:
+                ProcessBlock(phase.Block, scope);
                 break;
             case IIntrinsicExpression intrinsicExpression:
                 intrinsicExpression.Intrinsic.GenerateCpp(new CppIntrinsic {Scope = scope});
                 break;
-            case IModuleReference moduleReference:
+            case IModuleReference _:
                 // TODO
                 break;
             case INamedExpressionTuple expressionTuple:

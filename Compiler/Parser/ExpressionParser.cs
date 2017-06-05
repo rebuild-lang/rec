@@ -112,7 +112,8 @@ namespace REC.Parser
             while (tokens.Active) {
                 var expressionName = ParseExpressionName(tokens);
                 var expression = Parse(tokens, context);
-                if (null != expression) {
+                if (null != expressionName ||
+                    null != expression && !(expression is INamedExpressionTuple tuple && tuple.Tuple.IsEmpty())) {
                     result.Tuple.Add(new NamedExpression {Expression = expression, Name = expressionName});
                 }
 
@@ -207,9 +208,9 @@ namespace REC.Parser
                 && tuple.Tuple.Count == 1
                 && tuple.Tuple.First().Expression is ITypedValue value
                 && value.Type.Name == "Expression") {
-                return value.Type.GetToNetType()(value.Data);
+                result = value.Type.GetToNetType()(value.Data);
             }
-            return result;
+            return result ?? new NamedExpressionTuple(); // empty tuple marks no result! (null is failed)
         }
 
         static IExpressionParser ParserForType(IModuleInstance type, IContext context) {

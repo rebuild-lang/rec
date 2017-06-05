@@ -71,6 +71,8 @@
     <Compile Include="AST\NumberLiteral.cs" />
     <Compile Include="AST\PhaseDeclaration.cs" />
     <Compile Include="AST\StringLiteral.cs" />
+    <Compile Include="AST\Tools\DebugOutput.cs" />
+    <Compile Include="AST\Tools\Walker.cs" />
     <Compile Include="AST\TypedDeclaration.cs" />
     <Compile Include="AST\TypedReference.cs" />
     <Compile Include="AST\TypedValue.cs" />

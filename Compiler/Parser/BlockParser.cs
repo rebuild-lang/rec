@@ -1,5 +1,6 @@
 ﻿using REC.AST;
 using REC.Scanner;
+using REC.Tools;
 
 namespace REC.Parser
 {
@@ -17,7 +18,7 @@ namespace REC.Parser
                 using (var it = tokens.GetIterator()) {
                     if (it.Active) {
                         var expression = ParseLineExpression(it, context);
-                        if (expression != null)
+                        if (expression != null && !(expression is INamedExpressionTuple tuple && tuple.Tuple.IsEmpty()))
                             block.Expressions.Add(expression);
                     }
                 }
