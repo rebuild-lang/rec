@@ -132,7 +132,7 @@ namespace REC.Parser
             return result;
         }
 
-        internal static string ParseExpressionName(ITokenIterator tokens) {
+        static string ParseExpressionName(ITokenIterator tokens) {
             if (!tokens.HasNext) return null;
             var token = tokens.Current;
             if (token.Type != Token.IdentifierLiteral || tokens.Next.Type != Token.ColonSeparator) return null;
@@ -213,6 +213,7 @@ namespace REC.Parser
             return result ?? new NamedExpressionTuple(); // empty tuple marks no result! (null is failed)
         }
 
+        // ReSharper disable once UnusedParameter.Local
         static IExpressionParser ParserForType(IModuleInstance type, IContext context) {
             if (null == type) return null;
             //if (type.Name == "Expression") return new EpressionLiteralParser();

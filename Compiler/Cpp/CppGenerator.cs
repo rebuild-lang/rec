@@ -250,6 +250,7 @@ namespace REC.Cpp
             scope.Declaration.AddLine(line: "};");
         }
 
+        // ReSharper disable once UnusedParameter.Local
         static string GetArgumentTypeName(IModuleInstance argumentType) {
             return "uint64_t"; // TODO: make this real
         }

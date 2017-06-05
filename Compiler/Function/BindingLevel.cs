@@ -36,7 +36,8 @@ namespace REC.Function
 
     public static class BindingLevelFactory
     {
-        static IBindingLevel Create(IFunctionDeclaration declaration, Associativity associativity) {
+        // ReSharper disable once UnusedParameter.Local
+        public static IBindingLevel Create(IFunctionDeclaration declaration, Associativity associativity) {
             var result = new BindingLevel {Associaticity = associativity};
             // add syntax pattern
             return result;

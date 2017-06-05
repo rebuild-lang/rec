@@ -111,6 +111,7 @@ namespace REC.Parser
             return result;
         }
 
+        // ReSharper disable once UnusedParameter.Local
         static bool CanImplicitConvertExpressionTo(IExpression givenArgExpression, IModuleInstance fArgType) {
             return true;
         }
