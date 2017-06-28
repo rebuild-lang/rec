@@ -3,6 +3,7 @@ using System.Linq;
 using System.IO;
 using System.Text;
 using System;
+using REC.Tools;
 
 namespace REC.Packaging.PortableExecutable
 {
@@ -10,12 +11,13 @@ namespace REC.Packaging.PortableExecutable
     {
         ImageHeader Header { get; } = ImageHeader.WithDefaultSections();
         byte[] Code;
-        private byte[] RData;
+        private byte[] IData;
         byte[] Data;
+        byte[] Reloc;
 
         private static uint Padding(uint value, uint alignment)
         {
-            return alignment - value % alignment;
+            return (alignment - (value % alignment));
         }
 
         private static uint AlignTo(uint value, uint alignment)
@@ -32,10 +34,11 @@ namespace REC.Packaging.PortableExecutable
         {
             // dummy data
             Code = new byte[] {
-                0x6A, 0x05, // push 5
+                //0x6A, 0x05, // push 5
+                0xE8, 0x00, 0x00, 0x00, 0x00, // call ip + 0x5
                 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00 // call dword ptr ds:0
             };
-            var codeAddressReplacement = 4u;
+            var codeAddressReplacement = 7u; // 4u;
 
             // headers
             var HeaderDataSize = DosHeader.WriteSize + Header.WriteSize;
@@ -60,9 +63,9 @@ namespace REC.Packaging.PortableExecutable
             }
             Header.AddressOfEntryPoint = CodeVirtualAddress;
 
-            // read only data
-            var RDataFileOffset = CodeFileOffset + CodeFileSize;
-            var RDataVirtualAddress = CodeVirtualAddress + CodeVirtualSize;
+            // import data
+            var IDataFileOffset = CodeFileOffset + CodeFileSize;
+            var IDataVirtualAddress = CodeVirtualAddress + CodeVirtualSize;
             using (var ms = new MemoryStream())
             {
                 using (var bw = new BinaryWriter(ms))
@@ -79,7 +82,7 @@ namespace REC.Packaging.PortableExecutable
                                 }
                             }
                         }
-                    }, Header.Magic, RDataVirtualAddress);
+                    }, Header.Magic, IDataVirtualAddress);
 
                     Header.DataDirectories[(uint)DataDirectoryIndex.ImportTable].VirtualAddress = import.ImportTableRVA;
                     Header.DataDirectories[(uint)DataDirectoryIndex.ImportTable].Size = import.ImportTableSize;
@@ -92,22 +95,22 @@ namespace REC.Packaging.PortableExecutable
 
                     import.Write(bw);
                 }
-                RData = ms.ToArray();
+                IData = ms.ToArray();
             }
-            var RDataSize = (uint)RData.Length;
-            var RDataFileSize = AlignTo(RDataSize, Header.FileAlignment);
-            var RDataVirtualSize = AlignTo(RDataSize, Header.SectionAlignment);
+            var IDataSize = (uint)IData.Length;
+            var IDataFileSize = AlignTo(IDataSize, Header.FileAlignment);
+            var IDataVirtualSize = AlignTo(IDataSize, Header.SectionAlignment);
             {
-                var rdata = Header.RDataSection;
-                rdata.VirtualSize = RDataSize;
-                rdata.SizeOfRawData = RDataFileSize;
-                rdata.VirtualAddress = RDataVirtualAddress;
-                rdata.PointerToRawData = RDataFileOffset;
+                var idata = Header.IDataSection;
+                idata.VirtualSize = IDataSize;
+                idata.SizeOfRawData = IDataFileSize;
+                idata.VirtualAddress = IDataVirtualAddress;
+                idata.PointerToRawData = IDataFileOffset;
             }
 
             // data section
-            var DataFileOffset = RDataFileOffset + RDataFileSize;
-            var DataVirtualAddress = RDataVirtualAddress + RDataVirtualSize;
+            var DataFileOffset = IDataFileOffset + IDataFileSize;
+            var DataVirtualAddress = IDataVirtualAddress + IDataVirtualSize;
             using (var ms = new MemoryStream())
             {
                 Data = ms.ToArray();
@@ -123,12 +126,49 @@ namespace REC.Packaging.PortableExecutable
                 data.VirtualAddress = DataVirtualAddress;
                 data.PointerToRawData = DataFileOffset;
             }
+            Header.SizeOfInitializedData = DataFileSize;
+
+            // reloc section
+            var RelocFileOffset = DataFileOffset + DataFileSize;
+            var RelocVirtualAddress = DataVirtualAddress + DataVirtualSize;
+            using (var ms = new MemoryStream())
+            {
+                using (var bw = new BinaryWriter(ms))
+                {
+                    var reloc = new BaseRelocationSection
+                    {
+                        Blocks = new BaseRelocationSection.Block[]
+                        {
+                            new BaseRelocationSection.Block {
+                                PageRVA = CodeVirtualAddress,
+                                Entries = new BaseRelocationSection.Entry[]
+                                {
+                                    new BaseRelocationSection.Entry
+                                    {
+                                        Offset = (ushort)codeAddressReplacement,
+                                        Type = BaseRelocationSection.Types.DWord
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    Header.DataDirectories[(uint)DataDirectoryIndex.BaseRelocationTable].VirtualAddress = RelocVirtualAddress;
+                    Header.DataDirectories[(uint)DataDirectoryIndex.BaseRelocationTable].Size = reloc.WriteSize;
+
+                    reloc.Write(bw);
+                }
+                Reloc = ms.ToArray();
+            }
+            var RelocSize = (uint)Reloc.Length;
+            var RelocFileSize = AlignTo(RelocSize, Header.FileAlignment);
+            var RelocVirtualSize = AlignTo(RelocSize, Header.SectionAlignment);
 
             // summary
-            Header.SizeOfInitializedData = DataFileSize;
+
             Header.SizeOfUninitializedData = 0;
  
-            Header.SizeOfImage = DataVirtualAddress + DataVirtualSize;
+            Header.SizeOfImage = RelocVirtualAddress + RelocVirtualSize;
             //Header.TimeDateStamp = TimeStamp();
         }
 
@@ -164,10 +204,13 @@ namespace REC.Packaging.PortableExecutable
             bw.Write(Code);
             WritePadding(bw, Header.FileAlignment);
 
-            bw.Write(RData);
+            bw.Write(IData);
             WritePadding(bw, Header.FileAlignment);
 
             bw.Write(Data);
+            WritePadding(bw, Header.FileAlignment);
+
+            bw.Write(Reloc);
             WritePadding(bw, Header.FileAlignment);
         }
 
@@ -379,7 +422,7 @@ namespace REC.Packaging.PortableExecutable
         public uint CheckSum = 0;
 
         public WindowsSubsystem Subsystem = WindowsSubsystem.WINDOWS_CUI;
-        public DllCharacteristics DllCharacteristics = DllCharacteristics.None;
+        public DllCharacteristics DllCharacteristics = DllCharacteristics.NX_COMPAT | DllCharacteristics.DYNAMIC_BASE | DllCharacteristics.HIGH_ENTROPY_VA;
         public ulong SizeOfStackReserve = 0x10_0000; // The size of the stack to reserve. Only SizeOfStackCommit is committed; the rest is made available one page at a time until the reserve size is reached.
         public ulong SizeOfStackCommit = 0x1000;
         public ulong SizeOfHeapReserve = 0x10_0000; // The size of the local heap space to reserve. Only SizeOfHeapCommit is committed; the rest is made available one page at a time until the reserve size is reached
@@ -394,48 +437,46 @@ namespace REC.Packaging.PortableExecutable
         static readonly byte[] TEXT_SECTION_NAME = Encoding.ASCII.GetBytes(".text");
         public Section TextSection => Sections.Single(s => s.Name == TEXT_SECTION_NAME);
 
-        static readonly byte[] RDATA_SECTION_NAME = Encoding.ASCII.GetBytes(".rdata");
-        public Section RDataSection => Sections.Single(s => s.Name == RDATA_SECTION_NAME);
+        static readonly byte[] IDATA_SECTION_NAME = Encoding.ASCII.GetBytes(".idata");
+        public Section IDataSection => Sections.Single(s => s.Name == IDATA_SECTION_NAME);
 
         static readonly byte[] DATA_SECTION_NAME = Encoding.ASCII.GetBytes(".data");
         public Section DataSection => Sections.Single(s => s.Name == DATA_SECTION_NAME);
 
+        static readonly byte[] RELOC_SECTION_NAME = Encoding.ASCII.GetBytes(".reloc");
+        public Section RelocSection => Sections.Single(s => s.Name == RELOC_SECTION_NAME);
+
+        static readonly Dictionary<byte[], SectionFlags> DefaultSectionFlags = new Dictionary<byte[], SectionFlags>
+        {
+            { TEXT_SECTION_NAME, SectionFlags.MEM_READ | SectionFlags.MEM_EXECUTE | SectionFlags.CNT_CODE },
+            { IDATA_SECTION_NAME, SectionFlags.MEM_READ },
+            { DATA_SECTION_NAME, SectionFlags.MEM_WRITE | SectionFlags.MEM_READ | SectionFlags.CNT_INITIALIZED_DATA },
+            { RELOC_SECTION_NAME, SectionFlags.MEM_DISCARDABLE }
+        };
+
         public uint WriteSize => 4u // signature
                     + 18u // COFF File Header
                     + SizeOfOptionalHeader
-                    
                     + (uint)(Sections.Count * Section.WriteSize);
 
         public static ImageHeader WithDefaultSections()
         {
             var ih = new ImageHeader();
-            ih.Sections.Add(new Section
+            var sections = new byte[][] { TEXT_SECTION_NAME, IDATA_SECTION_NAME, DATA_SECTION_NAME, RELOC_SECTION_NAME };
+            var i = 1u;
+            foreach(var s in sections)
             {
-                Name = TEXT_SECTION_NAME,
-                VirtualSize = ih.SectionAlignment,
-                SizeOfRawData = ih.FileAlignment,
-                Characteristics = SectionFlags.MEM_READ | SectionFlags.MEM_EXECUTE | SectionFlags.CNT_CODE,
-                PointerToRawData = 1 * ih.FileAlignment,
-                VirtualAddress = 1 * ih.SectionAlignment
-            });
-            ih.Sections.Add(new Section
-            {
-                Name = RDATA_SECTION_NAME,
-                VirtualSize = ih.SectionAlignment,
-                SizeOfRawData = ih.FileAlignment,
-                Characteristics = SectionFlags.MEM_READ | SectionFlags.CNT_INITIALIZED_DATA,
-                PointerToRawData = 2 * ih.FileAlignment,
-                VirtualAddress = 2 * ih.SectionAlignment
-            });
-            ih.Sections.Add(new Section
-            {
-                Name = DATA_SECTION_NAME,
-                VirtualSize = ih.SectionAlignment,
-                SizeOfRawData = ih.FileAlignment,
-                Characteristics = SectionFlags.MEM_WRITE | SectionFlags.MEM_READ | SectionFlags.CNT_INITIALIZED_DATA,
-                PointerToRawData = 3 * ih.FileAlignment,
-                VirtualAddress = 3 * ih.SectionAlignment
-            });
+                ih.Sections.Add(new Section
+                {
+                    Name = s,
+                    VirtualSize = ih.SectionAlignment,
+                    SizeOfRawData = ih.FileAlignment,
+                    Characteristics = DefaultSectionFlags.Fetch(s, (SectionFlags)0),
+                    PointerToRawData = i * ih.FileAlignment,
+                    VirtualAddress = i * ih.SectionAlignment
+                });
+                i++;
+            }
             return ih;
         }
 
@@ -761,8 +802,65 @@ namespace REC.Packaging.PortableExecutable
         }
     }
 
+    internal class BaseRelocationSection
+    {
+        public struct Entry
+        {
+            public Types Type;
+            public ushort Offset;
+
+            public static uint WriteSize => 2;
+
+            public void Write(BinaryWriter bw)
+            {
+                var word = (ushort)(((ushort)Type&0xF)*0x1000 + (Offset&0x0FFF));
+                bw.Write(word);
+            }
+        }
+        public struct Block
+        {
+            public uint PageRVA;
+            public uint Size => (uint)(8 + Entry.WriteSize*(Entries.Length + Entries.Length%2)); // total size of block %4 == 0
+            public Entry[] Entries;
+
+            public void Write(BinaryWriter bw)
+            {
+                bw.Write(PageRVA);
+                bw.Write(Size);
+                foreach (var e in Entries) e.Write(bw);
+                if (0 != Entries.Length % 2) bw.Write((ushort)0);
+            }
+        }
+        public enum Types
+        {
+            None = 0, // skipped - use for padding the block
+            HighWord = 1, // 16 higher bits of difference are added
+            LowWord = 2, // 16 lower bits of difference are added
+            DWord = 3, // 32bits of difference are added
+            HighAdjusted = 4, // what?
+            MIPS_JMPADDR = 5,
+            ARM_MOV32 = 5, // MOVW/WOVT instructions of ARM/THUMB
+            RISCV_HIGH20 = 5,
+            THUMB_MOV32 = 7,
+            RISCV_LOW12I = 7,
+            RISCV_LOW12S = 8,
+            MIPS_JMPADDR16 = 9,
+            QWord = 10, // 32bits of difference are added to 64 bit address
+        }
+
+        public Block[] Blocks;
+
+        public uint WriteSize => (uint)Blocks.Sum(b => b.Size);
+
+        public void Write(BinaryWriter bw)
+        {
+            foreach (var block in Blocks) block.Write(bw);
+        }
+    }
+
     internal class LoadConfigurationLayout
     {
+        public uint Characteristics => 0;
         public uint TimeStamp;
         public ushort MajorVersion;
         public ushort MinorVersion;
@@ -787,6 +885,51 @@ namespace REC.Packaging.PortableExecutable
         public ulong GuardCFFunctionTable; // The VA of the sorted table of RVAs of each Control Flow Guard function in the image.
         public ulong GuardCFFunctionCount; // The count of unique RVAs in the above table.
         public uint GuardFlags;
+        private readonly MagicNumber magic;
+
+        LoadConfigurationLayout(MagicNumber _magic)
+        {
+            magic = _magic;
+        }
+
+        public uint WriteSize => magic == MagicNumber.PE32 ? 92u : 148u;
+
+        public void Write(BinaryWriter bw)
+        {
+            void WriteSizeT(ulong d)
+            {
+                if (magic == MagicNumber.PE32)
+                    bw.Write((uint)d);
+                else
+                    bw.Write(d);
+            }
+
+            bw.Write(Characteristics);
+            bw.Write(TimeStamp);
+            bw.Write(MajorVersion);
+            bw.Write(MinorVersion);
+            bw.Write(GlobalFlagsClear);
+            bw.Write(GlobalFlagsSet);
+            bw.Write(CriticalSectionDefaultTimeout);
+            WriteSizeT(DeCommitFreeBlockThreshold);
+            WriteSizeT(DeCommitTotalFreeThreshold);
+            WriteSizeT(LockPrefixTable);
+            WriteSizeT(MaximumAllocationSize);
+            WriteSizeT(VirtualMemoryThreshold);
+            WriteSizeT(ProcessAffinityMask);
+            bw.Write(ProcessHeapFlags);
+            bw.Write(CSDVersion);
+            bw.Write(Reserved);
+            WriteSizeT(EditList);
+            WriteSizeT(SecurityCookie);
+            WriteSizeT(SEHandlerTable);
+            WriteSizeT(SEHandlerCount);
+            WriteSizeT(GuardCFCheckFunctionPointer);
+            WriteSizeT(GuardCFDispatchFunctionPointer);
+            WriteSizeT(GuardCFFunctionTable);
+            WriteSizeT(GuardCFFunctionCount);
+            bw.Write(GuardFlags);
+        }
     }
 
     internal class ResourceSection
