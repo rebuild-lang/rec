@@ -8,56 +8,180 @@ namespace REC.Packaging.PortableExecutable
 {
     internal class Image
     {
-        ImageHeader Header { get; } = new ImageHeader();
+        ImageHeader Header { get; } = ImageHeader.WithDefaultSections();
         byte[] Code;
-        List<List<Image_IAT_Header>> IAT_Headers = new List<List<Image_IAT_Header>>();
-        List<Image_Import_Header> IIH_Headers = new List<Image_Import_Header>();
+        private byte[] RData;
+        byte[] Data;
+
+        private static uint Padding(uint value, uint alignment)
+        {
+            return alignment - value % alignment;
+        }
+
+        private static uint AlignTo(uint value, uint alignment)
+        {
+            return value + Padding(value, alignment);
+        }
+
+        private static uint TimeStamp()
+        {
+            return (uint)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+        }
+
+        public Image()
+        {
+            // dummy data
+            Code = new byte[] {
+                0x6A, 0x05, // push 5
+                0xFF, 0x15, 0x00, 0x00, 0x00, 0x00 // call dword ptr ds:0
+            };
+            var codeAddressReplacement = 4u;
+
+            // headers
+            var HeaderDataSize = DosHeader.WriteSize + Header.WriteSize;
+            var HeaderFileSize = AlignTo(HeaderDataSize, Header.FileAlignment);
+            var HeaderVirtualSize = AlignTo(HeaderDataSize, Header.SectionAlignment);
+            Header.SizeOfHeaders = HeaderFileSize;
+
+            // code
+            var CodeFileOffset = HeaderFileSize;
+            var CodeVirtualAddress = HeaderVirtualSize;
+            var CodeSize = (uint)Code.Length;
+            var CodeFileSize = AlignTo(CodeSize, Header.FileAlignment);
+            var CodeVirtualSize = AlignTo(CodeSize, Header.SectionAlignment);
+            Header.BaseOfCode = CodeVirtualAddress;
+            Header.SizeOfCode = CodeFileSize;
+            {
+                var text = Header.TextSection;
+                text.VirtualSize = CodeSize;
+                text.SizeOfRawData = CodeFileSize;
+                text.VirtualAddress = CodeVirtualAddress;
+                text.PointerToRawData = CodeFileOffset;
+            }
+            Header.AddressOfEntryPoint = CodeVirtualAddress;
+
+            // read only data
+            var RDataFileOffset = CodeFileOffset + CodeFileSize;
+            var RDataVirtualAddress = CodeVirtualAddress + CodeVirtualSize;
+            using (var ms = new MemoryStream())
+            {
+                using (var bw = new BinaryWriter(ms))
+                {
+                    var import = new ImportSection(new ImportSection.DLL[]{
+                        new ImportSection.DLL {
+                            Name = "kernel32.dll",
+                            Functions = new ImportSection.HintNameEntry[]
+                            {
+                                new ImportSection.HintNameEntry
+                                {
+                                    Hint = 346,
+                                    Name = "ExitProcess"
+                                }
+                            }
+                        }
+                    }, Header.Magic, RDataVirtualAddress);
+
+                    Header.DataDirectories[(uint)DataDirectoryIndex.ImportTable].VirtualAddress = import.ImportTableRVA;
+                    Header.DataDirectories[(uint)DataDirectoryIndex.ImportTable].Size = import.ImportTableSize;
+
+                    Header.DataDirectories[(uint)DataDirectoryIndex.ImportBindTable].VirtualAddress = import.BindTableRVA;
+                    Header.DataDirectories[(uint)DataDirectoryIndex.ImportBindTable].Size = import.BindTableSize;
+
+                    var bindRVA = import.FunctionBindRVA(0, 0);
+                    InjectAddress(Code, codeAddressReplacement, Header.ImageBase + bindRVA);
+
+                    import.Write(bw);
+                }
+                RData = ms.ToArray();
+            }
+            var RDataSize = (uint)RData.Length;
+            var RDataFileSize = AlignTo(RDataSize, Header.FileAlignment);
+            var RDataVirtualSize = AlignTo(RDataSize, Header.SectionAlignment);
+            {
+                var rdata = Header.RDataSection;
+                rdata.VirtualSize = RDataSize;
+                rdata.SizeOfRawData = RDataFileSize;
+                rdata.VirtualAddress = RDataVirtualAddress;
+                rdata.PointerToRawData = RDataFileOffset;
+            }
+
+            // data section
+            var DataFileOffset = RDataFileOffset + RDataFileSize;
+            var DataVirtualAddress = RDataVirtualAddress + RDataVirtualSize;
+            using (var ms = new MemoryStream())
+            {
+                Data = ms.ToArray();
+            }
+            var DataSize = (uint)Data.Length;
+            var DataFileSize = AlignTo(DataSize, Header.FileAlignment);
+            var DataVirtualSize = AlignTo(DataSize, Header.SectionAlignment);
+            Header.BaseOfData = DataVirtualAddress;
+            {
+                var data = Header.DataSection;
+                data.VirtualSize = DataSize;
+                data.SizeOfRawData = DataFileSize;
+                data.VirtualAddress = DataVirtualAddress;
+                data.PointerToRawData = DataFileOffset;
+            }
+
+            // summary
+            Header.SizeOfInitializedData = DataFileSize;
+            Header.SizeOfUninitializedData = 0;
+ 
+            Header.SizeOfImage = DataVirtualAddress + DataVirtualSize;
+            //Header.TimeDateStamp = TimeStamp();
+        }
+
+        private void InjectAddress(byte[] code, uint r, ulong address)
+        {
+            if (Header.Magic == MagicNumber.PE32)
+            {
+                code[r + 0] = (byte)(address >> 0);
+                code[r + 1] = (byte)(address >> 8);
+                code[r + 2] = (byte)(address >> 16);
+                code[r + 3] = (byte)(address >> 24);
+            }
+            else
+            {
+                code[r + 0] = (byte)(address >> 0);
+                code[r + 1] = (byte)(address >> 8);
+                code[r + 2] = (byte)(address >> 16);
+                code[r + 3] = (byte)(address >> 24);
+                code[r + 4] = (byte)(address >> 32);
+                code[r + 5] = (byte)(address >> 40);
+                code[r + 6] = (byte)(address >> 48);
+                code[r + 7] = (byte)(address >> 56);
+            }
+        }
 
         public void Write(BinaryWriter bw)
         {
             DosHeader.Write(bw);
         
             Header.Write(bw);
-            // Padding
+            WritePadding(bw, Header.FileAlignment);
 
             bw.Write(Code);
-            // Padding
+            WritePadding(bw, Header.FileAlignment);
 
+            bw.Write(RData);
+            WritePadding(bw, Header.FileAlignment);
 
+            bw.Write(Data);
+            WritePadding(bw, Header.FileAlignment);
         }
 
-        internal class Image_IAT_Header
+        private void WritePadding(BinaryWriter bw, uint alignment)
         {
-            public uint Address;
-
-            public byte[] ToBytes()
-            {
-                return BitConverter.GetBytes(Address);
-            }
-        }
-
-        internal class Image_Import_Header
-        {
-            public uint ImportLookUpTableAddress;
-            public uint TimeDateStamp = 0;
-            public uint ForwarderChain = 0;
-            public uint NameAddress;
-            public uint ImportAddressTableAddress;
-
-            public byte[] ToBytes()
-            {
-                return BitConverter.GetBytes(ImportLookUpTableAddress)
-                    .Concat(BitConverter.GetBytes(TimeDateStamp))
-                    .Concat(BitConverter.GetBytes(ForwarderChain))
-                    .Concat(BitConverter.GetBytes(NameAddress))
-                    .Concat(BitConverter.GetBytes(ImportAddressTableAddress))
-                    .ToArray();
-            }
+            var pos = bw.BaseStream.Position;
+            var data = new byte[Padding((uint)pos, alignment)];
+            bw.Write(data);
         }
     }
 
     internal static class DosHeader
     {
+        static public uint WriteSize = 128;
         static public void Write(BinaryWriter bw)
         {
             bw.Write(new byte[] {
@@ -205,7 +329,7 @@ namespace REC.Packaging.PortableExecutable
         TlsTable = 9,
         LoadConfigTable = 10,
         BoundImport = 11,
-        ImportAddressTable = 12, // IAT
+        ImportBindTable = 12, // IAT
         DelayImportDescriptor = 13,
         ClrRuntimeHeader = 14,
         // 15 for proper alignment
@@ -220,11 +344,11 @@ namespace REC.Packaging.PortableExecutable
         public uint TimeDateStamp = 0;
         public uint PointerToSymbolTable => 0; // deprecated
         public uint NumberOfSymbols => 0; // deprecated
-        public ushort SizeOfOptionalHeader = 0x00E0;
-        public Characteristics Characteristics = 
-            Characteristics.RELOCS_STRIPPED | 
-            Characteristics.EXECUTABLE_IMAGE | 
-            Characteristics._32BIT_MACHINE | 
+        public ushort SizeOfOptionalHeader => (ushort)((Magic == MagicNumber.PE32 ? 28 + 68 : 24 + 88) + (DataDirectories.Length * DataDirectory.WriteSize));
+        public Characteristics Characteristics =
+            Characteristics.RELOCS_STRIPPED |
+            Characteristics.EXECUTABLE_IMAGE |
+            Characteristics._32BIT_MACHINE |
             Characteristics.DEBUG_STRIPPED;
 
         // Optional Header - Standard Fields
@@ -239,27 +363,27 @@ namespace REC.Packaging.PortableExecutable
         public uint BaseOfData = 0x2000; // Only use in PE32 Mode
 
         // Optional Header - Windows Specific Fields
-        public uint ImageBase = 0x00400000;
-        public uint SectionAlignment = 0x00001000;
-        public uint FileAlignment = 0x00000200;
+        public ulong ImageBase = 0x400_000;
+        public uint SectionAlignment = 4096;
+        public uint FileAlignment = 512;
 
-        public ushort MajorOperatingSystemVersion = 0x0004;
-        public ushort MinorOperatingSystemVersion = 0x0000;
-        public ushort MajorImageVersion = 0x00;
-        public ushort MinorImageVersion = 0x00;
-        public ushort MajorSubsystemVersion = 0x0004;
-        public ushort MinorSubsystemVersion = 0x0000;
+        public ushort MajorOperatingSystemVersion = 4;
+        public ushort MinorOperatingSystemVersion = 0;
+        public ushort MajorImageVersion = 0;
+        public ushort MinorImageVersion = 0;
+        public ushort MajorSubsystemVersion = 4;
+        public ushort MinorSubsystemVersion = 0;
         public uint Win32VersionValue => 0;
         public uint SizeOfImage; // The size (in bytes) of the image, including all headers, as the image is loaded in memory. It must be a multiple of SectionAlignment.
-        public uint SizeOfHeaders = 0x00000200; // The combined size of an MS DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment.
-        public uint CheckSum = 0x00;
+        public uint SizeOfHeaders = 512; // The combined size of an MS DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment.
+        public uint CheckSum = 0;
 
         public WindowsSubsystem Subsystem = WindowsSubsystem.WINDOWS_CUI;
         public DllCharacteristics DllCharacteristics = DllCharacteristics.None;
-        public uint SizeOfStackReserve = 0x00100000; // The size of the stack to reserve. Only SizeOfStackCommit is committed; the rest is made available one page at a time until the reserve size is reached.
-        public uint SizeOfStackCommit = 0x00001000;
-        public uint SizeOfHeapReserve = 0x00100000; // The size of the local heap space to reserve. Only SizeOfHeapCommit is committed; the rest is made available one page at a time until the reserve size is reached
-        public uint SizeOfHeapCommit = 0x00001000;
+        public ulong SizeOfStackReserve = 0x10_0000; // The size of the stack to reserve. Only SizeOfStackCommit is committed; the rest is made available one page at a time until the reserve size is reached.
+        public ulong SizeOfStackCommit = 0x1000;
+        public ulong SizeOfHeapReserve = 0x10_0000; // The size of the local heap space to reserve. Only SizeOfHeapCommit is committed; the rest is made available one page at a time until the reserve size is reached
+        public ulong SizeOfHeapCommit = 0x1000;
         public uint LoaderFlags => 0;
         public uint NumberOfRvaAndSizes => (uint)DataDirectories.Length;
 
@@ -275,6 +399,12 @@ namespace REC.Packaging.PortableExecutable
 
         static readonly byte[] DATA_SECTION_NAME = Encoding.ASCII.GetBytes(".data");
         public Section DataSection => Sections.Single(s => s.Name == DATA_SECTION_NAME);
+
+        public uint WriteSize => 4u // signature
+                    + 18u // COFF File Header
+                    + SizeOfOptionalHeader
+                    
+                    + (uint)(Sections.Count * Section.WriteSize);
 
         public static ImageHeader WithDefaultSections()
         {
@@ -331,8 +461,15 @@ namespace REC.Packaging.PortableExecutable
             bw.Write(BaseOfCode);
             if (Magic == MagicNumber.PE32) bw.Write(BaseOfData);
 
+            void WriteSizeType(ulong ptr) {
+                if (Magic == MagicNumber.PE32)
+                    bw.Write((uint)ptr);
+                else
+                    bw.Write(ptr);
+            }
+
             // Windows Specific Fields
-            bw.Write(ImageBase);
+            WriteSizeType(ImageBase);
             bw.Write(SectionAlignment);
             bw.Write(FileAlignment);
             bw.Write(MajorOperatingSystemVersion);
@@ -347,10 +484,10 @@ namespace REC.Packaging.PortableExecutable
             bw.Write(CheckSum);
             bw.Write((ushort)Subsystem);
             bw.Write((ushort)DllCharacteristics);
-            bw.Write(SizeOfStackReserve);
-            bw.Write(SizeOfStackCommit);
-            bw.Write(SizeOfHeapReserve);
-            bw.Write(SizeOfHeapCommit);
+            WriteSizeType(SizeOfStackReserve);
+            WriteSizeType(SizeOfStackCommit);
+            WriteSizeType(SizeOfHeapReserve);
+            WriteSizeType(SizeOfHeapCommit);
             bw.Write(LoaderFlags);
             bw.Write(NumberOfRvaAndSizes);
             foreach (var d in DataDirectories) d.Write(bw);
@@ -358,10 +495,12 @@ namespace REC.Packaging.PortableExecutable
             foreach (var s in Sections) s.Write(bw);
         }
 
-        internal class DataDirectory
+        internal struct DataDirectory
         {
             public uint VirtualAddress;
             public uint Size;
+
+            public static uint WriteSize = 8;
 
             public void Write(BinaryWriter bw)
             {
@@ -373,18 +512,18 @@ namespace REC.Packaging.PortableExecutable
         [Flags]
         internal enum SectionFlags : uint
         {
-            CNT_CODE = 0x00000020,
-            CNT_INITIALIZED_DATA = 0x00000040,
-            CNT_UNINITIALIZED_DATA = 0x00000080,
-            GPREL = 0x00008000, // (IA64 only) The section contains data referenced through the global pointer (GP).
-            LNK_NRELOC_OVFL = 0x01000000, // The section contains extended relocations.
-            MEM_DISCARDABLE = 0x02000000, // The section can be discarded as needed.
-            MEM_NOT_CACHED = 0x04000000, // The section cannot be cached.
-            MEM_NOT_PAGED = 0x08000000, // The section is not pageable.
-            MEM_SHARED = 0x10000000, // The section can be shared in memory.
-            MEM_EXECUTE = 0x20000000,
-            MEM_READ = 0x40000000,
-            MEM_WRITE = 0x80000000
+            CNT_CODE = 0x0000_0020,
+            CNT_INITIALIZED_DATA = 0x0000_0040,
+            CNT_UNINITIALIZED_DATA = 0x0000_0080,
+            GPREL = 0x0000_8000, // (IA64 only) The section contains data referenced through the global pointer (GP).
+            LNK_NRELOC_OVFL = 0x0100_0000, // The section contains extended relocations.
+            MEM_DISCARDABLE = 0x0200_0000, // The section can be discarded as needed.
+            MEM_NOT_CACHED = 0x0400_0000, // The section cannot be cached.
+            MEM_NOT_PAGED = 0x0800_0000, // The section is not pageable.
+            MEM_SHARED = 0x1000_0000, // The section can be shared in memory.
+            MEM_EXECUTE = 0x2000_0000,
+            MEM_READ = 0x4000_0000,
+            MEM_WRITE = 0x8000_0000
         }
 
         internal class Section
@@ -396,9 +535,11 @@ namespace REC.Packaging.PortableExecutable
             public uint PointerToRawData = 0; // For executable images, this must be a multiple of FileAlignment from the optional header. . When a section contains only uninitialized data, this field should be zero.
             public uint PointerToRelocations = 0; // The file pointer to the beginning of relocation entries for the section. This is set to zero for executable images or if there are no relocations.
             public uint PointerToLinenumbers = 0; // This is set to zero if there are no COFF line numbers. 
-            public uint NumberOfRelocations = 0;
-            public uint NumberOfLinenumbers = 0;
+            public ushort NumberOfRelocations = 0;
+            public ushort NumberOfLinenumbers = 0;
             public SectionFlags Characteristics;
+
+            public static uint WriteSize = 40;
 
             public void Write(BinaryWriter bw)
             {
@@ -413,6 +554,283 @@ namespace REC.Packaging.PortableExecutable
                 bw.Write(NumberOfLinenumbers);
                 bw.Write((uint)Characteristics);
             }
+        }
+    }
+
+    internal class ImportSection
+    {
+        class DirectoryTable
+        {
+            public uint LookupTableRVA;
+            public uint TimeStamp = 0;
+            public uint ForwarderChain = 0;
+            public uint NameRVA; // name of DLL
+            public uint BindTableRVA; // 
+
+            public static uint WriteSize = 20;
+
+            public void Write(BinaryWriter bw)
+            {
+                bw.Write(LookupTableRVA);
+                bw.Write(TimeStamp);
+                bw.Write(ForwarderChain);
+                bw.Write(NameRVA);
+                bw.Write(BindTableRVA);
+            }
+
+            public static void WriteTerminator(BinaryWriter bw)
+            {
+                bw.Write(new byte[20]);
+            }
+        }
+        class LookupEntry
+        {
+            public bool IsOrdinal;
+            public ushort OrdinalNumber;
+            public uint NameTableRVA;
+
+            public static uint WriteSize(MagicNumber magic) => magic == MagicNumber.PE32 ? 4u : 8u;
+
+            public void Write(BinaryWriter bw, MagicNumber magic)
+            {
+                if (magic == MagicNumber.PE32)
+                {
+                    if (IsOrdinal)
+                        bw.Write(0x80000000u + OrdinalNumber);
+                    else
+                        bw.Write(NameTableRVA);
+                }
+                else
+                {
+                    if (IsOrdinal)
+                        bw.Write(0x8000000000000000u + OrdinalNumber);
+                    else
+                        bw.Write((ulong)NameTableRVA);
+                }
+            }
+            public static void WriteTerminator(BinaryWriter bw, MagicNumber magic)
+            {
+                if (magic == MagicNumber.PE32)
+                    bw.Write((uint)0);
+                else
+                    bw.Write((ulong)0);
+            }
+        }
+
+        static uint StringWriteSize(string str)
+        {
+            var bytes = Encoding.ASCII.GetBytes(str);
+            return (uint)(bytes.Length + (bytes.Length % 2 == 0 ? 2 : 1));
+        }
+        static void StringWrite(BinaryWriter bw, string str)
+        {
+            var bytes = Encoding.ASCII.GetBytes(str);
+            bw.Write(bytes);
+            if (bytes.Length % 2 == 0) bw.Write((ushort)0); else bw.Write((byte)0);
+        }
+
+        public class HintNameEntry
+        {
+            public ushort Hint;
+            public string Name;
+
+            public uint WriteSize()
+            {
+                var bytes = Encoding.ASCII.GetBytes(Name);
+                return (uint)(2 + StringWriteSize(Name));
+            }
+
+            public void Write(BinaryWriter bw)
+            {
+                bw.Write(Hint);
+                StringWrite(bw, Name);
+            }
+        }
+        public class DLL
+        {
+            public string Name;
+            public HintNameEntry[] Functions;
+        }
+
+        MagicNumber magic;
+        DirectoryTable[] tables;
+        LookupEntry[][] lookupEntries;
+        HintNameEntry[] hintNames;
+        string[] dllNames;
+
+        public ImportSection(DLL[] imports, MagicNumber _magic, uint rva)
+        {
+            magic = _magic;
+            tables = new DirectoryTable[imports.Length];
+            lookupEntries = new LookupEntry[imports.Length][];
+            dllNames = new string[imports.Length];
+            var _hintNames = new List<HintNameEntry>();
+            // Import Lookup Tables
+            var firstLookupRVA = rva + (uint)(tables.Length + 1) * DirectoryTable.WriteSize;
+            var lookupRVA = firstLookupRVA;
+            var i = 0;
+            foreach (var import in imports)
+            {
+                tables[i] = new DirectoryTable();
+                lookupEntries[i] = new LookupEntry[import.Functions.Length];
+                dllNames[i] = import.Name;
+                tables[i].LookupTableRVA = lookupRVA;
+                lookupRVA += (uint)(import.Functions.Length + 1) * LookupEntry.WriteSize(_magic);
+                i++;
+            }
+            var lookupSize = lookupRVA - firstLookupRVA;
+            ImportTableRVA = rva;
+            ImportTableSize = firstLookupRVA - rva;
+            // bindTables
+            BindTableRVA = lookupRVA;
+            BindTableSize = lookupSize;
+            foreach (var table in tables)
+            {
+                table.BindTableRVA = table.LookupTableRVA + (lookupRVA - firstLookupRVA);
+            }
+            var hintRVA = lookupRVA + lookupSize;
+            i = 0;
+            foreach (var import in imports)
+            {
+                var j = 0;
+                foreach (var entry in import.Functions)
+                {
+                    lookupEntries[i][j] = new LookupEntry();
+                    var hasName = (entry.Name.Length != 0);
+                    lookupEntries[i][j].IsOrdinal = !hasName;
+                    if (hasName)
+                    {
+                        _hintNames.Add(entry);
+                        lookupEntries[i][j].NameTableRVA = hintRVA;
+                        hintRVA += entry.WriteSize();
+                    }
+                    else
+                    {
+                        lookupEntries[i][j].OrdinalNumber = entry.Hint;
+                    }
+                    j++;
+                }
+                i++;
+            }
+
+            // dllNames
+            var namesRVA = hintRVA;
+            i = 0;
+            foreach (var import in imports)
+            {
+                tables[i].NameRVA = namesRVA;
+                namesRVA += StringWriteSize(import.Name);
+                i++;
+            }
+            WriteSize = namesRVA;
+            hintNames = _hintNames.ToArray();
+        }
+
+        public uint WriteSize { get; internal set; }
+        public uint ImportTableRVA { get; internal set; }
+        public uint ImportTableSize { get; internal set; }
+        public uint BindTableRVA { get; internal set; }
+        public uint BindTableSize { get; internal set; }
+
+        public uint FunctionBindRVA(uint dll, uint func)
+        {
+            return tables[dll].BindTableRVA + LookupEntry.WriteSize(magic) * func;
+        }
+
+        public void Write(BinaryWriter bw)
+        {
+            foreach (var table in tables) table.Write(bw);
+            DirectoryTable.WriteTerminator(bw);
+
+            foreach (var lookups in lookupEntries) // lookup Tables
+            {
+                foreach (var lookup in lookups) lookup.Write(bw, magic);
+                LookupEntry.WriteTerminator(bw, magic);
+            }
+            foreach (var lookups in lookupEntries) // bindTables
+            {
+                foreach (var lookup in lookups) lookup.Write(bw, magic);
+                LookupEntry.WriteTerminator(bw, magic);
+            }
+            foreach (var hint in hintNames) hint.Write(bw);
+
+            foreach (var name in dllNames)
+            {
+                StringWrite(bw, name);
+            }
+        }
+    }
+
+    internal class LoadConfigurationLayout
+    {
+        public uint TimeStamp;
+        public ushort MajorVersion;
+        public ushort MinorVersion;
+        public uint GlobalFlagsClear; // The global loader flags to clear for this process as the loader starts the process.
+        public uint GlobalFlagsSet; // The global loader flags to set for this process as the loader starts the process.
+        public uint CriticalSectionDefaultTimeout; // The default timeout value to use for this process’s critical sections that are abandoned.
+        public ulong DeCommitFreeBlockThreshold; // Memory that must be freed before it is returned to the system, in bytes.
+        public ulong DeCommitTotalFreeThreshold; // Total amount of free memory, in bytes.
+        public ulong LockPrefixTable; // [x86 only] The VA of a list of addresses where the LOCK prefix is used so that they can be replaced with NOP on single processor machines.
+        public ulong MaximumAllocationSize; // Maximum allocation size, in bytes.
+        public ulong VirtualMemoryThreshold; // Maximum virtual memory size, in bytes.
+        public ulong ProcessAffinityMask; // Setting this field to a non-zero value is equivalent to calling SetProcessAffinityMask with this value during process startup (.exe only)
+        public uint ProcessHeapFlags; // Process heap flags that correspond to the first argument of the HeapCreate function. These flags apply to the process heap that is created during process startup.
+        public ushort CSDVersion;
+        public ushort Reserved => 0;
+        public ulong EditList => 0;
+        public ulong SecurityCookie; // A pointer to a cookie that is used by Visual C++ or GS implementation.
+        public ulong SEHandlerTable; //[x86 only] The VA of the sorted table of RVAs of each valid, unique SE handler in the image.
+        public ulong SEHandlerCount; //[x86 only] The count of unique handlers in the table.
+        public ulong GuardCFCheckFunctionPointer; // The VA where Control Flow Guard check-function pointer is stored.
+        public ulong GuardCFDispatchFunctionPointer; // The VA where Control Flow Guard  dispatch-function pointer is stored.
+        public ulong GuardCFFunctionTable; // The VA of the sorted table of RVAs of each Control Flow Guard function in the image.
+        public ulong GuardCFFunctionCount; // The count of unique RVAs in the above table.
+        public uint GuardFlags;
+    }
+
+    internal class ResourceSection
+    {
+        // 3 Nested Tables: Type, Name, Language
+        public DirectoryTable[] DirectoryTables;
+        public string[] DirectoryStrings;
+        public DataDescription[] DataDescriptions;
+        public byte[][] Data;
+
+        internal class DirectoryTable
+        {
+            public uint Characteristics => 0;
+            public uint TimeStamp;
+            public ushort MajorVersion = 0;
+            public ushort MinorVersion = 0;
+            public ushort NumberOfNameEntries => (ushort)NameEntries.Length;
+            public ushort NumberOfIdEntries => (ushort)NumberEntries.Length;
+
+            internal class Entry
+            {
+                public bool NameOrNumber;
+                public uint NameIndex;
+                public uint Number;
+
+                public bool IsLeaf;
+                public uint dataIndex;
+                public uint subTableIndex;
+
+                public static uint WriteSize => 8;
+
+            }
+            public Entry[] NameEntries;
+            public Entry[] NumberEntries;
+        }
+
+        internal class DataDescription
+        {
+            public uint DataRVA;
+            public uint Size;
+            public uint CodePage;
+            public uint Reserved => 0;
+
+            public static uint WriteSize => 16;
         }
     }
 
@@ -441,5 +859,27 @@ namespace REC.Packaging.PortableExecutable
         public uint ExportAddressTableRVA; // address of the export address table, relative to the image base.
         public uint NamePointerRVA; // address of the export name pointer table, relative to the image base. The table size is given by the Number of Name Pointers field.
         public uint OrdinalTableRVA; // address of the ordinal table, relative to the image base.
+    }
+
+    enum DebugType : uint
+    {
+        UNKNOWN = 0, COFF, CODEVIEW, FPO, MISC,
+        EXCEPTION = 5, FIXUP, OMAP_TO_SRC, OMAP_FROM_SRC, BORLAND,
+        CLSID = 11,
+        REPRO = 16,
+    }
+
+    internal class DebugDirectory
+    {
+        public uint Characteristics => 0;
+        public uint TimeStamp;
+        public ushort MajorVersion;
+        public ushort MinorVersion;
+        public DebugType Type;
+        public uint SizeOfData;
+        public uint AddressOfRawData; // Relative to image base
+        public uint PointerToRawData; // file pointer to debug data
+
+        public static uint WriteSize = 28;
     }
 }

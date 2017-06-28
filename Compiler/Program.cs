@@ -1,8 +1,21 @@
-﻿namespace REC
+﻿
+using System.IO;
+
+namespace REC
 {
     public static class Program
     {
         public static void Main(string[] args) {
+            var image = new Packaging.PortableExecutable.Image();
+            using (var writer = File.Create("R:\\test.exe"))
+            {
+                using (var bw = new BinaryWriter(writer))
+                {
+                    image.Write(bw);
+                }
+            }
+
+            /*
             var compiler = new Compiler();
             compiler.AddTextFile(
                 new TextFile {
@@ -41,6 +54,7 @@ Rebuild.Print 42 + Rebuild.Eval(12 + 10)",
                     Filename = "Test.rebuild"
                 });
             compiler.CompileToExecutable();
+            */
         }
     }
 }
