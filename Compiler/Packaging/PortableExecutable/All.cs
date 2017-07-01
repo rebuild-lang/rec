@@ -48,24 +48,44 @@ namespace REC.Packaging.PortableExecutable
             };
             var codeAddressReplacement = 7u; // 4u;
 
+            // *** fill contents ***
+            var CodeSize = (uint)Code.Length;
+            var CodeFileSize = AlignTo(CodeSize, Header.FileAlignment);
+            var CodeVirtualSize = AlignTo(CodeSize, Header.SectionAlignment);
+            Header.TextSection.VirtualSize = CodeSize;
+            Header.TextSection.SizeOfRawData = CodeFileSize;
+
+            // TODO: partial layout of Import Data + fixup with address
+            Header.IDataSection.VirtualSize = 1; // marker that this section is present
+
+            using (var ms = new MemoryStream())
+            {
+                Data = ms.ToArray();
+            }
+            var DataSize = (uint)Data.Length;
+            var DataFileSize = AlignTo(DataSize, Header.FileAlignment);
+            var DataVirtualSize = AlignTo(DataSize, Header.SectionAlignment);
+            Header.DataSection.VirtualSize = DataSize;
+            Header.DataSection.SizeOfRawData = DataFileSize;
+
+            // TODO: partial layout for resources
+            Header.RSrcSection.VirtualSize = 1; // marker that this section is present
+
+            // TODO: partial layout for base relocations
+            Header.RelocSection.VirtualSize = 1; // marker that this section is present
+
+            // *** do layout ***
+
             // headers
-            var HeaderDataSize = DosHeader.WriteSize + Header.WriteSize;
-            var HeaderFileSize = AlignTo(HeaderDataSize, Header.FileAlignment);
-            var HeaderVirtualSize = AlignTo(HeaderDataSize, Header.SectionAlignment);
-            Header.SizeOfHeaders = HeaderFileSize;
+            var HeaderFileSize = Header.SizeOfHeaders;
+            var HeaderVirtualSize = AlignTo(HeaderFileSize, Header.SectionAlignment);
 
             // code
             var CodeFileOffset = HeaderFileSize;
             var CodeVirtualAddress = HeaderVirtualSize;
-            var CodeSize = (uint)Code.Length;
-            var CodeFileSize = AlignTo(CodeSize, Header.FileAlignment);
-            var CodeVirtualSize = AlignTo(CodeSize, Header.SectionAlignment);
             Header.BaseOfCode = CodeVirtualAddress;
-            Header.SizeOfCode = CodeFileSize;
             {
                 var text = Header.TextSection;
-                text.VirtualSize = CodeSize;
-                text.SizeOfRawData = CodeFileSize;
                 text.VirtualAddress = CodeVirtualAddress;
                 text.PointerToRawData = CodeFileOffset;
             }
@@ -119,22 +139,9 @@ namespace REC.Packaging.PortableExecutable
             // data section
             var DataFileOffset = IDataFileOffset + IDataFileSize;
             var DataVirtualAddress = IDataVirtualAddress + IDataVirtualSize;
-            using (var ms = new MemoryStream())
-            {
-                Data = ms.ToArray();
-            }
-            var DataSize = (uint)Data.Length;
-            var DataFileSize = AlignTo(DataSize, Header.FileAlignment);
-            var DataVirtualSize = AlignTo(DataSize, Header.SectionAlignment);
             Header.BaseOfData = DataVirtualAddress;
-            {
-                var data = Header.DataSection;
-                data.VirtualSize = DataSize;
-                data.SizeOfRawData = DataFileSize;
-                data.VirtualAddress = DataVirtualAddress;
-                data.PointerToRawData = DataFileOffset;
-            }
-            Header.SizeOfInitializedData = DataFileSize;
+            Header.DataSection.VirtualAddress = DataVirtualAddress;
+            Header.DataSection.PointerToRawData = DataFileOffset;
 
             // resource section
             var RSrcFileOffset = DataFileOffset + DataFileSize;
@@ -156,9 +163,6 @@ namespace REC.Packaging.PortableExecutable
 
                     var rsrc = new ResourceSection(resources);
 
-                    Header.DataDirectories[(uint)DataDirectoryIndex.ResourceTable].VirtualAddress = RSrcVirtualAddress;
-                    Header.DataDirectories[(uint)DataDirectoryIndex.ResourceTable].Size = rsrc.WriteSize;
-
                     rsrc.Write(bw, RSrcVirtualAddress);
                 }
                 RSrc = ms.ToArray();
@@ -173,6 +177,8 @@ namespace REC.Packaging.PortableExecutable
                 text.VirtualAddress = RSrcVirtualAddress;
                 text.PointerToRawData = RSrcFileOffset;
             }
+            Header.DataDirectories[(uint)DataDirectoryIndex.ResourceTable].VirtualAddress = RSrcVirtualAddress;
+            Header.DataDirectories[(uint)DataDirectoryIndex.ResourceTable].Size = RSrcSize;
 
             // reloc section
             var RelocFileOffset = RSrcFileOffset + RSrcFileSize;
@@ -199,8 +205,6 @@ namespace REC.Packaging.PortableExecutable
                         }
                     };
 
-                    Header.DataDirectories[(uint)DataDirectoryIndex.BaseRelocationTable].VirtualAddress = RelocVirtualAddress;
-                    Header.DataDirectories[(uint)DataDirectoryIndex.BaseRelocationTable].Size = reloc.WriteSize;
 
                     reloc.Write(bw);
                 }
@@ -216,12 +220,11 @@ namespace REC.Packaging.PortableExecutable
                 text.VirtualAddress = RelocVirtualAddress;
                 text.PointerToRawData = RelocFileOffset;
             }
+            Header.DataDirectories[(uint)DataDirectoryIndex.BaseRelocationTable].VirtualAddress = RelocVirtualAddress;
+            Header.DataDirectories[(uint)DataDirectoryIndex.BaseRelocationTable].Size = RelocSize;
 
             // summary
 
-            Header.SizeOfUninitializedData = 0;
- 
-            Header.SizeOfImage = RelocVirtualAddress + RelocVirtualSize;
             //Header.TimeDateStamp = TimeStamp();
         }
 
@@ -455,17 +458,17 @@ namespace REC.Packaging.PortableExecutable
 
         // Optional Header - Standard Fields
         public MagicNumber Magic = MagicNumber.PE32;
-        public byte MajorLinkerVersion = 0x01;
-        public byte MinorLinkerVersion = 0x00;
-        public uint SizeOfCode;
-        public uint SizeOfInitializedData;
-        public uint SizeOfUninitializedData = 0x00;
+        public byte MajorLinkerVersion = 14;
+        public byte MinorLinkerVersion = 10;
+        public uint SizeOfCode => (uint)Sections.Where(s => s.VirtualSize != 0 && s.Characteristics.HasFlag(SectionFlags.CNT_CODE)).Sum(s => s.SizeOfRawData);
+        public uint SizeOfInitializedData => (uint)Sections.Where(s => s.VirtualSize != 0 && s.Characteristics.HasFlag(SectionFlags.CNT_INITIALIZED_DATA)).Sum(s => s.SizeOfRawData);
+        public uint SizeOfUninitializedData => (uint)Sections.Where(s => s.VirtualSize != 0 && s.Characteristics.HasFlag(SectionFlags.CNT_UNINITIALIZED_DATA)).Sum(s => s.SizeOfRawData);
         public uint AddressOfEntryPoint = 0x1000;
-        public uint BaseOfCode = 0x1000;
-        public uint BaseOfData = 0x2000; // Only use in PE32 Mode
+        public uint BaseOfCode;
+        public uint BaseOfData; // Only use in PE32 Mode
 
         // Optional Header - Windows Specific Fields
-        public ulong ImageBase = 0x400_000;
+        public ulong ImageBase = 0x40_0000;
         public uint SectionAlignment = 4096;
         public uint FileAlignment = 512;
 
@@ -476,8 +479,8 @@ namespace REC.Packaging.PortableExecutable
         public ushort MajorSubsystemVersion = 4;
         public ushort MinorSubsystemVersion = 0;
         public uint Win32VersionValue => 0;
-        public uint SizeOfImage; // The size (in bytes) of the image, including all headers, as the image is loaded in memory. It must be a multiple of SectionAlignment.
-        public uint SizeOfHeaders = 512; // The combined size of an MS DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment.
+        public uint SizeOfImage => Image.AlignTo(SizeOfHeaders, SectionAlignment) + (uint)Sections.Sum(s => Image.AlignTo(s.VirtualSize, SectionAlignment)); // The size (in bytes) of the image, including all headers, as the image is loaded in memory. It must be a multiple of SectionAlignment.
+        public uint SizeOfHeaders => Image.AlignTo(DosHeader.WriteSize + WriteSize, FileAlignment); // The combined size of an MS DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment.
         public uint CheckSum = 0;
 
         public WindowsSubsystem Subsystem = WindowsSubsystem.WINDOWS_CUI;
@@ -510,11 +513,11 @@ namespace REC.Packaging.PortableExecutable
 
         static readonly Dictionary<byte[], SectionFlags> DefaultSectionFlags = new Dictionary<byte[], SectionFlags>
         {
-            { TEXT_SECTION_NAME, SectionFlags.MEM_READ | SectionFlags.MEM_EXECUTE | SectionFlags.CNT_CODE },
-            { IDATA_SECTION_NAME, SectionFlags.MEM_READ },
-            { DATA_SECTION_NAME, SectionFlags.MEM_WRITE | SectionFlags.MEM_READ | SectionFlags.CNT_INITIALIZED_DATA },
-            { RSRC_SECTION_NAME, SectionFlags.MEM_READ | SectionFlags.CNT_INITIALIZED_DATA },
-            { RELOC_SECTION_NAME, SectionFlags.MEM_DISCARDABLE },
+            { TEXT_SECTION_NAME, SectionFlags.CNT_CODE | SectionFlags.MEM_READ | SectionFlags.MEM_EXECUTE },
+            { IDATA_SECTION_NAME, SectionFlags.CNT_INITIALIZED_DATA | SectionFlags.MEM_READ },
+            { DATA_SECTION_NAME, SectionFlags.CNT_INITIALIZED_DATA | SectionFlags.MEM_READ | SectionFlags.MEM_WRITE },
+            { RSRC_SECTION_NAME, SectionFlags.CNT_INITIALIZED_DATA | SectionFlags.MEM_READ },
+            { RELOC_SECTION_NAME, SectionFlags.CNT_INITIALIZED_DATA | SectionFlags.MEM_READ | SectionFlags.MEM_DISCARDABLE },
         };
 
         public uint WriteSize => 4u // signature
