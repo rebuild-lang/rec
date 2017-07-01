@@ -13,16 +13,24 @@ namespace REC.Packaging.PortableExecutable
         byte[] Code;
         private byte[] IData;
         byte[] Data;
+        byte[] RSrc;
         byte[] Reloc;
 
-        private static uint Padding(uint value, uint alignment)
+        internal static uint Padding(uint value, uint alignment)
         {
-            return (alignment - (value % alignment));
+            return (alignment - (value % alignment)) % alignment;
         }
 
-        private static uint AlignTo(uint value, uint alignment)
+        internal static uint AlignTo(uint value, uint alignment)
         {
             return value + Padding(value, alignment);
+        }
+
+        internal static void WritePadding(BinaryWriter bw, uint alignment)
+        {
+            var pos = bw.BaseStream.Position;
+            var data = new byte[Padding((uint)pos, alignment)];
+            bw.Write(data);
         }
 
         private static uint TimeStamp()
@@ -87,8 +95,8 @@ namespace REC.Packaging.PortableExecutable
                     Header.DataDirectories[(uint)DataDirectoryIndex.ImportTable].VirtualAddress = import.ImportTableRVA;
                     Header.DataDirectories[(uint)DataDirectoryIndex.ImportTable].Size = import.ImportTableSize;
 
-                    Header.DataDirectories[(uint)DataDirectoryIndex.ImportBindTable].VirtualAddress = import.BindTableRVA;
-                    Header.DataDirectories[(uint)DataDirectoryIndex.ImportBindTable].Size = import.BindTableSize;
+                    Header.DataDirectories[(uint)DataDirectoryIndex.ImportAddressTable].VirtualAddress = import.ImportAddressTableRVA;
+                    Header.DataDirectories[(uint)DataDirectoryIndex.ImportAddressTable].Size = import.ImportAddressTableSize;
 
                     var bindRVA = import.FunctionBindRVA(0, 0);
                     InjectAddress(Code, codeAddressReplacement, Header.ImageBase + bindRVA);
@@ -128,9 +136,47 @@ namespace REC.Packaging.PortableExecutable
             }
             Header.SizeOfInitializedData = DataFileSize;
 
+            // resource section
+            var RSrcFileOffset = DataFileOffset + DataFileSize;
+            var RSrcVirtualAddress = DataVirtualAddress + DataVirtualSize;
+            using (var ms = new MemoryStream())
+            {
+                using (var bw = new BinaryWriter(ms))
+                {
+                    var resources = new Resources();
+                    resources.AddIcon(new Resources.IconParameters
+                    {
+                        Name = "DESK1",
+                        Stream = new FileStream("R:\\main.ico", FileMode.Open)
+                    });
+                    resources.AddManifest(new Resources.ManifestParameters
+                    {
+                        Stream = new FileStream("R:\\main.manifest", FileMode.Open)
+                    });
+
+                    var rsrc = new ResourceSection(resources);
+
+                    Header.DataDirectories[(uint)DataDirectoryIndex.ResourceTable].VirtualAddress = RSrcVirtualAddress;
+                    Header.DataDirectories[(uint)DataDirectoryIndex.ResourceTable].Size = rsrc.WriteSize;
+
+                    rsrc.Write(bw, RSrcVirtualAddress);
+                }
+                RSrc = ms.ToArray();
+            }
+            var RSrcSize = (uint)RSrc.Length;
+            var RSrcFileSize = AlignTo(RSrcSize, Header.FileAlignment);
+            var RSrcVirtualSize = AlignTo(RSrcSize, Header.SectionAlignment);
+            {
+                var text = Header.RSrcSection;
+                text.VirtualSize = RSrcSize;
+                text.SizeOfRawData = RSrcFileSize;
+                text.VirtualAddress = RSrcVirtualAddress;
+                text.PointerToRawData = RSrcFileOffset;
+            }
+
             // reloc section
-            var RelocFileOffset = DataFileOffset + DataFileSize;
-            var RelocVirtualAddress = DataVirtualAddress + DataVirtualSize;
+            var RelocFileOffset = RSrcFileOffset + RSrcFileSize;
+            var RelocVirtualAddress = RSrcVirtualAddress + RSrcVirtualSize;
             using (var ms = new MemoryStream())
             {
                 using (var bw = new BinaryWriter(ms))
@@ -163,6 +209,13 @@ namespace REC.Packaging.PortableExecutable
             var RelocSize = (uint)Reloc.Length;
             var RelocFileSize = AlignTo(RelocSize, Header.FileAlignment);
             var RelocVirtualSize = AlignTo(RelocSize, Header.SectionAlignment);
+            {
+                var text = Header.RelocSection;
+                text.VirtualSize = RelocSize;
+                text.SizeOfRawData = RelocFileSize;
+                text.VirtualAddress = RelocVirtualAddress;
+                text.PointerToRawData = RelocFileOffset;
+            }
 
             // summary
 
@@ -200,25 +253,31 @@ namespace REC.Packaging.PortableExecutable
         
             Header.Write(bw);
             WritePadding(bw, Header.FileAlignment);
-
-            bw.Write(Code);
-            WritePadding(bw, Header.FileAlignment);
-
-            bw.Write(IData);
-            WritePadding(bw, Header.FileAlignment);
-
-            bw.Write(Data);
-            WritePadding(bw, Header.FileAlignment);
-
-            bw.Write(Reloc);
-            WritePadding(bw, Header.FileAlignment);
-        }
-
-        private void WritePadding(BinaryWriter bw, uint alignment)
-        {
-            var pos = bw.BaseStream.Position;
-            var data = new byte[Padding((uint)pos, alignment)];
-            bw.Write(data);
+            if (Code != null && Code.Length != 0)
+            {
+                bw.Write(Code);
+                WritePadding(bw, Header.FileAlignment);
+            }
+            if (IData != null && IData.Length != 0)
+            {
+                bw.Write(IData);
+                WritePadding(bw, Header.FileAlignment);
+            }
+            if (Data != null && Data.Length != 0)
+            {
+                bw.Write(Data);
+                WritePadding(bw, Header.FileAlignment);
+            }
+            if (RSrc != null && RSrc.Length != 0)
+            {
+                bw.Write(RSrc);
+                WritePadding(bw, Header.FileAlignment);
+            }
+            if (Reloc != null && Reloc.Length != 0)
+            {
+                bw.Write(Reloc);
+                WritePadding(bw, Header.FileAlignment);
+            }
         }
     }
 
@@ -372,7 +431,7 @@ namespace REC.Packaging.PortableExecutable
         TlsTable = 9,
         LoadConfigTable = 10,
         BoundImport = 11,
-        ImportBindTable = 12, // IAT
+        ImportAddressTable = 12, // IAT
         DelayImportDescriptor = 13,
         ClrRuntimeHeader = 14,
         // 15 for proper alignment
@@ -383,7 +442,7 @@ namespace REC.Packaging.PortableExecutable
         public byte[] Signature => new byte[4] { (byte)'P', (byte)'E', 0, 0 };
         // COFF Header
         public MachineTypes Machine = MachineTypes.I386;
-        public ushort NumberOfSections => (ushort)Sections.Count;
+        public ushort NumberOfSections => (ushort)Sections.Count(s => s.VirtualSize != 0);
         public uint TimeDateStamp = 0;
         public uint PointerToSymbolTable => 0; // deprecated
         public uint NumberOfSymbols => 0; // deprecated
@@ -446,12 +505,16 @@ namespace REC.Packaging.PortableExecutable
         static readonly byte[] RELOC_SECTION_NAME = Encoding.ASCII.GetBytes(".reloc");
         public Section RelocSection => Sections.Single(s => s.Name == RELOC_SECTION_NAME);
 
+        static readonly byte[] RSRC_SECTION_NAME = Encoding.ASCII.GetBytes(".rsrc");
+        public Section RSrcSection => Sections.Single(s => s.Name == RSRC_SECTION_NAME);
+
         static readonly Dictionary<byte[], SectionFlags> DefaultSectionFlags = new Dictionary<byte[], SectionFlags>
         {
             { TEXT_SECTION_NAME, SectionFlags.MEM_READ | SectionFlags.MEM_EXECUTE | SectionFlags.CNT_CODE },
             { IDATA_SECTION_NAME, SectionFlags.MEM_READ },
             { DATA_SECTION_NAME, SectionFlags.MEM_WRITE | SectionFlags.MEM_READ | SectionFlags.CNT_INITIALIZED_DATA },
-            { RELOC_SECTION_NAME, SectionFlags.MEM_DISCARDABLE }
+            { RSRC_SECTION_NAME, SectionFlags.MEM_READ | SectionFlags.CNT_INITIALIZED_DATA },
+            { RELOC_SECTION_NAME, SectionFlags.MEM_DISCARDABLE },
         };
 
         public uint WriteSize => 4u // signature
@@ -462,18 +525,19 @@ namespace REC.Packaging.PortableExecutable
         public static ImageHeader WithDefaultSections()
         {
             var ih = new ImageHeader();
-            var sections = new byte[][] { TEXT_SECTION_NAME, IDATA_SECTION_NAME, DATA_SECTION_NAME, RELOC_SECTION_NAME };
+            var sections = new byte[][] {
+                TEXT_SECTION_NAME, IDATA_SECTION_NAME, DATA_SECTION_NAME, RSRC_SECTION_NAME, RELOC_SECTION_NAME };
             var i = 1u;
             foreach(var s in sections)
             {
                 ih.Sections.Add(new Section
                 {
                     Name = s,
-                    VirtualSize = ih.SectionAlignment,
+                    VirtualSize = 0,
                     SizeOfRawData = ih.FileAlignment,
                     Characteristics = DefaultSectionFlags.Fetch(s, (SectionFlags)0),
                     PointerToRawData = i * ih.FileAlignment,
-                    VirtualAddress = i * ih.SectionAlignment
+                    VirtualAddress = 0
                 });
                 i++;
             }
@@ -533,7 +597,7 @@ namespace REC.Packaging.PortableExecutable
             bw.Write(NumberOfRvaAndSizes);
             foreach (var d in DataDirectories) d.Write(bw);
 
-            foreach (var s in Sections) s.Write(bw);
+            foreach (var s in Sections) if (s.VirtualSize != 0) s.Write(bw);
         }
 
         internal struct DataDirectory
@@ -723,8 +787,8 @@ namespace REC.Packaging.PortableExecutable
             ImportTableRVA = rva;
             ImportTableSize = firstLookupRVA - rva;
             // bindTables
-            BindTableRVA = lookupRVA;
-            BindTableSize = lookupSize;
+            ImportAddressTableRVA = lookupRVA;
+            ImportAddressTableSize = lookupSize;
             foreach (var table in tables)
             {
                 table.BindTableRVA = table.LookupTableRVA + (lookupRVA - firstLookupRVA);
@@ -770,8 +834,8 @@ namespace REC.Packaging.PortableExecutable
         public uint WriteSize { get; internal set; }
         public uint ImportTableRVA { get; internal set; }
         public uint ImportTableSize { get; internal set; }
-        public uint BindTableRVA { get; internal set; }
-        public uint BindTableSize { get; internal set; }
+        public uint ImportAddressTableRVA { get; internal set; }
+        public uint ImportAddressTableSize { get; internal set; }
 
         public uint FunctionBindRVA(uint dll, uint func)
         {
@@ -932,13 +996,331 @@ namespace REC.Packaging.PortableExecutable
         }
     }
 
+    public class Resources
+    {
+        public enum Types
+        {
+            CURSOR = 1, GROUP_CURSOR = CURSOR + 11,
+            BITMAP = 2,
+            ICON = 3, GROUP_ICON = ICON + 11,
+            MENU = 4,
+            DIALOG = 5,
+            STRING = 6, // String-table entry.
+            FONTDIR = 7,
+            FONT = 8,
+            ACCELERATOR = 9,
+            RCDATA = 10, // Raw Data
+            MESSAGETABLE = 11,
+            VERSION = 16,
+            DLGINCLUDE = 17,
+            PLUGPLAY = 19,
+            VXD = 20,
+            ANICURSOR = 21, // Animated cursor.
+            ANIICON = 22, // Animated icon.
+            HTML = 23,
+            MANIFEST = 24,
+            FirstUserType = 256,
+        }
+        public enum Languages : uint
+        {
+            // see https://msdn.microsoft.com/en-us/library/windows/desktop/aa381058(v=vs.85).aspx
+            German = 0x407,
+            UsEnglish = 0x409,
+        }
+        public enum CodePages : uint
+        {
+            Ascii = 0,
+            Unicode = 1200,
+            MultiLingual = 1252,
+        }
+
+        public abstract class IData
+        {
+            abstract public uint WriteSize { get; }
+            abstract public void Write(BinaryWriter bw);
+
+            internal uint PaddedWriteSize => WriteSize + ((WriteSize & 1) != 0 ? 1u : 0u);
+            internal void PaddedWrite(BinaryWriter bw)
+            {
+                Write(bw);
+                if((WriteSize & 1) != 0)
+                    bw.Write((byte)0);
+            }
+        }
+
+        public class PlainData : IData
+        {
+            public byte[] Data;
+
+            public override uint WriteSize => (uint)Data.Length;
+
+            public override void Write(BinaryWriter bw)
+            {
+                bw.Write(Data);
+            }
+        }
+
+        public class IconGroup : IData
+        {
+            public ushort Reserved => 0;
+            public ushort ResourceType => 1;
+            public ushort Count => (ushort)Entries.Length;
+            public ushort Padding => 0;
+
+            public struct Entry
+            {
+                public byte Width;
+                public byte Height;
+                public byte ColorCount;
+                public byte Reserved => 0;
+                public ushort Planes;
+                public ushort BitCount;
+                public uint Size;
+                public ushort Ordinal;
+                public ushort Padding => 0;
+
+                public static uint WriteSize => 14;
+                public void Write(BinaryWriter bw)
+                {
+                    bw.Write(Width);
+                    bw.Write(Height);
+                    bw.Write(ColorCount);
+                    bw.Write(Reserved);
+                    bw.Write(Planes);
+                    bw.Write(BitCount);
+                    bw.Write(Size);
+                    bw.Write(Ordinal);
+                    //bw.Write(Padding);
+                }
+            }
+            public Entry[] Entries = new Entry[0];
+
+            public override uint WriteSize => (uint)(6 + Entries.Length * Entry.WriteSize);
+
+            public override void Write(BinaryWriter bw)
+            {
+                bw.Write(Reserved);
+                bw.Write(ResourceType);
+                bw.Write(Count);
+                //bw.Write(Padding);
+                foreach (var entry in Entries) entry.Write(bw);
+            }
+        }
+
+        public struct Entry
+        {
+            public Types Type;
+            public string Name;
+            public uint Ordinal; // used when Name is null or empty
+            public Languages Language;
+            public CodePages CodePage;
+            public IData Data;
+        }
+
+        private Dictionary<Types, uint> _nextOrdinal = new Dictionary<Types, uint>();
+        public uint NextOrdinal(Types type) {
+            var result = _nextOrdinal.GetOrAdd(type, () => 1u);
+            _nextOrdinal[type]++;
+            return result;
+        }
+
+        public IList<Entry> Entries { get; set; } = new List<Entry>();
+
+        public class IconParameters
+        {
+            public string Name;
+            public uint Ordinal;
+            public Languages Language = Languages.UsEnglish;
+            public CodePages CodePage = 0;
+            public Stream Stream;
+        }
+        public void AddIcon(IconParameters p)
+        {
+            using (var br = new BinaryReader(p.Stream))
+            {
+                var dirReserved = br.ReadUInt16();
+                var dirType = br.ReadUInt16();
+                if (dirReserved != 0 || dirType != 1) throw new ArgumentException("Not an Icon");
+                var numEntries = br.ReadUInt16();
+
+                var groupEntries = new List<IconGroup.Entry>();
+
+                for (var i = 0; i < numEntries; i++)
+                {
+                    var width = br.ReadByte();
+                    var height = br.ReadByte();
+                    var colorCount = br.ReadByte();
+                    var reserved = br.ReadByte();
+                    var planes = br.ReadUInt16();
+                    var bitCount = br.ReadUInt16();
+                    var size = br.ReadUInt32();
+                    var offset = br.ReadUInt32();
+
+                    var streamPosition = br.BaseStream.Position;
+                    br.BaseStream.Seek(offset, SeekOrigin.Begin);
+                    var data = br.ReadBytes((int)size);
+                    br.BaseStream.Seek(streamPosition, SeekOrigin.Begin);
+
+                    var ordinal = NextOrdinal(Types.ICON);
+
+                    groupEntries.Add(new IconGroup.Entry
+                    {
+                        Width = width,
+                        Height = height,
+                        ColorCount = colorCount,
+                        Planes = planes,
+                        BitCount = bitCount,
+                        Size = size,
+                        Ordinal = (ushort)ordinal,
+                    });
+                    Entries.Add(new Entry
+                    {
+                        Type = Types.ICON,
+                        Ordinal = ordinal,
+                        Language = p.Language,
+                        CodePage = p.CodePage,
+                        Data = new PlainData { Data = data }
+                    });                   
+                }
+
+                if (string.IsNullOrEmpty(p.Name) && p.Ordinal == 0)
+                    p.Ordinal = NextOrdinal(Types.GROUP_ICON);
+
+                Entries.Add(new Entry
+                {
+                    Type = Types.GROUP_ICON,
+                    Name = p.Name,
+                    Ordinal = p.Ordinal,
+                    Language = p.Language,
+                    CodePage = p.CodePage,
+                    Data = new IconGroup { Entries = groupEntries.ToArray() }
+                });
+            }
+        }
+
+        public class ManifestParameters
+        {
+            public string Name;
+            public uint Ordinal;
+            public Languages Language = Languages.UsEnglish;
+            public CodePages CodePage = 0;
+            //public string Text;
+            public Stream Stream;
+        }
+        public void AddManifest(ManifestParameters p)
+        {
+            if (string.IsNullOrEmpty(p.Name) && p.Ordinal == 0)
+                p.Ordinal = NextOrdinal(Types.MANIFEST);
+
+            using (var br = new BinaryReader(p.Stream))
+            {
+                var data = br.ReadBytes((int)br.BaseStream.Length);
+                //var data = Encoding.GetEncoding((int)p.CodePage).GetBytes(p.Text);
+                //var data = Encoding.ASCII.GetBytes(p.Text);
+                Entries.Add(new Entry
+                {
+                    Type = Types.MANIFEST,
+                    Name = p.Name,
+                    Ordinal = p.Ordinal,
+                    Language = p.Language,
+                    CodePage = p.CodePage,
+                    Data = new PlainData { Data = data }
+                });
+            }
+
+        }
+    }
+
     internal class ResourceSection
     {
-        // 3 Nested Tables: Type, Name, Language
-        public DirectoryTable[] DirectoryTables;
-        public string[] DirectoryStrings;
-        public DataDescription[] DataDescriptions;
-        public byte[][] Data;
+        public ResourceSection(Resources rescources)
+        {
+            var rootTable = new DirectoryTable();
+            var tables = new List<DirectoryTable> { rootTable };
+            var names = new List<string>();
+            var descriptions = new List<DataDescription>();
+            Data = new Resources.IData[rescources.Entries.Count];
+
+            var typeTables = new List<ValueTuple<DirectoryTable, IEnumerable<Resources.Entry>>>();
+            rootTable.OrdinalEntries = rescources.Entries.GroupBy(e => e.Type, (type, typeGroup) =>
+            {
+                var subTypeTableIndex = (uint)tables.Count;
+                var typeTable = new DirectoryTable();
+                tables.Add(typeTable);
+                typeTables.Add((typeTable, typeGroup));
+
+                return new DirectoryTable.Entry
+                {
+                    IsName = false,
+                    Ordinal = (uint)type,
+                    IsLeaf = false,
+                    SubTableIndex = subTypeTableIndex,
+                };
+            }).ToArray();
+
+            var nameTables = new List<ValueTuple<DirectoryTable, IEnumerable<Resources.Entry>>>();
+            foreach (var (typeTable, typeGroup) in typeTables)
+            {
+                foreach (var entry in typeGroup.GroupBy(
+                    e => (e.Name, (string.IsNullOrEmpty(e.Name) ? e.Ordinal : 0)),
+                    (id, nameGroup) =>
+                    {
+                        var subNameTableIndex = (uint)tables.Count;
+                        var nameTable = new DirectoryTable();
+                        tables.Add(nameTable);
+                        nameTables.Add((nameTable, nameGroup));
+
+                        var isName = !string.IsNullOrEmpty(id.Item1);
+                        var nameIndex = names.Count;
+                        if (isName)
+                            names.Add(id.Item1);
+
+                        return new DirectoryTable.Entry
+                        {
+                            IsName = isName,
+                            NameIndex = (uint)nameIndex,
+                            Ordinal = id.Item2,
+                            IsLeaf = false,
+                            SubTableIndex = subNameTableIndex,
+                        };
+                    }).GroupBy(e => e.IsName))
+                {
+                    if (entry.Key)
+                        typeTable.NameEntries = entry.ToArray();
+                    else
+                        typeTable.OrdinalEntries = entry.ToArray();
+                }
+            }
+
+            foreach (var (nameTable, nameGroup) in nameTables)
+            {
+                nameTable.OrdinalEntries = nameGroup.Select(entry =>
+                {
+                    var dataIndex = (uint)descriptions.Count;
+
+                    descriptions.Add(new DataDescription
+                    {
+                        DataIndex = dataIndex,
+                        Size = entry.Data.WriteSize,
+                        CodePage = (uint)entry.CodePage
+                    });
+
+                    Data[dataIndex] = entry.Data;
+
+                    return new DirectoryTable.Entry
+                    {
+                        IsName = false,
+                        Ordinal = (uint)entry.Language,
+                        IsLeaf = true,
+                        DataIndex = dataIndex,
+                    };
+                }).ToArray();
+            }
+
+            DirectoryTables = tables.ToArray();
+            DirectoryStrings = names.ToArray();
+            DataDescriptions = descriptions.ToArray();
+        }
 
         internal class DirectoryTable
         {
@@ -947,33 +1329,114 @@ namespace REC.Packaging.PortableExecutable
             public ushort MajorVersion = 0;
             public ushort MinorVersion = 0;
             public ushort NumberOfNameEntries => (ushort)NameEntries.Length;
-            public ushort NumberOfIdEntries => (ushort)NumberEntries.Length;
+            public ushort NumberOfOrdinalEntries => (ushort)OrdinalEntries.Length;
 
             internal class Entry
             {
-                public bool NameOrNumber;
+                public bool IsName;
                 public uint NameIndex;
-                public uint Number;
+                public uint Ordinal;
 
                 public bool IsLeaf;
-                public uint dataIndex;
-                public uint subTableIndex;
+                public uint DataIndex;
+                public uint SubTableIndex;
 
                 public static uint WriteSize => 8;
+                public void Write(BinaryWriter bw, Func<uint, uint> nameOffset, Func<uint, uint> descriptionOffset, Func<uint, uint> tableOffset)
+                {
+                    if (IsName)
+                        bw.Write(0x8000_0000u | nameOffset(NameIndex)); // actually an offset in Section
+                    else
+                        bw.Write(Ordinal);
 
+                    if (IsLeaf)
+                        bw.Write(descriptionOffset(DataIndex)); // actually an offset in Section
+                    else
+                        bw.Write(0x8000_0000u | tableOffset(SubTableIndex)); // actually an offset in Section
+                }
             }
-            public Entry[] NameEntries;
-            public Entry[] NumberEntries;
+            public Entry[] NameEntries = new Entry[0];
+            public Entry[] OrdinalEntries = new Entry[0];
+
+            public uint WriteSize => (uint)(16u + (NameEntries.Length + OrdinalEntries.Length) * Entry.WriteSize);
+
+            public void Write(BinaryWriter bw, Func<uint, uint> nameOffset, Func<uint, uint> descriptionOffset, Func<uint, uint> tableOffset)
+            {
+                bw.Write(Characteristics);
+                bw.Write(TimeStamp);
+                bw.Write(MajorVersion);
+                bw.Write(MinorVersion);
+                bw.Write(NumberOfNameEntries);
+                bw.Write(NumberOfOrdinalEntries);
+                foreach (var e in NameEntries) e.Write(bw, nameOffset, descriptionOffset, tableOffset);
+                foreach (var e in OrdinalEntries) e.Write(bw, nameOffset, descriptionOffset, tableOffset);
+            }
+        }
+
+        static uint StringWriteSize(string str)
+        {
+            var bytes = Encoding.Unicode.GetBytes(str);
+            return 2u + (uint)bytes.Length;
+        }
+
+        static void StringWrite(BinaryWriter bw, string str)
+        {
+            var bytes = Encoding.Unicode.GetBytes(str);
+            bw.Write((ushort)str.Length);
+            bw.Write(bytes);
         }
 
         internal class DataDescription
         {
-            public uint DataRVA;
+            public uint DataIndex;
             public uint Size;
             public uint CodePage;
             public uint Reserved => 0;
 
             public static uint WriteSize => 16;
+            public void Write(BinaryWriter bw, Func<uint, uint> indexToRVA)
+            {
+                bw.Write(indexToRVA(DataIndex));
+                bw.Write(Size);
+                bw.Write(CodePage);
+                bw.Write(Reserved);
+            }
+        }
+
+        // 3 Nested Tables: Type, Name, Language
+        private DirectoryTable[] DirectoryTables;
+        private string[] DirectoryStrings;
+        private DataDescription[] DataDescriptions;
+        private Resources.IData[] Data;
+
+        private uint TablesSize => (uint)(DirectoryTables.Sum(dt => dt.WriteSize));
+        private uint DescriptionSize => (uint)(DataDescriptions.Length * DataDescription.WriteSize);
+        private uint RawStringSize => (uint)DirectoryStrings.Sum(ds => StringWriteSize(ds));
+        private uint StringsSize => Image.AlignTo(RawStringSize, 16u);
+        private uint DataSize => (uint)(Data.Sum(dt => dt.PaddedWriteSize));
+
+        public uint WriteSize => TablesSize + DescriptionSize + StringsSize + DataSize;
+
+        public void Write(BinaryWriter bw, ulong baseRVA)
+        {
+            var tableOffset = 0u;
+            var descriptionOffset = tableOffset + TablesSize;
+            var stringOffset = descriptionOffset + DescriptionSize;
+            var dataRVA = (uint)(baseRVA + stringOffset + StringsSize);
+            foreach (var table in DirectoryTables)
+                table.Write(bw,
+                    (index) => stringOffset + (uint)DirectoryStrings.Take((int)index).Sum(ds => StringWriteSize(ds)),
+                    (index) => descriptionOffset + index * DataDescription.WriteSize,
+                    (index) => tableOffset + (uint)DirectoryTables.Take((int)index).Sum(dt => dt.WriteSize));
+
+            foreach (var dataDescription in DataDescriptions)
+                dataDescription.Write(bw, 
+                    (index) => dataRVA + (uint)Data.Take((int)index).Sum(d => d.PaddedWriteSize));
+
+            foreach (var str in DirectoryStrings) StringWrite(bw, str);
+            bw.Write(new byte[Image.Padding(RawStringSize, 16)]);
+
+            foreach (var data in Data) data.PaddedWrite(bw);
         }
     }
 
