@@ -156,6 +156,25 @@ namespace REC.Packaging.PortableExecutable
                         Name = "DESK1",
                         Stream = new FileStream("R:\\main.ico", FileMode.Open)
                     });
+                    resources.AddVersionInfo(new Resources.VersionParameters
+                    {
+                        FixedData = {
+                            FileVersion = (1,2,3,4),
+                            ProductVersion = (5,6,7,8),
+                        },
+                        StringTables = {
+                            {
+                                new Resources.VersionParameters.LanguageCodePage {
+                                    CodePage = Resources.CodePages.Unicode,
+                                    Language = Resources.Languages.UsEnglish
+                                },
+                                new Dictionary<Resources.VersionKeys, string> {
+                                    { Resources.VersionKeys.ProductName, "Rebuild Test Executable" },
+                                    { Resources.VersionKeys.ProductVersion, "Awesome" }
+                                }
+                            }
+                        }
+                    });
                     resources.AddManifest(new Resources.ManifestParameters
                     {
                         Stream = new FileStream("R:\\main.manifest", FileMode.Open)
@@ -451,7 +470,7 @@ namespace REC.Packaging.PortableExecutable
         public uint NumberOfSymbols => 0; // deprecated
         public ushort SizeOfOptionalHeader => (ushort)((Magic == MagicNumber.PE32 ? 28 + 68 : 24 + 88) + (DataDirectories.Length * DataDirectory.WriteSize));
         public Characteristics Characteristics =
-            Characteristics.RELOCS_STRIPPED |
+            //Characteristics.RELOCS_STRIPPED |
             Characteristics.EXECUTABLE_IMAGE |
             Characteristics._32BIT_MACHINE |
             Characteristics.DEBUG_STRIPPED;
@@ -469,7 +488,7 @@ namespace REC.Packaging.PortableExecutable
 
         // Optional Header - Windows Specific Fields
         public ulong ImageBase = 0x40_0000;
-        public uint SectionAlignment = 4096;
+        public uint SectionAlignment = 0x1000;
         public uint FileAlignment = 512;
 
         public ushort MajorOperatingSystemVersion = 4;
@@ -1033,7 +1052,7 @@ namespace REC.Packaging.PortableExecutable
         public enum CodePages : uint
         {
             Ascii = 0,
-            Unicode = 1200,
+            Unicode = 1200, // 0x4B0
             MultiLingual = 1252,
         }
 
@@ -1042,12 +1061,11 @@ namespace REC.Packaging.PortableExecutable
             abstract public uint WriteSize { get; }
             abstract public void Write(BinaryWriter bw);
 
-            internal uint PaddedWriteSize => WriteSize + ((WriteSize & 1) != 0 ? 1u : 0u);
+            internal uint PaddedWriteSize => Image.AlignTo(WriteSize, 16);
             internal void PaddedWrite(BinaryWriter bw)
             {
                 Write(bw);
-                if((WriteSize & 1) != 0)
-                    bw.Write((byte)0);
+                bw.Write(new byte[Image.Padding(WriteSize, 16)]);
             }
         }
 
@@ -1080,7 +1098,7 @@ namespace REC.Packaging.PortableExecutable
                 public ushort BitCount;
                 public uint Size;
                 public ushort Ordinal;
-                public ushort Padding => 0;
+                //public ushort Padding => 0;
 
                 public static uint WriteSize => 14;
                 public void Write(BinaryWriter bw)
@@ -1230,22 +1248,269 @@ namespace REC.Packaging.PortableExecutable
                     Data = new PlainData { Data = data }
                 });
             }
+        }
 
+        [Flags]
+        public enum FileFlag : uint
+        {
+            Debug = 1 << 0,
+            PreRelease = 1 << 1,
+            Patched = 1 << 2,
+            PrivateBuild = 1 << 3,
+            InfoInferred = 1 << 4,
+            SpecialBuild = 1 << 5,
+        }
+
+        public enum FileOS : uint
+        {
+            UNKNOWN = 0,
+            DOS = 0x0001_0000,
+            OS216 = 0x0002_0000, // OS/2
+            OS232 = 0x0003_0000, // OS/2
+            NT = 0x0004_0000,
+
+            WINDOWS16 = 0x0000_0001,
+            PM16 = 0x0000_0002, // Presentation Manager
+            PM32 = 0x0000_0003, // Presentation Manager
+            WINDOWS32 = 0x0000_0004,
+
+            // Valid Combos
+            DOS_WINDOWS16 = 0x0001_0001,
+            DOS_WINDOWS32 = 0x0001_0004,
+            NT_WINDOWS32 = 0x0004_0004,
+            OS216_PM16 = 0x0002_0002,
+            OS232_PM32 = 0x0003_0003,
+        }
+
+        public enum FileType
+        {
+            UNKNOWN,
+            APP,
+            DLL,
+            DRV,
+            FONT,
+            VXD,
+            STATIC_LIB = 7,
+        }
+
+        public enum VersionKeys
+        {
+            Comments,
+            CompanyName,
+            FileDescription,
+            FileVersion,
+            InternalName,
+            LegalCopyright,
+            LegalTrademarks,
+            OriginalFilename,
+            PrivateBuild,
+            ProductName,
+            ProductVersion,
+            SpecialBuild,
+        }
+
+        public class VersionParameters
+        {
+            public string Name;
+            public uint Ordinal;
+            public Languages Language = Languages.UsEnglish;
+            public CodePages CodePage = 0;
+
+            public Fixed FixedData { get; } = new Fixed();
+            public Dictionary<LanguageCodePage, Dictionary<VersionKeys, string>> StringTables { get; } = new Dictionary<LanguageCodePage, Dictionary<VersionKeys, string>>();
+
+            private IEnumerable<(LanguageCodePage, IEnumerable<KeyValuePair<VersionKeys, string>>)> ValidStringTables
+                => StringTables
+                    .Select(e => (e.Key, e.Value.Where(x => !string.IsNullOrEmpty(x.Value))))
+                    .Where(e => e.Item2.Count() != 0);
+            
+            public struct LanguageCodePage
+            {
+                public Languages Language;
+                public CodePages CodePage;
+
+                static internal uint WriteSize => 4;
+                internal void Write(BinaryWriter bw)
+                {
+                    bw.Write((ushort)Language);
+                    bw.Write((ushort)CodePage);
+                }
+            }
+
+            public class Fixed
+            {
+                public uint Signature => 0xFEEF04BD;
+                public uint StrucVersion = 0x0001_0000;
+                public (ushort,ushort,ushort,ushort) FileVersion; // 1.0.5.7
+                public (ushort,ushort,ushort,ushort) ProductVersion;
+                public FileFlag FileFlagsMask = (FileFlag)Enum.GetValues(typeof(FileFlag)).Cast<int>().Sum(v => v);
+                public FileFlag FileFlags;
+                public FileOS FileOS = FileOS.NT_WINDOWS32;
+                public FileType FileType = FileType.APP;
+                public uint FileSubtype => 0; // only used for DRV & FONT
+                public ulong FileDate => 0; // not used (encoding unknown)
+
+                public static uint WriteSize => 13 * 4;
+
+                public void Write(BinaryWriter bw)
+                {
+                    bw.Write(Signature);
+                    bw.Write(StrucVersion);
+                    bw.Write((((uint)FileVersion.Item1) << 16) + FileVersion.Item2);
+                    bw.Write((((uint)FileVersion.Item3) << 16) + FileVersion.Item4);
+                    bw.Write((((uint)ProductVersion.Item1) << 16) + ProductVersion.Item2);
+                    bw.Write((((uint)ProductVersion.Item3) << 16) + ProductVersion.Item4);
+                    bw.Write((uint)FileFlagsMask);
+                    bw.Write((uint)FileFlags);
+                    bw.Write((uint)FileOS);
+                    bw.Write((uint)FileType);
+                    bw.Write(FileSubtype);
+                    bw.Write(FileDate);
+                }
+            }
+
+            uint TranslationsWriteVarSize => (uint)(32 + ValidStringTables.Count() * LanguageCodePage.WriteSize);
+            uint TranslationsWriteVarSizePadding => 2;
+            void TranslationsWriteVar(BinaryWriter bw)
+            {
+                bw.Write((ushort)TranslationsWriteVarSize);
+                bw.Write((ushort)(StringTables.Count * LanguageCodePage.WriteSize));
+                bw.Write((ushort)0);
+                bw.Write(Encoding.Unicode.GetBytes("Translation\0"));
+                bw.Write(new byte[2]); // Padding
+                foreach (var t in ValidStringTables) t.Item1.Write(bw);
+            }
+
+            uint TranslationsWriteSize => StringTables.IsEmpty() ? 0 : 32 + TranslationsWriteVarSize;
+            uint TranslationsWriteSizePadding => StringTables.IsEmpty() ? 0 : 2 + TranslationsWriteVarSizePadding;
+            void TranslationsWrite(BinaryWriter bw)
+            {
+                if (StringTables.IsEmpty()) return;
+                bw.Write((ushort)TranslationsWriteSize);
+                bw.Write((ushort)0);
+                bw.Write((ushort)1); // Type
+                bw.Write(Encoding.Unicode.GetBytes("VarFileInfo\0"));
+                bw.Write(new byte[2]); // Padding
+                TranslationsWriteVar(bw);
+            }
+
+            uint StringTablesWriteSize => Image.AlignTo(6 + 15 * 2, 4)
+                        + (uint)ValidStringTables.Sum(e => StringTableWriteSize(e.Item1, e.Item2));
+            uint StringTablesWriteSizePadding => Image.Padding(6 + 15 * 2, 4)
+                        + (uint)ValidStringTables.Sum(e => StringTableWriteSizePadding(e.Item1, e.Item2));
+            void StringTablesWrite(BinaryWriter bw)
+            {
+                if (StringTables.IsEmpty()) return;
+                bw.Write((ushort)StringTablesWriteSize);
+                bw.Write((ushort)0);
+                bw.Write((ushort)1); // Type
+                bw.Write(Encoding.Unicode.GetBytes("StringFileInfo\0"));
+                //bw.Write(new byte[2]); // Padding
+                foreach (var entry in ValidStringTables)
+                    StringTableWrite(entry.Item1, entry.Item2, bw);
+            }
+
+            private static uint StringTableWriteSize(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict)
+            {
+                return Image.AlignTo(6 + (8+1)*2, 4)
+                    + (uint)dict.Sum(e => StringTableEntryWriteSize(e.Key, e.Value));
+            }
+            private static uint StringTableWriteSizePadding(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict)
+            {
+                return Image.Padding(6 + (8 + 1) * 2, 4)
+                    + (uint)dict.Sum(e => StringTableEntryWriteSizePadding(e.Key, e.Value));
+            }
+            private static void StringTableWrite(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict, BinaryWriter bw)
+            {
+                bw.Write((ushort)StringTableWriteSize(key, dict)); // Size
+                bw.Write((ushort)0);
+                bw.Write((ushort)1); // Type
+                bw.Write(Encoding.Unicode.GetBytes($"{(ushort)key.Language:X4}{(ushort)key.CodePage:X4}\0"));
+                //bw.Write(new byte[2]); // No Padding
+                foreach (var entry in dict)
+                    StringTableEntryWrite(entry.Key, entry.Value, bw);
+            }
+
+            private static uint StringTableEntryWriteSize(VersionKeys key, string value)
+            {
+                return Image.AlignTo((uint)(6 + Encoding.Unicode.GetByteCount(key.ToString()) + 2), 4)
+                    + Image.AlignTo((uint)(Encoding.Unicode.GetByteCount(value) + 2), 4);
+            }
+            private static uint StringTableEntryWriteSizePadding(VersionKeys key, string value)
+            {
+                return Image.Padding((uint)(6 + Encoding.Unicode.GetByteCount(key.ToString()) + 2), 4)
+                    + Image.Padding((uint)(Encoding.Unicode.GetByteCount(value) + 2), 4);
+            }
+            private static void StringTableEntryWrite(VersionKeys key, string value, BinaryWriter bw)
+            {
+                var keyString = key.ToString();
+                var keyBytes = Encoding.Unicode.GetBytes(keyString);
+                var valueBytes = Encoding.Unicode.GetBytes(value);
+                bw.Write((ushort)StringTableEntryWriteSize(key, value)); // Size
+                bw.Write((ushort)(value.Length + 1)); // includes the zero
+                bw.Write((ushort)1); // Type
+                bw.Write(keyBytes);
+                bw.Write(new byte[2 + Image.Padding(6 + (uint)keyBytes.Length + 2, 4)]); // Padding
+                bw.Write(valueBytes);
+                bw.Write(new byte[2 + Image.Padding((uint)valueBytes.Length + 2, 4)]); // Padding
+            }
+
+            public uint WriteSize => 6 + (15 + 1)*2 + 2 + Fixed.WriteSize + StringTablesWriteSize + TranslationsWriteSize;
+            private uint WriteSizePadding => 2 + StringTablesWriteSizePadding + TranslationsWriteSizePadding;
+            public void Write(BinaryWriter bw)
+            {
+                bw.Write((ushort)(WriteSize));
+                bw.Write((ushort)Fixed.WriteSize);
+                bw.Write((ushort)0);
+                bw.Write(Encoding.Unicode.GetBytes("VS_VERSION_INFO\0"));
+                bw.Write(new byte[2]); // Padding
+                FixedData.Write(bw);
+                StringTablesWrite(bw);
+                TranslationsWrite(bw);
+            }
+        }
+
+        public void AddVersionInfo(VersionParameters p)
+        {
+            if (string.IsNullOrEmpty(p.Name) && p.Ordinal == 0)
+                p.Ordinal = NextOrdinal(Types.VERSION);
+
+            using (var s = new MemoryStream()) {
+                using (var bw = new BinaryWriter(s))
+                {
+                    p.Write(bw);
+                }
+                var data = s.ToArray();
+                Entries.Add(new Entry
+                {
+                    Type = Types.VERSION,
+                    Name = p.Name,
+                    Ordinal = p.Ordinal,
+                    Language = p.Language,
+                    CodePage = p.CodePage,
+                    Data = new PlainData { Data = data }
+                });
+            }
         }
     }
 
     internal class ResourceSection
     {
-        public ResourceSection(Resources rescources)
+        public ResourceSection(Resources resources)
         {
             var rootTable = new DirectoryTable();
             var tables = new List<DirectoryTable> { rootTable };
             var names = new List<string>();
             var descriptions = new List<DataDescription>();
-            Data = new Resources.IData[rescources.Entries.Count];
+            Data = new Resources.IData[resources.Entries.Count];
+
+            var orderedResources = resources.Entries.OrderBy(e => e.Type)
+                .ThenBy(e => string.IsNullOrEmpty(e.Name))
+                .ThenBy(e => e.Name).ThenBy(e => e.Ordinal)
+                .ThenBy(e => e.Language);
 
             var typeTables = new List<ValueTuple<DirectoryTable, IEnumerable<Resources.Entry>>>();
-            rootTable.OrdinalEntries = rescources.Entries.GroupBy(e => e.Type, (type, typeGroup) =>
+            rootTable.OrdinalEntries = orderedResources.GroupBy(e => e.Type, (type, typeGroup) =>
             {
                 var subTypeTableIndex = (uint)tables.Count;
                 var typeTable = new DirectoryTable();
