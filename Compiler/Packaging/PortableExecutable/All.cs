@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System;
 using REC.Tools;
+using REC.Packaging.Tools;
 
 namespace REC.Packaging.PortableExecutable
 {
@@ -11,27 +12,10 @@ namespace REC.Packaging.PortableExecutable
     {
         ImageHeader Header { get; } = ImageHeader.WithDefaultSections();
         byte[] Code;
-        private byte[] IData;
+        byte[] IData;
         byte[] Data;
         byte[] RSrc;
         byte[] Reloc;
-
-        internal static uint Padding(uint value, uint alignment)
-        {
-            return (alignment - (value % alignment)) % alignment;
-        }
-
-        internal static uint AlignTo(uint value, uint alignment)
-        {
-            return value + Padding(value, alignment);
-        }
-
-        internal static void WritePadding(BinaryWriter bw, uint alignment)
-        {
-            var pos = bw.BaseStream.Position;
-            var data = new byte[Padding((uint)pos, alignment)];
-            bw.Write(data);
-        }
 
         private static uint TimeStamp()
         {
@@ -50,8 +34,8 @@ namespace REC.Packaging.PortableExecutable
 
             // *** fill contents ***
             var CodeSize = (uint)Code.Length;
-            var CodeFileSize = AlignTo(CodeSize, Header.FileAlignment);
-            var CodeVirtualSize = AlignTo(CodeSize, Header.SectionAlignment);
+            var CodeFileSize = CodeSize.AlignTo(Header.FileAlignment);
+            var CodeVirtualSize = CodeSize.AlignTo(Header.SectionAlignment);
             Header.TextSection.VirtualSize = CodeSize;
             Header.TextSection.SizeOfRawData = CodeFileSize;
 
@@ -63,8 +47,8 @@ namespace REC.Packaging.PortableExecutable
                 Data = ms.ToArray();
             }
             var DataSize = (uint)Data.Length;
-            var DataFileSize = AlignTo(DataSize, Header.FileAlignment);
-            var DataVirtualSize = AlignTo(DataSize, Header.SectionAlignment);
+            var DataFileSize = DataSize.AlignTo(Header.FileAlignment);
+            var DataVirtualSize = DataSize.AlignTo(Header.SectionAlignment);
             Header.DataSection.VirtualSize = DataSize;
             Header.DataSection.SizeOfRawData = DataFileSize;
 
@@ -78,7 +62,7 @@ namespace REC.Packaging.PortableExecutable
 
             // headers
             var HeaderFileSize = Header.SizeOfHeaders;
-            var HeaderVirtualSize = AlignTo(HeaderFileSize, Header.SectionAlignment);
+            var HeaderVirtualSize = HeaderFileSize.AlignTo(Header.SectionAlignment);
 
             // code
             var CodeFileOffset = HeaderFileSize;
@@ -126,8 +110,8 @@ namespace REC.Packaging.PortableExecutable
                 IData = ms.ToArray();
             }
             var IDataSize = (uint)IData.Length;
-            var IDataFileSize = AlignTo(IDataSize, Header.FileAlignment);
-            var IDataVirtualSize = AlignTo(IDataSize, Header.SectionAlignment);
+            var IDataFileSize = IDataSize.AlignTo(Header.FileAlignment);
+            var IDataVirtualSize = IDataSize.AlignTo(Header.SectionAlignment);
             {
                 var idata = Header.IDataSection;
                 idata.VirtualSize = IDataSize;
@@ -187,8 +171,8 @@ namespace REC.Packaging.PortableExecutable
                 RSrc = ms.ToArray();
             }
             var RSrcSize = (uint)RSrc.Length;
-            var RSrcFileSize = AlignTo(RSrcSize, Header.FileAlignment);
-            var RSrcVirtualSize = AlignTo(RSrcSize, Header.SectionAlignment);
+            var RSrcFileSize = RSrcSize.AlignTo(Header.FileAlignment);
+            var RSrcVirtualSize = RSrcSize.AlignTo(Header.SectionAlignment);
             {
                 var text = Header.RSrcSection;
                 text.VirtualSize = RSrcSize;
@@ -230,8 +214,8 @@ namespace REC.Packaging.PortableExecutable
                 Reloc = ms.ToArray();
             }
             var RelocSize = (uint)Reloc.Length;
-            var RelocFileSize = AlignTo(RelocSize, Header.FileAlignment);
-            var RelocVirtualSize = AlignTo(RelocSize, Header.SectionAlignment);
+            var RelocFileSize = RelocSize.AlignTo(Header.FileAlignment);
+            var RelocVirtualSize = RelocSize.AlignTo(Header.SectionAlignment);
             {
                 var text = Header.RelocSection;
                 text.VirtualSize = RelocSize;
@@ -273,32 +257,27 @@ namespace REC.Packaging.PortableExecutable
         {
             DosHeader.Write(bw);
         
-            Header.Write(bw);
-            WritePadding(bw, Header.FileAlignment);
+            Header.Write(bw); bw.PadPosition(Header.FileAlignment);
+
             if (Code != null && Code.Length != 0)
             {
-                bw.Write(Code);
-                WritePadding(bw, Header.FileAlignment);
+                bw.Write(Code); bw.PadPosition(Header.FileAlignment);
             }
             if (IData != null && IData.Length != 0)
             {
-                bw.Write(IData);
-                WritePadding(bw, Header.FileAlignment);
+                bw.Write(IData); bw.PadPosition(Header.FileAlignment);
             }
             if (Data != null && Data.Length != 0)
             {
-                bw.Write(Data);
-                WritePadding(bw, Header.FileAlignment);
+                bw.Write(Data); bw.PadPosition(Header.FileAlignment);
             }
             if (RSrc != null && RSrc.Length != 0)
             {
-                bw.Write(RSrc);
-                WritePadding(bw, Header.FileAlignment);
+                bw.Write(RSrc); bw.PadPosition(Header.FileAlignment);
             }
             if (Reloc != null && Reloc.Length != 0)
             {
-                bw.Write(Reloc);
-                WritePadding(bw, Header.FileAlignment);
+                bw.Write(Reloc); bw.PadPosition(Header.FileAlignment);
             }
         }
     }
@@ -488,7 +467,7 @@ namespace REC.Packaging.PortableExecutable
 
         // Optional Header - Windows Specific Fields
         public ulong ImageBase = 0x40_0000;
-        public uint SectionAlignment = 0x1000;
+        public uint SectionAlignment = 0x1000; // 4096
         public uint FileAlignment = 512;
 
         public ushort MajorOperatingSystemVersion = 4;
@@ -498,8 +477,8 @@ namespace REC.Packaging.PortableExecutable
         public ushort MajorSubsystemVersion = 4;
         public ushort MinorSubsystemVersion = 0;
         public uint Win32VersionValue => 0;
-        public uint SizeOfImage => Image.AlignTo(SizeOfHeaders, SectionAlignment) + (uint)Sections.Sum(s => Image.AlignTo(s.VirtualSize, SectionAlignment)); // The size (in bytes) of the image, including all headers, as the image is loaded in memory. It must be a multiple of SectionAlignment.
-        public uint SizeOfHeaders => Image.AlignTo(DosHeader.WriteSize + WriteSize, FileAlignment); // The combined size of an MS DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment.
+        public uint SizeOfImage => SizeOfHeaders.AlignTo(SectionAlignment) + (uint)Sections.Sum(s => s.VirtualSize.AlignTo(SectionAlignment)); // The size (in bytes) of the image, including all headers, as the image is loaded in memory. It must be a multiple of SectionAlignment.
+        public uint SizeOfHeaders => (DosHeader.WriteSize + WriteSize).AlignTo(FileAlignment); // The combined size of an MS DOS stub, PE header, and section headers rounded up to a multiple of FileAlignment.
         public uint CheckSum = 0;
 
         public WindowsSubsystem Subsystem = WindowsSubsystem.WINDOWS_CUI;
@@ -906,7 +885,7 @@ namespace REC.Packaging.PortableExecutable
         public struct Block
         {
             public uint PageRVA;
-            public uint Size => (uint)(8 + Entry.WriteSize*(Entries.Length + Entries.Length%2)); // total size of block %4 == 0
+            public uint Size => (8 + Entry.WriteSize* (uint)Entries.Length).AlignTo(4); // total size of block %4 == 0
             public Entry[] Entries;
 
             public void Write(BinaryWriter bw)
@@ -914,7 +893,7 @@ namespace REC.Packaging.PortableExecutable
                 bw.Write(PageRVA);
                 bw.Write(Size);
                 foreach (var e in Entries) e.Write(bw);
-                if (0 != Entries.Length % 2) bw.Write((ushort)0);
+                bw.PadPosition(4);
             }
         }
         public enum Types
@@ -1061,11 +1040,11 @@ namespace REC.Packaging.PortableExecutable
             abstract public uint WriteSize { get; }
             abstract public void Write(BinaryWriter bw);
 
-            internal uint PaddedWriteSize => Image.AlignTo(WriteSize, 16);
+            internal uint PaddedWriteSize => WriteSize.AlignTo(16);
             internal void PaddedWrite(BinaryWriter bw)
             {
                 Write(bw);
-                bw.Write(new byte[Image.Padding(WriteSize, 16)]);
+                bw.PadPosition(16);
             }
         }
 
@@ -1116,14 +1095,13 @@ namespace REC.Packaging.PortableExecutable
             }
             public Entry[] Entries = new Entry[0];
 
-            public override uint WriteSize => (uint)(6 + Entries.Length * Entry.WriteSize);
+            public override uint WriteSize => 6 + (uint)Entries.Length * Entry.WriteSize;
 
             public override void Write(BinaryWriter bw)
             {
                 bw.Write(Reserved);
                 bw.Write(ResourceType);
                 bw.Write(Count);
-                //bw.Write(Padding);
                 foreach (var entry in Entries) entry.Write(bw);
             }
         }
@@ -1370,19 +1348,17 @@ namespace REC.Packaging.PortableExecutable
             }
 
             uint TranslationsWriteVarSize => (uint)(32 + ValidStringTables.Count() * LanguageCodePage.WriteSize);
-            uint TranslationsWriteVarSizePadding => 2;
             void TranslationsWriteVar(BinaryWriter bw)
             {
                 bw.Write((ushort)TranslationsWriteVarSize);
                 bw.Write((ushort)(StringTables.Count * LanguageCodePage.WriteSize));
                 bw.Write((ushort)0);
                 bw.Write(Encoding.Unicode.GetBytes("Translation\0"));
-                bw.Write(new byte[2]); // Padding
+                bw.PadPosition(4);
                 foreach (var t in ValidStringTables) t.Item1.Write(bw);
             }
 
             uint TranslationsWriteSize => StringTables.IsEmpty() ? 0 : 32 + TranslationsWriteVarSize;
-            uint TranslationsWriteSizePadding => StringTables.IsEmpty() ? 0 : 2 + TranslationsWriteVarSizePadding;
             void TranslationsWrite(BinaryWriter bw)
             {
                 if (StringTables.IsEmpty()) return;
@@ -1390,14 +1366,12 @@ namespace REC.Packaging.PortableExecutable
                 bw.Write((ushort)0);
                 bw.Write((ushort)1); // Type
                 bw.Write(Encoding.Unicode.GetBytes("VarFileInfo\0"));
-                bw.Write(new byte[2]); // Padding
+                bw.PadPosition(4);
                 TranslationsWriteVar(bw);
             }
 
-            uint StringTablesWriteSize => Image.AlignTo(6 + 15 * 2, 4)
+            uint StringTablesWriteSize => (6u + 15 * 2).AlignTo(4)
                         + (uint)ValidStringTables.Sum(e => StringTableWriteSize(e.Item1, e.Item2));
-            uint StringTablesWriteSizePadding => Image.Padding(6 + 15 * 2, 4)
-                        + (uint)ValidStringTables.Sum(e => StringTableWriteSizePadding(e.Item1, e.Item2));
             void StringTablesWrite(BinaryWriter bw)
             {
                 if (StringTables.IsEmpty()) return;
@@ -1405,20 +1379,15 @@ namespace REC.Packaging.PortableExecutable
                 bw.Write((ushort)0);
                 bw.Write((ushort)1); // Type
                 bw.Write(Encoding.Unicode.GetBytes("StringFileInfo\0"));
-                //bw.Write(new byte[2]); // Padding
+                bw.PadPosition(4);
                 foreach (var entry in ValidStringTables)
                     StringTableWrite(entry.Item1, entry.Item2, bw);
             }
 
             private static uint StringTableWriteSize(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict)
             {
-                return Image.AlignTo(6 + (8+1)*2, 4)
+                return (6u + (8+1)*2).AlignTo(4)
                     + (uint)dict.Sum(e => StringTableEntryWriteSize(e.Key, e.Value));
-            }
-            private static uint StringTableWriteSizePadding(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict)
-            {
-                return Image.Padding(6 + (8 + 1) * 2, 4)
-                    + (uint)dict.Sum(e => StringTableEntryWriteSizePadding(e.Key, e.Value));
             }
             private static void StringTableWrite(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict, BinaryWriter bw)
             {
@@ -1426,20 +1395,15 @@ namespace REC.Packaging.PortableExecutable
                 bw.Write((ushort)0);
                 bw.Write((ushort)1); // Type
                 bw.Write(Encoding.Unicode.GetBytes($"{(ushort)key.Language:X4}{(ushort)key.CodePage:X4}\0"));
-                //bw.Write(new byte[2]); // No Padding
+                bw.PadPosition(4);
                 foreach (var entry in dict)
                     StringTableEntryWrite(entry.Key, entry.Value, bw);
             }
 
             private static uint StringTableEntryWriteSize(VersionKeys key, string value)
             {
-                return Image.AlignTo((uint)(6 + Encoding.Unicode.GetByteCount(key.ToString()) + 2), 4)
-                    + Image.AlignTo((uint)(Encoding.Unicode.GetByteCount(value) + 2), 4);
-            }
-            private static uint StringTableEntryWriteSizePadding(VersionKeys key, string value)
-            {
-                return Image.Padding((uint)(6 + Encoding.Unicode.GetByteCount(key.ToString()) + 2), 4)
-                    + Image.Padding((uint)(Encoding.Unicode.GetByteCount(value) + 2), 4);
+                return (6 + (uint)Encoding.Unicode.GetByteCount(key.ToString()) + 2).AlignTo(4)
+                    + ((uint)Encoding.Unicode.GetByteCount(value) + 2).AlignTo(4);
             }
             private static void StringTableEntryWrite(VersionKeys key, string value, BinaryWriter bw)
             {
@@ -1450,21 +1414,23 @@ namespace REC.Packaging.PortableExecutable
                 bw.Write((ushort)(value.Length + 1)); // includes the zero
                 bw.Write((ushort)1); // Type
                 bw.Write(keyBytes);
-                bw.Write(new byte[2 + Image.Padding(6 + (uint)keyBytes.Length + 2, 4)]); // Padding
+                bw.Write((ushort)0);
+                bw.PadPosition(4);
                 bw.Write(valueBytes);
-                bw.Write(new byte[2 + Image.Padding((uint)valueBytes.Length + 2, 4)]); // Padding
+                bw.Write((ushort)0);
+                bw.PadPosition(4);
             }
 
-            public uint WriteSize => 6 + (15 + 1)*2 + 2 + Fixed.WriteSize + StringTablesWriteSize + TranslationsWriteSize;
-            private uint WriteSizePadding => 2 + StringTablesWriteSizePadding + TranslationsWriteSizePadding;
-            public void Write(BinaryWriter bw)
+            public uint WriteSize => (6u + (15 + 1)*2).AlignTo(4) + Fixed.WriteSize + StringTablesWriteSize + TranslationsWriteSize;
+           public void Write(BinaryWriter bw)
             {
                 bw.Write((ushort)(WriteSize));
                 bw.Write((ushort)Fixed.WriteSize);
                 bw.Write((ushort)0);
                 bw.Write(Encoding.Unicode.GetBytes("VS_VERSION_INFO\0"));
-                bw.Write(new byte[2]); // Padding
+                bw.PadPosition(4);
                 FixedData.Write(bw);
+                bw.PadPosition(4);
                 StringTablesWrite(bw);
                 TranslationsWrite(bw);
             }
@@ -1626,7 +1592,7 @@ namespace REC.Packaging.PortableExecutable
             public Entry[] NameEntries = new Entry[0];
             public Entry[] OrdinalEntries = new Entry[0];
 
-            public uint WriteSize => (uint)(16u + (NameEntries.Length + OrdinalEntries.Length) * Entry.WriteSize);
+            public uint WriteSize => 16u + (uint)(NameEntries.Length + OrdinalEntries.Length) * Entry.WriteSize;
 
             public void Write(BinaryWriter bw, Func<uint, uint> nameOffset, Func<uint, uint> descriptionOffset, Func<uint, uint> tableOffset)
             {
@@ -1643,8 +1609,7 @@ namespace REC.Packaging.PortableExecutable
 
         static uint StringWriteSize(string str)
         {
-            var bytes = Encoding.Unicode.GetBytes(str);
-            return 2u + (uint)bytes.Length;
+            return 2u + (uint)Encoding.Unicode.GetByteCount(str);
         }
 
         static void StringWrite(BinaryWriter bw, string str)
@@ -1680,7 +1645,7 @@ namespace REC.Packaging.PortableExecutable
         private uint TablesSize => (uint)(DirectoryTables.Sum(dt => dt.WriteSize));
         private uint DescriptionSize => (uint)(DataDescriptions.Length * DataDescription.WriteSize);
         private uint RawStringSize => (uint)DirectoryStrings.Sum(ds => StringWriteSize(ds));
-        private uint StringsSize => Image.AlignTo(RawStringSize, 16u);
+        private uint StringsSize => RawStringSize.AlignTo(16);
         private uint DataSize => (uint)(Data.Sum(dt => dt.PaddedWriteSize));
 
         public uint WriteSize => TablesSize + DescriptionSize + StringsSize + DataSize;
@@ -1702,7 +1667,7 @@ namespace REC.Packaging.PortableExecutable
                     (index) => dataRVA + (uint)Data.Take((int)index).Sum(d => d.PaddedWriteSize));
 
             foreach (var str in DirectoryStrings) StringWrite(bw, str);
-            bw.Write(new byte[Image.Padding(RawStringSize, 16)]);
+            bw.PadPosition(16);
 
             foreach (var data in Data) data.PaddedWrite(bw);
         }
