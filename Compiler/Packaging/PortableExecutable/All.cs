@@ -686,7 +686,7 @@ namespace REC.Packaging.PortableExecutable
 
             public static void WriteTerminator(BinaryWriter bw)
             {
-                bw.Write(new byte[20]);
+                bw.Write(new byte[WriteSize]);
             }
         }
         class LookupEntry
