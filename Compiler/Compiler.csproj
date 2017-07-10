@@ -121,6 +121,7 @@
     <Compile Include="Intrinsic\Types\U64Type.cs" />
     <Compile Include="Packaging\PortableExecutable\All.cs" />
     <Compile Include="Packaging\Tools\PaddingExtensions.cs" />
+    <Compile Include="Packaging\x86\All.cs" />
     <Compile Include="Parser\BlockLineGrouping.cs" />
     <Compile Include="Parser\Context.cs" />
     <Compile Include="Parser\ExpressionParser.cs" />
