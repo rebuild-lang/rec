@@ -1,13 +1,40 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using REC.Packaging.Code;
+using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace REC.Packaging.x86
 {
-
+    [Flags]
+    internal enum NativeFlags : uint
+    {
+        Carry = 1 << 0,
+        // Unused = 1<<1,
+        Parity = 1 << 2,
+        // Unused = 1<<3,
+        Adjust = 1 << 4,
+        // Unused = 1<<5,
+        Zero = 1 << 6,
+        Sign = 1 << 7,
+        Trap = 1 << 8,
+        InterruptEnable = 1 << 9,
+        Direction = 1 << 10,
+        Overflow = 1 << 11,
+        IoPrivilegeLevel = 1 << 12 | 1 << 13,
+        NestedTask = 1 << 14,
+        // Unused = 1<<15,
+        // --- EFlags ---
+        Resume = 1 << 16,
+        Virtual8086 = 1 << 17,
+        AlignmentCheck = 1 << 18,
+        VirtualInterrupt = 1 << 19,
+        VirtualInterruptPending = 1 << 20,
+        CpuIdEnabled = 1 << 21,
+        // Reserved bits 22..31
+        // --- RFlags ---
+        // Reserved bits 32..63
+    }
     internal enum Registers : byte
     {
         AX, CX, DX, BX, SP, BP, SI, DI,
@@ -15,19 +42,7 @@ namespace REC.Packaging.x86
         R8, R9, R10, R11, R12, R13, R14, R15, // new
         MM0, MM1, MM2, MM3, MM4, MM5, MM6, MM7, // SSE (XMMn) & AVX (YMMn)
     }
-    internal enum RegisterTypes : byte
-    {
-        Byte, Word, DWord, QWord,
-        Byte2nd, // 2nd lowest byte (only R0...R3)
 
-        // SIMD Vectors
-        Byte8, Byte16, Byte32,
-        Word4, Word8, Word16, Word32,
-        DWord4, DWord8, DWord16,
-        QWord2, QWord4, QWord8,
-        Float, Float2, Float4, Float8, Float16,
-        Double, Double2, Double4, Double8,
-    }
     internal enum AddressScale : byte
     {
         One = 1, Two = 2, Four = 4, Eight = 8,
@@ -40,139 +55,55 @@ namespace REC.Packaging.x86
         public ulong Offset;
     }
 
-    internal interface IAddressConsumer
+    //
+    // planned instructions
+    //
+    internal enum ILabelInstructionType
     {
-        void SetAddress(ulong address);
+        CallRelative,
+        JumpRelative,
     }
-    internal interface IAddressProvider
+    internal interface ILabelInstruction : IInstruction
     {
-        ulong Address { get; }
-        IEnumerable<IAddressConsumer> Consumer { get; }
-
-        void AddAddressConsumer(IAddressConsumer consumer);
-    }
-    delegate void SizeChangedHandler(ISizeProvider provider);
-    internal interface ISizeProvider
-    {
-        ulong Size { get; }
-        event SizeChangedHandler SizeChanged;
+        ILabel Label { get; }
     }
 
-    internal interface IImportDllEntry : IAddressProvider
+    internal enum NoArgumentInstructionType
     {
+        NoOp,
+        PushFlags,
+        PopFlags,
     }
-    internal interface INamedImportDllEntry : IImportDllEntry
+    internal interface INoArgumentInstruction : IInstruction
     {
-        string Name { get; }
-        uint Hint { get; } // speeds up lookup
-    }
-    internal interface INumberedImportDllEntry : IImportDllEntry
-    {
-        uint Number { get; }
+        NoArgumentInstructionType Type { get; }
     }
 
-    internal interface IImportDll
+    internal enum CallJumpImmediateInstructionType
     {
-        string Name { get; }
-        IEnumerable<IImportDllEntry> AllEntries { get; }
-
-        IImportDllEntry FindEntryByName(string name);
-        IImportDllEntry FindEntryByHint(uint hint);
-        IImportDllEntry FindEntryByNumber(uint number);
-
-        INamedImportDllEntry AddNamed(string name, uint hint = 0);
-        INumberedImportDllEntry AddNumbered(uint number);
+        CallRelative,
+        JumpRelative,
+        JumpOverflow, // 70
+        JumpNotOverflow,
+        JumpBelow, Carry = JumpBelow, NotAboveOrEqual = JumpBelow,
+        JumpNotBelow, AboveOrEqual = JumpNotBelow, NotCarry = JumpNotBelow,
+        JumpEqual, Zero = JumpEqual,
+        JumpNotEqual, NotZero = JumpNotEqual, // 75
+        JumpNotAbove, BelowOrEqual = JumpNotAbove, // signed
+        JumpAbove, NotBelowOrEqual = JumpAbove, // signed
+        JumpSign,
+        JumpNotSign,
+        JumpParity, JumpParityEven = JumpParity, // 7A
+        JumpNotParity, JumpParityOdd = JumpNotParity,
+        JumpLess, JumpNotGreaterOrEqual = JumpLess,
+        JumpNotLess, JumpGreaterOrEqual = JumpNotLess,
+        JumpNotGreater, JumpLessOrEqual = JumpNotGreater, // signed
+        JumpGreater, JumpNotLessOrEqual = JumpGreater, // 7F - signed
+        JumpCxZero, // E3
     }
-
-    internal interface IInstruction : IAddressProvider, ISizeProvider
+    internal interface ICallJumpImmediateInstruction : IInstruction
     {
-        void SetAddress(ulong address);
-        void Write(BinaryWriter bw);
+        CallJumpImmediateInstructionType Type { get; }
+        INativeValue Immediate { get; }
     }
-
-    internal interface ILabel : IInstruction
-    {
-        string Name { get; }
-    }
-
-    internal interface ICallDllEntry : IInstruction, IAddressConsumer
-    {
-        IImportDllEntry DllEntry { get; }
-    }
-
-    internal interface IPushValue : IInstruction
-    {
-        uint Value { get; }
-    }
-    /*
-    internal class Label : IInstruction
-    {
-        public uint MinSize => 0;
-        public uint MaxSize => 0;
-
-        public void Write(BinaryWriter bw)
-        {
-            // empty
-        }
-    }
-
-    internal class Call : IInstruction
-    {
-        public uint MinSize => 3;
-        public uint MaxSize => 6;
-
-        public void Write(BinaryWriter bw)
-        {
-        }
-    }
-
-    internal class Jump : IInstruction
-    {
-        public uint MinSize => 2;
-        public uint MaxSize => 6;
-
-        public void Write(BinaryWriter bw)
-        {
-        }
-    }
-
-    internal class Push : IInstruction
-    {
-        public uint MinSize => throw new NotImplementedException();
-        public uint MaxSize => throw new NotImplementedException();
-
-        public void Write(BinaryWriter bw)
-        {
-        }
-    }
-
-    internal class Pop : IInstruction
-    {
-        public uint MinSize => throw new NotImplementedException();
-        public uint MaxSize => throw new NotImplementedException();
-
-        public void Write(BinaryWriter bw)
-        {
-        }
-    }
-
-    internal class Move : IInstruction
-    {
-        public uint MinSize => throw new NotImplementedException();
-        public uint MaxSize => throw new NotImplementedException();
-
-        public void Write(BinaryWriter bw)
-        {
-        }
-    }
-
-    internal class Add : IInstruction
-    {
-        public uint MinSize => throw new NotImplementedException();
-        public uint MaxSize => throw new NotImplementedException();
-
-        public void Write(BinaryWriter bw)
-        {
-        }
-    }*/
 }

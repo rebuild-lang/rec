@@ -3,13 +3,14 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProjectGuid>{1A59FC62-EDB2-4A49-A1CE-DC690175D6D7}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <NoStandardLibraries>false</NoStandardLibraries>
     <AssemblyName>REC</AssemblyName>
     <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -22,7 +23,6 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -81,15 +81,15 @@
     <Compile Include="Cpp\IndentedTextBuilder.cs" />
     <Compile Include="Execution\CompileTime.cs" />
     <Compile Include="Execution\LocalValueScope.cs" />
-    <Compile Include="Instance\ArgumentInstance.cs" />
-    <Compile Include="Instance\FunctionInstance.cs" />
-    <Compile Include="Instance\FunctionOverloads.cs" />
-    <Compile Include="Instance\Instance.cs" />
-    <Compile Include="Instance\IntrinsicTypeModuleInstance.cs" />
-    <Compile Include="Instance\ModuleInstance.cs" />
-    <Compile Include="Instance\PhaseInstance.cs" />
-    <Compile Include="Instance\TypedInstance.cs" />
-    <Compile Include="Instance\VariableInstance.cs" />
+    <Compile Include="Function\Instance\ArgumentInstance.cs" />
+    <Compile Include="Function\Instance\FunctionInstance.cs" />
+    <Compile Include="Function\Instance\FunctionOverloads.cs" />
+    <Compile Include="Function\Instance\Instance.cs" />
+    <Compile Include="Function\Instance\IntrinsicTypeModuleInstance.cs" />
+    <Compile Include="Function\Instance\ModuleInstance.cs" />
+    <Compile Include="Function\Instance\PhaseInstance.cs" />
+    <Compile Include="Function\Instance\TypedInstance.cs" />
+    <Compile Include="Function\Instance\VariableInstance.cs" />
     <Compile Include="Intrinsic\API\AddCodeToCompiler.cs" />
     <Compile Include="Intrinsic\API\CompilerInstance.cs" />
     <Compile Include="Intrinsic\API\EvalExpression.cs" />
@@ -104,7 +104,7 @@
     <Compile Include="Intrinsic\IModuleIntrinsic.cs" />
     <Compile Include="Intrinsic\Intrinsic.cs" />
     <Compile Include="Intrinsic\IntrinsicDict.cs" />
-    <Compile Include="Instance\IntrinsicFunctionInstance.cs" />
+    <Compile Include="Function\Instance\IntrinsicFunctionInstance.cs" />
     <Compile Include="Intrinsic\IO\ISimpleMath.cs" />
     <Compile Include="Intrinsic\IO\PrintIntrinsic.cs" />
     <Compile Include="Intrinsic\IO\SimpleMathIntrinsic.cs" />
@@ -119,9 +119,22 @@
     <Compile Include="Intrinsic\Types\API\CompilerType.cs" />
     <Compile Include="Intrinsic\Types\API\LiteralType.cs" />
     <Compile Include="Intrinsic\Types\U64Type.cs" />
+    <Compile Include="Packaging\Code\Code.cs" />
+    <Compile Include="Packaging\Data\InitializedData.cs" />
+    <Compile Include="Packaging\Data\UninitializedData.cs" />
+    <Compile Include="Packaging\Executable.cs" />
     <Compile Include="Packaging\PortableExecutable\All.cs" />
     <Compile Include="Packaging\Tools\PaddingExtensions.cs" />
     <Compile Include="Packaging\x86\All.cs" />
+    <Compile Include="Packaging\Code\AddressProvider.cs" />
+    <Compile Include="Packaging\x86\DllEntryInstruction.cs" />
+    <Compile Include="Packaging\x86\ImmediateInstruction.cs" />
+    <Compile Include="Packaging\x86\ImportDll.cs" />
+    <Compile Include="Packaging\Code\Instruction.cs" />
+    <Compile Include="Packaging\Code\Label.cs" />
+    <Compile Include="Packaging\Code\SizeProvider.cs" />
+    <Compile Include="Packaging\x86\NativeTypes.cs" />
+    <Compile Include="Packaging\x86\NativeValue.cs" />
     <Compile Include="Parser\BlockLineGrouping.cs" />
     <Compile Include="Parser\Context.cs" />
     <Compile Include="Parser\ExpressionParser.cs" />
@@ -147,6 +160,7 @@
     <Compile Include="Scope\LocalIdentifierScope.cs" />
     <Compile Include="Scope\ParentedIdentifierScope.cs" />
     <Compile Include="Function\SyntaxPattern.cs" />
+    <None Include="SSA\All.cs" />
     <Compile Include="TextInputRange.cs" />
     <Compile Include="Tools\DecimalExtensionMethods.cs" />
     <Compile Include="Tools\DictionaryExtensionMethods.cs" />

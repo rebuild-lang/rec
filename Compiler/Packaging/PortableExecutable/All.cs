@@ -5,45 +5,55 @@ using System.Text;
 using System;
 using REC.Tools;
 using REC.Packaging.Tools;
+using REC.Packaging.Code;
+using REC.Packaging.x86;
 
 namespace REC.Packaging.PortableExecutable
 {
+    internal interface ISectionConfig
+    {
+        ulong MemoryBaseAddress { get; }
+        uint FileAlignment { get; }
+        uint SectionAlignment { get; }
+    }
+    internal struct Address
+    {
+        public uint File; // relative to file start
+        public uint Memory; // relative to MemoryBaseAddress
+    }
+    internal interface ISection
+    {
+        ISectionConfig Config { get; }
+        uint Size { get; }
+        Address Address { get; set; }
+
+        void Write(BinaryWriter bw);
+    }
+
+
     internal class Image
     {
         ImageHeader Header { get; } = ImageHeader.WithDefaultSections();
-        byte[] Code;
+        ICode Code;
         byte[] IData;
         byte[] Data;
         byte[] RSrc;
         byte[] Reloc;
 
-        private static uint TimeStamp()
-        {
+        private static uint TimeStamp() {
             return (uint)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
         }
 
-        public Image()
-        {
-            // dummy data
-            Code = new byte[] {
-                //0x6A, 0x05, // push 5
-                0xE8, 0x00, 0x00, 0x00, 0x00, // call ip + 0x5
-                0xFF, 0x15, 0x00, 0x00, 0x00, 0x00 // call dword ptr ds:0
-            };
-            var codeAddressReplacement = 7u; // 4u;
+        public Image(Executable executable) {
+            Header.MajorImageVersion = (ushort)executable.Version.Major;
+            Header.MinorImageVersion = (ushort)executable.Version.Minor;
 
-            // *** fill contents ***
-            var CodeSize = (uint)Code.Length;
-            var CodeFileSize = CodeSize.AlignTo(Header.FileAlignment);
-            var CodeVirtualSize = CodeSize.AlignTo(Header.SectionAlignment);
-            Header.TextSection.VirtualSize = CodeSize;
-            Header.TextSection.SizeOfRawData = CodeFileSize;
+            Header.TextSection.VirtualSize = 1;
 
             // TODO: partial layout of Import Data + fixup with address
             Header.IDataSection.VirtualSize = 1; // marker that this section is present
 
-            using (var ms = new MemoryStream())
-            {
+            using (var ms = new MemoryStream()) {
                 Data = ms.ToArray();
             }
             var DataSize = (uint)Data.Length;
@@ -75,26 +85,37 @@ namespace REC.Packaging.PortableExecutable
             }
             Header.AddressOfEntryPoint = CodeVirtualAddress;
 
+            Code = new Code.Code(executable.Instructions, CodeVirtualAddress + Header.ImageBase);
+
+            var CodeSize = (uint)Code.Size;
+            var CodeFileSize = CodeSize.AlignTo(Header.FileAlignment);
+            var CodeVirtualSize = CodeSize.AlignTo(Header.SectionAlignment);
+            Header.TextSection.VirtualSize = CodeSize;
+            Header.TextSection.SizeOfRawData = CodeFileSize;
+
             // import data
             var IDataFileOffset = CodeFileOffset + CodeFileSize;
             var IDataVirtualAddress = CodeVirtualAddress + CodeVirtualSize;
-            using (var ms = new MemoryStream())
-            {
-                using (var bw = new BinaryWriter(ms))
-                {
-                    var import = new ImportSection(new ImportSection.DLL[]{
-                        new ImportSection.DLL {
-                            Name = "kernel32.dll",
-                            Functions = new ImportSection.HintNameEntry[]
-                            {
-                                new ImportSection.HintNameEntry
-                                {
-                                    Hint = 346,
-                                    Name = "ExitProcess"
-                                }
+            using (var ms = new MemoryStream()) {
+                using (var bw = new BinaryWriter(ms)) {
+                    var import = new ImportSection(executable.DllImports.Select(dllImport => new ImportSection.DLL {
+                        Name = dllImport.Name,
+                        Functions = dllImport.AllEntries.Select(entry => {
+                            switch (entry) {
+                            case INamedImportDllEntry named:
+                                return new ImportSection.HintNameEntry {
+                                    Hint = (ushort)named.Hint,
+                                    Name = named.Name
+                                };
+                            case INumberedImportDllEntry numbered:
+                                return new ImportSection.HintNameEntry {
+                                    Hint = (ushort)numbered.Number
+                                };
+                            default:
+                                throw new InvalidDataException("Wrong Entry type");
                             }
-                        }
-                    }, Header.Magic, IDataVirtualAddress);
+                        }).ToArray()
+                    }).ToArray(), Header.Magic, IDataVirtualAddress);
 
                     Header.DataDirectories[(uint)DataDirectoryIndex.ImportTable].VirtualAddress = import.ImportTableRVA;
                     Header.DataDirectories[(uint)DataDirectoryIndex.ImportTable].Size = import.ImportTableSize;
@@ -102,8 +123,16 @@ namespace REC.Packaging.PortableExecutable
                     Header.DataDirectories[(uint)DataDirectoryIndex.ImportAddressTable].VirtualAddress = import.ImportAddressTableRVA;
                     Header.DataDirectories[(uint)DataDirectoryIndex.ImportAddressTable].Size = import.ImportAddressTableSize;
 
-                    var bindRVA = import.FunctionBindRVA(0, 0);
-                    InjectAddress(Code, codeAddressReplacement, Header.ImageBase + bindRVA);
+                    var dllIndex = 0u;
+                    foreach (var dll in executable.DllImports) {
+                        var funcIndex = 0u;
+                        foreach (var func in dll.AllEntries) {
+                            var rva = import.FunctionBindRVA(dllIndex, funcIndex);
+                            func.SetAddress(Header.ImageBase + rva);
+                            funcIndex++;
+                        }
+                        dllIndex++;
+                    }
 
                     import.Write(bw);
                 }
@@ -130,18 +159,14 @@ namespace REC.Packaging.PortableExecutable
             // resource section
             var RSrcFileOffset = DataFileOffset + DataFileSize;
             var RSrcVirtualAddress = DataVirtualAddress + DataVirtualSize;
-            using (var ms = new MemoryStream())
-            {
-                using (var bw = new BinaryWriter(ms))
-                {
+            using (var ms = new MemoryStream()) {
+                using (var bw = new BinaryWriter(ms)) {
                     var resources = new Resources();
-                    resources.AddIcon(new Resources.IconParameters
-                    {
+                    resources.AddIcon(new Resources.IconParameters {
                         Name = "DESK1",
-                        Stream = new FileStream("R:\\main.ico", FileMode.Open)
+                        Stream = new FileStream("C:\\Rebuild\\main.ico", FileMode.Open)
                     });
-                    resources.AddVersionInfo(new Resources.VersionParameters
-                    {
+                    resources.AddVersionInfo(new Resources.VersionParameters {
                         FixedData = {
                             FileVersion = (1,2,3,4),
                             ProductVersion = (5,6,7,8),
@@ -159,9 +184,8 @@ namespace REC.Packaging.PortableExecutable
                             }
                         }
                     });
-                    resources.AddManifest(new Resources.ManifestParameters
-                    {
-                        Stream = new FileStream("R:\\main.manifest", FileMode.Open)
+                    resources.AddManifest(new Resources.ManifestParameters {
+                        Stream = new FileStream("C:\\Rebuild\\main.manifest", FileMode.Open)
                     });
 
                     var rsrc = new ResourceSection(resources);
@@ -186,24 +210,19 @@ namespace REC.Packaging.PortableExecutable
             // reloc section
             var RelocFileOffset = RSrcFileOffset + RSrcFileSize;
             var RelocVirtualAddress = RSrcVirtualAddress + RSrcVirtualSize;
-            using (var ms = new MemoryStream())
-            {
-                using (var bw = new BinaryWriter(ms))
-                {
-                    var reloc = new BaseRelocationSection
-                    {
+            using (var ms = new MemoryStream()) {
+                using (var bw = new BinaryWriter(ms)) {
+                    var reloc = new BaseRelocationSection {
                         Blocks = new BaseRelocationSection.Block[]
                         {
+                            // TODO: Do real blocking!!!!!!
                             new BaseRelocationSection.Block {
                                 PageRVA = CodeVirtualAddress,
-                                Entries = new BaseRelocationSection.Entry[]
-                                {
-                                    new BaseRelocationSection.Entry
+                                Entries = Code.RelocationAddresses().Select(address => new BaseRelocationSection.Entry
                                     {
-                                        Offset = (ushort)codeAddressReplacement,
+                                        Offset = (ushort)address,
                                         Type = BaseRelocationSection.Types.DWord
-                                    }
-                                }
+                                    }).ToArray()
                             }
                         }
                     };
@@ -231,17 +250,14 @@ namespace REC.Packaging.PortableExecutable
             //Header.TimeDateStamp = TimeStamp();
         }
 
-        private void InjectAddress(byte[] code, uint r, ulong address)
-        {
-            if (Header.Magic == MagicNumber.PE32)
-            {
+        private void InjectAddress(byte[] code, uint r, ulong address) {
+            if (Header.Magic == MagicNumber.PE32) {
                 code[r + 0] = (byte)(address >> 0);
                 code[r + 1] = (byte)(address >> 8);
                 code[r + 2] = (byte)(address >> 16);
                 code[r + 3] = (byte)(address >> 24);
             }
-            else
-            {
+            else {
                 code[r + 0] = (byte)(address >> 0);
                 code[r + 1] = (byte)(address >> 8);
                 code[r + 2] = (byte)(address >> 16);
@@ -253,30 +269,24 @@ namespace REC.Packaging.PortableExecutable
             }
         }
 
-        public void Write(BinaryWriter bw)
-        {
+        public void Write(BinaryWriter bw) {
             DosHeader.Write(bw);
-        
+
             Header.Write(bw); bw.PadPosition(Header.FileAlignment);
 
-            if (Code != null && Code.Length != 0)
-            {
-                bw.Write(Code); bw.PadPosition(Header.FileAlignment);
+            if (Code != null && Code.Size != 0) {
+                Code.Write(bw); bw.PadPosition(Header.FileAlignment);
             }
-            if (IData != null && IData.Length != 0)
-            {
+            if (IData != null && IData.Length != 0) {
                 bw.Write(IData); bw.PadPosition(Header.FileAlignment);
             }
-            if (Data != null && Data.Length != 0)
-            {
+            if (Data != null && Data.Length != 0) {
                 bw.Write(Data); bw.PadPosition(Header.FileAlignment);
             }
-            if (RSrc != null && RSrc.Length != 0)
-            {
+            if (RSrc != null && RSrc.Length != 0) {
                 bw.Write(RSrc); bw.PadPosition(Header.FileAlignment);
             }
-            if (Reloc != null && Reloc.Length != 0)
-            {
+            if (Reloc != null && Reloc.Length != 0) {
                 bw.Write(Reloc); bw.PadPosition(Header.FileAlignment);
             }
         }
@@ -285,8 +295,7 @@ namespace REC.Packaging.PortableExecutable
     internal static class DosHeader
     {
         static public uint WriteSize = 128;
-        static public void Write(BinaryWriter bw)
-        {
+        static public void Write(BinaryWriter bw) {
             bw.Write(new byte[] {
                 0x4D, 0x5A, //'MZ'
                 0x90, 0, //Bytes on last page of file
@@ -523,16 +532,13 @@ namespace REC.Packaging.PortableExecutable
                     + SizeOfOptionalHeader
                     + (uint)(Sections.Count * Section.WriteSize);
 
-        public static ImageHeader WithDefaultSections()
-        {
+        public static ImageHeader WithDefaultSections() {
             var ih = new ImageHeader();
             var sections = new byte[][] {
                 TEXT_SECTION_NAME, IDATA_SECTION_NAME, DATA_SECTION_NAME, RSRC_SECTION_NAME, RELOC_SECTION_NAME };
             var i = 1u;
-            foreach(var s in sections)
-            {
-                ih.Sections.Add(new Section
-                {
+            foreach (var s in sections) {
+                ih.Sections.Add(new Section {
                     Name = s,
                     VirtualSize = 0,
                     SizeOfRawData = ih.FileAlignment,
@@ -545,8 +551,7 @@ namespace REC.Packaging.PortableExecutable
             return ih;
         }
 
-        public void Write(BinaryWriter bw)
-        {
+        public void Write(BinaryWriter bw) {
             // COFF Header
             bw.Write(Signature);
             bw.Write((ushort)Machine);
@@ -567,7 +572,8 @@ namespace REC.Packaging.PortableExecutable
             bw.Write(BaseOfCode);
             if (Magic == MagicNumber.PE32) bw.Write(BaseOfData);
 
-            void WriteSizeType(ulong ptr) {
+            void WriteSizeType(ulong ptr)
+            {
                 if (Magic == MagicNumber.PE32)
                     bw.Write((uint)ptr);
                 else
@@ -608,8 +614,7 @@ namespace REC.Packaging.PortableExecutable
 
             public static uint WriteSize = 8;
 
-            public void Write(BinaryWriter bw)
-            {
+            public void Write(BinaryWriter bw) {
                 bw.Write(VirtualAddress);
                 bw.Write(Size);
             }
@@ -647,8 +652,7 @@ namespace REC.Packaging.PortableExecutable
 
             public static uint WriteSize = 40;
 
-            public void Write(BinaryWriter bw)
-            {
+            public void Write(BinaryWriter bw) {
                 bw.Write(Name.Concat(new byte[8]).Take(8).ToArray());
                 bw.Write(VirtualSize);
                 bw.Write(VirtualAddress);
@@ -675,8 +679,7 @@ namespace REC.Packaging.PortableExecutable
 
             public static uint WriteSize = 20;
 
-            public void Write(BinaryWriter bw)
-            {
+            public void Write(BinaryWriter bw) {
                 bw.Write(LookupTableRVA);
                 bw.Write(TimeStamp);
                 bw.Write(ForwarderChain);
@@ -684,8 +687,7 @@ namespace REC.Packaging.PortableExecutable
                 bw.Write(BindTableRVA);
             }
 
-            public static void WriteTerminator(BinaryWriter bw)
-            {
+            public static void WriteTerminator(BinaryWriter bw) {
                 bw.Write(new byte[WriteSize]);
             }
         }
@@ -697,25 +699,21 @@ namespace REC.Packaging.PortableExecutable
 
             public static uint WriteSize(MagicNumber magic) => magic == MagicNumber.PE32 ? 4u : 8u;
 
-            public void Write(BinaryWriter bw, MagicNumber magic)
-            {
-                if (magic == MagicNumber.PE32)
-                {
+            public void Write(BinaryWriter bw, MagicNumber magic) {
+                if (magic == MagicNumber.PE32) {
                     if (IsOrdinal)
                         bw.Write(0x80000000u + OrdinalNumber);
                     else
                         bw.Write(NameTableRVA);
                 }
-                else
-                {
+                else {
                     if (IsOrdinal)
                         bw.Write(0x8000000000000000u + OrdinalNumber);
                     else
                         bw.Write((ulong)NameTableRVA);
                 }
             }
-            public static void WriteTerminator(BinaryWriter bw, MagicNumber magic)
-            {
+            public static void WriteTerminator(BinaryWriter bw, MagicNumber magic) {
                 if (magic == MagicNumber.PE32)
                     bw.Write((uint)0);
                 else
@@ -723,13 +721,11 @@ namespace REC.Packaging.PortableExecutable
             }
         }
 
-        static uint StringWriteSize(string str)
-        {
+        static uint StringWriteSize(string str) {
             var bytes = Encoding.ASCII.GetBytes(str);
             return (uint)(bytes.Length + (bytes.Length % 2 == 0 ? 2 : 1));
         }
-        static void StringWrite(BinaryWriter bw, string str)
-        {
+        static void StringWrite(BinaryWriter bw, string str) {
             var bytes = Encoding.ASCII.GetBytes(str);
             bw.Write(bytes);
             if (bytes.Length % 2 == 0) bw.Write((ushort)0); else bw.Write((byte)0);
@@ -740,14 +736,12 @@ namespace REC.Packaging.PortableExecutable
             public ushort Hint;
             public string Name;
 
-            public uint WriteSize()
-            {
+            public uint WriteSize() {
                 var bytes = Encoding.ASCII.GetBytes(Name);
                 return (uint)(2 + StringWriteSize(Name));
             }
 
-            public void Write(BinaryWriter bw)
-            {
+            public void Write(BinaryWriter bw) {
                 bw.Write(Hint);
                 StringWrite(bw, Name);
             }
@@ -764,8 +758,7 @@ namespace REC.Packaging.PortableExecutable
         HintNameEntry[] hintNames;
         string[] dllNames;
 
-        public ImportSection(DLL[] imports, MagicNumber _magic, uint rva)
-        {
+        public ImportSection(DLL[] imports, MagicNumber _magic, uint rva) {
             magic = _magic;
             tables = new DirectoryTable[imports.Length];
             lookupEntries = new LookupEntry[imports.Length][];
@@ -775,8 +768,7 @@ namespace REC.Packaging.PortableExecutable
             var firstLookupRVA = rva + (uint)(tables.Length + 1) * DirectoryTable.WriteSize;
             var lookupRVA = firstLookupRVA;
             var i = 0;
-            foreach (var import in imports)
-            {
+            foreach (var import in imports) {
                 tables[i] = new DirectoryTable();
                 lookupEntries[i] = new LookupEntry[import.Functions.Length];
                 dllNames[i] = import.Name;
@@ -790,28 +782,23 @@ namespace REC.Packaging.PortableExecutable
             // bindTables
             ImportAddressTableRVA = lookupRVA;
             ImportAddressTableSize = lookupSize;
-            foreach (var table in tables)
-            {
+            foreach (var table in tables) {
                 table.BindTableRVA = table.LookupTableRVA + (lookupRVA - firstLookupRVA);
             }
             var hintRVA = lookupRVA + lookupSize;
             i = 0;
-            foreach (var import in imports)
-            {
+            foreach (var import in imports) {
                 var j = 0;
-                foreach (var entry in import.Functions)
-                {
+                foreach (var entry in import.Functions) {
                     lookupEntries[i][j] = new LookupEntry();
                     var hasName = (entry.Name.Length != 0);
                     lookupEntries[i][j].IsOrdinal = !hasName;
-                    if (hasName)
-                    {
+                    if (hasName) {
                         _hintNames.Add(entry);
                         lookupEntries[i][j].NameTableRVA = hintRVA;
                         hintRVA += entry.WriteSize();
                     }
-                    else
-                    {
+                    else {
                         lookupEntries[i][j].OrdinalNumber = entry.Hint;
                     }
                     j++;
@@ -822,8 +809,7 @@ namespace REC.Packaging.PortableExecutable
             // dllNames
             var namesRVA = hintRVA;
             i = 0;
-            foreach (var import in imports)
-            {
+            foreach (var import in imports) {
                 tables[i].NameRVA = namesRVA;
                 namesRVA += StringWriteSize(import.Name);
                 i++;
@@ -838,13 +824,11 @@ namespace REC.Packaging.PortableExecutable
         public uint ImportAddressTableRVA { get; internal set; }
         public uint ImportAddressTableSize { get; internal set; }
 
-        public uint FunctionBindRVA(uint dll, uint func)
-        {
+        public uint FunctionBindRVA(uint dll, uint func) {
             return tables[dll].BindTableRVA + LookupEntry.WriteSize(magic) * func;
         }
 
-        public void Write(BinaryWriter bw)
-        {
+        public void Write(BinaryWriter bw) {
             foreach (var table in tables) table.Write(bw);
             DirectoryTable.WriteTerminator(bw);
 
@@ -860,8 +844,7 @@ namespace REC.Packaging.PortableExecutable
             }
             foreach (var hint in hintNames) hint.Write(bw);
 
-            foreach (var name in dllNames)
-            {
+            foreach (var name in dllNames) {
                 StringWrite(bw, name);
             }
         }
@@ -876,20 +859,18 @@ namespace REC.Packaging.PortableExecutable
 
             public static uint WriteSize => 2;
 
-            public void Write(BinaryWriter bw)
-            {
-                var word = (ushort)(((ushort)Type&0xF)*0x1000 + (Offset&0x0FFF));
+            public void Write(BinaryWriter bw) {
+                var word = (ushort)(((ushort)Type & 0xF) * 0x1000 + (Offset & 0x0FFF));
                 bw.Write(word);
             }
         }
         public struct Block
         {
             public uint PageRVA;
-            public uint Size => (8 + Entry.WriteSize* (uint)Entries.Length).AlignTo(4); // total size of block %4 == 0
+            public uint Size => (8 + Entry.WriteSize * (uint)Entries.Length).AlignTo(4); // total size of block %4 == 0
             public Entry[] Entries;
 
-            public void Write(BinaryWriter bw)
-            {
+            public void Write(BinaryWriter bw) {
                 bw.Write(PageRVA);
                 bw.Write(Size);
                 foreach (var e in Entries) e.Write(bw);
@@ -917,8 +898,7 @@ namespace REC.Packaging.PortableExecutable
 
         public uint WriteSize => (uint)Blocks.Sum(b => b.Size);
 
-        public void Write(BinaryWriter bw)
-        {
+        public void Write(BinaryWriter bw) {
             foreach (var block in Blocks) block.Write(bw);
         }
     }
@@ -952,15 +932,13 @@ namespace REC.Packaging.PortableExecutable
         public uint GuardFlags;
         private readonly MagicNumber magic;
 
-        LoadConfigurationLayout(MagicNumber _magic)
-        {
+        LoadConfigurationLayout(MagicNumber _magic) {
             magic = _magic;
         }
 
         public uint WriteSize => magic == MagicNumber.PE32 ? 92u : 148u;
 
-        public void Write(BinaryWriter bw)
-        {
+        public void Write(BinaryWriter bw) {
             void WriteSizeT(ulong d)
             {
                 if (magic == MagicNumber.PE32)
@@ -1041,8 +1019,7 @@ namespace REC.Packaging.PortableExecutable
             abstract public void Write(BinaryWriter bw);
 
             internal uint PaddedWriteSize => WriteSize.AlignTo(16);
-            internal void PaddedWrite(BinaryWriter bw)
-            {
+            internal void PaddedWrite(BinaryWriter bw) {
                 Write(bw);
                 bw.PadPosition(16);
             }
@@ -1054,8 +1031,7 @@ namespace REC.Packaging.PortableExecutable
 
             public override uint WriteSize => (uint)Data.Length;
 
-            public override void Write(BinaryWriter bw)
-            {
+            public override void Write(BinaryWriter bw) {
                 bw.Write(Data);
             }
         }
@@ -1080,8 +1056,7 @@ namespace REC.Packaging.PortableExecutable
                 //public ushort Padding => 0;
 
                 public static uint WriteSize => 14;
-                public void Write(BinaryWriter bw)
-                {
+                public void Write(BinaryWriter bw) {
                     bw.Write(Width);
                     bw.Write(Height);
                     bw.Write(ColorCount);
@@ -1097,8 +1072,7 @@ namespace REC.Packaging.PortableExecutable
 
             public override uint WriteSize => 6 + (uint)Entries.Length * Entry.WriteSize;
 
-            public override void Write(BinaryWriter bw)
-            {
+            public override void Write(BinaryWriter bw) {
                 bw.Write(Reserved);
                 bw.Write(ResourceType);
                 bw.Write(Count);
@@ -1133,10 +1107,8 @@ namespace REC.Packaging.PortableExecutable
             public CodePages CodePage = 0;
             public Stream Stream;
         }
-        public void AddIcon(IconParameters p)
-        {
-            using (var br = new BinaryReader(p.Stream))
-            {
+        public void AddIcon(IconParameters p) {
+            using (var br = new BinaryReader(p.Stream)) {
                 var dirReserved = br.ReadUInt16();
                 var dirType = br.ReadUInt16();
                 if (dirReserved != 0 || dirType != 1) throw new ArgumentException("Not an Icon");
@@ -1144,8 +1116,7 @@ namespace REC.Packaging.PortableExecutable
 
                 var groupEntries = new List<IconGroup.Entry>();
 
-                for (var i = 0; i < numEntries; i++)
-                {
+                for (var i = 0; i < numEntries; i++) {
                     var width = br.ReadByte();
                     var height = br.ReadByte();
                     var colorCount = br.ReadByte();
@@ -1162,8 +1133,7 @@ namespace REC.Packaging.PortableExecutable
 
                     var ordinal = NextOrdinal(Types.ICON);
 
-                    groupEntries.Add(new IconGroup.Entry
-                    {
+                    groupEntries.Add(new IconGroup.Entry {
                         Width = width,
                         Height = height,
                         ColorCount = colorCount,
@@ -1172,21 +1142,19 @@ namespace REC.Packaging.PortableExecutable
                         Size = size,
                         Ordinal = (ushort)ordinal,
                     });
-                    Entries.Add(new Entry
-                    {
+                    Entries.Add(new Entry {
                         Type = Types.ICON,
                         Ordinal = ordinal,
                         Language = p.Language,
                         CodePage = p.CodePage,
                         Data = new PlainData { Data = data }
-                    });                   
+                    });
                 }
 
                 if (string.IsNullOrEmpty(p.Name) && p.Ordinal == 0)
                     p.Ordinal = NextOrdinal(Types.GROUP_ICON);
 
-                Entries.Add(new Entry
-                {
+                Entries.Add(new Entry {
                     Type = Types.GROUP_ICON,
                     Name = p.Name,
                     Ordinal = p.Ordinal,
@@ -1206,18 +1174,15 @@ namespace REC.Packaging.PortableExecutable
             //public string Text;
             public Stream Stream;
         }
-        public void AddManifest(ManifestParameters p)
-        {
+        public void AddManifest(ManifestParameters p) {
             if (string.IsNullOrEmpty(p.Name) && p.Ordinal == 0)
                 p.Ordinal = NextOrdinal(Types.MANIFEST);
 
-            using (var br = new BinaryReader(p.Stream))
-            {
+            using (var br = new BinaryReader(p.Stream)) {
                 var data = br.ReadBytes((int)br.BaseStream.Length);
                 //var data = Encoding.GetEncoding((int)p.CodePage).GetBytes(p.Text);
                 //var data = Encoding.ASCII.GetBytes(p.Text);
-                Entries.Add(new Entry
-                {
+                Entries.Add(new Entry {
                     Type = Types.MANIFEST,
                     Name = p.Name,
                     Ordinal = p.Ordinal,
@@ -1301,15 +1266,14 @@ namespace REC.Packaging.PortableExecutable
                 => StringTables
                     .Select(e => (e.Key, e.Value.Where(x => !string.IsNullOrEmpty(x.Value))))
                     .Where(e => e.Item2.Count() != 0);
-            
+
             public struct LanguageCodePage
             {
                 public Languages Language;
                 public CodePages CodePage;
 
                 static internal uint WriteSize => 4;
-                internal void Write(BinaryWriter bw)
-                {
+                internal void Write(BinaryWriter bw) {
                     bw.Write((ushort)Language);
                     bw.Write((ushort)CodePage);
                 }
@@ -1319,8 +1283,8 @@ namespace REC.Packaging.PortableExecutable
             {
                 public uint Signature => 0xFEEF04BD;
                 public uint StrucVersion = 0x0001_0000;
-                public (ushort,ushort,ushort,ushort) FileVersion; // 1.0.5.7
-                public (ushort,ushort,ushort,ushort) ProductVersion;
+                public (ushort, ushort, ushort, ushort) FileVersion; // 1.0.5.7
+                public (ushort, ushort, ushort, ushort) ProductVersion;
                 public FileFlag FileFlagsMask = (FileFlag)Enum.GetValues(typeof(FileFlag)).Cast<int>().Sum(v => v);
                 public FileFlag FileFlags;
                 public FileOS FileOS = FileOS.NT_WINDOWS32;
@@ -1330,8 +1294,7 @@ namespace REC.Packaging.PortableExecutable
 
                 public static uint WriteSize => 13 * 4;
 
-                public void Write(BinaryWriter bw)
-                {
+                public void Write(BinaryWriter bw) {
                     bw.Write(Signature);
                     bw.Write(StrucVersion);
                     bw.Write((((uint)FileVersion.Item1) << 16) + FileVersion.Item2);
@@ -1348,8 +1311,7 @@ namespace REC.Packaging.PortableExecutable
             }
 
             uint TranslationsWriteVarSize => (uint)(32 + ValidStringTables.Count() * LanguageCodePage.WriteSize);
-            void TranslationsWriteVar(BinaryWriter bw)
-            {
+            void TranslationsWriteVar(BinaryWriter bw) {
                 bw.Write((ushort)TranslationsWriteVarSize);
                 bw.Write((ushort)(StringTables.Count * LanguageCodePage.WriteSize));
                 bw.Write((ushort)0);
@@ -1359,8 +1321,7 @@ namespace REC.Packaging.PortableExecutable
             }
 
             uint TranslationsWriteSize => StringTables.IsEmpty() ? 0 : 32 + TranslationsWriteVarSize;
-            void TranslationsWrite(BinaryWriter bw)
-            {
+            void TranslationsWrite(BinaryWriter bw) {
                 if (StringTables.IsEmpty()) return;
                 bw.Write((ushort)TranslationsWriteSize);
                 bw.Write((ushort)0);
@@ -1372,8 +1333,7 @@ namespace REC.Packaging.PortableExecutable
 
             uint StringTablesWriteSize => (6u + 15 * 2).AlignTo(4)
                         + (uint)ValidStringTables.Sum(e => StringTableWriteSize(e.Item1, e.Item2));
-            void StringTablesWrite(BinaryWriter bw)
-            {
+            void StringTablesWrite(BinaryWriter bw) {
                 if (StringTables.IsEmpty()) return;
                 bw.Write((ushort)StringTablesWriteSize);
                 bw.Write((ushort)0);
@@ -1384,13 +1344,11 @@ namespace REC.Packaging.PortableExecutable
                     StringTableWrite(entry.Item1, entry.Item2, bw);
             }
 
-            private static uint StringTableWriteSize(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict)
-            {
-                return (6u + (8+1)*2).AlignTo(4)
+            private static uint StringTableWriteSize(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict) {
+                return (6u + (8 + 1) * 2).AlignTo(4)
                     + (uint)dict.Sum(e => StringTableEntryWriteSize(e.Key, e.Value));
             }
-            private static void StringTableWrite(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict, BinaryWriter bw)
-            {
+            private static void StringTableWrite(LanguageCodePage key, IEnumerable<KeyValuePair<VersionKeys, string>> dict, BinaryWriter bw) {
                 bw.Write((ushort)StringTableWriteSize(key, dict)); // Size
                 bw.Write((ushort)0);
                 bw.Write((ushort)1); // Type
@@ -1400,13 +1358,11 @@ namespace REC.Packaging.PortableExecutable
                     StringTableEntryWrite(entry.Key, entry.Value, bw);
             }
 
-            private static uint StringTableEntryWriteSize(VersionKeys key, string value)
-            {
+            private static uint StringTableEntryWriteSize(VersionKeys key, string value) {
                 return (6 + (uint)Encoding.Unicode.GetByteCount(key.ToString()) + 2).AlignTo(4)
                     + ((uint)Encoding.Unicode.GetByteCount(value) + 2).AlignTo(4);
             }
-            private static void StringTableEntryWrite(VersionKeys key, string value, BinaryWriter bw)
-            {
+            private static void StringTableEntryWrite(VersionKeys key, string value, BinaryWriter bw) {
                 var keyString = key.ToString();
                 var keyBytes = Encoding.Unicode.GetBytes(keyString);
                 var valueBytes = Encoding.Unicode.GetBytes(value);
@@ -1421,9 +1377,8 @@ namespace REC.Packaging.PortableExecutable
                 bw.PadPosition(4);
             }
 
-            public uint WriteSize => (6u + (15 + 1)*2).AlignTo(4) + Fixed.WriteSize + StringTablesWriteSize + TranslationsWriteSize;
-           public void Write(BinaryWriter bw)
-            {
+            public uint WriteSize => (6u + (15 + 1) * 2).AlignTo(4) + Fixed.WriteSize + StringTablesWriteSize + TranslationsWriteSize;
+            public void Write(BinaryWriter bw) {
                 bw.Write((ushort)(WriteSize));
                 bw.Write((ushort)Fixed.WriteSize);
                 bw.Write((ushort)0);
@@ -1436,19 +1391,16 @@ namespace REC.Packaging.PortableExecutable
             }
         }
 
-        public void AddVersionInfo(VersionParameters p)
-        {
+        public void AddVersionInfo(VersionParameters p) {
             if (string.IsNullOrEmpty(p.Name) && p.Ordinal == 0)
                 p.Ordinal = NextOrdinal(Types.VERSION);
 
             using (var s = new MemoryStream()) {
-                using (var bw = new BinaryWriter(s))
-                {
+                using (var bw = new BinaryWriter(s)) {
                     p.Write(bw);
                 }
                 var data = s.ToArray();
-                Entries.Add(new Entry
-                {
+                Entries.Add(new Entry {
                     Type = Types.VERSION,
                     Name = p.Name,
                     Ordinal = p.Ordinal,
@@ -1462,8 +1414,7 @@ namespace REC.Packaging.PortableExecutable
 
     internal class ResourceSection
     {
-        public ResourceSection(Resources resources)
-        {
+        public ResourceSection(Resources resources) {
             var rootTable = new DirectoryTable();
             var tables = new List<DirectoryTable> { rootTable };
             var names = new List<string>();
@@ -1476,15 +1427,13 @@ namespace REC.Packaging.PortableExecutable
                 .ThenBy(e => e.Language);
 
             var typeTables = new List<ValueTuple<DirectoryTable, IEnumerable<Resources.Entry>>>();
-            rootTable.OrdinalEntries = orderedResources.GroupBy(e => e.Type, (type, typeGroup) =>
-            {
+            rootTable.OrdinalEntries = orderedResources.GroupBy(e => e.Type, (type, typeGroup) => {
                 var subTypeTableIndex = (uint)tables.Count;
                 var typeTable = new DirectoryTable();
                 tables.Add(typeTable);
                 typeTables.Add((typeTable, typeGroup));
 
-                return new DirectoryTable.Entry
-                {
+                return new DirectoryTable.Entry {
                     IsName = false,
                     Ordinal = (uint)type,
                     IsLeaf = false,
@@ -1493,12 +1442,10 @@ namespace REC.Packaging.PortableExecutable
             }).ToArray();
 
             var nameTables = new List<ValueTuple<DirectoryTable, IEnumerable<Resources.Entry>>>();
-            foreach (var (typeTable, typeGroup) in typeTables)
-            {
+            foreach (var (typeTable, typeGroup) in typeTables) {
                 foreach (var entry in typeGroup.GroupBy(
                     e => (e.Name, (string.IsNullOrEmpty(e.Name) ? e.Ordinal : 0)),
-                    (id, nameGroup) =>
-                    {
+                    (id, nameGroup) => {
                         var subNameTableIndex = (uint)tables.Count;
                         var nameTable = new DirectoryTable();
                         tables.Add(nameTable);
@@ -1509,16 +1456,14 @@ namespace REC.Packaging.PortableExecutable
                         if (isName)
                             names.Add(id.Item1);
 
-                        return new DirectoryTable.Entry
-                        {
+                        return new DirectoryTable.Entry {
                             IsName = isName,
                             NameIndex = (uint)nameIndex,
                             Ordinal = id.Item2,
                             IsLeaf = false,
                             SubTableIndex = subNameTableIndex,
                         };
-                    }).GroupBy(e => e.IsName))
-                {
+                    }).GroupBy(e => e.IsName)) {
                     if (entry.Key)
                         typeTable.NameEntries = entry.ToArray();
                     else
@@ -1526,14 +1471,11 @@ namespace REC.Packaging.PortableExecutable
                 }
             }
 
-            foreach (var (nameTable, nameGroup) in nameTables)
-            {
-                nameTable.OrdinalEntries = nameGroup.Select(entry =>
-                {
+            foreach (var (nameTable, nameGroup) in nameTables) {
+                nameTable.OrdinalEntries = nameGroup.Select(entry => {
                     var dataIndex = (uint)descriptions.Count;
 
-                    descriptions.Add(new DataDescription
-                    {
+                    descriptions.Add(new DataDescription {
                         DataIndex = dataIndex,
                         Size = entry.Data.WriteSize,
                         CodePage = (uint)entry.CodePage
@@ -1541,8 +1483,7 @@ namespace REC.Packaging.PortableExecutable
 
                     Data[dataIndex] = entry.Data;
 
-                    return new DirectoryTable.Entry
-                    {
+                    return new DirectoryTable.Entry {
                         IsName = false,
                         Ordinal = (uint)entry.Language,
                         IsLeaf = true,
@@ -1576,8 +1517,7 @@ namespace REC.Packaging.PortableExecutable
                 public uint SubTableIndex;
 
                 public static uint WriteSize => 8;
-                public void Write(BinaryWriter bw, Func<uint, uint> nameOffset, Func<uint, uint> descriptionOffset, Func<uint, uint> tableOffset)
-                {
+                public void Write(BinaryWriter bw, Func<uint, uint> nameOffset, Func<uint, uint> descriptionOffset, Func<uint, uint> tableOffset) {
                     if (IsName)
                         bw.Write(0x8000_0000u | nameOffset(NameIndex)); // actually an offset in Section
                     else
@@ -1594,8 +1534,7 @@ namespace REC.Packaging.PortableExecutable
 
             public uint WriteSize => 16u + (uint)(NameEntries.Length + OrdinalEntries.Length) * Entry.WriteSize;
 
-            public void Write(BinaryWriter bw, Func<uint, uint> nameOffset, Func<uint, uint> descriptionOffset, Func<uint, uint> tableOffset)
-            {
+            public void Write(BinaryWriter bw, Func<uint, uint> nameOffset, Func<uint, uint> descriptionOffset, Func<uint, uint> tableOffset) {
                 bw.Write(Characteristics);
                 bw.Write(TimeStamp);
                 bw.Write(MajorVersion);
@@ -1607,13 +1546,11 @@ namespace REC.Packaging.PortableExecutable
             }
         }
 
-        static uint StringWriteSize(string str)
-        {
+        static uint StringWriteSize(string str) {
             return 2u + (uint)Encoding.Unicode.GetByteCount(str);
         }
 
-        static void StringWrite(BinaryWriter bw, string str)
-        {
+        static void StringWrite(BinaryWriter bw, string str) {
             var bytes = Encoding.Unicode.GetBytes(str);
             bw.Write((ushort)str.Length);
             bw.Write(bytes);
@@ -1627,8 +1564,7 @@ namespace REC.Packaging.PortableExecutable
             public uint Reserved => 0;
 
             public static uint WriteSize => 16;
-            public void Write(BinaryWriter bw, Func<uint, uint> indexToRVA)
-            {
+            public void Write(BinaryWriter bw, Func<uint, uint> indexToRVA) {
                 bw.Write(indexToRVA(DataIndex));
                 bw.Write(Size);
                 bw.Write(CodePage);
@@ -1650,8 +1586,7 @@ namespace REC.Packaging.PortableExecutable
 
         public uint WriteSize => TablesSize + DescriptionSize + StringsSize + DataSize;
 
-        public void Write(BinaryWriter bw, ulong baseRVA)
-        {
+        public void Write(BinaryWriter bw, ulong baseRVA) {
             var tableOffset = 0u;
             var descriptionOffset = tableOffset + TablesSize;
             var stringOffset = descriptionOffset + DescriptionSize;
@@ -1663,7 +1598,7 @@ namespace REC.Packaging.PortableExecutable
                     (index) => tableOffset + (uint)DirectoryTables.Take((int)index).Sum(dt => dt.WriteSize));
 
             foreach (var dataDescription in DataDescriptions)
-                dataDescription.Write(bw, 
+                dataDescription.Write(bw,
                     (index) => dataRVA + (uint)Data.Take((int)index).Sum(d => d.PaddedWriteSize));
 
             foreach (var str in DirectoryStrings) StringWrite(bw, str);
