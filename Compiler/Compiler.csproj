@@ -128,11 +128,13 @@
     <Compile Include="Packaging\x86\All.cs" />
     <Compile Include="Packaging\Code\AddressProvider.cs" />
     <Compile Include="Packaging\x86\DllEntryInstruction.cs" />
+    <Compile Include="Packaging\x86\LabelInstruction.cs" />
     <Compile Include="Packaging\x86\ImmediateInstruction.cs" />
     <Compile Include="Packaging\x86\ImportDll.cs" />
     <Compile Include="Packaging\Code\Instruction.cs" />
     <Compile Include="Packaging\Code\Label.cs" />
     <Compile Include="Packaging\Code\SizeProvider.cs" />
+    <Compile Include="Packaging\x86\NoArgumentInstruction.cs" />
     <Compile Include="Packaging\x86\NativeTypes.cs" />
     <Compile Include="Packaging\x86\NativeValue.cs" />
     <Compile Include="Parser\BlockLineGrouping.cs" />

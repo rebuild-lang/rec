@@ -1,8 +1,5 @@
 ﻿using REC.Packaging.Code;
 using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace REC.Packaging.x86
 {
@@ -58,27 +55,6 @@ namespace REC.Packaging.x86
     //
     // planned instructions
     //
-    internal enum ILabelInstructionType
-    {
-        CallRelative,
-        JumpRelative,
-    }
-    internal interface ILabelInstruction : IInstruction
-    {
-        ILabel Label { get; }
-    }
-
-    internal enum NoArgumentInstructionType
-    {
-        NoOp,
-        PushFlags,
-        PopFlags,
-    }
-    internal interface INoArgumentInstruction : IInstruction
-    {
-        NoArgumentInstructionType Type { get; }
-    }
-
     internal enum CallJumpImmediateInstructionType
     {
         CallRelative,
