@@ -6,7 +6,7 @@ namespace REC.Packaging.Code
 {
     internal interface ICode : ISizeProvider
     {
-        IEnumerable<IInstruction> Instructions { get; }
+        List<IInstruction> Instructions { get; }
         ulong BaseAddress { get; }
 
         IEnumerable<ulong> RelocationAddresses();
@@ -18,28 +18,36 @@ namespace REC.Packaging.Code
         public event SizeChangedHandler SizeChanged;
         public ulong Size { get; private set; }
  
-        public IEnumerable<IInstruction> Instructions { get; private set; }
+        public List<IInstruction> Instructions { get; private set; }
         public ulong BaseAddress { get; private set; }
 
         public Code(IEnumerable<IInstruction> instructions, ulong baseAddress) 
         {
-            Instructions = instructions.ToArray();
+            Instructions = instructions.ToList();
             BaseAddress = baseAddress;
             Linearize();
         }
 
         private void Linearize() {
-            foreach(var inst in Instructions) {
+            Size = 0;
+            var index = 0;
+            foreach (var inst in Instructions) {
                 inst.SetAddress(BaseAddress + Size);
                 var instSize = inst.Size;
-                inst.SizeChanged += OnInstructionSizeChange;
+                inst.SizeChanged += (s, oldSize) => {
+                    OnInstructionSizeChange(inst, oldSize, index);
+                };
                 Size += instSize;
             }
         }
 
-        private void OnInstructionSizeChange(ISizeProvider sp, ulong oldSize) {
-            var delta = sp.Size - oldSize;
+        private void OnInstructionSizeChange(IInstruction inst, ulong oldSize, int index) {
+            var delta = inst.Size - oldSize;
             Size += delta;
+            foreach (var follow in Instructions.Skip(1 + index)) {
+                if (!follow.IsAddressValid) break;
+                follow.SetAddress(follow.Address + delta);
+            }
             SizeChanged?.Invoke(this, Size - delta);
         }
 
