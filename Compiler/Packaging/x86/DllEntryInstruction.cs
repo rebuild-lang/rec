@@ -1,5 +1,7 @@
 ﻿using REC.Packaging.Code;
+using REC.Packaging.Image;
 using System;
+using System.IO;
 
 namespace REC.Packaging.x86
 {
@@ -7,38 +9,27 @@ namespace REC.Packaging.x86
     {
         Call,
     }
-    internal interface IDllEntryInstruction : IInstruction, IAddressConsumer
+    internal interface IDllEntryInstruction : IInstruction
     {
         IImportDllEntry DllEntry { get; }
     }
 
     internal class DllEntryInstruction : AbstractInstruction, IDllEntryInstruction
     {
-        private IImportDllEntry _dllEntry;
-        private ulong _dllEntryAddress = ulong.MaxValue;
+        public IImportDllEntry DllEntry { get; set; }
 
-        public override bool IsValid => DllEntry != null;
-        public override ulong? RelocationAddress => Address + 2;
+        public override ulong? RelocationAddress => MemoryAddress.Value + 2;
 
-        public IImportDllEntry DllEntry {
-            get => _dllEntry;
-            set {
-                if (_dllEntry == value) return;
-                _dllEntry?.RemoveAddressConsumer(this);
-                _dllEntry = value;
-                _dllEntry?.AddAddressConsumer(this);
-            }
+        public override InstructionFlags Flags => InstructionFlags.Fixed;
+
+        public DllEntryInstruction() {
+            Size.SetValue(6);
         }
 
-        public void ConsumeAddress(ulong address) {
-            _dllEntryAddress = address;
-            Encode();
-        }
-
-        protected override void Encode() {
-            if (!IsValid) return;
-            var addressBytes = BitConverter.GetBytes(_dllEntryAddress);
-            Encoded = new byte[] { 0xff, 0x15, addressBytes[0], addressBytes[1], addressBytes[2], addressBytes[3] };
+        public override void Write(BinaryWriter binaryWriter) {
+            var dllEntryAddress = DllEntry.MemoryAddress.Value.Value;
+            var addressBytes = BitConverter.GetBytes(dllEntryAddress);
+            binaryWriter.Write(new byte[] { 0xff, 0x15, addressBytes[0], addressBytes[1], addressBytes[2], addressBytes[3] });
         }
     }
 }

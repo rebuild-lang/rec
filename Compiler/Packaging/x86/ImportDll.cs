@@ -1,19 +1,25 @@
-﻿using REC.Packaging.Code;
+﻿using REC.Packaging.Image;
 using REC.Tools;
-using System;
 using System.Collections.Generic;
 
 namespace REC.Packaging.x86
 {
-    internal interface IImportDllEntry : IAddressProvider
+    internal interface IImportDllEntry
     {
-        void SetAddress(ulong address);
+        IValueProviderSink<ulong> MemoryAddress { get; }
     }
+
+    internal abstract class AbstractImportDllEntry : IImportDllEntry
+    {
+        public IValueProviderSink<ulong> MemoryAddress { get; } = new ValueProvider<ulong>();
+    }
+
     internal interface INamedImportDllEntry : IImportDllEntry
     {
         string Name { get; }
         uint Hint { get; } // speeds up lookup
     }
+
     internal interface INumberedImportDllEntry : IImportDllEntry
     {
         uint Number { get; }
@@ -27,6 +33,7 @@ namespace REC.Packaging.x86
         INamedImportDllEntry AddNamed(string name, uint hint = 0);
         INumberedImportDllEntry AddNumbered(uint number);
     }
+
     internal interface ISearchableImportDll : IImportDll
     {
         IImportDllEntry FindEntryByName(string name);
@@ -41,16 +48,15 @@ namespace REC.Packaging.x86
         private IDictionary<uint, INamedImportDllEntry> _hints = new Dictionary<uint, INamedImportDllEntry>();
         private IDictionary<uint, INumberedImportDllEntry> _numbers = new Dictionary<uint, INumberedImportDllEntry>();
 
-        private class NamedEntry : AbstractAddressProvider, INamedImportDllEntry
+        private class NamedEntry : AbstractImportDllEntry, INamedImportDllEntry
         {
             public string Name { get; set; }
             public uint Hint { get; set; }
-            public void SetAddress(ulong address) { Address = address; }
         }
-        private class NumberedEntry : AbstractAddressProvider, INumberedImportDllEntry
+
+        private class NumberedEntry : AbstractImportDllEntry, INumberedImportDllEntry
         {
             public uint Number { get; set; }
-            public void SetAddress(ulong address) { Address = address; }
         }
 
         public string Name { get; set; }

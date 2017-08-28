@@ -1,62 +1,49 @@
-﻿using System.Collections.Generic;
+﻿using REC.Packaging.Image;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Collections;
 
 namespace REC.Packaging.Code
 {
-    internal interface ICode : ISizeProvider
+    internal interface ICode : IMemoryPart, IEnumerable<IInstruction>
     {
-        List<IInstruction> Instructions { get; }
-        ulong BaseAddress { get; }
+        IEnumerable<IInstruction> Instructions { get; }
+        IBindProvider<ulong> BaseAddress { get; }
+
+        void Add(IInstruction instruction);
 
         IEnumerable<ulong> RelocationAddresses();
-        void Write(BinaryWriter bw);
     }
 
-    internal class Code : ICode
+    internal class Code : AbstractMemoryPart, ICode
     {
-        public event SizeChangedHandler SizeChanged;
-        public ulong Size { get; private set; }
- 
-        public List<IInstruction> Instructions { get; private set; }
-        public ulong BaseAddress { get; private set; }
+        IList<IInstruction> Instructions { get; } = new List<IInstruction>();
+        IEnumerable<IInstruction> ICode.Instructions => Instructions;
 
-        public Code(IEnumerable<IInstruction> instructions, ulong baseAddress) 
-        {
-            Instructions = instructions.ToList();
-            BaseAddress = baseAddress;
-            Linearize();
-        }
+        public IBindProvider<ulong> BaseAddress { get; } = new BindProvider<ulong>();
 
-        private void Linearize() {
-            Size = 0;
-            var index = 0;
-            foreach (var inst in Instructions) {
-                inst.SetAddress(BaseAddress + Size);
-                var instSize = inst.Size;
-                inst.SizeChanged += (s, oldSize) => {
-                    OnInstructionSizeChange(inst, oldSize, index);
-                };
-                Size += instSize;
-            }
-        }
-
-        private void OnInstructionSizeChange(IInstruction inst, ulong oldSize, int index) {
-            var delta = inst.Size - oldSize;
-            Size += delta;
-            foreach (var follow in Instructions.Skip(1 + index)) {
-                if (!follow.IsAddressValid) break;
-                follow.SetAddress(follow.Address + delta);
-            }
-            SizeChanged?.Invoke(this, Size - delta);
-        }
-
-        public void Write(BinaryWriter bw) {
+        public override void Write(BinaryWriter bw) {
             foreach (var inst in Instructions) inst.Write(bw);
         }
 
         public IEnumerable<ulong> RelocationAddresses() {
             foreach (var inst in Instructions) if (inst.RelocationAddress != null) yield return inst.RelocationAddress.Value;
         }
+
+        public void Add(IInstruction instruction) {
+            if (Instructions.Count == 0) {
+                SumBinding.Create(new[] { MemoryOffset, BaseAddress }, instruction.MemoryAddress);
+            }
+            else {
+                var previous = Instructions.Last();
+                SumBinding.Create(new[] { previous.MemoryAddress, previous.Size }, instruction.MemoryAddress);
+            }
+            Instructions.Add(instruction);
+            SumBinding.Create(Instructions.Select(i => i.Size).ToArray(), Size);
+        }
+
+        public IEnumerator<IInstruction> GetEnumerator() => throw new System.NotImplementedException();
+        IEnumerator IEnumerable.GetEnumerator() => throw new System.NotImplementedException();
     }
 }

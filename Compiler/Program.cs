@@ -1,6 +1,7 @@
-﻿
-using REC.Packaging.Code;
+﻿using REC.Packaging.Code;
+using REC.Packaging.Resource;
 using REC.Packaging.x86;
+using System.Collections.Generic;
 using System.IO;
 
 namespace REC
@@ -12,22 +13,50 @@ namespace REC
             var import = new ImportDll { Name = "kernel32.dll" };
             var exitProcess = import.AddNamed("ExitProcess", 346);
 
-            var executable = new Packaging.Executable {
-                Name = "Test Executable",
-                Version = new Packaging.Version { Major = 1, Minor = 0 },
-                Instructions = {
+            var image = new Packaging.PortableExecutable.Image {
+                Header = {
+                   ImageVersion = new Packaging.Version { Major = 1, Minor = 0 }
+                },
+                //Name = "Test Executable",
+                Code = {
                     entry,
-                    new ImmediateInstruction { Type = ImmediateInstructionType.Push, Immediate = NativeValue.Create((byte)5) },
-                    //new ImmediateInstruction { Type = ImmediateInstructionType.CallRelative, Immediate = NativeValue.Create((uint)0) },
+                    //new ImmediateInstruction(ImmediateInstructionType.Push, NativeValue.Create((byte)5)),
+                    new ImmediateInstruction(ImmediateInstructionType.CallRelative, NativeValue.Create((uint)0)),
                     new DllEntryInstruction { DllEntry = exitProcess }
                 },
                 EntryLabel = entry,
-                DllImports = {
+                Imports = {
                     import
-                }
+                },
+                //Resources = {
+                //    new IconParameters {
+                //        Name = "DESK1",
+                //        Stream = new FileStream("C:\\Rebuild\\main.ico", FileMode.Open)
+                //    },
+                //    new VersionParameters {
+                //        FixedData = {
+                //                    FileVersion = (1,2,3,4),
+                //                    ProductVersion = (5,6,7,8),
+                //                },
+                //        StringTables = {
+                //                    {
+                //                        new VersionParameters.LanguageCodePage {
+                //                            CodePage = CodePages.Unicode,
+                //                            Language = Languages.UsEnglish
+                //                        },
+                //                        new Dictionary<VersionKeys, string> {
+                //                            { VersionKeys.ProductName, "Rebuild Test Executable" },
+                //                            { VersionKeys.ProductVersion, "Awesome" }
+                //                        }
+                //                    }
+                //                }
+                //    },
+                //    new ManifestParameters {
+                //        Stream = new FileStream("C:\\Rebuild\\main.manifest", FileMode.Open)
+                //    }
+                //}
             };
 
-            var image = new Packaging.PortableExecutable.Image(executable);
             using (var writer = File.Create("C:\\Rebuild\\test.exe"))
             {
                 using (var bw = new BinaryWriter(writer))

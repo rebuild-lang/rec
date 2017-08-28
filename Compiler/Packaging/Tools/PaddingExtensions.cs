@@ -4,20 +4,13 @@ namespace REC.Packaging.Tools
 {
     internal static class PaddingExtensions
     {
-        public static uint Padding(this uint value, uint alignment)
-        {
-            return (alignment - (value % alignment)) % alignment;
-        }
+        public static uint Padding(this uint value, uint alignment) => (alignment - (value % alignment)) % alignment;
+        public static uint AlignTo(this uint value, uint alignment) => value + Padding(value, alignment);
 
-        public static uint AlignTo(this uint value, uint alignment)
-        {
-            return value + Padding(value, alignment);
-        }
+        public static ulong Padding(this ulong value, ulong alignment) => (alignment - (value % alignment)) % alignment;
+        public static ulong AlignTo(this ulong value, ulong alignment) => value + Padding(value, alignment);
 
-        public static byte[] PaddingBytes(this uint value, uint alignment)
-        {
-            return new byte[Padding(value, alignment)];
-        }
+        public static byte[] PaddingBytes(this uint value, uint alignment) => new byte[Padding(value, alignment)];
 
         public static void PadPosition(this BinaryWriter bw, uint alignment)
         {

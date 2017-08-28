@@ -1,4 +1,5 @@
-﻿using REC.Packaging.Code;
+﻿using System.IO;
+using REC.Packaging.Code;
 
 namespace REC.Packaging.x86
 {
@@ -19,30 +20,38 @@ namespace REC.Packaging.x86
 
     internal class NoArgumentInstruction : AbstractInstruction, INoArgumentInstruction
     {
-        public NoArgumentInstructionType Type { get; set; }
+        public NoArgumentInstructionType Type { get; }
 
-        public override bool IsValid => true;
+        public override InstructionFlags Flags => InstructionFlags.Fixed;
 
-        protected override void Encode() {
-            if (!IsValid) return;
+        NoArgumentInstruction(NoArgumentInstructionType type) {
+            Type = type;
+            UpdateSize();
+        }
+
+        private void UpdateSize() {
+            Size.SetValue(1);
+        }
+
+        public override void Write(BinaryWriter binaryWriter) {
             switch (Type) {
             case NoArgumentInstructionType.NoOp:
-                Encoded = new byte[] { 0x90 }; return;
+                binaryWriter.Write(new byte[] { 0x90 }); return;
 
             case NoArgumentInstructionType.Return:
-                Encoded = new byte[] { 0xC3 }; return;
+                binaryWriter.Write(new byte[] { 0xC3 }); return;
 
             case NoArgumentInstructionType.PushFlags:
-                Encoded = new byte[] { 0x9C }; return;
+                binaryWriter.Write(new byte[] { 0x9C }); return;
 
             case NoArgumentInstructionType.PopFlags:
-                Encoded = new byte[] { 0x9D }; return;
+                binaryWriter.Write(new byte[] { 0x9D }); return;
 
             case NoArgumentInstructionType.PushAll:
-                Encoded = new byte[] { 0x60 }; return;
+                binaryWriter.Write(new byte[] { 0x60 }); return;
 
             case NoArgumentInstructionType.PopAll:
-                Encoded = new byte[] { 0x61 }; return;
+                binaryWriter.Write(new byte[] { 0x61 }); return;
             }
         }
     }

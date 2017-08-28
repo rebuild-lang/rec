@@ -1,53 +1,26 @@
-﻿using System;
+﻿using REC.Packaging.Image;
+using System;
 using System.IO;
 
 namespace REC.Packaging.Code
 {
-    internal interface IInstruction : IAddressProvider, ISizeProvider
+    [Flags]
+    enum InstructionFlags
     {
-        bool IsValid { get; }
-        ulong? RelocationAddress { get; }
-
-        void SetAddress(ulong address);
-        void Write(BinaryWriter bw);
+        Fixed = 1 << 0, // content does not depend on address
     }
 
-    internal abstract class AbstractInstruction : AbstractAddressProvider, IInstruction
+    internal interface IInstruction : ISizeWritable
     {
-        private byte[] _encoded;
+        InstructionFlags Flags { get; }
+        IBindProvider<ulong> MemoryAddress { get; }
+        ulong? RelocationAddress { get; }
+    }
 
-        protected byte[] Encoded {
-            get => _encoded;
-            set {
-                if (_encoded == value) return;
-                var oldSize = CurrentSize();
-                _encoded = value;
-                var newSize = CurrentSize();
-                if (oldSize != newSize) SizeChanged?.Invoke(this, oldSize);
-            }
-        }
-
-        public abstract bool IsValid { get; }
-
-        private ulong CurrentSize() => (ulong?) Encoded?.LongLength ?? 0;
-        public ulong Size {
-            get {
-                if (Encoded == null) Encode();
-                return CurrentSize();
-            }
-        }
-
+    internal abstract class AbstractInstruction : AbstractSizeWritable, IInstruction
+    {
+        public abstract InstructionFlags Flags { get; }
+        public IBindProvider<ulong> MemoryAddress { get; } = new BindProvider<ulong>();
         public virtual ulong? RelocationAddress => null;
-        public event SizeChangedHandler SizeChanged;
-
-        protected abstract void Encode();
-
-        public void SetAddress(ulong address) { Address = address; }
-
-        public void Write(BinaryWriter bw) {
-            if (Encoded == null) Encode();
-            if (Encoded == null) throw new InvalidOperationException("invalid encoded instruction");
-            bw.Write(Encoded);
-        }
     }
 }

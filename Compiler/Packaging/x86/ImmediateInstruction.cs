@@ -1,5 +1,6 @@
 ﻿using REC.Packaging.Code;
 using System;
+using System.IO;
 
 namespace REC.Packaging.x86
 {
@@ -16,47 +17,51 @@ namespace REC.Packaging.x86
 
     internal class ImmediateInstruction : AbstractInstruction, IImmediateInstruction
     {
-        public ImmediateInstructionType Type { get; set; }
+        public ImmediateInstructionType Type { get; }
+        public INativeValue Immediate { get; }
 
-        public INativeValue Immediate { get; set; }
+        public override InstructionFlags Flags => InstructionFlags.Fixed;
 
-        public override bool IsValid => Immediate != null && Immediate.IsValid && IsImmediateTypeSupported();
+        public ImmediateInstruction(ImmediateInstructionType type, INativeValue immediate) {
+            Type = type;
+            Immediate = immediate;
+            UpdateSize();
+        }
 
-        protected override void Encode() {
-            if (!IsValid) return;
+        private void UpdateSize() {
             switch (Type) {
             case ImmediateInstructionType.Push:
                 switch (Immediate.Type) {
-                case NativeTypes.Byte: Encoded = new byte[] { 0x6a, Immediate.Data[0] }; return;
-                case NativeTypes.Word: Encoded = new byte[] { 0x66, 0x68, Immediate.Data[0], Immediate.Data[1] }; return;
-                case NativeTypes.DWord: Encoded = new byte[] { 0x68, Immediate.Data[0], Immediate.Data[1], Immediate.Data[2], Immediate.Data[3] }; return;
+                case NativeTypes.Byte: Size.SetValue(2); return;
+                case NativeTypes.Word: Size.SetValue(4); return;
+                case NativeTypes.DWord: Size.SetValue(5); return;
+                default: throw new InvalidOperationException("Invalid Immediate Type for Push");
                 }
-                break;
 
             case ImmediateInstructionType.CallRelative:
-                Encoded = new byte[] { 0xe8, Immediate.Data[0], Immediate.Data[1], Immediate.Data[2], Immediate.Data[3] };
-                break;
+                switch (Immediate.Type) {
+                case NativeTypes.DWord: Size.SetValue(5); return;
+                default: throw new InvalidOperationException("Invalid Immediate Type for CallRelative");
+                }
+            default: throw new InvalidOperationException("Invalid Type");
             }
         }
 
-        private bool IsImmediateTypeSupported() {
+        public override void Write(BinaryWriter binaryWriter) {
             switch (Type) {
             case ImmediateInstructionType.Push:
                 switch (Immediate.Type) {
-                case NativeTypes.Byte:
-                case NativeTypes.Word:
-                case NativeTypes.DWord:
-                    return true;
-                default: return false;
+                case NativeTypes.Byte: binaryWriter.Write(new byte[] { 0x6a, Immediate.Data[0] }); return;
+                case NativeTypes.Word: binaryWriter.Write(new byte[] { 0x66, 0x68, Immediate.Data[0], Immediate.Data[1] }); return;
+                case NativeTypes.DWord: binaryWriter.Write(new byte[] { 0x68, Immediate.Data[0], Immediate.Data[1], Immediate.Data[2], Immediate.Data[3] }); return;
+                default: throw new InvalidOperationException("Invalid Type");
                 }
 
             case ImmediateInstructionType.CallRelative:
-                switch (Immediate.Type) {
-                case NativeTypes.DWord:
-                    return true;
-                default: return false;
-                }
-            default: return false;
+                binaryWriter.Write(new byte[] { 0xe8, Immediate.Data[0], Immediate.Data[1], Immediate.Data[2], Immediate.Data[3] });
+                return;
+
+            default: throw new InvalidOperationException("Invalid Type");
             }
         }
     }
