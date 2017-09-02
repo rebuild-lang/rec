@@ -1,7 +1,8 @@
-﻿using System.IO;
-using REC.Packaging.Code;
+﻿using REC.Packaging.Code;
+using REC.Packaging.Data;
 using REC.Packaging.Image;
 using REC.Packaging.Resource;
+using System.IO;
 
 namespace REC.Packaging.PortableExecutable
 {
@@ -11,7 +12,7 @@ namespace REC.Packaging.PortableExecutable
         ICode Code { get; }
         ILabel EntryLabel { get; set; }
         IImports Imports { get; }
-        //IData Data { get; }
+        IData Data { get; }
         IResources Resources { get; }
     }
 
@@ -26,6 +27,7 @@ namespace REC.Packaging.PortableExecutable
 
         public IImageHeader Header { get; } = new ImageHeader();
         public ICode Code => _codeSection.Code;
+        public IData Data => _dataSection.Data;
         public IImports Imports => _importSection;
         public IResources Resources => _resourceSection.Resources;
 
@@ -53,6 +55,7 @@ namespace REC.Packaging.PortableExecutable
             FuncBinding.Create(new[] { Header.FileAlignment, Header.SectionAlignment }, UpdateSize, Size);
 
             ValueBinding.Create(Header.ImageBase, Code.BaseAddress);
+            ValueBinding.Create(Header.ImageBase, Data.BaseAddress);
             ValueBinding.Create(Header.ImageBase, Imports.BaseAddress);
 
             ValueBinding.Create(_codeSection.MemoryOffset, Header.BaseOfCode);

@@ -1,4 +1,6 @@
 ﻿using REC.Packaging.Code;
+using REC.Packaging.Data;
+using REC.Packaging.PortableExecutable;
 using REC.Packaging.Resource;
 using REC.Packaging.x86;
 using System.Collections.Generic;
@@ -9,24 +11,40 @@ namespace REC
     public static class Program
     {
         public static void Main(string[] args) {
-            var entry = new Label { Name = "Entry" };
-            var import = new ImportDll { Name = "kernel32.dll" };
-            var exitProcess = import.AddNamed("ExitProcess", 346);
+            var entry = new CodeLabel { Name = "Entry" };
+            var kernel32_dll = new ImportDll { Name = "kernel32.dll" };
+            var exitProcess = kernel32_dll.AddNamed(name: "ExitProcess", hint: 346);
+            var user32_dll = new ImportDll { Name = "user32.dll" };
+            var messageBoxA = user32_dll.AddNamed(name: "MessageBoxA");
+            var titleData = new DataLabel { Name = "Title" };
+            var messageData = new DataLabel { Name = "Message" };
 
-            var image = new Packaging.PortableExecutable.Image {
+            var image = new Image {
                 Header = {
                    ImageVersion = new Packaging.Version { Major = 1, Minor = 0 }
                 },
                 //Name = "Test Executable",
                 Code = {
                     entry,
+                    new ImmediateInstruction(ImmediateInstructionType.Push, NativeValue.Create((byte)0x40)),
+                    new DataLabelInstruction(DataLabelInstructionType.PushAddress) { Label = titleData },
+                    new DataLabelInstruction(DataLabelInstructionType.PushAddress) { Label = messageData },
+                    new ImmediateInstruction(ImmediateInstructionType.Push, NativeValue.Create((byte)0)),
+                    new DllEntryInstruction { DllEntry = messageBoxA },
                     //new ImmediateInstruction(ImmediateInstructionType.Push, NativeValue.Create((byte)5)),
                     new ImmediateInstruction(ImmediateInstructionType.CallRelative, NativeValue.Create((uint)0)),
                     new DllEntryInstruction { DllEntry = exitProcess }
                 },
+                Data = {
+                    titleData,
+                    new AsciizData("Hello"),
+                    messageData,
+                    new AsciizData("A Rebuild message!")
+                },
                 EntryLabel = entry,
                 Imports = {
-                    import
+                    kernel32_dll,
+                    user32_dll
                 },
                 Resources = {
                     new IconParameters {

@@ -7,7 +7,7 @@ namespace REC.Packaging.Code
         string Name { get; }
     }
 
-    internal class Label : AbstractInstruction, ILabel
+    internal class CodeLabel : AbstractInstruction, ILabel
     {
         public string Name { get; set; }
 
@@ -15,6 +15,6 @@ namespace REC.Packaging.Code
 
         public override void Write(BinaryWriter binaryWriter) {}
 
-        public Label() => Size.SetValue(0);
+        public CodeLabel() => Size.SetValue(0);
     }
 }

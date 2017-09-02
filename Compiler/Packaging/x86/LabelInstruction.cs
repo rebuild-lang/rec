@@ -1,7 +1,7 @@
-﻿using System;
-using System.IO;
-using REC.Packaging.Code;
+﻿using REC.Packaging.Code;
 using REC.Packaging.Image;
+using System;
+using System.IO;
 
 namespace REC.Packaging.x86
 {
@@ -9,6 +9,7 @@ namespace REC.Packaging.x86
     {
         CallRelative,
         JumpRelative,
+        PushAddress,
     }
 
     internal interface ILabelInstruction : IInstruction
@@ -57,6 +58,7 @@ namespace REC.Packaging.x86
                     else {
                         return 5;
                     }
+                case LabelInstructionType.PushAddress: return 5;
                 }
             }
             return null;
@@ -93,6 +95,18 @@ namespace REC.Packaging.x86
                 }
                 return;
 
+            case LabelInstructionType.PushAddress:
+                var addressData = BitConverter.GetBytes(target);
+                binaryWriter.Write(new byte[] { 0x68, addressData[0], addressData[1], addressData[2], addressData[3] });
+                return;
+            }
+        }
+
+        public override ulong? RelocationAddress {
+            get {
+                if (Type == LabelInstructionType.PushAddress)
+                    return MemoryAddress.Value + 1;
+                return null;
             }
         }
     }
