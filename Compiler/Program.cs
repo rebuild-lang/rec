@@ -28,39 +28,39 @@ namespace REC
                 Imports = {
                     import
                 },
-                //Resources = {
-                //    new IconParameters {
-                //        Name = "DESK1",
-                //        Stream = new FileStream("C:\\Rebuild\\main.ico", FileMode.Open)
-                //    },
-                //    new VersionParameters {
-                //        FixedData = {
-                //                    FileVersion = (1,2,3,4),
-                //                    ProductVersion = (5,6,7,8),
-                //                },
-                //        StringTables = {
-                //                    {
-                //                        new VersionParameters.LanguageCodePage {
-                //                            CodePage = CodePages.Unicode,
-                //                            Language = Languages.UsEnglish
-                //                        },
-                //                        new Dictionary<VersionKeys, string> {
-                //                            { VersionKeys.ProductName, "Rebuild Test Executable" },
-                //                            { VersionKeys.ProductVersion, "Awesome" }
-                //                        }
-                //                    }
-                //                }
-                //    },
-                //    new ManifestParameters {
-                //        Stream = new FileStream("C:\\Rebuild\\main.manifest", FileMode.Open)
-                //    }
-                //}
+                Resources = {
+                    new IconParameters {
+                        Name = "DESK1",
+                        Stream = new FileStream("C:\\Rebuild\\main.ico", FileMode.Open)
+                    },
+                    new VersionParameters {
+                        FixedData = {
+                            FileVersion = (1,2,3,4),
+                            ProductVersion = (5,6,7,8),
+                        },
+                        StringTables = {
+                            {
+                                new VersionParameters.LanguageCodePage {
+                                    CodePage = CodePages.Unicode,
+                                    Language = Languages.UsEnglish
+                                },
+                                new Dictionary<VersionKeys, string> {
+                                    { VersionKeys.FileDescription, "Everything is possible!" },
+                                    { VersionKeys.ProductName, "Rebuild Test Executable" },
+                                    { VersionKeys.ProductVersion, "Awesome" },
+                                    { VersionKeys.LegalCopyright, "GPL V3" }
+                                }
+                            }
+                        }
+                    },
+                    new ManifestParameters {
+                        Stream = new FileStream("C:\\Rebuild\\main.manifest", FileMode.Open)
+                    }
+                }
             };
 
-            using (var writer = File.Create("C:\\Rebuild\\test.exe"))
-            {
-                using (var bw = new BinaryWriter(writer))
-                {
+            using (var writer = File.Create("C:\\Rebuild\\test.exe")) {
+                using (var bw = new BinaryWriter(writer)) {
                     image.Write(bw);
                 }
             }
