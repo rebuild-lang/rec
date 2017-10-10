@@ -7,7 +7,7 @@ bool scanner::file_input_t::skip() {
         return true;
     }
     auto view = view_t(current_ptr, end_ptr());
-    return view.pull_code_point().map([&](auto){
+    return view.pull_code_point().map([&](auto) {
         if (!peek_buffer.empty()) peek_buffer.pop_front();
         current_ptr = view.begin();
         return true;
@@ -16,7 +16,7 @@ bool scanner::file_input_t::skip() {
 
 bool scanner::file_input_t::extend(scanner::column_t tabstop) {
     auto view = view_t(current_ptr, end_ptr());
-    return view.pull_code_point().map([&](auto chr){
+    return view.pull_code_point().map([&](auto chr) {
         if (chr == '\t')
             current_position.next_tabstop(tabstop);
         else
@@ -31,9 +31,9 @@ bool scanner::file_input_t::fill_peek(size_t count) {
     while (peek_buffer.size() < count) {
         auto view = view_t(peek_ptr, end_ptr());
         auto chr = view.pull_code_point();
+        peek_ptr = view.begin();
         if (!chr) return false;
         peek_buffer.push_back(chr.value());
-        peek_ptr = view.begin();
     }
     return true;
 }

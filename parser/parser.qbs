@@ -3,34 +3,34 @@ import qbs
 Project {
     minimumQbsVersion: "1.7.1"
 
-    StaticLibrary {
-        name: "scanner"
+    Product {
+        name: "parser"
         Depends { name: "cpp" }
-        Depends { name: "tools" }
+        Depends { name: "scanner" }
 
         files: [
-            "tokenizer.cpp",
-            "tokenizer.h",
+            "token_preparation.cpp",
+            "token_preparation.h",
         ]
 
         Export {
             Depends { name: "cpp" }
-            Depends { name: "tools" }
+            Depends { name: "scanner" }
             cpp.includePaths: [".."]
         }
     }
 
     Application {
-        name: "scanner.tests"
+        name: "parser.tests"
         consoleApplication: true
         type: ["application", "autotest"]
 
-        Depends { name: "scanner" }
+        Depends { name: "parser" }
         Depends { name: "googletest" }
         googletest.useMain: true
 
         files: [
-            "tokenizer_test.cpp",
+            "token_preparation_test.cpp",
         ]
     }
 }

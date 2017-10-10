@@ -5,13 +5,13 @@ namespace meta {
 
 //#if __cplusplus > 201700L
 
-//template<class... Ts>
-//struct overloaded : Ts... {
+// template<class... Ts>
+// struct overloaded : Ts... {
 //    using Ts::operator()...;
 //};
 
 // // template deduction guide
-//template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+// template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 //#else
 
@@ -22,12 +22,13 @@ struct overloaded;
 
 template<class T>
 struct overloaded<T> : T {
-    overloaded(T&& t) : T(std::forward<T>(t)) {}
+    overloaded(T &&t)
+        : T(std::forward<T>(t)) {}
     using T::operator();
 };
 template<class T, class... Ts>
 struct overloaded<T, Ts...> : T, overloaded<Ts...> {
-    overloaded(T&& t, Ts&&... ts)
+    overloaded(T &&t, Ts &&... ts)
         : T(std::forward<T>(t))
         , overloaded<Ts...>(std::forward<Ts>(ts)...) {}
 
@@ -36,8 +37,8 @@ struct overloaded<T, Ts...> : T, overloaded<Ts...> {
 };
 
 template<class... Ts>
-auto make_overloaded(Ts&&... ts) {
-    return overloaded<Ts...>( std::forward<Ts>(ts)... );
+auto make_overloaded(Ts &&... ts) {
+    return overloaded<Ts...>(std::forward<Ts>(ts)...);
 }
 
 //#endif

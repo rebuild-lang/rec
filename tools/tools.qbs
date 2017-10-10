@@ -8,12 +8,21 @@ Project {
         Depends { name: "cpp" }
         cpp.cxxLanguageVersion: "c++17"
         cpp.includePaths: ["."]
+        cpp.cxxFlags: {
+            if (qbs.toolchain.contains('msvc')) return "/await";
+            if (qbs.toolchain.contains('clang')) return ["-fcoroutines-ts"];
+        }
+        cpp.cxxStandardLibrary: {
+            if (qbs.toolchain.contains('clang')) return "libc++";
+        }
 
         files: [
             "meta/algorithm.h",
+            "meta/co_enumerator.h",
             "meta/optional.h",
             "meta/overloaded.h",
             "meta/variant.h",
+            "strings/code_point.cpp",
             "strings/code_point.h",
             "strings/rope.h",
             "strings/utf8_string.h",
@@ -24,6 +33,16 @@ Project {
             Depends { name: "cpp" }
             cpp.cxxLanguageVersion: "c++17"
             cpp.includePaths: ["."]
+            cpp.cxxFlags: {
+                if (qbs.toolchain.contains('msvc')) return "/await";
+                if (qbs.toolchain.contains('clang')) return ["-fcoroutines-ts"];
+            }
+            cpp.cxxStandardLibrary: {
+                if (qbs.toolchain.contains('clang')) return "libc++";
+            }
+            cpp.staticLibraries: {
+                if (qbs.toolchain.contains('clang')) return ["c++", "c++abi"];
+            }
         }
     }
 }

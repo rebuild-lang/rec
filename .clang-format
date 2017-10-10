@@ -1,0 +1,13 @@
+---
+BasedOnStyle: LLVM
+ColumnLimit: 120
+IndentWidth: 4
+AccessModifierOffset: -4
+
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+
+BreakConstructorInitializers: BeforeComma
+AlwaysBreakTemplateDeclarations: true
+SpaceAfterTemplateKeyword: false
+IndentPPDirectives: AfterHash

@@ -12,17 +12,22 @@ struct count_t {
     constexpr bool operator==(count_t o) const noexcept { return v == o.v; }
     constexpr bool operator!=(count_t o) const noexcept { return v != o.v; }
 
-    constexpr auto operator+ (count_t c) const noexcept { return count_t{v + c.v}; }
+    constexpr auto operator+(count_t c) const noexcept { return count_t{v + c.v}; }
 };
 
 /// naively strong typed decimal value
 struct decimal_t {
     uint8_t v; // valid 0..9
 
-    constexpr decimal_t() noexcept : v(0xFF) {} // invalid
-    constexpr decimal_t(const decimal_t&) noexcept = default;
-    constexpr decimal_t& operator=(const decimal_t&) noexcept = default;
-    constexpr explicit decimal_t(uint8_t n) noexcept : v(n) {}
+    constexpr decimal_t() noexcept
+        : v(0xFF) {} // invalid
+    constexpr explicit decimal_t(uint8_t n) noexcept
+        : v(n) {}
+
+    constexpr decimal_t(const decimal_t &) noexcept = default;
+    constexpr decimal_t &operator=(const decimal_t &) noexcept = default;
+    constexpr decimal_t(decimal_t &&) noexcept = default;
+    constexpr decimal_t &operator=(decimal_t &&) noexcept = default;
 
     // these enable value packed optional
     constexpr bool operator==(decimal_t o) const noexcept { return v == o.v; }
@@ -34,24 +39,30 @@ using optional_decimal_t = meta::optional<meta::packed<decimal_t>>;
 struct code_point_t {
     uint32_t v;
 
-    constexpr code_point_t() noexcept : v(0xFFFFFFFEu) {} // invalid
-    constexpr code_point_t(const code_point_t&) noexcept = default;
-    constexpr code_point_t& operator=(const code_point_t&) noexcept = default;
-    constexpr explicit code_point_t(uint32_t n) noexcept : v(n) {}
+    constexpr code_point_t() noexcept
+        : v(0xFFFFFFFEu) {} // invalid
+    constexpr explicit code_point_t(uint32_t n) noexcept
+        : v(n) {}
+
+    constexpr code_point_t(const code_point_t &) noexcept = default;
+    constexpr code_point_t &operator=(const code_point_t &) noexcept = default;
+    constexpr code_point_t(code_point_t &&) noexcept = default;
+    constexpr code_point_t &operator=(code_point_t &&) noexcept = default;
 
     // these enable value packed optional
     constexpr bool operator==(code_point_t o) const noexcept { return v == o.v; }
     constexpr bool operator!=(code_point_t o) const noexcept { return v != o.v; }
 
     // allow easy comparison
-    constexpr bool operator== (const uint32_t o) const { return v == o; }
-    constexpr bool operator!= (const uint32_t o) const { return v != o; }
-    constexpr bool operator< (const uint32_t o) const { return v < o; }
-    constexpr bool operator> (const uint32_t o) const { return v > o; }
+    constexpr bool operator==(const uint32_t o) const { return v == o; }
+    constexpr bool operator!=(const uint32_t o) const { return v != o; }
+    constexpr bool operator<(const uint32_t o) const { return v < o; }
+    constexpr bool operator>(const uint32_t o) const { return v > o; }
 
     constexpr bool is_control() const {
         // see https://www.compart.com/en/unicode/category/Cc
         switch (v) {
+            /* clang-format off */
         case 0x0: case 0x1: case 0x2: case 0x3: case 0x4: case 0x5: case 0x6: case 0x7:
         case 0x8: case 0x9: case 0xA: case 0xB: case 0xC: case 0xD: case 0xE: case 0xF:
         case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17:
@@ -61,6 +72,7 @@ struct code_point_t {
         case 0x88: case 0x89: case 0x8A: case 0x8B: case 0x8C: case 0x8D: case 0x8E: case 0x8F:
         case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97:
         case 0x98: case 0x99: case 0x9A: case 0x9B: case 0x9C: case 0x9D: case 0x9E: case 0x9F:
+            /* clang-format on */
             return true;
         }
         return false;
@@ -70,12 +82,12 @@ struct code_point_t {
         switch (v) {
         case 0x2028: // Line Separator (see https://www.compart.com/en/unicode/category/Zl)
         // see Paragraph Separator https://www.compart.com/en/unicode/bidiclass/B
-        case 0xA: // Line Feed
-        case 0xD: // Carriage Return
-        case 0x1C: // File Separator
-        case 0x1D: // Group Separator
-        case 0x1E: // Record Separator
-        case 0x85: // Next Line
+        case 0xA:    // Line Feed
+        case 0xD:    // Carriage Return
+        case 0x1C:   // File Separator
+        case 0x1D:   // Group Separator
+        case 0x1E:   // Record Separator
+        case 0x85:   // Next Line
         case 0x2029: // Paragraph Separator
             return true;
         }
@@ -92,7 +104,7 @@ struct code_point_t {
         case 0x2000: // En Quad
         case 0x2001: // Em Quad
         case 0x2002: // En Space
-        case 0x21D7D: // Em Space
+        case 0x2003: // Em Space
         case 0x2004: // Three-per-em Space
         case 0x2005: // Four-per-em Space
         case 0x2006: // Six-per-em Space
@@ -108,12 +120,11 @@ struct code_point_t {
         return false;
     }
 
-    constexpr bool is_decimal_number() const {
-        return decimal_number();
-    }
+    constexpr bool is_decimal_number() const { return decimal_number(); }
 
     constexpr auto decimal_number() const -> optional_decimal_t {
         // see https://www.compart.com/en/unicode/category/Nd
+        /* clang-format off */
         switch (v) {
         case 0x0030: case 0x0031: case 0x0032: case 0x0033: case 0x0034: case 0x0035: case 0x0036: case 0x0037: case 0x0038: case 0x0039:
             return decimal_t{static_cast<uint8_t>(v - 0x0030)};
@@ -232,6 +243,7 @@ struct code_point_t {
         case 0x1E950: case 0x1E951: case 0x1E952: case 0x1E953: case 0x1E954: case 0x1E955: case 0x1E956: case 0x1E957: case 0x1E958: case 0x1E959:
             return decimal_t{static_cast<uint8_t>(v - 0x1E950)};
         }
+        /* clang-format on */
         return {};
     }
 
@@ -245,21 +257,18 @@ struct code_point_t {
     }
 
     template<class Out>
-    void utf8_encode(Out& out) const {
+    void utf8_encode(Out &out) const {
         // see https://en.wikipedia.org/wiki/UTF-8
         if (v < 0x80) {
             out.push_back(v & 0x7F);
-        }
-        else if (v < 0x800) {
+        } else if (v < 0x800) {
             out.push_back(0xC0 | ((v >> 6) & 0x1F));
             out.push_back(0x80 | ((v >> 0) & 0x3F));
-        }
-        else if (v < 0x10000) {
+        } else if (v < 0x10000) {
             out.push_back(0xE0 | ((v >> 12) & 0xF));
             out.push_back(0x80 | ((v >> 6) & 0x3F));
             out.push_back(0x80 | ((v >> 0) & 0x3F));
-        }
-        else if (v < 0x110000) {
+        } else if (v < 0x110000) {
             out.push_back(0xF0 | ((v >> 18) & 0x7));
             out.push_back(0x80 | ((v >> 12) & 0x3F));
             out.push_back(0x80 | ((v >> 6) & 0x3F));
