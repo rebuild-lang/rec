@@ -27,7 +27,11 @@ Project {
             ".clang-format",
             ".editorconfig",
             ".gitignore",
+            "Makefile",
             "Readme.md",
+            "Vagrantfile",
+            "vagrant_install.sh",
+            "vagrant_make.bat",
         ]
     }
 }
