@@ -4,6 +4,7 @@
 #include "meta/optional.h"
 #include "meta/variant.h"
 #include "strings/code_point.h"
+#include "strings/rope.h"
 #include "strings/utf8_string.h"
 #include "strings/utf8_view.h"
 
@@ -12,6 +13,7 @@
 namespace scanner {
 
 using string_t = strings::utf8_string;
+using rope_t = strings::rope;
 using view_t = strings::utf8_view;
 using char_t = strings::code_point_t;
 using opt_char_t = strings::optional_code_point_t;
@@ -167,7 +169,12 @@ struct bracket_open {};
 struct bracket_close {};
 struct string_literal {};
 struct number_literal {};
-struct identifier_literal {};
+struct identifier_literal {
+    rope_t content;
+    rope_t splitted_from;
+    bool left_separated = false;
+    bool right_separated = false;
+};
 struct operator_literal : identifier_literal {};
 struct invalid_encoding {};     // input file is not encoded correctly
 struct unexpected_character {}; // character is not known to scanner / misplaced
@@ -183,6 +190,11 @@ using token_variant =
 struct token_data {
     text_range range;
     token_variant data;
+
+    template<class... Ts>
+    bool one_of() const {
+        return meta::holds_one_of<Ts...>(data);
+    }
 };
 
 struct tokenizer {

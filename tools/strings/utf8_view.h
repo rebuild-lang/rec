@@ -16,12 +16,23 @@ using optional_utf8_view = meta::optional<meta::packed<utf8_view>>;
 struct utf8_view {
     using value_type = uint8_t;
 
-    constexpr utf8_view(const value_type *start, const value_type *end) noexcept
+    constexpr utf8_view() noexcept // valid empty view
+        : utf8_view(nullptr, nullptr) {}
+
+    template<size_t N>
+    constexpr explicit utf8_view(const char (&str)[N]) noexcept // view a constant string literal
+        : utf8_view(reinterpret_cast<const value_type *>(str), reinterpret_cast<const value_type *>(str + N - 1)) {}
+
+    constexpr utf8_view(const value_type *start, const value_type *end) noexcept // from iterator range
         : start_m(start)
         , end_m(end) {}
 
-    constexpr utf8_view() noexcept
-        : utf8_view(nullptr, nullptr) {}
+    explicit utf8_view(const utf8_string &s) noexcept // view existing owning string
+        : utf8_view(s.data(), s.data() + s.byte_count().v) {}
+
+    explicit utf8_view(const std::string &s) noexcept // view owning std::string
+        : utf8_view(reinterpret_cast<const value_type *>(s.data()),
+                    reinterpret_cast<const value_type *>(s.data() + s.length())) {}
 
     // full value semantics
     constexpr utf8_view(const utf8_view &) noexcept = default;
@@ -29,17 +40,7 @@ struct utf8_view {
     constexpr utf8_view(utf8_view &&) noexcept = default;
     constexpr utf8_view &operator=(utf8_view &&) noexcept = default;
 
-    explicit utf8_view(const utf8_string &s) noexcept
-        : utf8_view(s.data(), s.data() + s.byte_count().v) {}
-    explicit utf8_view(const std::string &s) noexcept
-        : utf8_view(reinterpret_cast<const value_type *>(s.data()),
-                    reinterpret_cast<const value_type *>(s.data() + s.length())) {}
-
-    template<size_t N>
-    constexpr explicit utf8_view(const char (&str)[N]) noexcept
-        : utf8_view(reinterpret_cast<const value_type *>(str), reinterpret_cast<const value_type *>(str + N - 1)) {}
-
-    // enable optional
+    // enable fast optional
     // equal if view on the same range
     // use content_equals for content comparison
     constexpr bool operator==(const utf8_view &o) const { return start_m == o.start_m && end_m == o.end_m; }
@@ -100,7 +101,7 @@ struct utf8_view {
     constexpr const value_type *begin() const { return start_m; }
     constexpr const value_type *end() const { return end_m; }
 
-  private:
+private:
     meta::optional<value_type> peek() {
         if (0 == byte_count().v) return {};
         return *start_m;
@@ -121,7 +122,7 @@ struct utf8_view {
         return true;
     }
 
-  private:
+private:
     const value_type *start_m;
     const value_type *end_m;
 };

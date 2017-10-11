@@ -32,12 +32,23 @@ struct co_enumerator {
     };
 
     const T &operator*() const { return coroutine_m.promise().current_m; }
-    const auto &operator-> () const { return &coroutine_m.promise().current_m; }
+    const T *operator->() const { return &coroutine_m.promise().current_m; }
+    T &&move() { return std::move(coroutine_m.promise().current_m); }
+
     operator bool() const { return coroutine_m && !coroutine_m.done(); }
     bool operator++(int) {
         if (coroutine_m) coroutine_m.resume();
         return *this;
     }
+
+#if !defined(__cpp_coroutines) && !defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
+#    pragma message("Warning: Lacking Coroutine Support!")
+#    define co_yield return
+#    define co_return                                                                                                  \
+        return {}
+    co_enumerator() {}
+    co_enumerator(const T &) {}
+#endif
 
 private:
     co_enumerator(handle h)

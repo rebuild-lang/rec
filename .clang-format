@@ -1,4 +1,5 @@
 ---
+Language: Cpp
 BasedOnStyle: LLVM
 ColumnLimit: 120
 IndentWidth: 4
@@ -11,3 +12,7 @@ BreakConstructorInitializers: BeforeComma
 AlwaysBreakTemplateDeclarations: true
 SpaceAfterTemplateKeyword: false
 IndentPPDirectives: AfterHash
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+    BeforeElse: true

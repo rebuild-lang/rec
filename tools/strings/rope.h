@@ -15,6 +15,15 @@ namespace strings {
 struct rope {
     using element_t = meta::variant<code_point_t, utf8_string, utf8_view>;
 
+    rope() = default; // valid empty rope
+
+    // full value semantics
+    rope(const rope &) = default;
+    rope &operator=(const rope &) = default;
+    rope(rope &&) = default;
+    rope &operator=(rope &&) = default;
+
+    // append operators
     rope &operator+=(code_point_t c) {
         data_m.emplace_back(c);
         return *this;
@@ -49,7 +58,7 @@ struct rope {
         return std::move(result);
     }
 
-  private:
+private:
     std::vector<element_t> data_m;
 };
 
