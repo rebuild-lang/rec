@@ -5,6 +5,7 @@
 #include "meta/algorithm.h"
 #include "meta/optional.h"
 
+#include <ostream>
 #include <string>
 
 namespace strings {
@@ -44,12 +45,14 @@ struct utf8_view {
     // equal if view on the same range
     // use content_equals for content comparison
     constexpr bool operator==(const utf8_view &o) const { return start_m == o.start_m && end_m == o.end_m; }
+    constexpr bool operator!=(const utf8_view &o) const { return !(*this == o); }
 
     constexpr bool content_equals(const utf8_view &o) const {
         return byte_count().v == o.byte_count().v && meta::equals(*this, o.begin());
     }
 
     constexpr count_t byte_count() const { return {static_cast<uint32_t>(end_m - start_m)}; }
+    constexpr bool is_empty() const { return start_m == end_m; }
 
     /// view of the first N bytes
     template<size_t N>
@@ -135,6 +138,12 @@ inline bool utf8_view::pull_bom() {
         }
         return false;
     });
+}
+
+inline utf8_string to_string(const utf8_view &v) { return utf8_string(v.begin(), v.end()); }
+
+inline std::ostream &operator<<(std::ostream &out, const utf8_view &v) {
+    return out << std::string(v.begin(), v.end());
 }
 
 } // namespace strings

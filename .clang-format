@@ -7,6 +7,7 @@ AccessModifierOffset: -4
 
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
 
 BreakConstructorInitializers: BeforeComma
 AlwaysBreakTemplateDeclarations: true

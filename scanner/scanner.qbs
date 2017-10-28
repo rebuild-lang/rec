@@ -9,6 +9,13 @@ Project {
         Depends { name: "tools" }
 
         files: [
+            "file_input.cpp",
+            "file_input.h",
+            "number_literal.h",
+            "number_scanner.cpp",
+            "number_scanner.h",
+            "text_range.h",
+            "token_data.h",
             "tokenizer.cpp",
             "tokenizer.h",
         ]
@@ -30,6 +37,7 @@ Project {
         googletest.useMain: true
 
         files: [
+            "number_scanner_test.cpp",
             "tokenizer_test.cpp",
         ]
     }

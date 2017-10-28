@@ -1,6 +1,7 @@
 #pragma once
 #include "strings/code_point.h"
 
+#include <ostream>
 #include <vector>
 
 namespace strings {
@@ -30,6 +31,9 @@ struct utf8_string {
     explicit utf8_string(const char (&str)[N]) // init from string literal
         : data_m(str, str + N - 1) {}
 
+    utf8_string(const value_type *b, const value_type *e)
+        : data_m(b, e) {}
+
     // full value semantics
     utf8_string(const utf8_string &) = default;
     utf8_string &operator=(const utf8_string &) = default;
@@ -38,12 +42,20 @@ struct utf8_string {
 
     const value_type *data() const { return data_m.data(); }
     count_t byte_count() const { return {static_cast<uint32_t>(data_m.size())}; }
+    bool is_empty() const { return data_m.empty(); }
 
     auto begin() const { return data_m.begin(); }
     auto end() const { return data_m.end(); }
 
+    bool operator==(const utf8_string &o) const { return data_m == o.data_m; }
+
 private:
     std::vector<value_type> data_m;
 };
+
+inline std::ostream &operator<<(std::ostream &o, const utf8_string &s) {
+    for (auto c : s) o << static_cast<char>(c);
+    return o;
+}
 
 } // namespace strings

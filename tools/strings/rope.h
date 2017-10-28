@@ -6,6 +6,7 @@
 #include "meta/overloaded.h"
 #include "meta/variant.h"
 
+#include <ostream>
 #include <vector>
 
 namespace strings {
@@ -23,17 +24,19 @@ struct rope {
     rope(rope &&) = default;
     rope &operator=(rope &&) = default;
 
+    explicit rope(const utf8_view &v) { data_m.emplace_back(v); }
+
     // append operators
     rope &operator+=(code_point_t c) {
         data_m.emplace_back(c);
         return *this;
     }
     rope &operator+=(utf8_string &&s) {
-        data_m.emplace_back(std::move(s));
+        if (!s.is_empty()) data_m.emplace_back(std::move(s));
         return *this;
     }
     rope &operator+=(utf8_view v) {
-        data_m.emplace_back(v);
+        if (!v.is_empty()) data_m.emplace_back(v);
         return *this;
     }
 
@@ -45,6 +48,7 @@ struct rope {
                                e);
         });
     }
+    bool is_empty() const { return data_m.empty(); }
 
     explicit operator utf8_string() const {
         auto result = std::vector<uint8_t>();
@@ -58,8 +62,15 @@ struct rope {
         return std::move(result);
     }
 
+    bool operator==(const rope &o) const { return data_m == o.data_m; }
+    bool operator!=(const rope &o) const { return data_m != o.data_m; }
+
 private:
     std::vector<element_t> data_m;
 };
+
+inline utf8_string to_string(const rope &r) { return static_cast<utf8_string>(r); }
+
+inline std::ostream &operator<<(std::ostream &out, const rope &r) { return out << to_string(r); }
 
 } // namespace strings

@@ -32,6 +32,9 @@ struct optional {
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
     }
 
+    constexpr bool operator==(const optional &o) const { return m == o.m; }
+    constexpr bool operator!=(const optional &o) const { return m != o.m; }
+
 private:
     std::optional<T> m;
 };
@@ -73,6 +76,9 @@ struct optional<packed<type_value<T, TF>>> {
         if (*this) return f(value());
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
     }
+
+    constexpr bool operator==(const optional &o) const { return data == o.data; }
+    constexpr bool operator!=(const optional &o) const { return data != o.data; }
 
 private:
     T data;
