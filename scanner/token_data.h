@@ -44,7 +44,7 @@ struct token_data {
 
     template<class... Ts>
     bool one_of() const {
-        return meta::holds_one_of<Ts...>(data);
+        return data.holds<Ts...>();
     }
 };
 

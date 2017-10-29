@@ -1,25 +1,63 @@
 #pragma once
+#include "overloaded.h"
+
 #include <type_traits>
 #include <utility>
 #include <variant>
 
 namespace meta {
 
-/// renaming of std::variant
-// use is until we find reason to roll our own
-template<class... T>
-using variant = std::variant<T...>;
-
-using std::visit;
-
 /// check for multiple types in variant
 template<class... T, class... V>
-bool holds_one_of(const variant<V...> &v) {
+bool holds_one_of(const std::variant<V...> &v) {
     bool sum = false;
     auto x = {(sum = sum || std::holds_alternative<T>(v), 0)...};
     (void)x;
     return sum;
 }
+
+template<class... T>
+class variant {
+    std::variant<T...> m;
+
+public:
+    variant() = default;
+    variant(const variant &) = default;
+    variant &operator=(const variant &) = default;
+    variant(variant &&) = default;
+    variant &operator=(variant &&) = default;
+
+    template<
+        class S, class... A,                                                   // 1+ arguments
+        typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, variant>> // ensure this does not capture a copy
+        >
+    variant(S &&s, A &&... a)
+        : m(std::forward<S>(s), std::forward<A>(a)...) {}
+
+    bool operator==(const variant &o) const { return m == o.m; }
+    bool operator!=(const variant &o) const { return m != o.m; }
+
+    auto index() const { return m.index(); }
+
+    template<class... F>
+    auto visit(F &&... f) const {
+        return std::visit(make_overloaded(std::forward<F>(f)...), m);
+    }
+
+    template<class R>
+    const auto &get() const {
+        return std::get<R>(m);
+    }
+    template<class R>
+    auto &get() {
+        return std::get<R>(m);
+    }
+
+    template<class... C>
+    bool holds() const {
+        return holds_one_of<C...>(m);
+    }
+};
 
 namespace details {
 

@@ -10,7 +10,10 @@ namespace meta {
 // simple encapsulation to add map functionality
 // not all features are delegated!
 template<class T>
-struct optional {
+class optional {
+    std::optional<T> m;
+
+public:
     constexpr optional()
         : m{} {}
     constexpr optional(const T &t)
@@ -34,9 +37,6 @@ struct optional {
 
     constexpr bool operator==(const optional &o) const { return m == o.m; }
     constexpr bool operator!=(const optional &o) const { return m != o.m; }
-
-private:
-    std::optional<T> m;
 };
 
 /// compile time pair of a type and value
@@ -55,7 +55,10 @@ struct packed;
 /// very simple value packed optional specialization
 // keep the API in sync with above optional
 template<class T, class TF>
-struct optional<packed<type_value<T, TF>>> {
+class optional<packed<type_value<T, TF>>> {
+    T data;
+
+public:
     constexpr optional()
         : data(TF{}()) {}
     constexpr optional(const T &t)
@@ -79,9 +82,6 @@ struct optional<packed<type_value<T, TF>>> {
 
     constexpr bool operator==(const optional &o) const { return data == o.data; }
     constexpr bool operator!=(const optional &o) const { return data != o.data; }
-
-private:
-    T data;
 };
 
 template<class T>
@@ -91,7 +91,7 @@ struct default_invalid_t {
 
 /// convenience overload for default initialized invalid values
 template<class T>
-struct optional<packed<T>> : optional<packed<type_value<T, default_invalid_t<T>>>> {
+class optional<packed<T>> : public optional<packed<type_value<T, default_invalid_t<T>>>> {
     using base_t = optional<packed<type_value<T, default_invalid_t<T>>>>;
     using optional<packed<type_value<T, default_invalid_t<T>>>>::optional;
 };

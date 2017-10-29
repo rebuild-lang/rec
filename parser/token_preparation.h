@@ -57,12 +57,12 @@ auto before_range(const token_data &tok) -> text_range { return {tok.range.file,
 
 void mark_right_separator(token_data &tok) {
     using namespace scanner;
-    std::get<identifier_literal>(tok.data).right_separated = true;
+    tok.data.get<identifier_literal>().right_separated = true;
 }
 
 void mark_left_separator(token_data &tok) {
     using namespace scanner;
-    std::get<identifier_literal>(tok.data).left_separated = true;
+    tok.data.get<identifier_literal>().left_separated = true;
 }
 
 } // namespace

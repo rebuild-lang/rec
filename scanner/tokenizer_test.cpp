@@ -11,7 +11,7 @@ TEST(scanner, basic) {
     ASSERT_TRUE(static_cast<bool>(tok_gen));
     auto &tok = *tok_gen;
 
-    ASSERT_TRUE(std::holds_alternative<new_line_indentation>(tok.data));
+    ASSERT_TRUE(tok.data.holds<new_line_indentation>());
     ASSERT_TRUE(tok.range.text.content_equals(strings::utf8_view{"\n "}));
     ASSERT_EQ(1u, tok.range.begin_position.line.v);
     ASSERT_EQ(1u, tok.range.begin_position.column.v);

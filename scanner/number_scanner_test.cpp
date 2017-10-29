@@ -27,7 +27,7 @@ TEST_P(number_scanners, all) {
     auto f = file_t{string_t{"testfile"}, param.input};
     auto input = file_input_t{f};
 
-    auto tok = number_scanner::scan(input.peek_char().value(), input);
+    const auto tok = number_scanner::scan(input.peek_char().value(), input);
 
     EXPECT_EQ(param.content, strings::to_string(tok.range.text));
     constexpr const auto begin_position = position_t{line_t{1}, column_t{1}};
@@ -35,8 +35,8 @@ TEST_P(number_scanners, all) {
     const auto end_position = position_t{line_t{1}, param.end_column};
     EXPECT_EQ(end_position, tok.range.end_position);
 
-    ASSERT_TRUE(std::holds_alternative<number_literal_t>(tok.data));
-    const number_literal_t &lit = std::get<number_literal_t>(tok.data);
+    ASSERT_TRUE(tok.data.holds<number_literal_t>());
+    const number_literal_t &lit = tok.data.get<number_literal_t>();
     EXPECT_EQ(param.radix, lit.radix);
     EXPECT_EQ(param.integer_part, to_string(lit.integer_part));
     EXPECT_EQ(param.fractional_part, to_string(lit.fractional_part));
@@ -86,10 +86,10 @@ TEST_P(number_failures, all) {
 
     auto f = file_t{string_t{"testfile"}, param};
     auto input = file_input_t{f};
-    auto tok = number_scanner::scan(input.peek_char().value(), input);
+    const auto tok = number_scanner::scan(input.peek_char().value(), input);
 
-    ASSERT_TRUE(std::holds_alternative<number_literal_t>(tok.data));
-    const number_literal_t &lit = std::get<number_literal_t>(tok.data);
+    ASSERT_TRUE(tok.data.holds<number_literal_t>());
+    const number_literal_t &lit = tok.data.get<number_literal_t>();
     EXPECT_FALSE(lit);
 }
 

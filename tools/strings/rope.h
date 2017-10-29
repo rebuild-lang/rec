@@ -42,10 +42,9 @@ struct rope {
 
     count_t byte_count() const {
         return meta::accumulate(data_m, count_t{0}, [](count_t c, const element_t &e) {
-            return meta::visit(meta::make_overloaded([=](code_point_t cp) { return c + cp.utf8_byte_count(); },
-                                                     [=](const utf8_string &s) { return c + s.byte_count(); },
-                                                     [=](const utf8_view &v) { return c + v.byte_count(); }),
-                               e);
+            return e.visit([=](code_point_t cp) { return c + cp.utf8_byte_count(); },
+                           [=](const utf8_string &s) { return c + s.byte_count(); },
+                           [=](const utf8_view &v) { return c + v.byte_count(); });
         });
     }
     bool is_empty() const { return data_m.empty(); }
@@ -54,10 +53,9 @@ struct rope {
         auto result = std::vector<uint8_t>();
         result.reserve(byte_count().v);
         for (const auto &e : data_m) {
-            meta::visit(meta::make_overloaded([&](code_point_t cp) { cp.utf8_encode(result); },
-                                              [&](const utf8_string &s) { meta::append(result, s); },
-                                              [&](const utf8_view &v) { meta::append(result, v); }),
-                        e);
+            e.visit([&](code_point_t cp) { cp.utf8_encode(result); },
+                    [&](const utf8_string &s) { meta::append(result, s); },
+                    [&](const utf8_view &v) { meta::append(result, v); });
         }
         return std::move(result);
     }
