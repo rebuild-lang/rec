@@ -21,6 +21,8 @@ Project {
             "meta/co_enumerator.h",
             "meta/optional.h",
             "meta/overloaded.h",
+            "meta/type_list.h",
+            "meta/value_list.h",
             "meta/variant.h",
             "strings/code_point.cpp",
             "strings/code_point.h",
