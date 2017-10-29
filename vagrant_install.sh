@@ -68,8 +68,8 @@ git clone https://github.com/qbs/qbs.git
 
 mkdir -p /tmp/qbs-build
 cd /tmp/qbs-build
-qmake -makefile -spec linux-clang-libc++ "LIBS+=-lc++abi" /tmp/qbs
-make -j5
+qmake -makefile -spec linux-clang-libc++ "LIBS+=-lc++abi" "QBS_INSTALL_PREFIX=/opt/qbs" /tmp/qbs
+make -j5 install
 
 export PATH=/tmp/qbs-build/bin:$PATH
 qbs setup-toolchains --detect
@@ -78,5 +78,5 @@ qbs config defaultProfile clang
 ##
 ## use it
 ##
-cd /rec_cpp
-qbs build --build-directory /tmp/rec_cpp-build debug
+cd /vagrant
+qbs build --build-directory /tmp/rec_cpp-build
