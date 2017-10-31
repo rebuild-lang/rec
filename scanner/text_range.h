@@ -57,6 +57,10 @@ struct column_t {
 
     constexpr bool operator==(const column_t &o) const { return v == o.v; }
     constexpr bool operator!=(const column_t &o) const { return v != o.v; }
+
+    constexpr bool operator<(const column_t &o) const { return v < o.v; }
+    constexpr bool operator>(const column_t &o) const { return v > o.v; }
+    constexpr bool operator>=(const column_t &o) const { return v >= o.v; }
 };
 
 struct position_t {

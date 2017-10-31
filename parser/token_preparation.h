@@ -8,9 +8,6 @@ using token = scanner::token;
 using token_index = scanner::token_variant::index_t;
 using text_range = scanner::text_range;
 
-template<class T>
-using optional = meta::optional<T>;
-
 namespace {
 
 constexpr bool is_right_separator(token_index index) {

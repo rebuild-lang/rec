@@ -9,6 +9,8 @@ Project {
         Depends { name: "scanner" }
 
         files: [
+            "block_line_grouping.cpp",
+            "block_line_grouping.h",
             "token_preparation.cpp",
             "token_preparation.h",
         ]
