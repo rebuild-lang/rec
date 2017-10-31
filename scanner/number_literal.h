@@ -58,11 +58,11 @@ inline std::ostream &operator<<(std::ostream &out, radix_t radix) { return out <
 inline std::ostream &operator<<(std::ostream &out, sign_t sign) { return out << to_string(sign); }
 
 inline std::ostream &operator<<(std::ostream &out, const number_literal_t &lit) {
-    out << "number_literal: " << lit.radix << ' ' << lit.integer_part;
+    out << "r=" << lit.radix << " v=[" << lit.integer_part;
     if (!lit.fractional_part.is_empty()) out << '.' << lit.fractional_part;
     if (!lit.exponent_part.is_empty())
         out << 'e' << (lit.exponent_sign == sign_t::positive ? '+' : '-') << lit.exponent_part;
-    return out;
+    return out << "]";
 }
 
 } // namespace scanner

@@ -1,5 +1,4 @@
 #pragma once
-#include <utility>
 
 namespace meta {
 
@@ -14,6 +13,7 @@ namespace meta {
 // template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 //#else
+#include <utility>
 
 /// C++14 implementation of overloaded lambda set
 // required for easy usage of std::variant<>

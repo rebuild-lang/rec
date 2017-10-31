@@ -32,8 +32,9 @@ struct utf8_view {
         : utf8_view(s.data(), s.data() + s.byte_count().v) {}
 
     explicit utf8_view(const std::string &s) noexcept // view owning std::string
-        : utf8_view(reinterpret_cast<const value_type *>(s.data()),
-                    reinterpret_cast<const value_type *>(s.data() + s.length())) {}
+        : utf8_view(
+              reinterpret_cast<const value_type *>(s.data()),
+              reinterpret_cast<const value_type *>(s.data() + s.length())) {}
 
     // full value semantics
     constexpr utf8_view(const utf8_view &) noexcept = default;
@@ -103,6 +104,8 @@ struct utf8_view {
 
     constexpr const value_type *begin() const { return start_m; }
     constexpr const value_type *end() const { return end_m; }
+
+    constexpr value_type front() const { return *start_m; }
 
 private:
     meta::optional<value_type> peek() {

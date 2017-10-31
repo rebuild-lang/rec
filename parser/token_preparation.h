@@ -4,7 +4,7 @@
 
 namespace parser {
 
-using token_data = scanner::token_data;
+using token = scanner::token;
 using token_index = scanner::token_variant::index_t;
 using text_range = scanner::text_range;
 
@@ -15,52 +15,52 @@ namespace {
 
 constexpr bool is_right_separator(token_index index) {
     using namespace scanner;
-    return index.holds<        //
+    return index.holds< //
         white_space_separator, // tok[\s]
-        new_line_indentation,  // tok[\n]
-        comment_literal,       // tok#* *#
-        colon_separator,       // tok:
-        comma_separator,       // tok,
-        semicolon_separator,   // tok;
-        square_bracket_close,  // tok]
-        bracket_close,         // tok)
-        block_end_indentation  // tok[\n]end
+        new_line_indentation, // tok[\n]
+        comment_literal, // tok#* *#
+        colon_separator, // tok:
+        comma_separator, // tok,
+        semicolon_separator, // tok;
+        square_bracket_close, // tok]
+        bracket_close, // tok)
+        block_end_indentation // tok[\n]end
         >();
 }
-bool is_right_separator(const token_data &t) { return is_right_separator(t.data.index()); }
+bool is_right_separator(const token &t) { return is_right_separator(t.data.index()); }
 
 constexpr bool is_left_separator(token_index index) {
     using namespace scanner;
-    return index.holds<         //
-        white_space_separator,  // [\s]tok
-        new_line_indentation,   // [\n]tok
-        comment_literal,        // #* *#tok
-        colon_separator,        // :tok
-        comma_separator,        // ,tok
-        semicolon_separator,    // ;tok
-        square_bracket_open,    // [tok
-        bracket_open,           // (tok
+    return index.holds< //
+        white_space_separator, // [\s]tok
+        new_line_indentation, // [\n]tok
+        comment_literal, // #* *#tok
+        colon_separator, // :tok
+        comma_separator, // ,tok
+        semicolon_separator, // ;tok
+        square_bracket_open, // [tok
+        bracket_open, // (tok
         block_start_indentation // :[\n]tok
         >();
 }
 
-auto before_range(const token_data &tok) -> text_range { return {tok.range.file, {}, {}, tok.range.begin_position}; }
+auto before_range(const token &tok) -> text_range { return {tok.range.file, {}, {}, tok.range.begin_position}; }
 
-void mark_right_separator(token_data &tok) {
+void mark_right_separator(token &tok) {
     using namespace scanner;
-    tok.data.visit_some([](identifier_literal &l) { l.right_separated = true; },
-                        [](operator_literal &o) { o.right_separated = true; });
+    tok.data.visit_some(
+        [](identifier_literal &l) { l.right_separated = true; }, [](operator_literal &o) { o.right_separated = true; });
 }
 
-void mark_left_separator(token_data &tok) {
+void mark_left_separator(token &tok) {
     using namespace scanner;
-    tok.data.visit_some([](identifier_literal &l) { l.left_separated = true; },
-                        [](operator_literal &o) { o.left_separated = true; });
+    tok.data.visit_some(
+        [](identifier_literal &l) { l.left_separated = true; }, [](operator_literal &o) { o.left_separated = true; });
 }
 
 } // namespace
 
-auto prepare_tokens(meta::co_enumerator<token_data> input) -> meta::co_enumerator<token_data> {
+auto prepare_tokens(meta::co_enumerator<token> input) -> meta::co_enumerator<token> {
     using namespace scanner;
     while (true) {
         if (!input++) co_return;
@@ -71,14 +71,14 @@ auto prepare_tokens(meta::co_enumerator<token_data> input) -> meta::co_enumerato
     auto current = input.move();
     if (!current.one_of<new_line_indentation>()) {
         // ensure we always start with a new line
-        co_yield token_data{before_range(current), new_line_indentation{}};
+        co_yield token{before_range(current), new_line_indentation{}};
     }
     auto lastYieldType = token_variant::index_of<new_line_indentation>();
     if (current.one_of<identifier_literal, operator_literal>()) {
         mark_left_separator(current);
     }
     auto previous = std::move(current);
-    while (!input++) {
+    while (input++) {
         auto previousOrSkippedType = current.data.index();
         current = input.move();
 
@@ -104,7 +104,7 @@ auto prepare_tokens(meta::co_enumerator<token_data> input) -> meta::co_enumerato
                 // not allowed
                 //}
                 // we do not merge the range here, because there might be skipped comments between
-                previous = token_data{current.range, block_start_indentation{}};
+                previous = token{current.range, block_start_indentation{}};
                 continue; // [':' + '\n'] => block start
             }
             if (previous.one_of<new_line_indentation>()) {
@@ -115,8 +115,13 @@ auto prepare_tokens(meta::co_enumerator<token_data> input) -> meta::co_enumerato
             if (is_left_separator(previousOrSkippedType)) mark_left_separator(current);
         }
         else if (current.one_of<identifier_literal>()) {
-            if (previous.one_of<new_line_indentation>() && current.range.text.content_equals(view_t{"end"})) {
-                previous = token_data{previous.range, block_end_indentation{}};
+            if (previous.one_of<new_line_indentation, block_start_indentation>() &&
+                current.data.get<identifier_literal>().content == view_t{"end"}) {
+                if (!previous.one_of<new_line_indentation>()) {
+                    lastYieldType = previous.data.index();
+                    co_yield previous;
+                }
+                previous = token{previous.range, block_end_indentation{}};
                 continue; // ['\n' + "end"] => block end
             }
             if (is_left_separator(previousOrSkippedType)) mark_left_separator(current);
@@ -125,9 +130,7 @@ auto prepare_tokens(meta::co_enumerator<token_data> input) -> meta::co_enumerato
         co_yield previous;
         previous = std::move(current);
     }
-    if (previous.one_of<identifier_literal, operator_literal>()) {
-        if (is_right_separator(current)) mark_right_separator(previous);
-    }
+    if (previous.one_of<identifier_literal, operator_literal>()) mark_right_separator(previous);
     if (!previous.one_of<new_line_indentation>()) co_yield previous;
 }
 

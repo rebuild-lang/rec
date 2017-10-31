@@ -79,10 +79,15 @@ inline std::ostream &operator<<(std::ostream &out, const position_t &p) {
 }
 
 struct text_range {
-    const file_t *file;
+    const file_t *file = nullptr;
     view_t text;
     position_t begin_position;
     position_t end_position;
 };
+
+inline std::ostream &operator<<(std::ostream &out, const text_range &r) {
+    out << r.begin_position << r.text << r.end_position << " in " << (r.file ? r.file->filename : string_t("<null>"));
+    return out;
+}
 
 } // namespace scanner

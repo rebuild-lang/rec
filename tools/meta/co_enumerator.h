@@ -20,7 +20,7 @@ struct co_enumerator {
 
         auto get_return_object() { return co_enumerator{handle::from_promise(*this)}; }
 
-        constexpr static auto initial_suspend() { return std::suspend_never{}; }
+        constexpr static auto initial_suspend() { return std::suspend_always{}; }
         constexpr static auto final_suspend() { return std::suspend_always{}; }
 
         auto yield_value(T value) {

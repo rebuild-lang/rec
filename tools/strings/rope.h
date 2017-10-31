@@ -42,9 +42,10 @@ struct rope {
 
     count_t byte_count() const {
         return meta::accumulate(data_m, count_t{0}, [](count_t c, const element_t &e) {
-            return e.visit([=](code_point_t cp) { return c + cp.utf8_byte_count(); },
-                           [=](const utf8_string &s) { return c + s.byte_count(); },
-                           [=](const utf8_view &v) { return c + v.byte_count(); });
+            return e.visit(
+                [=](code_point_t cp) { return c + cp.utf8_byte_count(); },
+                [=](const utf8_string &s) { return c + s.byte_count(); },
+                [=](const utf8_view &v) { return c + v.byte_count(); });
         });
     }
     bool is_empty() const { return data_m.empty(); }
@@ -53,15 +54,27 @@ struct rope {
         auto result = std::vector<uint8_t>();
         result.reserve(byte_count().v);
         for (const auto &e : data_m) {
-            e.visit([&](code_point_t cp) { cp.utf8_encode(result); },
-                    [&](const utf8_string &s) { meta::append(result, s); },
-                    [&](const utf8_view &v) { meta::append(result, v); });
+            e.visit(
+                [&](code_point_t cp) { cp.utf8_encode(result); },
+                [&](const utf8_string &s) { meta::append(result, s); },
+                [&](const utf8_view &v) { meta::append(result, v); });
         }
         return std::move(result);
     }
 
-    bool operator==(const rope &o) const { return data_m == o.data_m; }
-    bool operator!=(const rope &o) const { return data_m != o.data_m; }
+    bool operator==(const rope &o) const {
+        // TODO: avoid allocation
+        auto tmp = static_cast<utf8_string>(*this);
+        auto tmp2 = static_cast<utf8_string>(o);
+        return tmp == tmp2;
+    }
+    bool operator!=(const rope &o) const { return !(*this == o); }
+
+    bool operator==(const utf8_view &v) const {
+        // TODO: without allocation
+        auto tmp = static_cast<utf8_string>(*this);
+        return v.content_equals(utf8_view(tmp));
+    }
 
 private:
     std::vector<element_t> data_m;

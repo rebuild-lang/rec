@@ -18,7 +18,7 @@ struct tokenizer {
     tokenizer(config c)
         : config_m(c) {}
 
-    auto scan_file(const file_t &file) -> meta::co_enumerator<token_data> {
+    auto scan_file(const file_t &file) -> meta::co_enumerator<token> {
         auto input = file_input_t(file);
         while (true) {
             input.collapse();
@@ -32,45 +32,42 @@ struct tokenizer {
             if (chr.is_white_space()) co_yield scan_white_space(input);
             if (chr.is_line_separator()) co_yield scan_new_line(chr, input);
             if (chr.is_decimal_number()) co_yield scan_number_literal(chr, input);
-            switch (chr.v) {
-            case '"':
-                //            co_yield scan_string_literal(input); case '#': co_yield
-                //            scan_comment(input); case ':': co_yield scan_char(input,
-                //            token_type::ColonSeparator); case ',': co_yield
-                //            scan_char(input, token_type::CommaSeparator); case ';':
-                //            co_yield scan_char(input, token_type::SemicolonSeparator);
-                //            case '[': co_yield scan_char(input,
-                //            token_type::SquareBracketOpen); case ']': co_yield
-                //            scan_char(input, token_type::SquareBracketClose); case '(':
-                //            co_yield scan_char(input, token_type::BracketOpen); case
-                //            ')': co_yield scan_char(input, token_type::BracketClose);
-                //            }
-                //            auto ident_token = scan_identifier(input);
-                //            if (ident_token) co_yield ident_token.value();
-                //            auto operator_token = scan_operator(input);
-                //            if (operator_token) co_yield operator_token.value();
+            // switch (chr.v) {
+            // case '"': co_yield scan_string_literal(input);
+            // case '#': co_yield scan_comment(input);
+            // case ':': co_yield scan_char(input, token_type::ColonSeparator);
+            // case ',': co_yield scan_char(input, token_type::CommaSeparator);
+            // case ';': co_yield scan_char(input, token_type::SemicolonSeparator);
+            // case '[': co_yield scan_char(input, token_type::SquareBracketOpen);
+            // case ']': co_yield scan_char(input, token_type::SquareBracketClose);
+            // case '(': co_yield scan_char(input, token_type::BracketOpen);
+            // case ')': co_yield scan_char(input, token_type::BracketClose);
+            //}
+            // auto ident_token = scan_identifier(input);
+            // if (ident_token) co_yield ident_token.value();
+            // auto operator_token = scan_operator(input);
+            // if (operator_token) co_yield operator_token.value();
 
-                co_yield scan_invalid(input);
-            }
+            co_yield scan_invalid(input);
         }
     }
 
-    static auto scan_number_literal(char_t chr, file_input_t &input) -> token_data {
+    static auto scan_number_literal(char_t chr, file_input_t &input) -> token {
         return number_scanner::scan(chr, input);
     }
 
-    static auto scan_invalid_encoding(file_input_t &input) -> token_data {
+    static auto scan_invalid_encoding(file_input_t &input) -> token {
         // invalid bytes were already skipped
         return {input.range(), invalid_encoding{}};
     }
 
-    auto scan_white_space(file_input_t &input) const -> token_data {
+    auto scan_white_space(file_input_t &input) const -> token {
         input.extend(config_m.tab_stops);
         input.extend_white_spaces(config_m.tab_stops);
         return {input.range(), white_space_separator{}};
     }
 
-    auto scan_new_line(char_t chr, file_input_t &input) const -> token_data {
+    auto scan_new_line(char_t chr, file_input_t &input) const -> token {
         input.skip();
         // skip 2nd char of newline pair
         if (chr == '\n' || chr == '\r') {
@@ -83,13 +80,13 @@ struct tokenizer {
         return {input.range(), new_line_indentation{}};
     }
 
-    static auto scan_invalid(file_input_t &input) -> token_data {
+    static auto scan_invalid(file_input_t &input) -> token {
         input.extend();
         return {input.range(), unexpected_character{}};
     }
 
 private:
     config config_m;
-};
+}; // namespace scanner
 
 } // namespace scanner

@@ -7,7 +7,7 @@ namespace scanner {
 
 struct number_scanner {
 
-    static inline auto scan(char_t chr, file_input_t &input) -> token_data {
+    static inline auto scan(char_t chr, file_input_t &input) -> token {
         if (chr == '0') {
             auto opt_next = input.peek_char<1>();
             if (opt_next) {
@@ -35,7 +35,7 @@ struct number_scanner {
     }
 
     template<class IsDigit, class IsExponent>
-    static auto scan_radix(file_input_t &input, radix_t radix, IsDigit isDigit, IsExponent isExponent) -> token_data {
+    static auto scan_radix(file_input_t &input, radix_t radix, IsDigit isDigit, IsExponent isExponent) -> token {
         auto literal = number_literal_t{};
         literal.radix = radix;
 
