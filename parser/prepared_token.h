@@ -1,7 +1,7 @@
 #pragma once
 #include "scanner/token.h"
 
-namespace parser {
+namespace parser::prepared {
 
 using text_range = scanner::text_range;
 using view_t = scanner::view_t;
@@ -88,4 +88,4 @@ inline std::ostream &operator<<(std::ostream &out, const token &t) {
     return out;
 }
 
-} // namespace parser
+} // namespace parser::prepared

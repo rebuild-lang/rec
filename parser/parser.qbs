@@ -11,6 +11,7 @@ Project {
         files: [
             "block_line_grouping.cpp",
             "block_line_grouping.h",
+            "grouping_data.h",
             "prepared_token.h",
             "prepared_token_builder.h",
             "token_preparation.cpp",

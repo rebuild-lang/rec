@@ -1,9 +1,6 @@
 #pragma once
 
 #include "meta/co_enumerator.h"
-#include "meta/optional.h"
-#include "meta/variant.h"
-#include "strings/code_point.h"
 
 #include "file_input.h"
 #include "number_scanner.h"
@@ -52,22 +49,23 @@ struct tokenizer {
         }
     }
 
-    static auto scan_number_literal(char_t chr, file_input_t &input) -> token {
+private:
+    static inline auto scan_number_literal(char_t chr, file_input_t &input) -> token {
         return number_scanner::scan(chr, input);
     }
 
-    static auto scan_invalid_encoding(file_input_t &input) -> token {
+    static inline auto scan_invalid_encoding(file_input_t &input) -> token {
         // invalid bytes were already skipped
         return {input.range(), invalid_encoding{}};
     }
 
-    auto scan_white_space(file_input_t &input) const -> token {
+    inline auto scan_white_space(file_input_t &input) const -> token {
         input.extend(config_m.tab_stops);
         input.extend_white_spaces(config_m.tab_stops);
         return {input.range(), white_space_separator{}};
     }
 
-    auto scan_new_line(char_t chr, file_input_t &input) const -> token {
+    inline auto scan_new_line(char_t chr, file_input_t &input) const -> token {
         input.skip();
         // skip 2nd char of newline pair
         if (chr == '\n' || chr == '\r') {
@@ -80,13 +78,13 @@ struct tokenizer {
         return {input.range(), new_line_indentation{}};
     }
 
-    static auto scan_invalid(file_input_t &input) -> token {
+    static inline auto scan_invalid(file_input_t &input) -> token {
         input.extend();
         return {input.range(), unexpected_character{}};
     }
 
 private:
     config config_m;
-}; // namespace scanner
+};
 
 } // namespace scanner

@@ -24,6 +24,7 @@ struct number_scanner {
         return scan_radix(input, radix_t::decimal, isDecimalDigit, isE);
     }
 
+private:
     template<class Pred>
     static auto extend_while(file_input_t &input, Pred pred) {
         while (true) {

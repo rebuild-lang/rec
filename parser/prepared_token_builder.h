@@ -2,7 +2,7 @@
 
 #include "parser/prepared_token.h"
 
-namespace parser {
+namespace parser::prepared {
 
 using tokens = std::vector<token>;
 
@@ -76,8 +76,8 @@ auto build_token(Tok &&t) -> token {
 template<class... Tok>
 auto build_tokens(Tok &&... t) -> tokens {
     tokens result;
-    (void)std::initializer_list<int>{(result.push_back(parser::build_token(std::forward<Tok>(t))), 0)...};
+    (void)std::initializer_list<int>{(result.push_back(parser::prepared::build_token(std::forward<Tok>(t))), 0)...};
     return result;
 }
 
-} // namespace parser
+} // namespace parser::prepared

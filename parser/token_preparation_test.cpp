@@ -8,6 +8,7 @@
 #include <vector>
 
 using namespace parser;
+using namespace parser::prepared;
 
 using scan_tokens = std::vector<scan_token>;
 using prep_tokens = std::vector<token>;
@@ -31,7 +32,7 @@ struct tokens_transform_data {
     }
     template<class... Tok>
     auto out(Tok &&... tok) && -> tokens_transform_data {
-        expected = parser::build_tokens(std::forward<Tok>(tok)...);
+        expected = parser::prepared::build_tokens(std::forward<Tok>(tok)...);
         return *this;
     }
 };
@@ -54,7 +55,7 @@ TEST_P(token_transformations, token_preparation) {
         }
     }();
 
-    auto tok_gen = prepare_tokens(input);
+    auto tok_gen = token_preparation::prepare(input);
 
     for (const auto &et : data.expected) {
         tok_gen++;

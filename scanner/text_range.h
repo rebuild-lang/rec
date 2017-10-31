@@ -61,6 +61,7 @@ struct column_t {
     constexpr bool operator<(const column_t &o) const { return v < o.v; }
     constexpr bool operator>(const column_t &o) const { return v > o.v; }
     constexpr bool operator>=(const column_t &o) const { return v >= o.v; }
+    constexpr bool operator<=(const column_t &o) const { return v <= o.v; }
 };
 
 struct position_t {
@@ -78,7 +79,7 @@ struct position_t {
     constexpr bool operator!=(const position_t &o) const { return !(*this == o); }
 };
 
-inline std::ostream &operator<<(std::ostream &out, const position_t &p) {
+inline auto operator<<(std::ostream &out, const position_t &p) -> std::ostream & {
     return out << '[' << p.line.v << ';' << p.column.v << ']';
 }
 
@@ -89,7 +90,7 @@ struct text_range {
     position_t end_position;
 };
 
-inline std::ostream &operator<<(std::ostream &out, const text_range &r) {
+inline auto operator<<(std::ostream &out, const text_range &r) -> std::ostream & {
     out << r.begin_position << r.text << r.end_position << " in " << (r.file ? r.file->filename : string_t("<null>"));
     return out;
 }

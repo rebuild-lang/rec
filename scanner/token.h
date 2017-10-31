@@ -86,7 +86,24 @@ using token_variant = meta::variant<
     invalid_encoding,
     unexpected_character>;
 
-inline std::ostream &operator<<(std::ostream &out, const token_variant &v) {
+auto operator<<(std::ostream &out, const token_variant &v) -> std::ostream &;
+
+struct token {
+    text_range range;
+    token_variant data;
+
+    template<class... Ts>
+    bool one_of() const {
+        return data.holds<Ts...>();
+    }
+};
+
+inline auto operator<<(std::ostream &out, const token &t) -> std::ostream & {
+    out << t.range << t.data;
+    return out;
+}
+
+inline auto operator<<(std::ostream &out, const token_variant &v) -> std::ostream & {
     v.visit(
         [&](const white_space_separator &) { out << "<space>"; },
         [&](const new_line_indentation &) { out << "<\\n>"; },
@@ -104,21 +121,6 @@ inline std::ostream &operator<<(std::ostream &out, const token_variant &v) {
         [&](const operator_literal &op) { out << "<op>"; },
         [&](const invalid_encoding &) { out << "<E:enc>"; },
         [&](const unexpected_character &) { out << "<E:exp>"; });
-    return out;
-}
-
-struct token {
-    text_range range;
-    token_variant data;
-
-    template<class... Ts>
-    bool one_of() const {
-        return data.holds<Ts...>();
-    }
-};
-
-inline std::ostream &operator<<(std::ostream &out, const token &t) {
-    out << t.range << t.data;
     return out;
 }
 
