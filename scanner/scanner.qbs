@@ -15,7 +15,8 @@ Project {
             "number_scanner.cpp",
             "number_scanner.h",
             "text_range.h",
-            "token_data.h",
+            "token.h",
+            "token_builder.h",
             "tokenizer.cpp",
             "tokenizer.h",
         ]

@@ -1,7 +1,7 @@
 #pragma once
 #include "file_input.h"
 #include "number_literal.h"
-#include "token_data.h"
+#include "token.h"
 
 namespace scanner {
 

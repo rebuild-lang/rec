@@ -21,7 +21,8 @@ public:
     variant &operator=(variant &&) = default;
 
     template<
-        class S, class... A,                                                   // 1+ arguments
+        class S,
+        class... A, // 1+ arguments
         typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, variant>> // ensure this does not capture a copy
         >
     variant(S &&s, A &&... a)
@@ -31,23 +32,33 @@ public:
     bool operator!=(const variant &o) const { return m != o.m; }
 
     template<class... F>
-    auto visit(F &&... f) const {
+    auto visit(F &&... f) const & {
         return std::visit(make_overloaded(std::forward<F>(f)...), m);
     }
 
     template<class... F>
-    auto visit(F &&... f) {
+    auto visit(F &&... f) & {
         return std::visit(make_overloaded(std::forward<F>(f)...), m);
     }
 
     template<class... F>
-    auto visit_some(F &&... f) const {
+    auto visit(F &&... f) && {
+        return std::visit(make_overloaded(std::forward<F>(f)...), std::move(m));
+    }
+
+    template<class... F>
+    auto visit_some(F &&... f) const & {
+        return std::visit(make_overloaded(std::forward<F>(f)..., [](const auto &) {}), m);
+    }
+
+    template<class... F>
+    auto visit_some(F &&... f) & {
         return std::visit(make_overloaded(std::forward<F>(f)..., [](auto &) {}), m);
     }
 
     template<class... F>
-    auto visit_some(F &&... f) {
-        return std::visit(make_overloaded(std::forward<F>(f)..., [](auto &) {}), m);
+    auto visit_some(F &&... f) && {
+        return std::visit(make_overloaded(std::forward<F>(f)..., [](auto &&) {}), std::move(m));
     }
 
     template<class R>
@@ -96,10 +107,10 @@ public:
         }
     };
 
-    auto index() const { return index_t(m.index()); }
+    auto index() const -> index_t { return index_t(m.index()); }
 
     template<class C>
-    constexpr static size_t index_of() {
+    constexpr static auto index_of() -> index_t {
         return index_t(type_list_t<T...>::index_of(type_t<C>{}));
     }
 };

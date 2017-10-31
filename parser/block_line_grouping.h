@@ -6,8 +6,8 @@
 namespace parser {
 
 using view_t = strings::utf8_view;
-using token = scanner::token;
-using token_line = std::vector<token>;
+using scan_token = scanner::token;
+using token_line = std::vector<scan_token>;
 
 using column_t = scanner::column_t;
 
@@ -22,7 +22,7 @@ using optional_char = meta::optional<meta::packed<char>>;
 struct state {
     optional_char indent_char{};
 
-    inline auto get_indent_column(const token &tok) -> column_t {
+    inline auto get_indent_column(const scan_token &tok) -> column_t {
         const auto &range = tok.range;
         // TODO: extract indent char & verify it!
         // const auto &text = range.text;
@@ -42,7 +42,7 @@ struct state {
     }
 };
 
-inline auto extract_line_tokens(token_line &line, meta::co_enumerator<token> &input) {
+inline auto extract_line_tokens(token_line &line, meta::co_enumerator<scan_token> &input) {
     using namespace scanner;
     // TODO: add semicolon
     while (!input->one_of<new_line_indentation, block_start_indentation, block_end_indentation>()) {
@@ -51,9 +51,10 @@ inline auto extract_line_tokens(token_line &line, meta::co_enumerator<token> &in
     }
 }
 
-auto parse_block(meta::co_enumerator<token> &input, column_t block_column, state &state_) -> block_literal;
+auto parse_block(meta::co_enumerator<scan_token> &input, column_t block_column, state &state_) -> block_literal;
 
-inline auto parse_line(meta::co_enumerator<token> &input, column_t parent_block_column, state &state_) -> token_line {
+inline auto parse_line(meta::co_enumerator<scan_token> &input, column_t parent_block_column, state &state_)
+    -> token_line {
     auto line = token_line{};
     auto expect_end = false;
     while (true) {
@@ -128,7 +129,7 @@ inline auto parse_line(meta::co_enumerator<token> &input, column_t parent_block_
     }
 }
 
-inline auto parse_block(meta::co_enumerator<token> &input, column_t block_column, state &state_) -> block_literal {
+inline auto parse_block(meta::co_enumerator<scan_token> &input, column_t block_column, state &state_) -> block_literal {
     using namespace scanner;
     auto block = block_literal{};
     while (true) {
@@ -161,7 +162,7 @@ inline auto parse_block(meta::co_enumerator<token> &input, column_t block_column
 
 } // namespace
 
-auto group_input(meta::co_enumerator<token> input) -> block_literal {
+auto group_input(meta::co_enumerator<scan_token> input) -> block_literal {
     if (!input++) return {};
     auto state_ = state{};
     auto block_column = column_t{};

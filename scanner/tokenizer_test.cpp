@@ -8,10 +8,10 @@ TEST(scanner, basic) {
     auto t = tokenizer{tokenizer::config{column_t{8}}};
     auto f = file_t{string_t{"testfile"}, string_t{"\n "}};
     auto tok_gen = t.scan_file(f);
-    ASSERT_TRUE(static_cast<bool>(tok_gen));
+    ASSERT_TRUE(tok_gen++);
     auto &tok = *tok_gen;
 
-    ASSERT_TRUE(tok.data.holds<new_line_indentation>());
+    ASSERT_TRUE(tok.one_of<new_line_indentation>());
     ASSERT_TRUE(tok.range.text.content_equals(strings::utf8_view{"\n "}));
     ASSERT_EQ(1u, tok.range.begin_position.line.v);
     ASSERT_EQ(1u, tok.range.begin_position.column.v);

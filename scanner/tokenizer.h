@@ -7,7 +7,7 @@
 
 #include "file_input.h"
 #include "number_scanner.h"
-#include "token_data.h"
+#include "token.h"
 
 namespace scanner {
 
