@@ -88,6 +88,12 @@ struct text_range {
     view_t text;
     position_t begin_position;
     position_t end_position;
+
+    bool operator==(const text_range &o) const {
+        return file == o.file && text.content_equals(o.text) && begin_position == o.begin_position &&
+               end_position == o.end_position;
+    }
+    bool operator!=(const text_range &o) const { return !(*this == o); }
 };
 
 inline auto operator<<(std::ostream &out, const text_range &r) -> std::ostream & {

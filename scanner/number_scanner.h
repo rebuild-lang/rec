@@ -26,7 +26,7 @@ struct number_scanner {
 
 private:
     template<class Pred>
-    static auto extend_while(file_input_t &input, Pred pred) {
+    static auto extend_while(file_input_t &input, Pred pred) -> opt_char_t {
         while (true) {
             input.extend();
             auto chr = input.peek_char();

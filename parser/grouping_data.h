@@ -6,11 +6,16 @@ namespace parser::grouping {
 
 namespace prepared = parser::prepared;
 
-using view_t = strings::utf8_view;
-using column_t = scanner::column_t;
 using text_range = scanner::text_range;
 
-struct block_literal;
+struct token;
+using line = std::vector<token>;
+struct block_literal {
+    std::vector<line> lines;
+
+    bool operator==(const block_literal &o) const { return lines == o.lines; }
+    bool operator!=(const block_literal &o) const { return lines != o.lines; }
+};
 using colon_separator = prepared::colon_separator;
 using comma_separator = prepared::comma_separator;
 using semicolon_separator = prepared::semicolon_separator;
@@ -45,30 +50,28 @@ struct token {
     bool one_of() const {
         return data.holds<Ts...>();
     }
+
+    bool operator==(const token &o) const { return range == o.range && data == o.data; }
+    bool operator!=(const token &o) const { return !(*this == o); }
 };
 
-using line = std::vector<token>;
-struct block_literal {
-    std::vector<line> lines;
-};
+auto operator<<(std::ostream &out, const token &v) -> std::ostream &;
 
-std::ostream &operator<<(std::ostream &out, const token &v);
-
-inline std::ostream &operator<<(std::ostream &out, const line &l) {
+inline auto operator<<(std::ostream &out, const line &l) -> std::ostream & {
     for (const auto &tok : l) {
         out << tok;
     }
     return out;
 }
 
-inline std::ostream &operator<<(std::ostream &out, const block_literal &b) {
+inline auto operator<<(std::ostream &out, const block_literal &b) -> std::ostream & {
     for (const auto &line : b.lines) {
         out << "  line: " << line << '\n';
     }
     return out;
 }
 
-inline std::ostream &operator<<(std::ostream &out, const token_variant &v) {
+inline auto operator<<(std::ostream &out, const token_variant &v) -> std::ostream & {
     v.visit(
         [&](const block_literal &block) { out << "{block: " << block; },
         [&](const colon_separator &) { out << "<:>"; },
@@ -85,7 +88,7 @@ inline std::ostream &operator<<(std::ostream &out, const token_variant &v) {
     return out;
 }
 
-inline std::ostream &operator<<(std::ostream &out, const token &t) {
+inline auto operator<<(std::ostream &out, const token &t) -> std::ostream & {
     out << t.range << t.data;
     return out;
 }

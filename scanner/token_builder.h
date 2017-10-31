@@ -9,7 +9,7 @@ namespace details {
 
 template<class Tok>
 struct token_builder {
-    static token build(Tok &&t) { // token type => token
+    static auto build(Tok &&t) -> token { // token type => token
         auto tok = token{};
         tok.data = std::move(t);
         return tok;
@@ -18,12 +18,12 @@ struct token_builder {
 
 template<>
 struct token_builder<token> {
-    static token build(token &&t) { return std::move(t); } // full token is kept
+    static inline auto build(token &&t) -> token { return std::move(t); } // full token is kept
 };
 
 template<>
 struct token_builder<view_t> {
-    static token build(const view_t &b) {
+    static inline auto build(const view_t &b) -> token {
         auto tok = token{};
         tok.range.text = b;
         tok.data = scanner::identifier_literal{};
@@ -34,12 +34,12 @@ struct token_builder<view_t> {
 } // namespace details
 
 template<class Tok>
-token build_token(Tok &&t) {
+auto build_token(Tok &&t) -> token {
     return details::token_builder<Tok>::build(std::forward<Tok>(t));
 }
 
 template<class... Tok>
-tokens build_tokens(Tok &&... t) {
+auto build_tokens(Tok &&... t) -> tokens {
     tokens result;
     (void)std::initializer_list<int>{(result.push_back(build_token(std::forward<Tok>(t))), 0)...};
     return result;

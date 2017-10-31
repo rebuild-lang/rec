@@ -1,10 +1,12 @@
 #pragma once
 
-#include "parser/prepared_token.h"
+#include "parser/grouping_data.h"
 
-namespace parser::prepared {
+namespace parser::grouping {
 
 using tokens = std::vector<token>;
+using column_t = scanner::column_t;
+using view_t = scanner::view_t;
 
 namespace details {
 
@@ -56,16 +58,27 @@ struct token_builder {
 };
 template<>
 struct token_builder<token> {
-    static inline auto build(token &&t) -> token { return std::move(t); }
+    static auto build(token &&t) -> token { return std::move(t); }
 };
+
 template<>
 struct token_builder<id_builder> {
-    static inline auto build(id_builder &&b) -> token { return std::move(b).id(); }
+    static auto build(id_builder &&b) -> token { return std::move(b).id(); }
 };
 
 } // namespace details
 
-inline auto id() -> details::id_builder { return {identifier_literal{}}; }
+template<class Tok>
+auto build_token(Tok &&t) -> token {
+    return details::token_builder<Tok>::build(std::forward<Tok>(t));
+}
+
+template<class... Tok>
+auto build_tokens(Tok &&... t) -> tokens {
+    tokens result;
+    (void)std::initializer_list<int>{(result.push_back(parser::grouping::build_token(std::forward<Tok>(t))), 0)...};
+    return result;
+}
 
 template<size_t N>
 auto id(const char (&text)[N]) -> details::id_builder {
@@ -77,16 +90,31 @@ auto op(const char (&text)[N]) -> details::id_builder {
     return details::id_builder(operator_literal{}).text(text);
 }
 
-template<class Tok>
-auto build_token(Tok &&t) -> token {
-    return details::token_builder<Tok>::build(std::forward<Tok>(t));
+auto block_start(column_t c) -> prepared::token {
+    auto tok = prepared::token{};
+    tok.range.end_position.column = c;
+    tok.data = prepared::block_start_indentation{};
+    return tok;
+}
+auto block_end(column_t c) -> prepared::token {
+    auto tok = prepared::token{};
+    tok.range.end_position.column = c;
+    tok.data = prepared::block_end_indentation{};
+    return tok;
+}
+auto new_line(column_t c) -> prepared::token {
+    auto tok = prepared::token{};
+    tok.range.end_position.column = c;
+    tok.data = prepared::new_line_indentation{};
+    return tok;
 }
 
-template<class... Tok>
-auto build_tokens(Tok &&... t) -> tokens {
-    tokens result;
-    (void)std::initializer_list<int>{(result.push_back(parser::prepared::build_token(std::forward<Tok>(t))), 0)...};
-    return result;
+template<class... Lines>
+auto block(column_t c, Lines &&... lines) -> token {
+    auto tok = token{};
+    tok.range.end_position.column = c;
+    tok.data = block_literal{{std::forward<Lines>(lines)...}};
+    return tok;
 }
 
-} // namespace parser::prepared
+} // namespace parser::grouping

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "parser/prepared_token.h"
-#include "scanner/tokenizer.h"
+
+#include "meta/co_enumerator.h"
 
 namespace parser {
 
