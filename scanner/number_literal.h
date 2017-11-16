@@ -9,7 +9,7 @@ using rope_t = strings::rope;
 using view_t = strings::utf8_view;
 
 enum class sign_t : bool { positive = false, negative = true };
-inline constexpr auto to_string(sign_t sign) -> view_t {
+constexpr auto to_string(sign_t sign) -> view_t {
     switch (sign) {
     case sign_t::positive: return view_t{"+"};
     case sign_t::negative: return view_t{"-"};
@@ -25,7 +25,7 @@ enum class radix_t : int {
     decimal = 10,
     hex = 16,
 };
-inline constexpr auto to_string(radix_t radix) -> view_t {
+constexpr auto to_string(radix_t radix) -> view_t {
     switch (radix) {
     case radix_t::invalid: return view_t{"invalid"};
     case radix_t::binary: return view_t{"binary"};

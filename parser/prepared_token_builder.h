@@ -11,27 +11,27 @@ namespace details {
 struct id_builder {
     token tok;
 
-    inline id_builder(identifier_literal) { tok.data = identifier_literal{}; }
-    inline id_builder(operator_literal) { tok.data = operator_literal{}; }
+    id_builder(identifier_literal) { tok.data = identifier_literal{}; }
+    id_builder(operator_literal) { tok.data = operator_literal{}; }
     id_builder(const id_builder &) = default;
     id_builder &operator=(const id_builder &) = default;
     id_builder(id_builder &&) = default;
     id_builder &operator=(id_builder &&) = default;
 
-    inline auto lit() & -> identifier_literal & {
+    auto lit() & -> identifier_literal & {
         if (tok.one_of<operator_literal>()) return tok.data.get<operator_literal>();
         return tok.data.get<identifier_literal>();
     }
 
-    inline auto left_separated() && -> id_builder {
+    auto left_separated() && -> id_builder {
         lit().left_separated = true;
         return *this;
     }
-    inline auto right_separated() && -> id_builder {
+    auto right_separated() && -> id_builder {
         lit().right_separated = true;
         return *this;
     }
-    inline auto both_separated() && -> id_builder {
+    auto both_separated() && -> id_builder {
         lit().left_separated = true;
         lit().right_separated = true;
         return *this;
@@ -43,7 +43,7 @@ struct id_builder {
         return *this;
     }
 
-    inline auto id() && -> token && { return std::move(tok); }
+    auto id() && -> token && { return std::move(tok); }
 };
 
 template<class Tok>
@@ -56,11 +56,11 @@ struct token_builder {
 };
 template<>
 struct token_builder<token> {
-    static inline auto build(token &&t) -> token { return std::move(t); }
+    static auto build(token &&t) -> token { return std::move(t); }
 };
 template<>
 struct token_builder<id_builder> {
-    static inline auto build(id_builder &&b) -> token { return std::move(b).id(); }
+    static auto build(id_builder &&b) -> token { return std::move(b).id(); }
 };
 
 } // namespace details

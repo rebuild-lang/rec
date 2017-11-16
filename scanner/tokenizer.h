@@ -50,22 +50,22 @@ struct tokenizer {
     }
 
 private:
-    static inline auto scan_number_literal(char_t chr, file_input_t &input) -> token {
+    static auto scan_number_literal(char_t chr, file_input_t &input) -> token {
         return number_scanner::scan(chr, input);
     }
 
-    static inline auto scan_invalid_encoding(file_input_t &input) -> token {
+    static auto scan_invalid_encoding(file_input_t &input) -> token {
         // invalid bytes were already skipped
         return {input.range(), invalid_encoding{}};
     }
 
-    inline auto scan_white_space(file_input_t &input) const -> token {
+    auto scan_white_space(file_input_t &input) const -> token {
         input.extend(config_m.tab_stops);
         input.extend_white_spaces(config_m.tab_stops);
         return {input.range(), white_space_separator{}};
     }
 
-    inline auto scan_new_line(char_t chr, file_input_t &input) const -> token {
+    auto scan_new_line(char_t chr, file_input_t &input) const -> token {
         input.skip();
         // skip 2nd char of newline pair
         if (chr == '\n' || chr == '\r') {
@@ -78,7 +78,7 @@ private:
         return {input.range(), new_line_indentation{}};
     }
 
-    static inline auto scan_invalid(file_input_t &input) -> token {
+    static auto scan_invalid(file_input_t &input) -> token {
         input.extend();
         return {input.range(), unexpected_character{}};
     }

@@ -7,7 +7,7 @@ namespace scanner {
 
 struct number_scanner {
 
-    static inline auto scan(char_t chr, file_input_t &input) -> token {
+    static auto scan(char_t chr, file_input_t &input) -> token {
         if (chr == '0') {
             auto opt_next = input.peek_char<1>();
             if (opt_next) {
@@ -90,23 +90,23 @@ private:
         return {input.range(), literal};
     }
 
-    static inline bool isP(char_t _char) { return _char.v == 'p' || _char.v == 'P'; }
-    static inline bool isE(char_t _char) { return _char.v == 'e' || _char.v == 'E'; }
+    static bool isP(char_t _char) { return _char.v == 'p' || _char.v == 'P'; }
+    static bool isE(char_t _char) { return _char.v == 'e' || _char.v == 'E'; }
 
-    static inline bool isPlus(char_t _char) { return _char.v == '+'; }
-    static inline bool isMinus(char_t _char) { return _char.v == '-'; }
+    static bool isPlus(char_t _char) { return _char.v == '+'; }
+    static bool isMinus(char_t _char) { return _char.v == '-'; }
 
-    static inline bool isDot(char_t _char) { return _char.v == '.'; }
+    static bool isDot(char_t _char) { return _char.v == '.'; }
 
-    static inline bool isZero(char_t _char) { return _char.v == '0'; }
-    static inline bool isDecimalZero(char_t _char) { return _char.decimal_number() == 0; }
-    static inline bool isIgnored(char_t _char) { return _char.v == '\''; }
-    static inline bool isZeroOrIgnored(char_t _char) { return isZero(_char) || isIgnored(_char); }
+    static bool isZero(char_t _char) { return _char.v == '0'; }
+    static bool isDecimalZero(char_t _char) { return _char.decimal_number() == 0; }
+    static bool isIgnored(char_t _char) { return _char.v == '\''; }
+    static bool isZeroOrIgnored(char_t _char) { return isZero(_char) || isIgnored(_char); }
 
-    static inline bool isDecimalDigit(char_t _char) { return _char.is_decimal_number(); }
-    static inline bool isBinaryDigit(char_t _char) { return (_char.v >= '0' && _char.v <= '1'); }
-    static inline bool isOctalDigit(char_t _char) { return (_char.v >= '0' && _char.v <= '7'); }
-    static inline bool isHexDigit(char_t _char) {
+    static bool isDecimalDigit(char_t _char) { return _char.is_decimal_number(); }
+    static bool isBinaryDigit(char_t _char) { return (_char.v >= '0' && _char.v <= '1'); }
+    static bool isOctalDigit(char_t _char) { return (_char.v >= '0' && _char.v <= '7'); }
+    static bool isHexDigit(char_t _char) {
         auto chr = _char.v;
         return (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
     }

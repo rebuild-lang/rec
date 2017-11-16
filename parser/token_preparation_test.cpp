@@ -21,9 +21,9 @@ struct tokens_transform_data {
     tokens_transform_data(const char *name)
         : name{name} {}
     tokens_transform_data(const tokens_transform_data &) = default;
-    tokens_transform_data &operator=(const tokens_transform_data &) = default;
+    tokens_transform_data &operator=(const tokens_transform_data &) & = default;
     tokens_transform_data(tokens_transform_data &&) = default;
-    tokens_transform_data &operator=(tokens_transform_data &&) = default;
+    tokens_transform_data &operator=(tokens_transform_data &&) & = default;
 
     template<class... Tok>
     auto in(Tok &&... tok) && -> tokens_transform_data {

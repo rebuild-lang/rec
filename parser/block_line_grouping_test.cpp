@@ -60,27 +60,28 @@ TEST_P(grouping_transformations, block_line_grouping) {
 INSTANTIATE_TEST_CASE_P(
     examples,
     grouping_transformations,
-    ::testing::Values(grouping_transform_data("Example")
-                          .in(prepared::id("if"),
-                              prepared::id("a"),
-                              new_line(column_t{4}),
-                              prepared::op("&&"),
-                              prepared::id("b"),
-                              block_start(column_t{4}),
-                              prepared::id("print_a"),
-                              new_line(column_t{4}),
-                              prepared::id("print_b"),
-                              new_line(column_t{1}),
-                              prepared::id("else"),
-                              block_start(column_t{4}),
-                              prepared::id("print_c"),
-                              block_end(column_t{1}))
-                          .out(build_tokens(
-                              id("if"),
-                              id("a"),
-                              op("&&"),
-                              id("b"),
-                              block(column_t{4}, build_tokens(id("print_a")), build_tokens(id("print_b"))),
-                              id("else"),
-                              block(column_t{4}, build_tokens(id("print_c"))))) //
-                      ));
+    ::testing::Values( //
+        grouping_transform_data("Example")
+            .in(prepared::id("if"),
+                prepared::id("a"),
+                new_line(column_t{4}),
+                prepared::op("&&"),
+                prepared::id("b"),
+                block_start(column_t{4}),
+                prepared::id("print_a"),
+                new_line(column_t{4}),
+                prepared::id("print_b"),
+                new_line(column_t{1}),
+                prepared::id("else"),
+                block_start(column_t{4}),
+                prepared::id("print_c"),
+                block_end(column_t{1}))
+            .out(build_tokens(
+                id("if"),
+                id("a"),
+                op("&&"),
+                id("b"),
+                block(column_t{4}, build_tokens(id("print_a")), build_tokens(id("print_b"))),
+                id("else"),
+                block(column_t{4}, build_tokens(id("print_c"))))) //
+        ));

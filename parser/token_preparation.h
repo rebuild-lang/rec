@@ -13,7 +13,7 @@ struct token_preparation {
     using prep_token = prepared::token;
     using text_range = prepared::text_range;
 
-    static inline auto prepare(meta::co_enumerator<scan_token> input) -> meta::co_enumerator<prep_token> {
+    static auto prepare(meta::co_enumerator<scan_token> input) -> meta::co_enumerator<prep_token> {
         using namespace prepared;
         while (true) {
             if (!input++) co_return;
@@ -99,7 +99,7 @@ struct token_preparation {
     }
 
 private:
-    constexpr static inline bool is_right_separator(scan_token_index index) {
+    constexpr static bool is_right_separator(scan_token_index index) {
         using namespace scanner;
         return index.holds< //
             white_space_separator, // tok[\s]
@@ -112,9 +112,9 @@ private:
             bracket_close // tok)
             >();
     }
-    static inline bool is_right_separator(const scan_token &t) { return is_right_separator(t.data.index()); }
+    static bool is_right_separator(const scan_token &t) { return is_right_separator(t.data.index()); }
 
-    constexpr static inline bool is_left_separator(scan_token_index index) {
+    constexpr static bool is_left_separator(scan_token_index index) {
         using namespace scanner;
         return index.holds< //
             white_space_separator, // [\s]tok
@@ -128,25 +128,25 @@ private:
             >();
     }
 
-    static inline auto before_range(const scan_token &tok) -> text_range {
+    static auto before_range(const scan_token &tok) -> text_range {
         return {tok.range.file, {}, {}, tok.range.begin_position};
     }
 
-    static inline void mark_right_separator(prep_token &tok) {
+    static void mark_right_separator(prep_token &tok) {
         using namespace prepared;
         tok.data.visit_some(
             [](identifier_literal &l) { l.right_separated = true; },
             [](operator_literal &o) { o.right_separated = true; });
     }
 
-    static inline void mark_left_separator(prep_token &tok) {
+    static void mark_left_separator(prep_token &tok) {
         using namespace prepared;
         tok.data.visit_some(
             [](identifier_literal &l) { l.left_separated = true; },
             [](operator_literal &o) { o.left_separated = true; });
     }
 
-    static inline prep_token translate(scan_token &&tok) {
+    static prep_token translate(scan_token &&tok) {
         using namespace prepared;
         return std::move(tok.data).visit(
             [](scanner::white_space_separator &&) { return prep_token{}; },

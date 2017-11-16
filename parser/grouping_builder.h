@@ -13,27 +13,27 @@ namespace details {
 struct id_builder {
     token tok;
 
-    inline id_builder(identifier_literal) { tok.data = identifier_literal{}; }
-    inline id_builder(operator_literal) { tok.data = operator_literal{}; }
+    id_builder(identifier_literal) { tok.data = identifier_literal{}; }
+    id_builder(operator_literal) { tok.data = operator_literal{}; }
     id_builder(const id_builder &) = default;
     id_builder &operator=(const id_builder &) = default;
     id_builder(id_builder &&) = default;
     id_builder &operator=(id_builder &&) = default;
 
-    inline auto lit() & -> identifier_literal & {
+    auto lit() & -> identifier_literal & {
         if (tok.one_of<operator_literal>()) return tok.data.get<operator_literal>();
         return tok.data.get<identifier_literal>();
     }
 
-    inline auto left_separated() && -> id_builder {
+    auto left_separated() && -> id_builder {
         lit().left_separated = true;
         return *this;
     }
-    inline auto right_separated() && -> id_builder {
+    auto right_separated() && -> id_builder {
         lit().right_separated = true;
         return *this;
     }
-    inline auto both_separated() && -> id_builder {
+    auto both_separated() && -> id_builder {
         lit().left_separated = true;
         lit().right_separated = true;
         return *this;
@@ -45,7 +45,7 @@ struct id_builder {
         return *this;
     }
 
-    inline auto id() && -> token && { return std::move(tok); }
+    auto id() && -> token && { return std::move(tok); }
 };
 
 template<class Tok>
@@ -90,19 +90,19 @@ auto op(const char (&text)[N]) -> details::id_builder {
     return details::id_builder(operator_literal{}).text(text);
 }
 
-auto block_start(column_t c) -> prepared::token {
+inline auto block_start(column_t c) -> prepared::token {
     auto tok = prepared::token{};
     tok.range.end_position.column = c;
     tok.data = prepared::block_start_indentation{};
     return tok;
 }
-auto block_end(column_t c) -> prepared::token {
+inline auto block_end(column_t c) -> prepared::token {
     auto tok = prepared::token{};
     tok.range.end_position.column = c;
     tok.data = prepared::block_end_indentation{};
     return tok;
 }
-auto new_line(column_t c) -> prepared::token {
+inline auto new_line(column_t c) -> prepared::token {
     auto tok = prepared::token{};
     tok.range.end_position.column = c;
     tok.data = prepared::new_line_indentation{};

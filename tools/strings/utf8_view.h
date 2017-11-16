@@ -64,7 +64,15 @@ struct utf8_view {
         return {};
     }
 
-    bool pull_bom();
+    bool pull_bom() {
+        return front<3>().map([=](utf8_view v) {
+            if (v.content_equals(utf8_view("\xEF\xBB\xBF"))) {
+                pop<3>();
+                return true;
+            }
+            return false;
+        });
+    }
 
     optional_code_point_t pull_code_point() {
         // see https://en.wikipedia.org/wiki/UTF-8
@@ -132,16 +140,6 @@ private:
     const value_type *start_m;
     const value_type *end_m;
 };
-
-inline bool utf8_view::pull_bom() {
-    return front<3>().map([=](utf8_view v) {
-        if (v.content_equals(utf8_view("\xEF\xBB\xBF"))) {
-            pop<3>();
-            return true;
-        }
-        return false;
-    });
-}
 
 inline utf8_string to_string(const utf8_view &v) { return utf8_string(v.begin(), v.end()); }
 

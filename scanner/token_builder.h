@@ -18,12 +18,12 @@ struct token_builder {
 
 template<>
 struct token_builder<token> {
-    static inline auto build(token &&t) -> token { return std::move(t); } // full token is kept
+    static auto build(token &&t) -> token { return std::move(t); } // full token is kept
 };
 
 template<>
 struct token_builder<view_t> {
-    static inline auto build(const view_t &b) -> token {
+    static auto build(const view_t &b) -> token {
         auto tok = token{};
         tok.range.text = b;
         tok.data = scanner::identifier_literal{};

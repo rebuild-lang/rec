@@ -12,7 +12,7 @@ using prep_token = prepared::token;
 struct block_line_grouping {
     using block_literal = grouping::block_literal;
 
-    static inline auto parse(meta::co_enumerator<prep_token> input) -> block_literal {
+    static auto parse(meta::co_enumerator<prep_token> input) -> block_literal {
         if (!input++) return {};
         auto state_ = state_t{};
         auto block_column = column_t{};
@@ -32,7 +32,7 @@ private:
     struct state_t {
         optional_char indent_char{};
 
-        inline auto get_indent_column(const prep_token &tok) -> column_t {
+        auto get_indent_column(const prep_token &tok) -> column_t {
             const auto &range = tok.range;
             // TODO: extract indent char & verify it!
             // const auto &text = range.text;
@@ -55,27 +55,32 @@ private:
     using group_token = grouping::token;
     using token_line = grouping::line;
 
-    static inline group_token translate(prep_token &&tok) {
+    static group_token translate(prep_token &&tok) {
         using namespace grouping;
         return std::move(tok.data).visit(
             [](prepared::new_line_indentation &&) { return group_token{}; },
             [](prepared::block_start_indentation &&) { return group_token{}; },
             [](prepared::block_end_indentation &&) { return group_token{}; },
+            [](prepared::semicolon_separator &&) { return group_token{}; },
             [&](auto &&d) {
                 return group_token{std::move(tok.range), std::move(d)};
             });
     }
 
-    static inline auto extract_line_tokens(token_line &line, input_t &input) {
+    static auto extract_line_tokens(token_line &line, input_t &input) {
         using namespace prepared;
         // TODO: add semicolon
-        while (!input->one_of<new_line_indentation, block_start_indentation, block_end_indentation>()) {
+        while (!input->one_of<
+                new_line_indentation,
+                block_start_indentation,
+                block_end_indentation,
+                semicolon_separator>()) {
             line.emplace_back(translate(input.move()));
             if (!input++) return;
         }
     }
 
-    static inline auto parse_line(input_t &input, column_t parent_block_column, state_t &state) -> token_line {
+    static auto parse_line(input_t &input, column_t parent_block_column, state_t &state) -> token_line {
         using namespace prepared;
         auto line = token_line{};
         auto expect_end = false;
@@ -84,8 +89,16 @@ private:
             if (!input) return line;
 
             while (true) {
-                auto next_column = state.get_indent_column(*input);
-                if (input->one_of<new_line_indentation>()) {
+                if (input->one_of<semicolon_separator>()) {
+                    if (expect_end) {
+                        // TODO: report error
+                        // handling ignore
+                    }
+                    input++; // consume semicolon
+                    return line; // semicolon terminates current line
+                }
+                else if (input->one_of<new_line_indentation>()) {
+                    auto next_column = state.get_indent_column(*input);
                     if (next_column < parent_block_column) {
                         if (expect_end) {
                             // TODO report missing end
@@ -108,6 +121,7 @@ private:
                     }
                 }
                 else if (input->one_of<block_end_indentation>()) {
+                    auto next_column = state.get_indent_column(*input);
                     if (next_column < parent_block_column) {
                         if (expect_end) {
                             // TODO report missing end
@@ -128,6 +142,7 @@ private:
                     if (!input++) return line;
                 }
                 else if (input->one_of<block_start_indentation>()) {
+                    auto next_column = state.get_indent_column(*input);
                     expect_end = true;
                     if (next_column < parent_block_column) {
                         // TODO report missing end
@@ -151,12 +166,15 @@ private:
         }
     }
 
-    static inline auto parse_block(input_t &input, column_t block_column, state_t &state) -> block_literal {
+    static auto parse_block(input_t &input, column_t block_column, state_t &state) -> block_literal {
         using namespace prepared;
         auto block = block_literal{};
         while (true) {
             while (true) {
-                if (input->one_of<block_end_indentation>()) {
+                if (input->one_of<semicolon_separator>()) {
+                    if (!input++) return block;
+                }
+                else if (input->one_of<block_end_indentation>()) {
                     auto indent = state.get_indent_column(*input);
                     if (indent < block_column) return block; // do not consume parent end block
                     // TODO report misplaced end
