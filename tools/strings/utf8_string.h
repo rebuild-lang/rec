@@ -14,6 +14,7 @@ struct index_t {
 /// owning utf8 encoded readonly string
 // all useful methods are on utf8_view !
 struct utf8_string {
+    using this_t = utf8_string;
     using value_type = uint8_t;
 
     utf8_string() = default; // valid empty string
@@ -35,10 +36,10 @@ struct utf8_string {
         : data_m(b, e) {}
 
     // full value semantics
-    utf8_string(const utf8_string &) = default;
-    utf8_string &operator=(const utf8_string &) = default;
-    utf8_string(utf8_string &&) = default;
-    utf8_string &operator=(utf8_string &&) = default;
+    utf8_string(const this_t &) = default;
+    this_t &operator=(const this_t &) = default;
+    utf8_string(this_t &&) = default;
+    this_t &operator=(this_t &&) = default;
 
     const value_type *data() const { return data_m.data(); }
     count_t byte_count() const { return {static_cast<uint32_t>(data_m.size())}; }
@@ -47,7 +48,8 @@ struct utf8_string {
     auto begin() const { return data_m.begin(); }
     auto end() const { return data_m.end(); }
 
-    bool operator==(const utf8_string &o) const { return data_m == o.data_m; }
+    bool operator==(const this_t &o) const { return data_m == o.data_m; }
+    bool operator<(const this_t &o) const { return data_m < o.data_m; }
 
 private:
     std::vector<value_type> data_m;

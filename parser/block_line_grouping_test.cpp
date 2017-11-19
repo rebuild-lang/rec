@@ -33,7 +33,7 @@ struct grouping_transform_data {
         return *this;
     }
 };
-auto operator<<(std::ostream &out, const grouping_transform_data &ttd) -> std::ostream & {
+static auto operator<<(std::ostream &out, const grouping_transform_data &ttd) -> std::ostream & {
     out << "name: " << ttd.name << "\n";
     out << "input:\n";
     for (auto &t : ttd.input) out << t << '\n';

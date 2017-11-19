@@ -3,6 +3,7 @@
 #include "strings/utf8_string.h"
 #include "strings/utf8_view.h"
 
+#include "meta/algorithm.h"
 #include "meta/overloaded.h"
 #include "meta/variant.h"
 
@@ -14,28 +15,29 @@ namespace strings {
 /// representation of a piecewise string
 // use this to efficiently build large strings
 struct rope {
+    using this_t = rope;
     using element_t = meta::variant<code_point_t, utf8_string, utf8_view>;
 
     rope() = default; // valid empty rope
 
     // full value semantics
-    rope(const rope &) = default;
-    rope &operator=(const rope &) = default;
-    rope(rope &&) = default;
-    rope &operator=(rope &&) = default;
+    rope(const this_t &) = default;
+    this_t &operator=(const this_t &) = default;
+    rope(this_t &&) = default;
+    this_t &operator=(this_t &&) = default;
 
     explicit rope(const utf8_view &v) { data_m.emplace_back(v); }
 
     // append operators
-    rope &operator+=(code_point_t c) {
+    this_t &operator+=(code_point_t c) {
         data_m.emplace_back(c);
         return *this;
     }
-    rope &operator+=(utf8_string &&s) {
+    this_t &operator+=(utf8_string &&s) {
         if (!s.is_empty()) data_m.emplace_back(std::move(s));
         return *this;
     }
-    rope &operator+=(utf8_view v) {
+    this_t &operator+=(utf8_view v) {
         if (!v.is_empty()) data_m.emplace_back(v);
         return *this;
     }
@@ -62,13 +64,13 @@ struct rope {
         return std::move(result);
     }
 
-    bool operator==(const rope &o) const {
+    bool operator==(const this_t &o) const {
         // TODO: avoid allocation
         auto tmp = static_cast<utf8_string>(*this);
         auto tmp2 = static_cast<utf8_string>(o);
         return tmp == tmp2;
     }
-    bool operator!=(const rope &o) const { return !(*this == o); }
+    bool operator!=(const this_t &o) const { return !(*this == o); }
 
     bool operator==(const utf8_view &v) const {
         // TODO: without allocation

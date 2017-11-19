@@ -1,5 +1,5 @@
 #pragma once
-#include "scanner/token.h"
+#include "token.h"
 
 namespace scanner {
 
@@ -40,9 +40,7 @@ auto build_token(Tok &&t) -> token {
 
 template<class... Tok>
 auto build_tokens(Tok &&... t) -> tokens {
-    tokens result;
-    (void)std::initializer_list<int>{(result.push_back(build_token(std::forward<Tok>(t))), 0)...};
-    return result;
+    return tokens{scanner::build_token(std::forward<Tok>(t))...};
 }
 
 } // namespace scanner

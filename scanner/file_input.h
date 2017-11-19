@@ -37,7 +37,7 @@ struct file_input_t {
     }
 
     template<size_t index = 0>
-    opt_char_t peek_char() {
+    auto peek_char() -> opt_char_t {
         if (peek_buffer.size() <= index) {
             if (!fill_peek(index + 1)) return {};
         }
@@ -70,10 +70,10 @@ struct file_input_t {
 
     void next_line() { current_position.next_line(); }
 
-    value_ptr current() const { return current_ptr; }
+    auto current() const -> value_ptr { return current_ptr; }
 
 private:
-    value_ptr end_ptr() const { return file_ptr->content.data() + file_ptr->content.byte_count().v; }
+    auto end_ptr() const -> value_ptr { return file_ptr->content.data() + file_ptr->content.byte_count().v; }
     bool fill_peek(size_t count);
 
 private:

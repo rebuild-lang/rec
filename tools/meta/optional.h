@@ -11,6 +11,7 @@ namespace meta {
 // not all features are delegated!
 template<class T>
 class optional {
+    using this_t = optional;
     std::optional<T> m;
 
 public:
@@ -19,14 +20,14 @@ public:
     constexpr optional(const T &t)
         : m{t} {}
 
-    constexpr optional(const optional &) = default;
-    constexpr optional &operator=(const optional &) = default;
-    constexpr optional(optional &&) = default;
-    constexpr optional &operator=(optional &&) = default;
+    constexpr optional(const this_t &) = default;
+    constexpr this_t &operator=(const this_t &) = default;
+    constexpr optional(this_t &&) = default;
+    constexpr this_t &operator=(this_t &&) = default;
 
     constexpr operator bool() const { return m.has_value(); }
-    constexpr const T &value() const { return m.value(); }
-    constexpr T &value() { return m.value(); }
+    constexpr auto value() const -> decltype(auto) { return m.value(); }
+    constexpr auto value() -> decltype(auto) { return m.value(); }
 
     /// encapsulate the condition
     template<class F>
@@ -35,8 +36,8 @@ public:
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
     }
 
-    constexpr bool operator==(const optional &o) const { return m == o.m; }
-    constexpr bool operator!=(const optional &o) const { return m != o.m; }
+    constexpr bool operator==(const this_t &o) const { return m == o.m; }
+    constexpr bool operator!=(const this_t &o) const { return m != o.m; }
 };
 
 /// compile time pair of a type and value
@@ -56,6 +57,7 @@ struct packed;
 // keep the API in sync with above optional
 template<class T, class TF>
 class optional<packed<type_value<T, TF>>> {
+    using this_t = optional;
     T data;
 
 public:
@@ -64,14 +66,14 @@ public:
     constexpr optional(const T &t)
         : data(t) {}
 
-    constexpr optional(const optional &) = default;
-    constexpr optional &operator=(const optional &) = default;
-    constexpr optional(optional &&) = default;
-    constexpr optional &operator=(optional &&) = default;
+    constexpr optional(const this_t &) = default;
+    constexpr this_t &operator=(const this_t &) = default;
+    constexpr optional(this_t &&) = default;
+    constexpr this_t &operator=(this_t &&) = default;
 
     constexpr operator bool() const { return !(data == TF{}()); }
-    constexpr const T &value() const { return data; }
-    constexpr T &value() { return data; }
+    constexpr auto value() const -> decltype(auto) { return data; }
+    constexpr auto value() -> decltype(auto) { return data; }
 
     /// encapsulate the condition
     template<class F>
@@ -80,8 +82,8 @@ public:
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
     }
 
-    constexpr bool operator==(const optional &o) const { return data == o.data; }
-    constexpr bool operator!=(const optional &o) const { return data != o.data; }
+    constexpr bool operator==(const this_t &o) const { return data == o.data; }
+    constexpr bool operator!=(const this_t &o) const { return data != o.data; }
 };
 
 template<class T>

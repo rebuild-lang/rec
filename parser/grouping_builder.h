@@ -11,36 +11,37 @@ using view_t = scanner::view_t;
 namespace details {
 
 struct id_builder {
+    using this_t = id_builder;
     token tok;
 
     id_builder(identifier_literal) { tok.data = identifier_literal{}; }
     id_builder(operator_literal) { tok.data = operator_literal{}; }
-    id_builder(const id_builder &) = default;
-    id_builder &operator=(const id_builder &) = default;
-    id_builder(id_builder &&) = default;
-    id_builder &operator=(id_builder &&) = default;
+    id_builder(const this_t &) = default;
+    this_t &operator=(const this_t &) = default;
+    id_builder(this_t &&) = default;
+    this_t &operator=(this_t &&) = default;
 
     auto lit() & -> identifier_literal & {
         if (tok.one_of<operator_literal>()) return tok.data.get<operator_literal>();
         return tok.data.get<identifier_literal>();
     }
 
-    auto left_separated() && -> id_builder {
+    auto left_separated() && -> this_t {
         lit().left_separated = true;
         return *this;
     }
-    auto right_separated() && -> id_builder {
+    auto right_separated() && -> this_t {
         lit().right_separated = true;
         return *this;
     }
-    auto both_separated() && -> id_builder {
+    auto both_separated() && -> this_t {
         lit().left_separated = true;
         lit().right_separated = true;
         return *this;
     }
 
     template<size_t N>
-    auto text(const char (&text)[N]) && -> id_builder {
+    auto text(const char (&text)[N]) && -> this_t {
         tok.range.text = view_t{text};
         return *this;
     }
@@ -75,9 +76,7 @@ auto build_token(Tok &&t) -> token {
 
 template<class... Tok>
 auto build_tokens(Tok &&... t) -> tokens {
-    tokens result;
-    (void)std::initializer_list<int>{(result.push_back(parser::grouping::build_token(std::forward<Tok>(t))), 0)...};
-    return result;
+    return tokens{parser::grouping::build_token(std::forward<Tok>(t))...};
 }
 
 template<size_t N>
@@ -88,6 +87,14 @@ auto id(const char (&text)[N]) -> details::id_builder {
 template<size_t N>
 auto op(const char (&text)[N]) -> details::id_builder {
     return details::id_builder(operator_literal{}).text(text);
+}
+
+template<size_t N>
+auto num(const char (&int_part)[N]) -> number_literal_t {
+    auto lit = number_literal_t{};
+    lit.integer_part += view_t{int_part};
+    lit.radix = scanner::radix_t::decimal;
+    return lit;
 }
 
 inline auto block_start(column_t c) -> prepared::token {
