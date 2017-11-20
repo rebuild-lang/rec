@@ -1,22 +1,26 @@
 #pragma once
-#include "grouping_data.h"
+#include "block_token.h"
 
 #include "meta/co_enumerator.h"
 
-namespace parser {
+namespace parser::block {
 
 using view_t = strings::utf8_view;
 using column_t = scanner::column_t;
-using prep_token = prepared::token;
+using filter_token = filter::token;
 
-struct block_line_grouping {
-    using block_literal = grouping::block_literal;
-
-    static auto parse(meta::co_enumerator<prep_token> input) -> block_literal {
+/**
+ * @brief block and line grouping parser is the 2nd parser step
+ *
+ * scans all the indentations and blocks
+ *
+ */
+struct parser {
+    static auto parse(meta::co_enumerator<filter_token> input) -> block_literal {
         if (!input++) return {};
         auto state_ = state_t{};
         auto block_column = column_t{};
-        if (input->one_of<prepared::new_line_indentation>()) {
+        if (input->one_of<filter::new_line_indentation>()) {
             block_column = state_.get_indent_column(*input);
             if (!input++) return {};
         }
@@ -32,7 +36,7 @@ private:
     struct state_t {
         optional_char indent_char{};
 
-        auto get_indent_column(const prep_token &tok) -> column_t {
+        auto get_indent_column(const filter_token &tok) -> column_t {
             const auto &range = tok.range;
             // TODO: extract indent char & verify it!
             // const auto &text = range.text;
@@ -51,24 +55,23 @@ private:
             return range.end_position.column;
         }
     };
-    using input_t = meta::co_enumerator<prep_token>;
-    using group_token = grouping::token;
-    using token_line = grouping::line;
+    using input_t = meta::co_enumerator<filter_token>;
+    using group_token = block::token;
+    using token_line = block::line;
 
-    static group_token translate(prep_token &&tok) {
-        using namespace grouping;
+    static group_token translate(filter_token &&tok) {
         return std::move(tok.data).visit(
-            [](prepared::new_line_indentation &&) { return group_token{}; },
-            [](prepared::block_start_indentation &&) { return group_token{}; },
-            [](prepared::block_end_indentation &&) { return group_token{}; },
-            [](prepared::semicolon_separator &&) { return group_token{}; },
+            [](filter::new_line_indentation &&) { return group_token{}; },
+            [](filter::block_start_indentation &&) { return group_token{}; },
+            [](filter::block_end_indentation &&) { return group_token{}; },
+            [](filter::semicolon_separator &&) { return group_token{}; },
             [&](auto &&d) {
                 return group_token{std::move(tok.range), std::move(d)};
             });
     }
 
     static auto extract_line_tokens(token_line &line, input_t &input) {
-        using namespace prepared;
+        using namespace filter;
         // TODO: add semicolon
         while (!input->one_of<
                 new_line_indentation,
@@ -81,7 +84,7 @@ private:
     }
 
     static auto parse_line(input_t &input, column_t parent_block_column, state_t &state) -> token_line {
-        using namespace prepared;
+        using namespace filter;
         auto line = token_line{};
         auto expect_end = false;
         while (true) {
@@ -167,7 +170,7 @@ private:
     }
 
     static auto parse_block(input_t &input, column_t block_column, state_t &state) -> block_literal {
-        using namespace prepared;
+        using namespace filter;
         auto block = block_literal{};
         while (true) {
             while (true) {
@@ -201,4 +204,4 @@ private:
     }
 };
 
-} // namespace parser
+} // namespace parser::block

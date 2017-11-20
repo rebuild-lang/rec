@@ -1,6 +1,6 @@
-#include "parser/token_preparation.h"
+#include "parser/filter/filter_parser.h"
 
-#include "parser/prepared_token_builder.h"
+#include "parser/filter/filter_token_builder.h"
 #include "scanner/token_builder.h"
 
 #include "gtest/gtest.h"
@@ -8,15 +8,15 @@
 #include <vector>
 
 using namespace parser;
-using namespace parser::prepared;
+using namespace parser::filter;
 
 using scan_tokens = std::vector<scan_token>;
-using prep_tokens = std::vector<token>;
+using filt_tokens = std::vector<token>;
 
 struct tokens_transform_data {
     const char *name;
     scan_tokens input;
-    prep_tokens expected;
+    filt_tokens expected;
 
     tokens_transform_data(const char *name)
         : name{name} {}
@@ -32,7 +32,7 @@ struct tokens_transform_data {
     }
     template<class... Tok>
     auto out(Tok &&... tok) && -> tokens_transform_data {
-        expected = parser::prepared::build_tokens(std::forward<Tok>(tok)...);
+        expected = filter::build_tokens(std::forward<Tok>(tok)...);
         return *this;
     }
 };
@@ -47,7 +47,7 @@ static auto operator<<(std::ostream &out, const tokens_transform_data &ttd) -> s
 
 class token_transformations : public testing::TestWithParam<tokens_transform_data> {};
 
-TEST_P(token_transformations, token_preparation) {
+TEST_P(token_transformations, filter_parser) {
     tokens_transform_data data = GetParam();
     auto input = [&]() -> meta::co_enumerator<scan_token> {
         for (const auto &t : data.input) {
@@ -55,7 +55,7 @@ TEST_P(token_transformations, token_preparation) {
         }
     }();
 
-    auto tok_gen = token_preparation::prepare(input);
+    auto tok_gen = filter::parser::parse(input);
 
     for (const auto &et : data.expected) {
         tok_gen++;

@@ -45,8 +45,8 @@ struct utf8_string {
     count_t byte_count() const { return {static_cast<uint32_t>(data_m.size())}; }
     bool is_empty() const { return data_m.empty(); }
 
-    auto begin() const { return data_m.begin(); }
-    auto end() const { return data_m.end(); }
+    auto begin() const { return data(); }
+    auto end() const { return data() + byte_count().v; }
 
     bool operator==(const this_t &o) const { return data_m == o.data_m; }
     bool operator<(const this_t &o) const { return data_m < o.data_m; }

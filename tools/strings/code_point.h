@@ -62,6 +62,9 @@ struct code_point_t {
     constexpr bool operator<(const uint32_t o) const { return v < o; }
     constexpr bool operator>(const uint32_t o) const { return v > o; }
 
+    constexpr bool operator<(const code_point_t o) const { return v < o.v; }
+    constexpr bool operator>(const code_point_t o) const { return v > o.v; }
+
     constexpr bool is_control() const {
         // see https://www.compart.com/en/unicode/category/Cc
         switch (v) {

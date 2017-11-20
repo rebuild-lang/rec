@@ -1,18 +1,18 @@
-#include "parser/block_line_grouping.h"
+#include "parser/block/block_parser.h"
 
-#include "parser/grouping_builder.h"
-#include "parser/prepared_token_builder.h"
+#include "parser/block/block_token_builder.h"
+#include "parser/filter/filter_token_builder.h"
 
 #include "gtest/gtest.h"
 
 using namespace parser;
-using namespace parser::grouping;
+using namespace parser::block;
 
-using prep_tokens = std::vector<prep_token>;
+using filt_tokens = std::vector<filter_token>;
 
 struct grouping_transform_data {
     const char *name;
-    prep_tokens input;
+    filt_tokens input;
     block_literal expected;
 
     grouping_transform_data(const char *name)
@@ -24,7 +24,7 @@ struct grouping_transform_data {
 
     template<class... Tok>
     auto in(Tok &&... tok) && -> grouping_transform_data {
-        input = parser::prepared::build_tokens(std::forward<Tok>(tok)...);
+        input = filter::build_tokens(std::forward<Tok>(tok)...);
         return *this;
     }
     template<class... Lines>
@@ -44,17 +44,17 @@ static auto operator<<(std::ostream &out, const grouping_transform_data &ttd) ->
 
 class grouping_transformations : public testing::TestWithParam<grouping_transform_data> {};
 
-TEST_P(grouping_transformations, block_line_grouping) {
+TEST_P(grouping_transformations, block_parser) {
     grouping_transform_data data = GetParam();
-    auto input = [&]() -> meta::co_enumerator<prep_token> {
+    auto input = [&]() -> meta::co_enumerator<filter_token> {
         for (const auto &t : data.input) {
             co_yield t;
         }
     }();
 
-    auto block = block_line_grouping::parse(input);
+    auto blk = block::parser::parse(input);
 
-    ASSERT_EQ(block, data.expected);
+    ASSERT_EQ(blk, data.expected);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -62,26 +62,26 @@ INSTANTIATE_TEST_CASE_P(
     grouping_transformations,
     ::testing::Values( //
         grouping_transform_data("Example")
-            .in(prepared::id("if"),
-                prepared::id("a"),
+            .in(filter::id("if"),
+                filter::id("a"),
                 new_line(column_t{4}),
-                prepared::op("&&"),
-                prepared::id("b"),
+                filter::op("&&"),
+                filter::id("b"),
                 block_start(column_t{4}),
-                prepared::id("print_a"),
+                filter::id("print_a"),
                 new_line(column_t{4}),
-                prepared::id("print_b"),
+                filter::id("print_b"),
                 new_line(column_t{1}),
-                prepared::id("else"),
+                filter::id("else"),
                 block_start(column_t{4}),
-                prepared::id("print_c"),
+                filter::id("print_c"),
                 block_end(column_t{1}))
             .out(build_tokens(
                 id("if"),
                 id("a"),
                 op("&&"),
                 id("b"),
-                block(column_t{4}, build_tokens(id("print_a")), build_tokens(id("print_b"))),
+                blk(column_t{4}, build_tokens(id("print_a")), build_tokens(id("print_b"))),
                 id("else"),
-                block(column_t{4}, build_tokens(id("print_c"))))) //
+                blk(column_t{4}, build_tokens(id("print_c"))))) //
         ));

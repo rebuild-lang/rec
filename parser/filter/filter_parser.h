@@ -1,20 +1,36 @@
 #pragma once
 
-#include "parser/prepared_token.h"
+#include "parser/filter/filter_token.h"
 
 #include "meta/co_enumerator.h"
 
-namespace parser {
+namespace parser::filter {
 
 using scan_token = scanner::token;
 using scan_token_index = scanner::token_variant::index_t;
 
-struct token_preparation {
-    using prep_token = prepared::token;
-    using text_range = prepared::text_range;
-
-    static auto prepare(meta::co_enumerator<scan_token> input) -> meta::co_enumerator<prep_token> {
-        using namespace prepared;
+/**
+ * @brief the token filter parser is the 1st parser step
+ *
+ * filters out:
+ * • invalid characters
+ * • white spaces
+ * • comments
+ * • newline + indentations preceding comments
+ * • two adjacent newline + indentations (basically multiple newlines)
+ * • colon between two indentations (error)
+ *
+ * mutates:
+ * • colon before new line & indentation => block start
+ * • "end" after new line & indentation => block end
+ * • identifiers separators around identifiers and operators
+ *
+ * note:
+ * • this buffers only one token O(n)
+ *
+ **/
+struct parser {
+    static auto parse(meta::co_enumerator<scan_token> input) -> meta::co_enumerator<token> {
         while (true) {
             if (!input++) co_return;
             if (input->one_of<
@@ -28,7 +44,7 @@ struct token_preparation {
         auto current = input.move();
         if (!current.one_of<scanner::new_line_indentation>()) {
             // ensure we always start with a new line
-            co_yield prep_token{before_range(current), new_line_indentation{}};
+            co_yield token{before_range(current), new_line_indentation{}};
         }
         auto lastYieldType = token_variant::index_of<new_line_indentation>();
         auto previous = translate(std::move(current));
@@ -66,7 +82,7 @@ struct token_preparation {
                     // not allowed
                     //}
                     // we do not merge the range here, because there might be skipped comments between
-                    previous = prep_token{std::move(current.range), block_start_indentation{}};
+                    previous = token{std::move(current.range), block_start_indentation{}};
                     continue; // [':' + '\n'] => block start
                 }
                 if (previous.one_of<new_line_indentation>()) {
@@ -84,7 +100,7 @@ struct token_preparation {
                         lastYieldType = previous.data.index();
                         co_yield previous;
                     }
-                    previous = prep_token{previous.range, block_end_indentation{}};
+                    previous = token{previous.range, block_end_indentation{}};
                     continue; // ['\n' + "end"] => block end
                 }
                 if (is_left_separator(previousOrSkippedType)) left_separated = true;
@@ -132,37 +148,34 @@ private:
         return {tok.range.file, {}, {}, tok.range.begin_position};
     }
 
-    static void mark_right_separator(prep_token &tok) {
-        using namespace prepared;
+    static void mark_right_separator(token &tok) {
         tok.data.visit_some(
             [](identifier_literal &l) { l.right_separated = true; },
             [](operator_literal &o) { o.right_separated = true; });
     }
 
-    static void mark_left_separator(prep_token &tok) {
-        using namespace prepared;
+    static void mark_left_separator(token &tok) {
         tok.data.visit_some(
             [](identifier_literal &l) { l.left_separated = true; },
             [](operator_literal &o) { o.left_separated = true; });
     }
 
-    static prep_token translate(scan_token &&tok) {
-        using namespace prepared;
+    static auto translate(scan_token &&tok) -> token {
         return std::move(tok.data).visit(
-            [](scanner::white_space_separator &&) { return prep_token{}; },
-            [](scanner::comment_literal &&) { return prep_token{}; },
-            [](scanner::invalid_encoding &&) { return prep_token{}; },
-            [](scanner::unexpected_character &&) { return prep_token{}; },
+            [](scanner::white_space_separator &&) { return token{}; },
+            [](scanner::comment_literal &&) { return token{}; },
+            [](scanner::invalid_encoding &&) { return token{}; },
+            [](scanner::unexpected_character &&) { return token{}; },
             [&](scanner::identifier_literal &&) {
-                return prep_token{std::move(tok.range), identifier_literal{}};
+                return token{std::move(tok.range), identifier_literal{}};
             },
             [&](scanner::operator_literal &&) {
-                return prep_token{std::move(tok.range), operator_literal{}};
+                return token{std::move(tok.range), operator_literal{}};
             },
             [&](auto &&d) {
-                return prep_token{std::move(tok.range), std::move(d)};
+                return token{std::move(tok.range), std::move(d)};
             });
     }
 };
 
-} // namespace parser
+} // namespace parser::filter

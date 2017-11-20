@@ -1,4 +1,6 @@
 #pragma once
+#include "optional.h"
+
 #include <algorithm>
 #include <numeric>
 
@@ -10,6 +12,22 @@ auto accumulate(const C &c, T &&init, F &&f) {
     using std::begin;
     using std::end;
     return std::accumulate(begin(c), end(c), std::forward<T>(init), std::forward<F>(f));
+}
+
+template<class C, class T>
+auto find(const C &c, const T &v) {
+    using std::begin;
+    using std::end;
+    return std::find(begin(c), end(c), v);
+}
+
+template<class C, class F>
+auto find_if(const C &c, F &&f) -> optional<decltype(c.front())> {
+    using std::begin;
+    using std::end;
+    auto it = std::find_if(begin(c), end(c), std::forward<F>(f));
+    if (it != end(c)) return *it;
+    return {};
 }
 
 template<class O, class C, class F>

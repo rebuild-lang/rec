@@ -30,7 +30,7 @@ struct utf8_view {
         : start_m(start)
         , end_m(end) {}
 
-    explicit utf8_view(const utf8_string &s) noexcept // view existing owning string
+    utf8_view(const utf8_string &s) noexcept // view existing owning string
         : utf8_view(s.data(), s.data() + s.byte_count().v) {}
 
     explicit utf8_view(const std::string &s) noexcept // view owning std::string
@@ -49,6 +49,17 @@ struct utf8_view {
     // use content_equals for content comparison
     constexpr bool operator==(const this_t &o) const { return start_m == o.start_m && end_m == o.end_m; }
     constexpr bool operator!=(const this_t &o) const { return !(*this == o); }
+    bool operator<(const this_t &o) const {
+        auto l = *this;
+        auto r = o;
+        while (true) {
+            auto lcp = l.pull_code_point().or_value(code_point_t{0});
+            if (lcp == 0) return true;
+            auto rcp = r.pull_code_point().or_value(code_point_t{0});
+            if (lcp < rcp) continue;
+            return false;
+        }
+    }
 
     constexpr bool content_equals(const this_t &o) const {
         return byte_count().v == o.byte_count().v && meta::equals(*this, o.begin());

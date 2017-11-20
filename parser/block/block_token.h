@@ -1,10 +1,9 @@
 #pragma once
 
-#include "parser/prepared_token.h"
+#include "parser/filter/filter_token.h"
 
-namespace parser::grouping {
-
-namespace prepared = parser::prepared;
+namespace parser {
+namespace block {
 
 using text_range = scanner::text_range;
 
@@ -16,16 +15,16 @@ struct block_literal {
     bool operator==(const block_literal &o) const { return lines == o.lines; }
     bool operator!=(const block_literal &o) const { return lines != o.lines; }
 };
-using colon_separator = prepared::colon_separator;
-using comma_separator = prepared::comma_separator;
-using square_bracket_open = prepared::square_bracket_open;
-using square_bracket_close = prepared::square_bracket_close;
-using bracket_open = prepared::bracket_open;
-using bracket_close = prepared::bracket_close;
-using string_literal = prepared::string_literal;
-using number_literal_t = prepared::number_literal_t;
-using identifier_literal = prepared::identifier_literal;
-using operator_literal = prepared::operator_literal;
+using colon_separator = filter::colon_separator;
+using comma_separator = filter::comma_separator;
+using square_bracket_open = filter::square_bracket_open;
+using square_bracket_close = filter::square_bracket_close;
+using bracket_open = filter::bracket_open;
+using bracket_close = filter::bracket_close;
+using string_literal = filter::string_literal;
+using number_literal_t = filter::number_literal_t;
+using identifier_literal = filter::identifier_literal;
+using operator_literal = filter::operator_literal;
 
 using token_variant = meta::variant<
     block_literal,
@@ -90,4 +89,5 @@ inline auto operator<<(std::ostream &out, const token &t) -> std::ostream & {
     return out;
 }
 
-} // namespace parser::grouping
+} // namespace block
+} // namespace parser

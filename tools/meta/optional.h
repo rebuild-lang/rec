@@ -19,6 +19,8 @@ public:
         : m{} {}
     constexpr optional(const T &t)
         : m{t} {}
+    constexpr optional(T &&t)
+        : m(std::move(t)) {}
 
     constexpr optional(const this_t &) = default;
     constexpr this_t &operator=(const this_t &) = default;
@@ -26,18 +28,60 @@ public:
     constexpr this_t &operator=(this_t &&) = default;
 
     constexpr operator bool() const { return m.has_value(); }
-    constexpr auto value() const -> decltype(auto) { return m.value(); }
-    constexpr auto value() -> decltype(auto) { return m.value(); }
+    constexpr auto value() const & -> decltype(auto) { return m.value(); }
+    constexpr auto value() & -> decltype(auto) { return m.value(); }
+    constexpr auto value() && -> decltype(auto) { return std::move(m).value(); }
 
     /// encapsulate the condition
     template<class F>
-    constexpr auto map(F &&f) const -> decltype(f(value())) {
+    constexpr auto map(F &&f) const & -> decltype(f(value())) {
         if (m.has_value()) return f(value());
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
+    }
+    template<class F>
+    constexpr auto map(F &&f) && -> decltype(f(std::move(m).value())) {
+        if (m.has_value()) return f(std::move(m).value());
+        if constexpr (!std::is_void_v<decltype(f(std::move(m).value()))>) return {};
+    }
+
+    /// default values
+    template<class D>
+    constexpr auto or_value(D &&d) const & -> decltype(auto) {
+        if (m.has_value()) return m.value();
+        return std::forward<D>(d);
+    }
+    template<class D>
+    constexpr auto or_value(D &&d) & -> decltype(auto) {
+        if (m.has_value()) return m.value();
+        return std::forward<D>(d);
+    }
+    template<class D>
+    constexpr auto or_value(D &&d) && -> decltype(auto) {
+        if (m.has_value()) return std::move(m).value();
+        return std::forward<D>(d);
     }
 
     constexpr bool operator==(const this_t &o) const { return m == o.m; }
     constexpr bool operator!=(const this_t &o) const { return m != o.m; }
+};
+
+template<class T>
+class optional<T &> : public optional<std::reference_wrapper<T>> {
+    using this_t = optional;
+    using base_t = optional<std::reference_wrapper<T>>;
+
+public:
+    constexpr optional()
+        : base_t{} {}
+    constexpr optional(const T &t)
+        : base_t{std::ref(t)} {}
+    constexpr optional(const std::reference_wrapper<T> &t)
+        : base_t{t} {}
+
+    constexpr optional(const this_t &) = default;
+    constexpr this_t &operator=(const this_t &) = default;
+    constexpr optional(this_t &&) = default;
+    constexpr this_t &operator=(this_t &&) = default;
 };
 
 /// compile time pair of a type and value
@@ -72,14 +116,37 @@ public:
     constexpr this_t &operator=(this_t &&) = default;
 
     constexpr operator bool() const { return !(data == TF{}()); }
-    constexpr auto value() const -> decltype(auto) { return data; }
-    constexpr auto value() -> decltype(auto) { return data; }
+    constexpr auto value() const & -> decltype(auto) { return data; }
+    constexpr auto value() && -> decltype(auto) { return std::move(data); }
+    constexpr auto value() & -> decltype(auto) { return data; }
 
     /// encapsulate the condition
     template<class F>
-    constexpr auto map(F &&f) const -> decltype(f(value())) {
+    constexpr auto map(F &&f) const & -> decltype(f(value())) {
         if (*this) return f(value());
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
+    }
+    template<class F>
+    constexpr auto map(F &&f) const && -> decltype(f(value())) {
+        if (*this) return f(value());
+        if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
+    }
+
+    /// default values
+    template<class D>
+    constexpr auto or_value(D &&d) const & -> decltype(auto) {
+        if (*this) return value();
+        return std::forward<D>(d);
+    }
+    template<class D>
+    constexpr auto or_value(D &&d) & -> decltype(auto) {
+        if (*this) return value();
+        return std::forward<D>(d);
+    }
+    template<class D>
+    constexpr auto or_value(D &&d) && -> decltype(std::move(*this).value()) {
+        if (*this) return std::move(*this).value();
+        return std::forward<D>(d);
     }
 
     constexpr bool operator==(const this_t &o) const { return data == o.data; }

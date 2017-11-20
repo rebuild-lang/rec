@@ -4,10 +4,11 @@ Project {
     minimumQbsVersion: "1.7.1"
 
     references: [
+        "thirdparty",
         "tools",
         "scanner",
+        "instance",
         "parser",
-        "thirdparty",
     ]
 
     AutotestRunner {}

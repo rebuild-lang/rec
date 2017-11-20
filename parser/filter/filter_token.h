@@ -1,7 +1,7 @@
 #pragma once
 #include "scanner/token.h"
 
-namespace parser::prepared {
+namespace parser::filter {
 
 using text_range = scanner::text_range;
 using view_t = scanner::view_t;
@@ -66,7 +66,7 @@ inline std::ostream &operator<<(std::ostream &out, const token_variant &v) {
         [&](const square_bracket_close &) { out << "<]>"; },
         [&](const bracket_open &) { out << "<(>"; },
         [&](const bracket_close &) { out << "<)>"; },
-        [&](const string_literal &str) { out << "<\"\">"; },
+        [&](const string_literal &) { out << "<\"\">"; },
         [&](const number_literal_t &num) { out << "<num: " << num << ">"; },
         [&](const identifier_literal &ident) { out << "<id: " << ident << ">"; },
         [&](const operator_literal &op) { out << "<op: " << op << ">"; });
@@ -88,4 +88,4 @@ inline std::ostream &operator<<(std::ostream &out, const token &t) {
     return out;
 }
 
-} // namespace parser::prepared
+} // namespace parser::filter

@@ -1,10 +1,13 @@
 #pragma once
 
-#include "parser/prepared_token.h"
+#include "parser/block/block_token.h"
 
-namespace parser::prepared {
+namespace parser {
+namespace block {
 
-using tokens = std::vector<token>;
+using token_vec = std::vector<token>;
+using column_t = scanner::column_t;
+using view_t = scanner::view_t;
 
 namespace details {
 
@@ -44,7 +47,7 @@ struct id_builder {
         return *this;
     }
 
-    auto id() && -> token && { return std::move(tok); }
+    auto id() && -> token { return std::move(tok); }
 };
 
 template<class Tok>
@@ -59,6 +62,7 @@ template<>
 struct token_builder<token> {
     static auto build(token &&t) -> token { return std::move(t); }
 };
+
 template<>
 struct token_builder<id_builder> {
     static auto build(id_builder &&b) -> token { return std::move(b).id(); }
@@ -66,7 +70,15 @@ struct token_builder<id_builder> {
 
 } // namespace details
 
-inline auto id() -> details::id_builder { return {identifier_literal{}}; }
+template<class Tok>
+auto build_token(Tok &&t) -> token {
+    return details::token_builder<Tok>::build(std::forward<Tok>(t));
+}
+
+template<class... Tok>
+auto build_tokens(Tok &&... t) -> token_vec {
+    return token_vec{::parser::block::build_token(std::forward<Tok>(t))...};
+}
 
 template<size_t N>
 auto id(const char (&text)[N]) -> details::id_builder {
@@ -78,14 +90,40 @@ auto op(const char (&text)[N]) -> details::id_builder {
     return details::id_builder(operator_literal{}).text(text);
 }
 
-template<class Tok>
-auto build_token(Tok &&t) -> token {
-    return details::token_builder<Tok>::build(std::forward<Tok>(t));
+template<size_t N>
+auto num(const char (&int_part)[N]) -> number_literal_t {
+    auto lit = number_literal_t{};
+    lit.integer_part += view_t{int_part};
+    lit.radix = scanner::radix_t::decimal;
+    return lit;
 }
 
-template<class... Tok>
-auto build_tokens(Tok &&... t) -> tokens {
-    return tokens{parser::prepared::build_token(std::forward<Tok>(t))...};
+inline auto block_start(column_t c) -> filter::token {
+    auto tok = filter::token{};
+    tok.range.end_position.column = c;
+    tok.data = filter::block_start_indentation{};
+    return tok;
+}
+inline auto block_end(column_t c) -> filter::token {
+    auto tok = filter::token{};
+    tok.range.end_position.column = c;
+    tok.data = filter::block_end_indentation{};
+    return tok;
+}
+inline auto new_line(column_t c) -> filter::token {
+    auto tok = filter::token{};
+    tok.range.end_position.column = c;
+    tok.data = filter::new_line_indentation{};
+    return tok;
 }
 
-} // namespace parser::prepared
+template<class... Lines>
+auto blk(column_t c, Lines &&... lines) -> token {
+    auto tok = token{};
+    tok.range.end_position.column = c;
+    tok.data = block_literal{{std::forward<Lines>(lines)...}};
+    return tok;
+}
+
+} // namespace block
+} // namespace parser

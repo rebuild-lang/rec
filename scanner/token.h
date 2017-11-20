@@ -98,10 +98,11 @@ struct token {
     }
 };
 
-inline auto operator<<(std::ostream &out, const token &t) -> std::ostream & {
-    out << t.range << t.data;
-    return out;
-}
+inline auto operator<<(std::ostream &out, const token &t) -> std::ostream & { return out << t.range << t.data; }
+
+inline auto operator<<(std::ostream &out, const string_literal &) -> std::ostream & { return out; }
+inline auto operator<<(std::ostream &out, const identifier_literal &) -> std::ostream & { return out; }
+inline auto operator<<(std::ostream &out, const operator_literal &) -> std::ostream & { return out; }
 
 inline auto operator<<(std::ostream &out, const token_variant &v) -> std::ostream & {
     v.visit(
@@ -115,10 +116,10 @@ inline auto operator<<(std::ostream &out, const token_variant &v) -> std::ostrea
         [&](const square_bracket_close &) { out << "<]>"; },
         [&](const bracket_open &) { out << "<(>"; },
         [&](const bracket_close &) { out << "<)>"; },
-        [&](const string_literal &str) { out << "<\"\">"; },
+        [&](const string_literal &str) { out << "<str: " << str << ">"; },
         [&](const number_literal_t &num) { out << "<num: " << num << ">"; },
-        [&](const identifier_literal &ident) { out << "<id>"; },
-        [&](const operator_literal &op) { out << "<op>"; },
+        [&](const identifier_literal &id) { out << "<id: " << id << ">"; },
+        [&](const operator_literal &op) { out << "<op: " << op << ">"; },
         [&](const invalid_encoding &) { out << "<E:enc>"; },
         [&](const unexpected_character &) { out << "<E:exp>"; });
     return out;

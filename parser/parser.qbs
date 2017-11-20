@@ -9,14 +9,19 @@ Project {
         Depends { name: "scanner" }
 
         files: [
-            "block_line_grouping.cpp",
-            "block_line_grouping.h",
-            "grouping_builder.h",
-            "grouping_data.h",
-            "prepared_token.h",
-            "prepared_token_builder.h",
-            "token_preparation.cpp",
-            "token_preparation.h",
+            "block/block_parser.cpp",
+            "block/block_parser.h",
+            "block/block_token.h",
+            "block/block_token_builder.h",
+            "expression/expression_line_view.h",
+            "expression/expression_parser.cpp",
+            "expression/expression_parser.h",
+            "expression/expression_tree.h",
+            "expression/expression_tree_builder.h",
+            "filter/filter_parser.cpp",
+            "filter/filter_parser.h",
+            "filter/filter_token.h",
+            "filter/filter_token_builder.h",
         ]
 
         Export {
@@ -36,8 +41,9 @@ Project {
         googletest.useMain: true
 
         files: [
-            "block_line_grouping_test.cpp",
-            "token_preparation_test.cpp",
+            "block/block_parser_test.cpp",
+            "expression/expression_parser_test.cpp",
+            "filter/filter_parser_test.cpp",
         ]
     }
 }
