@@ -101,6 +101,7 @@ public:
         : node_variant(std::forward<S>(s), std::forward<A>(a)...) {}
 };
 using node_opt = meta::optional<node_t>;
+using node_ptr = const node_t *;
 
 struct named_t {
     using this_t = named_t;
@@ -113,11 +114,46 @@ struct named_t {
 
     named_t(const this_t &) = default;
     named_t(this_t &&) = default;
-    this_t &operator=(const this_t &) & = default;
-    this_t &operator=(this_t &&) & = default;
+    auto operator=(const this_t &) & -> this_t & = default;
+    auto operator=(this_t &&) & -> this_t & = default;
 
     bool operator==(const this_t &o) const { return name == o.name && node == o.node; }
     bool operator!=(const this_t &o) const { return !(*this == o); }
+};
+
+struct named_view_t {
+    using this_t = named_view_t;
+    view_t name;
+    node_ptr node;
+
+    named_view_t() = default;
+    named_view_t(const this_t &) = default;
+    named_view_t(this_t &&) = default;
+    auto operator=(const this_t &) & -> this_t & = default;
+    auto operator=(this_t &&) & -> this_t & = default;
+
+    named_view_t(const named_t &named)
+        : name(named.name)
+        , node(&named.node) {}
+    named_view_t(const node_t &node)
+        : node(&node) {}
+};
+using named_view_vec = std::vector<named_view_t>;
+
+struct named_tuple_view_t {
+    using this_t = named_tuple_view_t;
+    named_view_vec tuple;
+
+    named_tuple_view_t() = default;
+    named_tuple_view_t(const this_t &) = default;
+    named_tuple_view_t(this_t &&) = default;
+    auto operator=(const this_t &) & -> this_t & = default;
+    auto operator=(this_t &&) & -> this_t & = default;
+
+    named_tuple_view_t(const named_tuple_t &named)
+        : tuple(named.tuple.begin(), named.tuple.end()) {}
+    named_tuple_view_t(const node_t &node)
+        : tuple({node}) {}
 };
 
 auto operator<<(std::ostream &out, const node_t &) -> std::ostream &;

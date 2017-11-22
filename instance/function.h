@@ -3,6 +3,7 @@
 
 #include "meta/algorithm.h"
 #include "meta/flags.h"
+#include "meta/vector_range.h"
 #include "strings/join.h"
 #include "strings/utf8_view.h"
 
@@ -15,6 +16,7 @@ enum class function_flag {
     run_time = 1 << 1,
 };
 using function_flags = meta::flags<function_flag>;
+using argument_range = meta::vector_range<const argument_t>;
 
 struct function_t {
     name_t name;
@@ -24,7 +26,14 @@ struct function_t {
     // block body;
 
     auto lookup_argument(const view_t &name) const -> decltype(auto) {
-        return meta::find_if(arguments, [&](const auto &a) { return name.content_equals(a.name); });
+        return meta::find_if_opt(arguments, [&](const auto &a) { return name.content_equals(a.name); });
+    }
+    auto left_arguments() const -> argument_range {
+        auto e = meta::find_if(arguments, [](const auto &a) { return a.side != argument_side::left; });
+        return {arguments.begin(), e};
+    }
+    void order_arguments() {
+        meta::stable_sort(arguments, [](const auto &a, const auto &b) { return a.side < b.side; });
     }
 };
 using function_ptr = const function_t *;

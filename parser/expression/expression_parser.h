@@ -8,6 +8,8 @@
 namespace parser::expression {
 
 using scope_t = instance::scope_t;
+using function_t = instance::function_t;
+using function_ptr = instance::function_ptr;
 using block_literal_t = parser::block::block_literal;
 
 struct parser {
@@ -164,25 +166,113 @@ private:
         // TODO: add overloads
     }
 
+    static bool can_implicit_convert_to_type(node_ptr node, instance::type_ptr type) {
+        // TODO:
+        // I guess we need a scope here
+        return true;
+    }
+
+    struct overload_set {
+        struct overload {
+            using this_t = overload;
+            bool active = true;
+            bool complete = false;
+            function_ptr function;
+            named_tuple_t right_args;
+
+            overload() = default;
+            overload(const function_t &function)
+                : function(&function) {}
+
+            overload(const this_t &) = default;
+            overload(this_t &&) = default;
+            auto operator=(const this_t &) & -> this_t & = default;
+            auto operator=(this_t &&) & -> this_t & = default;
+
+            void retire_left(const named_tuple_view_t &left) {
+                auto o = 0u, t = 0u;
+                auto la = function->left_arguments();
+                for (const named_view_t &named : left.tuple) {
+                    if (named.name.is_empty()) {
+                        auto opt_arg = function->lookup_argument(named.name);
+                        if (opt_arg) {
+                            const instance::argument_t &arg = opt_arg.value();
+                            if (arg.side == instance::argument_side::left //
+                                && can_implicit_convert_to_type(named.node, arg.type)) {
+                                t++;
+                                continue;
+                            }
+                            // side does not match
+                            // type does not match
+                        }
+                        // name not found
+                    }
+                    else if (o < la.size()) {
+                        const auto &arg = la[o];
+                        if (arg.side == instance::argument_side::left //
+                            && can_implicit_convert_to_type(named.node, arg.type)) {
+                            o++;
+                            continue;
+                        }
+                        // side does not match
+                        // type does not match
+                    }
+                    // index out of range
+                    active = false;
+                    return;
+                }
+                if (o + t == la.size()) return;
+                // not right count
+                active = false;
+            }
+        };
+        using overload_vec = std::vector<overload>;
+
+        overload_set(const function_t &fun) { vec.emplace_back(fun); }
+        // TODO: multiple overloads
+
+        void retire_left(const node_opt &left) {
+            auto left_view = left ? left.value().holds<named_tuple_t>()
+                                        ? named_tuple_view_t{left.value().get<named_tuple_t>()}
+                                        : named_tuple_view_t{left.value()}
+                                  : named_tuple_view_t{};
+            for (auto &o : vec) o.retire_left(left_view);
+            update();
+        }
+
+        auto active() const -> meta::vector_range<const overload> { return {vec.begin(), vec.begin() + active_count}; }
+
+    private:
+        void update() {
+            auto it = std::stable_partition(
+                vec.begin(), vec.begin() + active_count, [](const overload &o) { return o.active; });
+            active_count = std::distance(vec.begin(), it);
+        }
+
+    private:
+        overload_vec vec;
+        size_t active_count{};
+    };
+
     static auto parse_invocation( //
         node_opt &left,
-        const instance::function_t &fun,
+        const function_t &fun,
         line_view_t &it,
         scope_t &scope) -> parse_options { //
 
-        //        auto os = overload_set{fun};
-        //        os.retire_left(left);
-        //        if (!os.active.empty()) {
-        //            auto backup = it;
-        //            parse_arguments(os, it, scope);
-        //            if (os.completed.size() == 1) {
-        //                auto invocation = os.completed.front();
-        //                // TODO: add compile time execution
-        //                left = node_opt{invocation};
-        //                return parse_options::continue_single;
-        //            }
-        //            it = backup;
-        //        }
+        auto os = overload_set{fun};
+        os.retire_left(left);
+        if (!os.active().empty()) {
+            //            auto backup = it;
+            //            parse_arguments(os, it, scope);
+            //            if (os.completed.size() == 1) {
+            //                auto invocation = os.completed.front();
+            //                // TODO: add compile time execution
+            //                left = node_opt{invocation};
+            //                return parse_options::continue_single;
+            //            }
+            //            it = backup;
+        }
         //        if (left) return parse_options::finish_single;
         // left = node_opt{function_reference_t{fun}};
         return parse_options::continue_single;

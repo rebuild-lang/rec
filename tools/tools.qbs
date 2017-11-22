@@ -25,6 +25,7 @@ Project {
             "meta/type_list.h",
             "meta/value_list.h",
             "meta/variant.h",
+            "meta/vector_range.h",
             "strings/code_point.cpp",
             "strings/code_point.h",
             "strings/join.h",
