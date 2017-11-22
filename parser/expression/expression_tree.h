@@ -122,20 +122,21 @@ struct named_t {
 
 auto operator<<(std::ostream &out, const node_t &) -> std::ostream &;
 inline auto operator<<(std::ostream &out, const node_vec &ns) -> std::ostream & {
-    size_t i = 0, l = ns.size();
-    if (l > 1) out << "(";
-    for (const auto &n : ns) {
-        out << n << (++i != l ? ", " : "");
-    }
-    if (l > 1) out << ")";
+    auto size = ns.size();
+    if (size > 1) out << "(";
+    strings::join(out, ns, ", ");
+    if (size > 1) out << ")";
     return out;
 }
 inline auto operator<<(std::ostream &out, const block_t &b) -> std::ostream & {
-    out << "{\n";
-    for (const auto &n : b.nodes) {
-        out << "  " << n << "\n";
+    if (b.nodes.empty()) {
+        out << "{}\n";
     }
-    out << "}\n";
+    else {
+        out << "{\n  ";
+        strings::join(out, b.nodes, "\n  ");
+        out << "\n}\n";
+    }
     return out;
 }
 inline auto operator<<(std::ostream &out, const argument_assignment &as) -> std::ostream & {
@@ -143,10 +144,7 @@ inline auto operator<<(std::ostream &out, const argument_assignment &as) -> std:
 }
 inline auto operator<<(std::ostream &out, const invocation_t &inv) -> std::ostream & {
     out << (inv.function ? inv.function->name : name_t("<?>")) << "(";
-    size_t i = 0, l = inv.arguments.size();
-    for (const auto &as : inv.arguments) {
-        out << as << (++i != l ? ", " : "");
-    }
+    strings::join(out, inv.arguments, ", ");
     return out << ")";
 }
 inline auto operator<<(std::ostream &out, const variable_reference_t &vr) -> std::ostream & {
@@ -162,12 +160,10 @@ inline auto operator<<(std::ostream &out, const named_t &n) -> std::ostream & {
     return out;
 }
 inline auto operator<<(std::ostream &out, const named_tuple_t &nt) -> std::ostream & {
-    size_t i = 0, l = nt.tuple.size();
-    if (l > 1) out << "(";
-    for (const auto &n : nt.tuple) {
-        out << n << (++i != l ? ", " : "");
-    }
-    if (l > 1) out << ")";
+    size_t size = nt.tuple.size();
+    if (size > 1) out << "(";
+    strings::join(out, nt.tuple, ", ");
+    if (size > 1) out << ")";
     return out;
 }
 inline auto operator<<(std::ostream &out, const literal_t &lit) -> std::ostream & {

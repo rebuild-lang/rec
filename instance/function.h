@@ -2,6 +2,8 @@
 #include "argument.h"
 
 #include "meta/algorithm.h"
+#include "meta/flags.h"
+#include "strings/join.h"
 #include "strings/utf8_view.h"
 
 namespace instance {
@@ -12,6 +14,8 @@ enum class function_flag {
     compile_time = 1 << 0,
     run_time = 1 << 1,
 };
+using function_flags = meta::flags<function_flag>;
+
 struct function_t {
     name_t name;
     function_flag flags;
@@ -27,9 +31,19 @@ using function_ptr = const function_t *;
 
 inline auto name_of(const function_t &fun) -> const name_t & { return fun.name; }
 
+inline auto operator<<(std::ostream &out, const function_flags &f) -> std::ostream & {
+    out << "flags=[";
+    auto labels = std::vector<const char *>{};
+    if (f.has_any(function_flag::compile_time)) labels.push_back("compile_time");
+    if (f.has_any(function_flag::run_time)) labels.push_back("run_time");
+    strings::join(out, labels, ", ");
+    return out << ']';
+}
+
 inline auto operator<<(std::ostream &out, const function_t &f) -> std::ostream & {
-    // TODO: print flags
-    return out << "fn " << f.name << '(' << f.arguments << ')';
+    return out << "fn " << f.name << '(' << f.arguments << ") " << f.flags;
 }
 
 } // namespace instance
+
+META_FLAGS_OP(instance::function_flag)

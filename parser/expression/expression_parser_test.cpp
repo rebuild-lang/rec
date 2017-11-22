@@ -58,7 +58,7 @@ static auto operator<<(std::ostream &out, const expression_parser_data &epd) -> 
     out << "input:\n";
     out << epd.input << '\n';
     out << "expected:\n";
-    // TODO
+    out << epd.expected << '\n';
     return out;
 }
 

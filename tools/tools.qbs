@@ -19,6 +19,7 @@ Project {
         files: [
             "meta/algorithm.h",
             "meta/co_enumerator.h",
+            "meta/flags.h",
             "meta/optional.h",
             "meta/overloaded.h",
             "meta/type_list.h",
@@ -26,6 +27,7 @@ Project {
             "meta/variant.h",
             "strings/code_point.cpp",
             "strings/code_point.h",
+            "strings/join.h",
             "strings/rope.h",
             "strings/utf8_string.h",
             "strings/utf8_view.h",

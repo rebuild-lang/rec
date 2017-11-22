@@ -42,7 +42,7 @@ struct arg_builder {
         return *this;
     }
     auto optional() -> arg_builder {
-        // arg.flags |= argument_flag::optional;
+        arg.flags |= argument_flag::optional;
         return *this;
     }
 
