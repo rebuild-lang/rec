@@ -13,7 +13,6 @@ using function_ptr = instance::function_ptr;
 using block_literal_t = parser::block::block_literal;
 
 struct parser {
-    // TODO
     static auto parse(const block_literal_t &token_block, const scope_t &parent_scope) -> block_t { //
         auto scope = scope_t{&parent_scope};
         return parse_into(token_block, scope);
@@ -27,7 +26,13 @@ struct parser {
             if (it) {
                 auto expr = parse_tuple(it, scope);
                 if (!expr.tuple.empty()) {
-                    block.nodes.emplace_back(std::move(expr));
+                    if (expr.tuple.size() == 1 && expr.tuple.front().name.is_empty()) {
+                        // no reason to keep the tuple around, unwrap it
+                        block.nodes.emplace_back(std::move(expr).tuple.front().node);
+                    }
+                    else {
+                        block.nodes.emplace_back(std::move(expr));
+                    }
                 }
                 if (it) {
                     // TODO: report remaining tokens on line
@@ -61,21 +66,12 @@ private:
 
     static void parse_tuple_into(named_tuple_t &tuple, line_view_t &it, scope_t &scope) {
         while (it) {
-            auto name = name_t{}; // parse_tuple_name(it);
-            auto expr = parse_single(it, scope);
-            if (expr) {
-                tuple.tuple.emplace_back(std::move(name), std::move(expr).value());
+            auto opt = parse_single_named(it, scope);
+            if (opt) {
+                tuple.tuple.push_back(std::move(opt).value());
             }
-            else if (!name.is_empty()) {
-                // TODO: named void?
-            }
-
-            if (!it) return;
-            if (it.current().one_of<block::comma_separator>()) {
-                ++it; // skip optional comma
-                if (!it) return;
-            }
-            if (it.current().one_of<block::bracket_close>()) return;
+            auto r = parse_optional_comma(it);
+            if (r == parse_options::finish_single) break;
         }
     }
 
@@ -83,6 +79,28 @@ private:
         continue_single,
         finish_single,
     };
+
+    static parse_options parse_optional_comma(line_view_t &it) {
+        if (!it) return parse_options::finish_single;
+        if (it.current().one_of<block::comma_separator>()) {
+            ++it; // skip optional comma
+            if (!it) return parse_options::finish_single;
+        }
+        if (it.current().one_of<block::bracket_close>()) return parse_options::finish_single;
+        return parse_options::continue_single;
+    }
+
+    static auto parse_single_named(line_view_t &it, scope_t &scope) -> named_opt {
+        auto name = name_t{}; // parse_tuple_name(it);
+        auto expr = parse_single(it, scope);
+        if (expr) {
+            return named_t{std::move(name), std::move(expr).value()};
+        }
+        else if (!name.is_empty()) {
+            // TODO: named void?
+        }
+        return {};
+    }
 
     static auto parse_single(line_view_t &it, scope_t &scope) -> node_opt {
         auto result = node_opt{};
@@ -178,7 +196,9 @@ private:
             bool active = true;
             bool complete = false;
             function_ptr function;
-            named_tuple_t right_args;
+            line_view_t it;
+            argument_assignment_vec right_args;
+            size_t next_arg{};
 
             overload() = default;
             overload(const function_t &function)
@@ -193,7 +213,7 @@ private:
                 auto o = 0u, t = 0u;
                 auto la = function->left_arguments();
                 for (const named_view_t &named : left.tuple) {
-                    if (named.name.is_empty()) {
+                    if (!named.name.is_empty()) {
                         auto opt_arg = function->lookup_argument(named.name);
                         if (opt_arg) {
                             const instance::argument_t &arg = opt_arg.value();
@@ -225,11 +245,16 @@ private:
                 // not right count
                 active = false;
             }
+
+            auto arg() const -> const instance::argument_t & { return function->right_arguments()[next_arg]; }
         };
         using overload_vec = std::vector<overload>;
 
-        overload_set(const function_t &fun) { vec.emplace_back(fun); }
-        // TODO: multiple overloads
+        overload_set(const function_t &fun) {
+            vec.emplace_back(fun);
+            active_count = 1;
+        }
+        // TODO: allow multiple overloads
 
         void retire_left(const node_opt &left) {
             auto left_view = left ? left.value().holds<named_tuple_t>()
@@ -240,13 +265,23 @@ private:
             update();
         }
 
-        auto active() const -> meta::vector_range<const overload> { return {vec.begin(), vec.begin() + active_count}; }
+        void setup_it(line_view_t &it) {
+            for (auto &o : vec) o.it = it;
+        }
 
-    private:
+        auto active() const & -> meta::vector_range<const overload> {
+            return {vec.begin(), vec.begin() + active_count};
+        }
+        auto active() & -> meta::vector_range<overload> { return {vec.begin(), vec.begin() + active_count}; }
+
         void update() {
             auto it = std::stable_partition(
                 vec.begin(), vec.begin() + active_count, [](const overload &o) { return o.active; });
             active_count = std::distance(vec.begin(), it);
+        }
+        auto finish() & -> meta::vector_range<overload> {
+            auto it = std::stable_partition(vec.begin(), vec.end(), [](const overload &o) { return o.complete; });
+            return {vec.begin(), it};
         }
 
     private:
@@ -262,20 +297,102 @@ private:
 
         auto os = overload_set{fun};
         os.retire_left(left);
-        if (!os.active().empty()) {
-            //            auto backup = it;
-            //            parse_arguments(os, it, scope);
-            //            if (os.completed.size() == 1) {
-            //                auto invocation = os.completed.front();
-            //                // TODO: add compile time execution
-            //                left = node_opt{invocation};
-            //                return parse_options::continue_single;
-            //            }
-            //            it = backup;
+        if (!os.active().empty() && it) {
+            parse_arguments(os, it, scope);
+            auto completed = os.finish();
+            if (completed.size() == 1) {
+                auto &o = completed.front();
+                it = o.it;
+                // TODO: add compile time execution
+                auto inv = invocation_t{};
+                inv.function = o.function;
+                // TODO: assign left arguments
+                inv.arguments = o.right_args;
+                left = node_opt{{inv}};
+                return parse_options::continue_single;
+            }
         }
-        //        if (left) return parse_options::finish_single;
+        if (left) return parse_options::finish_single;
         // left = node_opt{function_reference_t{fun}};
         return parse_options::continue_single;
+    }
+
+    static void parse_arguments(overload_set &os, line_view_t &it, scope_t &scope) {
+        auto with_brackets = it.current().one_of<block::bracket_open>();
+        if (with_brackets) ++it;
+        parse_arguments_without(os, it, scope);
+        if (with_brackets) {
+            if (!it) {
+                // error: missing closing bracket
+            }
+            else if (!it.current().one_of<block::bracket_close>()) {
+                // error: missing closing bracket
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+
+    static void parse_arguments_without(overload_set &os, line_view_t &it, scope_t &scope) {
+        os.setup_it(it);
+        while (!os.active().empty()) {
+            line_view_t base_it = it;
+            // TODO: optimize for no custom parser case!
+            for (auto &o : os.active()) {
+                const auto &a = o.arg();
+                // auto p = nullptr; // parser_for_type(a.type);
+                auto opt_named = parse_single_named(o.it, scope); // : p.parse(o.it, scope);
+                if (opt_named) {
+                    named_t &named = opt_named.value();
+                    if (!named.name.is_empty()) {
+                        auto opt_arg = o.function->lookup_argument(named.name);
+                        if (opt_arg) {
+                            const instance::argument_t &arg = opt_arg.value();
+                            if (can_implicit_convert_to_type(&named.node, a.type)) {
+                                auto as = argument_assignment{};
+                                as.argument = &arg;
+                                as.values = {std::move(opt_named).value().node};
+                                o.right_args.push_back(std::move(as));
+                            }
+                            else {
+                                // type does not match
+                            }
+                        }
+                        else {
+                            // name not found
+                        }
+                    }
+                    else {
+                        if (can_implicit_convert_to_type(&named.node, a.type)) {
+                            auto as = argument_assignment{};
+                            as.argument = &a;
+                            as.values = {std::move(opt_named).value().node};
+                            o.right_args.push_back(std::move(as));
+                            o.next_arg++;
+                        }
+                        else {
+                            // type does not match
+                        }
+                    }
+                }
+                else {
+                    // no value
+                }
+
+                if (o.next_arg == o.function->right_arguments().size()) {
+                    o.complete = true;
+                    o.active = false;
+                }
+                else {
+                    auto r = parse_optional_comma(o.it);
+                    if (r == parse_options::finish_single) {
+                        o.active = false;
+                    }
+                }
+            }
+            os.update();
+        }
     }
 };
 

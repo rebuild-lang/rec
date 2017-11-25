@@ -13,12 +13,13 @@ struct line_view_t {
     line_view_t(const block_line *line)
         : line(line) {}
 
+    line_view_t() = default;
     line_view_t(const this_t &) = default;
     line_view_t(this_t &&) = default;
     this_t &operator=(const this_t &) = default;
     this_t &operator=(this_t &&) = default;
 
-    operator bool() const { return index < line->size(); }
+    operator bool() const { return line && index < line->size(); }
     bool has_next() const { return index + 1 < line->size(); }
 
     auto current() const -> decltype(auto) { return (*line)[index]; }
@@ -33,7 +34,7 @@ struct line_view_t {
     }
 
 private:
-    const block_line *line;
+    const block_line *line{};
     size_t index{};
 };
 

@@ -70,9 +70,9 @@ TEST_P(expression_parser, calls) {
     const auto &scope = data.scope;
     const auto &expected = data.expected;
 
-    auto blk = expression::parser::parse(input, *scope);
+    auto parsed = expression::parser::parse(input, *scope);
 
-    ASSERT_EQ(blk, expected);
+    ASSERT_EQ(parsed, expected);
 }
 
 INSTANTIATE_TEST_CASE_P(

@@ -120,6 +120,7 @@ struct named_t {
     bool operator==(const this_t &o) const { return name == o.name && node == o.node; }
     bool operator!=(const this_t &o) const { return !(*this == o); }
 };
+using named_opt = meta::optional<named_t>;
 
 struct named_view_t {
     using this_t = named_view_t;

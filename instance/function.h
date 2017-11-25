@@ -29,8 +29,14 @@ struct function_t {
         return meta::find_if_opt(arguments, [&](const auto &a) { return name.content_equals(a.name); });
     }
     auto left_arguments() const -> argument_range {
+        auto b = arguments.begin();
         auto e = meta::find_if(arguments, [](const auto &a) { return a.side != argument_side::left; });
-        return {arguments.begin(), e};
+        return {b, e};
+    }
+    auto right_arguments() const -> argument_range {
+        auto b = meta::find_if(arguments, [](const auto &a) { return a.side == argument_side::right; });
+        auto e = std::find_if(b, arguments.end(), [](const auto &a) { return a.side != argument_side::right; });
+        return {b, e};
     }
     void order_arguments() {
         meta::stable_sort(arguments, [](const auto &a, const auto &b) { return a.side < b.side; });
