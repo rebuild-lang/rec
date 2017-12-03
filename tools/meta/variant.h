@@ -29,6 +29,12 @@ public:
     variant(S &&s, A &&... a)
         : m(std::forward<S>(s), std::forward<A>(a)...) {}
 
+    // note: templated constructors are not forwarded with using
+#define META_VARIANT_CONSTRUCT(derived_t, variant_t)                                                                   \
+    template<class S, class... A, typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, derived_t>>>            \
+    derived_t(S &&s, A &&... a)                                                                                        \
+        : variant_t(std::forward<S>(s), std::forward<A>(a)...) {}
+
     bool operator==(const this_t &o) const { return m == o.m; }
     bool operator!=(const this_t &o) const { return m != o.m; }
 

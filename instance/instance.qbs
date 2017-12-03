@@ -3,7 +3,7 @@ import qbs
 Project {
     minimumQbsVersion: "1.7.1"
 
-    Product {
+    StaticLibrary {
         name: "instance"
         Depends { name: "cpp" }
         Depends { name: "scanner" }
@@ -15,6 +15,12 @@ Project {
             "function.cpp",
             "function.h",
             "function_builder.h",
+            "local_scope.cpp",
+            "local_scope.h",
+            "module.cpp",
+            "module.h",
+            "node.cpp",
+            "node.h",
             "scope.cpp",
             "scope.h",
             "scope_builder.h",
@@ -24,6 +30,7 @@ Project {
             "variable.cpp",
             "variable.h",
         ]
+        cpp.combineCxxSources: true
 
         Export {
             Depends { name: "cpp" }

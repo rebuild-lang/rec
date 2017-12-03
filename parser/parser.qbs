@@ -3,10 +3,11 @@ import qbs
 Project {
     minimumQbsVersion: "1.7.1"
 
-    Product {
+    StaticLibrary {
         name: "parser"
         Depends { name: "cpp" }
         Depends { name: "scanner" }
+        Depends { name: "instance" }
 
         files: [
             "block/block_parser.cpp",
@@ -23,6 +24,7 @@ Project {
             "filter/filter_token.h",
             "filter/filter_token_builder.h",
         ]
+        cpp.combineCxxSources: true
 
         Export {
             Depends { name: "cpp" }

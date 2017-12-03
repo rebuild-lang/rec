@@ -1,9 +1,10 @@
 #pragma once
+#include "module.h"
 #include "scope.h"
 
 namespace instance {
 
-inline auto lookup(const scope_t &scope, const view_t &name) -> const variant_t & {
+inline auto lookup(const scope_t &scope, const view_t &name) -> const node_t & {
     auto it = name.begin();
     auto end = name.end();
     auto it2 = std::find(it, end, '.');
@@ -14,9 +15,9 @@ inline auto lookup(const scope_t &scope, const view_t &name) -> const variant_t 
         it2 = std::find(it, end, '.');
         auto cp = c;
         cp->visit(
-            //            [&](const module_t &m) -> decltype(auto) {
-            //                c = m.scope[view_t{it, it2}];
-            //            },
+            [&](const module_t &m) -> decltype(auto) {
+                c = m.locals[view_t{it, it2}];
+            },
             [](const auto &) { throw "not a module!"; } //
         );
         if (!c) throw "nested name not found";

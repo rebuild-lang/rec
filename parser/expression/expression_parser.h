@@ -154,7 +154,7 @@ private:
 
     static auto parse_instance( //
         node_opt &result,
-        const instance::variant_t &instance,
+        const instance::node_t &instance,
         line_view_t &it,
         scope_t &scope) -> parse_options {
         return instance.visit(
@@ -177,6 +177,12 @@ private:
             [&](const instance::type_t &typ) {
                 if (result) return parse_options::finish_single;
                 // result = node_opt{type_reference_t{&typ}};
+                ++it;
+                return parse_options::continue_single;
+            },
+            [&](const instance::module_t &mod) {
+                if (result) return parse_options::finish_single;
+                // result = node_opt{module_reference_t{&typ}};
                 ++it;
                 return parse_options::continue_single;
             });

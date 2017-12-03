@@ -91,14 +91,7 @@ class node_t : public node_variant {
     using this_t = node_t;
 
 public:
-    // note: templated constructors are not forwarded with using
-    template<
-        class S,
-        class... A,
-        typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, this_t>> // ensure this does not capture a copy
-        >
-    node_t(S &&s, A &&... a)
-        : node_variant(std::forward<S>(s), std::forward<A>(a)...) {}
+    META_VARIANT_CONSTRUCT(node_t, node_variant)
 };
 using node_opt = meta::optional<node_t>;
 using node_ptr = const node_t *;

@@ -26,6 +26,7 @@ Project {
             Depends { name: "tools" }
             cpp.includePaths: [".."]
         }
+        cpp.combineCxxSources: true
     }
 
     Application {
