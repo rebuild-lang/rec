@@ -9,16 +9,24 @@ Project {
         Depends { name: "tools" }
 
         files: [
-            "file_input.cpp",
-            "file_input.h",
-            "number_literal.h",
-            "number_scanner.cpp",
-            "number_scanner.h",
-            "text_range.h",
-            "token.h",
-            "token_builder.h",
-            "tokenizer.cpp",
-            "tokenizer.h",
+            "FileInput.cpp",
+            "FileInput.h",
+            "NumberLiteral.h",
+            "NumberLiteralOutput.cpp",
+            "NumberLiteralOutput.h",
+            "NumberScanner.cpp",
+            "NumberScanner.h",
+            "TextRange.cpp",
+            "TextRange.h",
+            "TextRangeOutput.cpp",
+            "TextRangeOutput.h",
+            "Token.cpp",
+            "Token.h",
+            "TokenBuilder.h",
+            "TokenOutput.cpp",
+            "TokenOutput.h",
+            "Tokenizer.cpp",
+            "Tokenizer.h",
         ]
 
         Export {
@@ -39,8 +47,8 @@ Project {
         googletest.useMain: true
 
         files: [
-            "number_scanner_test.cpp",
-            "tokenizer_test.cpp",
+            "NumberScannerTest.cpp",
+            "TokenizerTest.cpp",
         ]
     }
 }

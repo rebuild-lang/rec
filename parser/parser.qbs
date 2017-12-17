@@ -10,19 +10,22 @@ Project {
         Depends { name: "instance" }
 
         files: [
-            "block/block_parser.cpp",
-            "block/block_parser.h",
-            "block/block_token.h",
-            "block/block_token_builder.h",
-            "expression/expression_line_view.h",
-            "expression/expression_parser.cpp",
-            "expression/expression_parser.h",
-            "expression/expression_tree.h",
-            "expression/expression_tree_builder.h",
-            "filter/filter_parser.cpp",
-            "filter/filter_parser.h",
-            "filter/filter_token.h",
-            "filter/filter_token_builder.h",
+            "block/blockParser.cpp",
+            "block/blockParser.h",
+            "block/blockToken.h",
+            "block/blockTokenBuilder.h",
+            "block/blockTokenOutput.h",
+            "expression/expressionLineView.h",
+            "expression/expressionParser.cpp",
+            "expression/expressionParser.h",
+            "expression/expressionTree.h",
+            "expression/expressionTreeBuilder.h",
+            "expression/expressionTreeOutput.h",
+            "filter/filterParser.cpp",
+            "filter/filterParser.h",
+            "filter/filterToken.h",
+            "filter/filterTokenBuilder.h",
+            "filter/filterTokenOutput.h",
         ]
         cpp.combineCxxSources: true
 
@@ -43,9 +46,9 @@ Project {
         googletest.useMain: true
 
         files: [
-            "block/block_parser_test.cpp",
-            "expression/expression_parser_test.cpp",
-            "filter/filter_parser_test.cpp",
+            "block/blockParserTest.cpp",
+            "expression/expressionParserTest.cpp",
+            "filter/filterParserTest.cpp",
         ]
     }
 }

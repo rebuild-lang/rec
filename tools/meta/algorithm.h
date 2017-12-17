@@ -1,5 +1,5 @@
 #pragma once
-#include "optional.h"
+#include "Optional.h"
 
 #include <algorithm>
 #include <numeric>
@@ -22,35 +22,35 @@ auto find(const C &c, const T &v) {
 }
 
 template<class C, class T>
-auto find_not(const C &c, const T &v) {
+auto findNot(const C &c, const T &v) {
     using std::begin;
     using std::end;
     return std::find_if(begin(c), end(c), [&](const auto &n) { return n != v; });
 }
 
 template<class C, class F>
-auto find_if(const C &c, F &&f) -> decltype(c.begin()) {
+auto findIf(const C &c, F &&f) -> decltype(c.begin()) {
     using std::begin;
     using std::end;
     return std::find_if(begin(c), end(c), std::forward<F>(f));
 }
 
 template<class C, class F>
-auto find_if_opt(const C &c, F &&f) -> optional<decltype(c.front())> {
-    auto it = find_if(c, std::forward<F>(f));
+auto findIfOpt(const C &c, F &&f) -> Optional<decltype(c.front())> {
+    auto it = findIf(c, std::forward<F>(f));
     if (it != end(c)) return *it;
     return {};
 }
 
 template<class C, class F>
-auto stable_sort(C &c, F &&f) {
+auto stableSort(C &c, F &&f) {
     using std::begin;
     using std::end;
     std::stable_sort(begin(c), end(c), std::forward<F>(f));
 }
 
 template<class C, class F>
-auto stable_partition(C &c, F &&f) -> decltype(c.begin()) {
+auto stablePartition(C &c, F &&f) -> decltype(c.begin()) {
     using std::begin;
     using std::end;
     return std::stable_partition(begin(c), end(c), std::forward<F>(f));
