@@ -16,17 +16,11 @@ struct file_t {
 };
 
 struct line_t {
-    uint32_t v;
+    uint32_t v{1}; // 1 is first line
 
-    constexpr line_t()
-        : v(1) {} // start with line 1
+    constexpr line_t() = default;
     constexpr explicit line_t(uint32_t x)
         : v(x) {}
-
-    constexpr line_t(const line_t &) = default;
-    constexpr line_t &operator=(const line_t &) = default;
-    constexpr line_t(line_t &&) = default;
-    constexpr line_t &operator=(line_t &&) = default;
 
     constexpr line_t &operator++() noexcept {
         v++;
@@ -38,17 +32,11 @@ struct line_t {
 };
 
 struct column_t {
-    uint32_t v;
+    uint32_t v{1}; // 1 is first column
 
-    constexpr column_t()
-        : v(1) {} // start with column 1
+    constexpr column_t() = default;
     constexpr explicit column_t(uint32_t x)
         : v(x) {}
-
-    constexpr column_t(const column_t &) = default;
-    constexpr column_t &operator=(const column_t &) = default;
-    constexpr column_t(column_t &&) = default;
-    constexpr column_t &operator=(column_t &&) = default;
 
     constexpr column_t &operator++() noexcept {
         v++;

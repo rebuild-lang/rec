@@ -62,18 +62,13 @@ class val_builder : public value_variant {
     using this_t = val_builder;
 
 public:
-    // note: templated constructors are not forwarded with using
-    template<
-        class S,
-        class... A,
-        typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, this_t>> // ensure this does not capture a copy
-        >
-    val_builder(S &&s, A &&... a)
-        : value_variant(std::forward<S>(s), std::forward<A>(a)...) {}
+    META_VARIANT_CONSTRUCT(val_builder, value_variant)
 
     auto build(const scope_t &scope) && -> node_t {
         return std::move(*this).visit(
-            [](literal_variant &&lit) -> node_t { return literal_t{std::move(lit)}; },
+            [](literal_variant &&lit) -> node_t {
+                return literal_t{std::move(lit), {}};
+            },
             [&](invoke_builder &&inv) -> node_t { return std::move(inv).build(scope); } //
         );
     }

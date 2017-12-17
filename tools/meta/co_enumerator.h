@@ -46,8 +46,8 @@ struct co_enumerator {
 #    define co_yield return
 #    define co_return                                                                                                  \
         return {}
-    co_enumerator() {}
-    co_enumerator(const T &) {}
+    co_enumerator() = default;
+    co_enumerator(const T &) = default;
 #endif
 
 private:

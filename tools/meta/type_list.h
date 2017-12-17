@@ -6,9 +6,7 @@
 namespace meta {
 
 template<class T>
-struct type_t {
-    using type = T;
-};
+struct type_t {};
 
 template<class A, class B>
 constexpr bool operator==(type_t<A>, type_t<B>) {

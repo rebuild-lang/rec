@@ -125,7 +125,7 @@ private:
                 const auto &instance = scope[it.current().range.text];
                 if (!instance) {
                     if (result) return parse_options::finish_single;
-                    result = node_opt{literal_t{id}};
+                    result = node_opt{literal_t{id, it.current().range}};
                     ++it;
                     return parse_options::continue_single;
                 }
@@ -133,19 +133,19 @@ private:
             },
             [&](const block::string_literal &s) {
                 if (result) return parse_options::finish_single;
-                result = node_opt{literal_t{s}};
+                result = node_opt{literal_t{s, it.current().range}};
                 ++it;
                 return parse_options::continue_single;
             },
             [&](const block::number_literal_t &n) {
                 if (result) return parse_options::finish_single;
-                result = node_opt{literal_t{n}};
+                result = node_opt{literal_t{n, it.current().range}};
                 ++it;
                 return parse_options::continue_single;
             },
             [&](const block::block_literal &b) {
                 if (result) return parse_options::finish_single;
-                result = node_opt{literal_t{b}};
+                result = node_opt{literal_t{b, it.current().range}};
                 ++it;
                 return parse_options::continue_single;
             },
@@ -166,7 +166,8 @@ private:
             },
             [&](const instance::argument_t &arg) {
                 if (result) return parse_options::finish_single;
-                // result = node_opt{argument_reference_t{&var}};
+                (void)arg;
+                // result = node_opt{argument_reference_t{&arg}};
                 ++it;
                 return parse_options::continue_single;
             },
@@ -174,15 +175,17 @@ private:
                 ++it;
                 return parse_invocation(result, fun, it, scope);
             },
-            [&](const instance::type_t &typ) {
+            [&](const instance::type_t &type) {
                 if (result) return parse_options::finish_single;
-                // result = node_opt{type_reference_t{&typ}};
+                (void)type;
+                // result = node_opt{type_reference_t{&type}};
                 ++it;
                 return parse_options::continue_single;
             },
             [&](const instance::module_t &mod) {
                 if (result) return parse_options::finish_single;
-                // result = node_opt{module_reference_t{&typ}};
+                (void)mod;
+                // result = node_opt{module_reference_t{&mod}};
                 ++it;
                 return parse_options::continue_single;
             });
@@ -193,6 +196,8 @@ private:
     static bool can_implicit_convert_to_type(node_ptr node, instance::type_ptr type) {
         // TODO:
         // I guess we need a scope here
+        (void)node;
+        (void)type;
         return true;
     }
 
@@ -343,7 +348,7 @@ private:
     static void parse_arguments_without(overload_set &os, line_view_t &it, scope_t &scope) {
         os.setup_it(it);
         while (!os.active().empty()) {
-            line_view_t base_it = it;
+            // line_view_t base_it = it;
             // TODO: optimize for no custom parser case!
             for (auto &o : os.active()) {
                 const auto &a = o.arg();

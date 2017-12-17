@@ -14,23 +14,16 @@ struct flags {
     constexpr flags() noexcept = default;
     constexpr flags(const flags &) noexcept = default;
     constexpr flags(flags &&) noexcept = default;
+    ~flags() = default;
 
     constexpr auto operator=(const flags &) noexcept -> flags & = default;
     constexpr auto operator=(flags &&) noexcept -> flags & = default;
-
-    constexpr flags(T e) noexcept
-        : v(static_cast<value_type>(e)) {}
-
-    constexpr auto operator=(T e) noexcept -> flags {
-        v = static_cast<value_type>(e);
-        return *this;
-    }
 
     constexpr void swap(flags &fl) noexcept { std::swap(v, fl.v); }
 
     template<class... Args>
     constexpr flags(T v, Args... args) noexcept
-        : v(build(v, args...)) {}
+        : flags(build(v, args...)) {}
 
     constexpr bool operator==(flags f) const noexcept { return v == f.v; }
     constexpr bool operator!=(flags f) const noexcept { return v != f.v; }
@@ -81,7 +74,5 @@ private:
 
 } // namespace meta
 
-#define META_FLAGS_OP(T)                                                                           \
-    constexpr auto operator|(T e1, T e2) noexcept->meta::flags<T> {                                \
-        return meta::flags<T>(e1) | e2;                                                            \
-    }
+#define META_FLAGS_OP(T)                                                                                               \
+    constexpr auto operator|(T e1, T e2) noexcept->meta::flags<T> { return meta::flags<T>(e1) | e2; }
