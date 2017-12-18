@@ -34,10 +34,6 @@ public:
         , e(e) {}
 
     VectorRange() = default;
-    VectorRange(const This &) = default;
-    VectorRange(This &&) = default;
-    auto operator=(const This &) & -> This & = default;
-    auto operator=(This &&) & -> This & = default;
 
     auto front() & -> reference { return *b; }
     auto front() const & -> const_reference { return *b; }

@@ -84,8 +84,8 @@ using TokenVariant = meta::Variant<
     UnexpectedCharacter>;
 
 struct Token {
-    TextRange range;
-    TokenVariant data;
+    TextRange range{};
+    TokenVariant data{};
 
     template<class... Ts>
     bool oneOf() const {

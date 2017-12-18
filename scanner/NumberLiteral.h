@@ -34,11 +34,11 @@ constexpr auto to_string(Radix radix) -> View {
 }
 
 struct NumberLiteral {
-    Radix radix = Radix::invalid;
-    Rope integerPart;
-    Rope fractionalPart;
-    Sign exponentSign = Sign::positive;
-    Rope exponentPart;
+    Radix radix{Radix::invalid};
+    Rope integerPart{};
+    Rope fractionalPart{};
+    Sign exponentSign{Sign::positive};
+    Rope exponentPart{};
 
     explicit operator bool() const { return radix != Radix::invalid; }
 

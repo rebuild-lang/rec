@@ -9,15 +9,11 @@ namespace details {
 
 struct IdentBuilder {
     using This = IdentBuilder;
-    Token tok;
+    Token tok{};
 
+    IdentBuilder() = delete;
     IdentBuilder(IdentifierLiteral) { tok.data = IdentifierLiteral{}; }
     IdentBuilder(OperatorLiteral) { tok.data = OperatorLiteral{}; }
-    IdentBuilder(const This &) = default;
-    This &operator=(const This &) = default;
-    IdentBuilder(This &&) = default;
-    This &operator=(This &&) = default;
-    ~IdentBuilder() = default;
 
     auto lit() & -> IdentifierLiteral & {
         if (tok.oneOf<OperatorLiteral>()) return tok.data.get<OperatorLiteral>();

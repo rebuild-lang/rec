@@ -9,7 +9,7 @@ using TextRange = scanner::TextRange;
 struct Token;
 using TokenLine = std::vector<Token>;
 struct BlockLiteral {
-    std::vector<TokenLine> lines;
+    std::vector<TokenLine> lines{};
 
     bool operator==(const BlockLiteral &o) const { return lines == o.lines; }
     bool operator!=(const BlockLiteral &o) const { return lines != o.lines; }
@@ -39,8 +39,8 @@ using TokenVariant = meta::Variant<
     OperatorLiteral>;
 
 struct Token {
-    TextRange range;
-    TokenVariant data;
+    TextRange range{};
+    TokenVariant data{};
 
     template<class... Ts>
     bool oneOf() const {

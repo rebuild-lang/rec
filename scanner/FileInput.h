@@ -76,13 +76,13 @@ private:
     bool fillPeek(size_t count);
 
 private:
-    const File *file;
-    StringIterator begin_;
-    StringIterator current_;
-    StringIterator peek_;
-    Position beginPosition;
-    Position currentPosition;
-    std::deque<CodePoint> peekBuffer;
+    const File *file{};
+    StringIterator begin_{};
+    StringIterator current_{};
+    StringIterator peek_{};
+    Position beginPosition{};
+    Position currentPosition{};
+    std::deque<CodePoint> peekBuffer{};
 };
 
 } // namespace scanner

@@ -20,18 +20,14 @@ using Scope = instance::Scope;
 using BlockLine = block::TokenLine;
 
 struct ExpressionParserData {
-    const char *name;
-    std::shared_ptr<Scope> scope;
-    BlockLine input;
-    Block expected;
+    const char *name{};
+    std::shared_ptr<Scope> scope{};
+    BlockLine input{};
+    Block expected{};
 
     ExpressionParserData(const char *name)
         : name{name}
         , scope{std::make_shared<Scope>()} {}
-    ExpressionParserData(const ExpressionParserData &) = default;
-    ExpressionParserData &operator=(const ExpressionParserData &) = default;
-    ExpressionParserData(ExpressionParserData &&) = default;
-    ExpressionParserData &operator=(ExpressionParserData &&) = default;
 
     template<class... Instance>
     auto ctx(Instance &&... instance) && -> ExpressionParserData {

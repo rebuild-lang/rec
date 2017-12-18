@@ -13,16 +13,12 @@ using namespace parser::block;
 using FilterTokens = std::vector<FilterToken>;
 
 struct BlockTransformData {
-    const char *name;
-    FilterTokens input;
-    BlockLiteral expected;
+    const char *name{};
+    FilterTokens input{};
+    BlockLiteral expected{};
 
     BlockTransformData(const char *name)
         : name{name} {}
-    BlockTransformData(const BlockTransformData &) = default;
-    BlockTransformData &operator=(const BlockTransformData &) = default;
-    BlockTransformData(BlockTransformData &&) = default;
-    BlockTransformData &operator=(BlockTransformData &&) = default;
 
     template<class... Tok>
     auto in(Tok &&... tok) && -> BlockTransformData {

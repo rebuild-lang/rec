@@ -10,14 +10,9 @@ using BlockLine = block::TokenLine;
 struct BlockLineView {
     using This = BlockLineView;
 
+    BlockLineView() = default;
     BlockLineView(const BlockLine *line)
         : line(line) {}
-
-    BlockLineView() = default;
-    BlockLineView(const This &) = default;
-    BlockLineView(This &&) = default;
-    This &operator=(const This &) = default;
-    This &operator=(This &&) = default;
 
     operator bool() const { return line && index < line->size(); }
     bool hasNext() const { return index + 1 < line->size(); }

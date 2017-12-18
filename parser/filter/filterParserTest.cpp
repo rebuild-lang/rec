@@ -16,16 +16,12 @@ using ScannerTokens = std::vector<ScannerToken>;
 using FilterTokens = std::vector<Token>;
 
 struct TokensTransformData {
-    const char *name;
-    ScannerTokens input;
-    FilterTokens expected;
+    const char *name{};
+    ScannerTokens input{};
+    FilterTokens expected{};
 
     TokensTransformData(const char *name)
         : name{name} {}
-    TokensTransformData(const TokensTransformData &) = default;
-    TokensTransformData &operator=(const TokensTransformData &) & = default;
-    TokensTransformData(TokensTransformData &&) = default;
-    TokensTransformData &operator=(TokensTransformData &&) & = default;
 
     template<class... Tok>
     auto in(Tok &&... tok) && -> TokensTransformData {

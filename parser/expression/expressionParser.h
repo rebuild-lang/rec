@@ -204,21 +204,16 @@ private:
     struct OverloadSet {
         struct Overload {
             using This = Overload;
-            bool active = true;
-            bool complete = false;
-            FunctionView function;
-            BlockLineView it;
-            ArgumentAssignments rightArgs;
+            bool active{true};
+            bool complete{false};
+            FunctionView function{};
+            BlockLineView it{};
+            ArgumentAssignments rightArgs{};
             size_t nextArg{};
 
             Overload() = default;
             Overload(const Function &function)
                 : function(&function) {}
-
-            Overload(const This &) = default;
-            Overload(This &&) = default;
-            auto operator=(const This &) & -> This & = default;
-            auto operator=(This &&) & -> This & = default;
 
             void retireLeft(const NamedTupleView &left) {
                 auto o = 0u, t = 0u;
@@ -293,7 +288,7 @@ private:
         }
 
     private:
-        Overloads vec;
+        Overloads vec{};
         size_t activeCount{};
     };
 

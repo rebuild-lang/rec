@@ -31,7 +31,7 @@ using BlockLiteral = block::BlockLiteral;
 
 struct Block {
     using This = Block;
-    Nodes nodes;
+    Nodes nodes{};
 
     bool operator==(const This &o) const { return nodes == o.nodes; }
     bool operator!=(const This &o) const { return !(*this == o); }
@@ -40,7 +40,7 @@ struct Block {
 struct ArgumentAssignment {
     using This = ArgumentAssignment;
     instance::ArgumentView argument{};
-    Nodes values;
+    Nodes values{};
 
     bool operator==(const This &o) const { return argument == o.argument && values == o.values; }
     bool operator!=(const This &o) const { return !(*this == o); }
@@ -50,7 +50,7 @@ using ArgumentAssignments = std::vector<ArgumentAssignment>;
 struct Invocation {
     using This = Invocation;
     instance::FunctionView function{};
-    ArgumentAssignments arguments;
+    ArgumentAssignments arguments{};
 
     bool operator==(const This &o) const { return function == o.function && arguments == o.arguments; }
     bool operator!=(const This &o) const { return !(*this == o); }
@@ -66,7 +66,7 @@ struct VariableReference {
 
 struct NamedTuple {
     using This = NamedTuple;
-    NamedVec tuple;
+    NamedVec tuple{};
 
     bool operator==(const This &o) const { return tuple == o.tuple; }
     bool operator!=(const This &o) const { return !(*this == o); }
@@ -76,8 +76,8 @@ using LiteralVariant = meta::Variant<StringLiteral, NumberLiteral, OperatorLiter
 
 struct Literal {
     using This = Literal;
-    LiteralVariant value;
-    TextRange range;
+    LiteralVariant value{};
+    TextRange range{};
 
     bool operator==(const This &o) const { return value == o.value; }
     bool operator!=(const This &o) const { return !(*this == o); }
@@ -90,6 +90,7 @@ class Node : public NodeVariant {
     using This = Node;
 
 public:
+    using NodeVariant::NodeVariant;
     META_VARIANT_CONSTRUCT(Node, NodeVariant)
 };
 using OptNode = meta::Optional<Node>;
@@ -97,18 +98,13 @@ using NodeView = const Node *;
 
 struct Named {
     using This = Named;
-    Name name; // name might be empty!
-    Node node;
+    Name name{}; // name might be empty!
+    Node node{};
 
+    Named() = default;
     Named(Name &&name, Node &&node)
         : name(std::move(name))
         , node(std::move(node)) {}
-
-    Named(const This &) = default;
-    Named(This &&) = default;
-    auto operator=(const This &) & -> This & = default;
-    auto operator=(This &&) & -> This & = default;
-    ~Named() = default;
 
     bool operator==(const This &o) const { return name == o.name && node == o.node; }
     bool operator!=(const This &o) const { return !(*this == o); }
@@ -121,11 +117,6 @@ struct NamedNodeView {
     NodeView node{};
 
     NamedNodeView() = default;
-    //    NamedNodeView(const This &) = default;
-    //    NamedNodeView(This &&) = default;
-    //    auto operator=(const This &) & -> This & = default;
-    //    auto operator=(This &&) & -> This & = default;
-
     NamedNodeView(const Named &named)
         : name(named.name)
         , node(&named.node) {}
@@ -136,14 +127,9 @@ using NamedNodeViews = std::vector<NamedNodeView>;
 
 struct NamedTupleView {
     using This = NamedTupleView;
-    NamedNodeViews tuple;
+    NamedNodeViews tuple{};
 
     NamedTupleView() = default;
-    //    NamedTupleView(const This &) = default;
-    //    NamedTupleView(This &&) = default;
-    //    auto operator=(const This &) & -> This & = default;
-    //    auto operator=(This &&) & -> This & = default;
-
     NamedTupleView(const NamedTuple &named)
         : tuple(named.tuple.begin(), named.tuple.end()) {}
     NamedTupleView(const Node &node)

@@ -9,8 +9,8 @@ using String = strings::String;
 using View = strings::View;
 
 struct File {
-    String filename;
-    String content;
+    String filename{};
+    String content{};
 };
 
 struct Line {
@@ -51,8 +51,8 @@ struct Column {
 };
 
 struct Position {
-    Line line;
-    Column column;
+    Line line{};
+    Column column{};
 
     constexpr void nextColumn() noexcept { ++column; }
     constexpr void nextTabstop(Column tabstop) noexcept { column.v += tabstop.v - (column.v % tabstop.v); }
@@ -66,10 +66,10 @@ struct Position {
 };
 
 struct TextRange {
-    const File *file = nullptr;
-    View text;
-    Position begin;
-    Position end;
+    const File *file{};
+    View text{};
+    Position begin{};
+    Position end{};
 
     bool operator==(const TextRange &o) const {
         return file == o.file && text.isContentEqual(o.text) && begin == o.begin && end == o.end;

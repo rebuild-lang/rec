@@ -12,14 +12,11 @@ namespace meta {
 template<class... T>
 class Variant {
     using This = Variant;
-    std::variant<T...> m;
+    using Data = std::variant<T...>;
+    Data m{};
 
 public:
     Variant() = default;
-    //    Variant(const This &) = default;
-    //    This &operator=(const This &) = default;
-    //    Variant(This &&) = default;
-    //    This &operator=(This &&) = default;
 
     template<
         class S,
@@ -89,15 +86,10 @@ public:
 
     class Index {
         using This = Index;
-        size_t m;
+        size_t m{sizeof...(T)};
 
     public:
-        constexpr Index()
-            : m(sizeof...(T)) {}
-        constexpr Index(const This &) = default;
-        constexpr This &operator=(const This &) = default;
-        constexpr Index(This &&) = default;
-        constexpr This &operator=(This &&) = default;
+        constexpr Index() = default;
 
         constexpr explicit Index(size_t v)
             : m(v) {}

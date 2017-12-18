@@ -13,12 +13,6 @@ struct Flags {
     using value_type = std::underlying_type_t<T>;
 
     constexpr Flags() noexcept = default;
-    //    constexpr Flags(const Flags &) noexcept = default;
-    //    constexpr Flags(Flags &&) noexcept = default;
-    //    ~Flags() = default;
-
-    //    constexpr auto operator=(const Flags &) noexcept -> Flags & = default;
-    //    constexpr auto operator=(Flags &&) noexcept -> Flags & = default;
 
     constexpr void swap(Flags &fl) noexcept { std::swap(v, fl.v); }
 

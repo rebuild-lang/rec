@@ -12,7 +12,7 @@ using NodeByName = std::map<View, Node>;
 
 struct LocalScope {
     using This = LocalScope;
-    NodeByName m;
+    NodeByName m{};
 
     LocalScope() = default;
     ~LocalScope() = default;

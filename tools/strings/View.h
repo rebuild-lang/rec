@@ -19,12 +19,11 @@ struct View {
     using It = const Byte *;
 
 private:
-    It start_m;
-    It end_m;
+    It start_m{};
+    It end_m{};
 
 public:
-    constexpr View() noexcept // valid empty view
-        : View(nullptr, nullptr) {}
+    constexpr View() noexcept = default;
 
     template<size_t N>
     constexpr explicit View(const char (&str)[N]) noexcept // view a constant string literal
@@ -39,12 +38,6 @@ public:
 
     explicit View(const std::string &s) noexcept // view owning std::string
         : View(reinterpret_cast<const Byte *>(s.data()), reinterpret_cast<const Byte *>(s.data() + s.length())) {}
-
-    // full value semantics
-    constexpr View(const This &) noexcept = default;
-    constexpr This &operator=(const This &) noexcept = default;
-    constexpr View(This &&) noexcept = default;
-    constexpr This &operator=(This &&) noexcept = default;
 
     // enable fast optional
     // equal if view on the same range

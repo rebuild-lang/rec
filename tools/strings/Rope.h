@@ -18,7 +18,7 @@ struct Rope {
     using Data = meta::Variant<CodePoint, String, View>;
 
 private:
-    std::vector<Data> m;
+    std::vector<Data> m{};
 
 public:
     Rope() = default; // valid empty rope

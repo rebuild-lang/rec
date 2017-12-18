@@ -17,13 +17,13 @@ using Function = instance::Function;
 struct ArgumentBuilder {
     using This = ArgumentBuilder;
 
-    Name name_;
-    ValueBuilders values_;
+    Name name{};
+    ValueBuilders values{};
 
     template<size_t N, class... Value>
     ArgumentBuilder(const char (&name)[N], Value &&... value)
-        : name_(name)
-        , values_({std::forward<Value>(value)...}) {}
+        : name(name)
+        , values({std::forward<Value>(value)...}) {}
 
     auto build(const Scope &scope, const Function &fun) && -> ArgumentAssignment;
 };
@@ -32,26 +32,26 @@ using ArgumentBuilders = std::vector<ArgumentBuilder>;
 struct InvokeBuilder {
     using This = InvokeBuilder;
 
-    Name name_;
-    ArgumentBuilders left_;
-    ArgumentBuilders right_;
+    Name name{};
+    ArgumentBuilders leftBuilder{};
+    ArgumentBuilders rightBuilder{};
 
     template<size_t N>
     InvokeBuilder(const char (&name)[N])
-        : name_(name) {}
+        : name(name) {}
 
     template<class... Args>
     auto right(Args &&... args) && -> This { //
-        right_.insert(right_.end(), {std::forward<Args>(args)...});
+        rightBuilder.insert(rightBuilder.end(), {std::forward<Args>(args)...});
         return *this;
     }
 
     auto build(const Scope &scope) && -> Invocation {
         Invocation invocation;
-        const auto &fun = instance::lookupA<instance::Function>(scope, name_);
+        const auto &fun = instance::lookupA<instance::Function>(scope, name);
         invocation.function = &fun;
-        for (auto &&arg : std::move(left_)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
-        for (auto &&arg : std::move(right_)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
+        for (auto &&arg : std::move(leftBuilder)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
+        for (auto &&arg : std::move(rightBuilder)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
         return invocation;
     }
 };
@@ -85,13 +85,13 @@ struct ExpressionBuilder<InvokeBuilder> {
 };
 
 inline auto ArgumentBuilder::build(const Scope &scope, const Function &fun) && -> ArgumentAssignment {
-    ArgumentAssignment as;
-    auto arg = fun.lookupArgument(name_);
+    auto as = ArgumentAssignment{};
+    auto arg = fun.lookupArgument(name);
     if (!arg) throw "missing argument";
     auto v = arg.value();
     as.argument = &v.get();
-    as.values.reserve(values_.size());
-    for (auto &&val : std::move(values_)) as.values.emplace_back(std::move(val).build(scope));
+    as.values.reserve(values.size());
+    for (auto &&val : std::move(values)) as.values.emplace_back(std::move(val).build(scope));
     return as;
 }
 

@@ -27,8 +27,8 @@ using BracketClose = scanner::BracketClose;
 using StringLiteral = scanner::StringLiteral;
 using NumberLiteral = scanner::NumberLiteral;
 struct IdentifierLiteral {
-    bool leftSeparated = false;
-    bool rightSeparated = false;
+    bool leftSeparated{false};
+    bool rightSeparated{false};
 
     bool operator==(const IdentifierLiteral &o) const {
         return leftSeparated == o.leftSeparated && rightSeparated == o.rightSeparated;
@@ -54,8 +54,8 @@ using TokenVariant = meta::Variant<
     OperatorLiteral>;
 
 struct Token {
-    TextRange range;
-    TokenVariant data;
+    TextRange range{};
+    TokenVariant data{};
 
     template<class... Ts>
     bool oneOf() const {
