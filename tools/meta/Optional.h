@@ -81,13 +81,13 @@ struct Packed;
 template<class InvalidFunc>
 class Optional<Packed<InvalidFunc>> {
     using This = Optional;
-    using T = decltype(InvalidFunc{}());
-    T data{InvalidFunc{}()};
+    using Data = decltype(std::declval<InvalidFunc>()());
+    Data data{InvalidFunc{}()};
 
 public:
     constexpr Optional() = default;
-    constexpr Optional(const T &t)
-        : data(t) {}
+    constexpr Optional(const Data &data)
+        : data(data) {}
 
     constexpr operator bool() const { return !(data == InvalidFunc{}()); }
     constexpr auto value() const & -> decltype(auto) { return data; }

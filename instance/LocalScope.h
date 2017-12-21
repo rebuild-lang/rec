@@ -28,11 +28,7 @@ struct LocalScope {
 
     template<class T, class... Ts>
     bool emplace(T &&arg, Ts &&... args) & {
-        bool success = emplaceImpl(std::forward<T>(arg));
-        if constexpr (0 != sizeof...(Ts)) {
-            success = (emplaceImpl(std::forward<Ts>(args)) & ...);
-        }
-        return success;
+        return (emplaceImpl(std::forward<T>(arg)) & ... & emplaceImpl(std::forward<Ts>(args)));
     }
 
 private:

@@ -9,6 +9,7 @@ Project {
         "scanner",
         "instance",
         "parser",
+        "intrinsic",
     ]
 
     AutotestRunner {}
