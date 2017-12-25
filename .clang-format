@@ -13,9 +13,11 @@ AllowShortCaseLabelsOnASingleLine: true
 
 AlignAfterOpenBracket: AlwaysBreak
 AlignTrailingComments: false
+AlignOperands: false
 
 AlwaysBreakTemplateDeclarations: true
 AlwaysBreakBeforeMultilineStrings: true
+
 BreakConstructorInitializers: BeforeComma
 
 BreakBeforeBraces: Custom
@@ -44,3 +46,7 @@ IndentPPDirectives: AfterHash
 
 SortIncludes: true
 SortUsingDeclarations: true
+
+PointerAlignment: Left
+
+PenaltyReturnTypeOnItsOwnLine: 500

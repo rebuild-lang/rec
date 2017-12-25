@@ -31,7 +31,7 @@ type `f64`::
   ** `.implicitFrom(NumberLiteral) -> :f64`
   ** `.from(:u64) -> :f64`
   ** `.add / sub / mul / div`
-  ** `.cmp(:f64, epsilon : f64 = ())`
+  ** `.cmp(:f64, epsilon :f64 = ())`
 
 type `str`::
   ** `.type.size` = `0`
@@ -68,21 +68,21 @@ type `variant(*v :Type)`::
   ** `.is(:Type) -> :bool`
   ** `.as(E:Type) -> :*E`
 
-type `vec(E:Type)`::
+type `list(E:Type)`::
   ** `.type.size` = `0`
   ** `.type.flags` = `compile_time`
   ** `.element_type` = `E`
   ** `.length() -> :u64`
   ** `.at(index:u64) -> :*E`
-  ** `.append(*:Type) -> :vec`
-  ** `.replace(index:u64, :Type) -> :vec`
-  ** `.remove(index:u64) -> :vec`
+  ** `.append(*:Type) -> :list`
+  ** `.replace(index:u64, :Type) -> :list`
+  ** `.remove(index:u64) -> :list`
 
 type `map(K:Type, E:Type)`::
   ** `.type.size` = `0`
   ** `.type.flags` = `compile_time`
   ** `.key_type` = `K`
-  ** `.element_tyep` = `E`
+  ** `.element_type` = `E`
   ** `.length() -> :u64`
   ** `.at(:K) -> :*E`
   ** `.insert(:K, :E) -> :map`
@@ -94,22 +94,22 @@ type `map(K:Type, E:Type)`::
 * access with `rebuild.literal.`
 
 type `Identifier`::
-  ** `.Text : rope`
+  ** `.Text :rope`
 
 type `Operator`::
-  ** `.Text : rope`
+  ** `.Text :rope`
 
 type `Number`::
-  ** `.Radix : u64`
-  ** `.IntegerPart : rope`
-  ** `.FractionPart : rope`
-  ** `.ExponentSign : enum(plus, minus)`
-  ** `.ExponentPart : rope`
-  ** `.ToUnsigned(8) -> u64`
+  ** `.Radix :u64`
+  ** `.IntegerPart :rope`
+  ** `.FractionPart :rope`
+  ** `.ExponentSign :enum(plus, minus)`
+  ** `.ExponentPart :rope`
+  ** `.ToUnsigned(8) -> :u64`
   ** _TODO_ more conversions
 
 type `String`::
-  ** `.Text : rope`
+  ** `.Text :rope`
 
 type `Block`::
   ** _MAYBE_ `.Tokens` _(opaque for now)_
@@ -130,22 +130,22 @@ type `Expression`::
 
 type `Named`::
   ** parser: `(<id>=)? <expression>`
-  ** `.name : str`
-  ** `.expression : Expression`
+  ** `.name :str`
+  ** `.expression :Expression`
 
 type `NamedTuple`::
   ** parser: `'(' (<named>)* ')' | (<named>)*`
-  ** `.tuple : vec(Named)`
+  ** `.tuple :list(Named)`
 
 type `ArgumentAssignment`::
   ** ! no parser (only part of invocation)
-  ** `.argument: *instance.Argument`
-  ** `.values: vec(Expression)` _a value for each splat instance_
+  ** `.argument :*instance.Argument`
+  ** `.values :list(Expression)` _a value for each splat instance_
 
 type `Invocation`::
   ** parser: limited single expression
-  ** `.function : *instance.Function`
-  ** `.arguments : vec(ArgumentAssignment)`
+  ** `.function :*instance.Function`
+  ** `.arguments :list(ArgumentAssignment)`
 
 type `Reference`::
   ** = `variant(*instance.Variable, *instance.Module, *instance.Type)`
@@ -153,8 +153,8 @@ type `Reference`::
 
 type `Block`::
   ** parser: limited single expression
-  ** `.expressions : vec(Expression)`
-  ** `.instances : LocalScope`
+  ** `.expressions :list(Expression)`
+  ** `.instances :LocalScope`
 
 
 === Declaration
@@ -165,16 +165,16 @@ type `Block`::
 type `LeftArguments`::
   ** single argument decl or braces required
   ** no special parsers allowed
-  ** `.arguments : vec(instance.Argument)`
+  ** `.arguments :list(instance.Argument)`
 
 type `RightArguments`::
   ** optional braces
-  ** `.arguments : vec(instance.Argument)`
+  ** `.arguments :list(instance.Argument)`
 
 type `Results`::
   ** optional braces
   ** default writable
-  ** `.arguments : vec(instance.Argument)`
+  ** `.arguments :list(instance.Argument)`
 
 type `FunctionFlags`::
   ** parser: `'&'?`
@@ -185,7 +185,7 @@ type `Variable`::
   ** `.Name :str`
   ** `.Flags :flags()`
   ** `.Type :Type = ()`
-  ** `.Initialisation : parser.Expression = ()`
+  ** `.Initialisation :parser.Expression = ()`
 
 type `Id(id:Identifier)`::
   ** parser: `{id}`
@@ -215,16 +215,16 @@ type `Type`::
 
 type `FunctionOverloads`::
   ** `.name :str`
-  ** `.overloads :vec(Function)`
+  ** `.overloads :list(Function)`
 
 type `Function`::
   ** `.name :str`
   ** `.parent :variant(*Module, *Type, *Function)`
   ** `.flags :flags(compile_time, run_time, var_args)`
-  ** `.arguments :vec(Argument)`
-  ** `.leftArguments :vec(*Argument)`
-  ** `.rightArguments :vec(*Argument)`
-  ** `.results :vec(*Argument)`
+  ** `.arguments :list(Argument)`
+  ** `.leftArguments :list(*Argument)`
+  ** `.rightArguments :list(*Argument)`
+  ** `.results :list(*Argument)`
   ** _TODO_ `.precedencLevel :*Level = ()`
   ** `.implementation :parser.Block`
 
@@ -240,7 +240,7 @@ type `Argument`::
   ** `.function :*Function`
   ** `.flags :flags()`
   ** `.type :*Type`
-  ** `.initialisation :vec(Expression)`
+  ** `.initialisation :list(Expression)`
 
 
 

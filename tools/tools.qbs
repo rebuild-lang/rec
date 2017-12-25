@@ -8,8 +8,9 @@ Project {
         Depends { name: "cpp" }
         cpp.cxxLanguageVersion: "c++17"
         cpp.includePaths: ["."]
+        cpp.combineCxxSources: true
         cpp.cxxFlags: {
-            if (qbs.toolchain.contains('msvc')) return "/await";
+            if (qbs.toolchain.contains('msvc')) return ["/await", "/permissive-"];
             if (qbs.toolchain.contains('clang')) return ["-fcoroutines-ts"];
         }
         cpp.cxxStandardLibrary: {
@@ -44,7 +45,7 @@ Project {
             cpp.cxxLanguageVersion: "c++17"
             cpp.includePaths: ["."]
             cpp.cxxFlags: {
-                if (qbs.toolchain.contains('msvc')) return "/await";
+                if (qbs.toolchain.contains('msvc')) return ["/await", "/permissive-"];
                 if (qbs.toolchain.contains('clang')) return ["-fcoroutines-ts"];
             }
             cpp.cxxStandardLibrary: {

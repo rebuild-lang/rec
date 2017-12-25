@@ -10,7 +10,6 @@ Project {
         ]
         name: "intrinsic"
         Depends { name: "cpp" }
-        cpp.cxxLanguageVersion: "c++17"
 
         Depends { name: "tools" }
         Depends { name: "instance" }
@@ -18,7 +17,6 @@ Project {
         Export {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
-            cpp.cxxLanguageVersion: "c++17"
         }
     }
 
@@ -27,6 +25,7 @@ Project {
         consoleApplication: true
         type: ["application", "autotest"]
 
+        Depends { name: "tools" }
         Depends { name: "intrinsic" }
         Depends { name: "googletest" }
         googletest.useMain: true

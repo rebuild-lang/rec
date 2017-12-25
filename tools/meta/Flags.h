@@ -14,7 +14,7 @@ struct Flags {
 
     constexpr Flags() noexcept = default;
 
-    constexpr void swap(Flags &fl) noexcept { std::swap(v, fl.v); }
+    constexpr void swap(Flags& fl) noexcept { std::swap(v, fl.v); }
 
     template<class... Args>
     constexpr Flags(T v, Args... args) noexcept
@@ -23,11 +23,11 @@ struct Flags {
     constexpr bool operator==(Flags f) const noexcept { return v == f.v; }
     constexpr bool operator!=(Flags f) const noexcept { return v != f.v; }
 
-    constexpr auto operator|=(Flags f2) noexcept -> Flags & {
+    constexpr auto operator|=(Flags f2) noexcept -> Flags& {
         v |= f2.v;
         return *this;
     }
-    constexpr auto operator|=(T e2) noexcept -> Flags & {
+    constexpr auto operator|=(T e2) noexcept -> Flags& {
         v |= static_cast<value_type>(e2);
         return *this;
     }
@@ -57,10 +57,7 @@ private:
 
     template<class... Args>
     static constexpr auto build(Args... args) noexcept -> Flags {
-        auto val = Flags{0};
-        auto x = {((val |= args), 0)...};
-        (void)x;
-        return val;
+        return (Flags{static_cast<value_type>(args)} | ...);
     }
 
 private:
@@ -70,4 +67,4 @@ private:
 } // namespace meta
 
 #define META_FLAGS_OP(T)                                                                                               \
-    constexpr auto operator|(T e1, T e2) noexcept->meta::Flags<T> { return meta::Flags<T>(e1) | e2; }
+    constexpr auto operator|(T e1, T e2) noexcept->meta::Flags<T> { return meta::Flags<T>(e1, e2); }

@@ -1,0 +1,22 @@
+
+Layer 0: googletest, STL
+
+Layer 1: meta, strings
+
+Layer 2: text(strings, meta)
+
+Layer 3: token(text)
+
+Layer 4: filterToken(token), scanner(text, token)
+
+Layer 5: blockToken(filterToken), filterParser(token, filterToken)
+
+Layer 6: expression(blockToken), blockParser(filterToken, blockToken)
+
+Layer 7: instance(expression)
+
+Layer 8: intrinsic(instance), expressionParser(blockToken, instance, expression)
+
+Layer 9: api(intrinsic, instance), intrinsicAdapter(intrinsic, instance)
+
+Layer 10: compiler(api, intrinsicAdapter, expressionParser)
