@@ -24,27 +24,27 @@ struct Function {
     // PrecedenceLevel level;
     // Block body;
 
-    auto lookupArgument(const View &name) const -> decltype(auto) {
-        return meta::findIfOpt(arguments, [&](const auto &a) { return name.isContentEqual(a.name); });
+    auto lookupArgument(const View& name) const -> decltype(auto) {
+        return meta::findIfOpt(arguments, [&](const auto& a) { return name.isContentEqual(a.name); });
     }
     auto leftArguments() const -> ArgumentsRange {
         auto b = arguments.begin();
-        auto e = meta::findIf(arguments, [](const auto &a) { return a.side != ArgumentSide::left; });
+        auto e = meta::findIf(arguments, [](const auto& a) { return a.side != ArgumentSide::left; });
         return {b, e};
     }
     auto rightArguments() const -> ArgumentsRange {
-        auto b = meta::findIf(arguments, [](const auto &a) { return a.side == ArgumentSide::right; });
-        auto e = std::find_if(b, arguments.end(), [](const auto &a) { return a.side != ArgumentSide::right; });
+        auto b = meta::findIf(arguments, [](const auto& a) { return a.side == ArgumentSide::right; });
+        auto e = std::find_if(b, arguments.end(), [](const auto& a) { return a.side != ArgumentSide::right; });
         return {b, e};
     }
     void orderArguments() {
-        meta::stableSort(arguments, [](const auto &a, const auto &b) { return a.side < b.side; });
+        meta::stableSort(arguments, [](const auto& a, const auto& b) { return a.side < b.side; });
     }
 };
-using FunctionView = const Function *;
+using FunctionView = const Function*;
 
-inline auto nameOf(const Function &fun) -> const Name & { return fun.name; }
+inline auto nameOf(const Function& fun) -> const Name& { return fun.name; }
 
 } // namespace instance
 
-META_FLAGS_OP(instance::FunctionFlag)
+META_FLAGS_OP(instance::FunctionFlags)

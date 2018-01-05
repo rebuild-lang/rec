@@ -4,67 +4,150 @@
 
 namespace meta {
 
+#define META_FLAGS_OP(Flags)                                                                                           \
+    constexpr auto operator|(Flags::Enum e1, Flags::Enum e2) noexcept->Flags { return Flags(e1, e2); }
+
 template<class T>
 struct Flags {
     using This = Flags;
-    static_assert(std::is_enum_v<T>, "flags only works for enums!");
+    static_assert(std::is_enum_v<T>, "Flags only works for enums!");
 
-    using enum_type = T;
-    using value_type = std::underlying_type_t<T>;
-
-    constexpr Flags() noexcept = default;
-
-    constexpr void swap(Flags& fl) noexcept { std::swap(v, fl.v); }
+    using Enum = T;
+    using Value = std::underlying_type_t<T>;
 
     template<class... Args>
-    constexpr Flags(T v, Args... args) noexcept
+    constexpr Flags(Enum v, Args... args) noexcept
         : Flags(build(v, args...)) {}
 
-    constexpr bool operator==(Flags f) const noexcept { return v == f.v; }
-    constexpr bool operator!=(Flags f) const noexcept { return v != f.v; }
+    constexpr Flags() noexcept = default;
+    constexpr Flags(const This&) noexcept = default;
+    constexpr Flags(This&&) noexcept = default;
+    ~Flags() = default;
+    constexpr auto operator=(const This&) noexcept -> This& = default;
+    constexpr auto operator=(This&&) noexcept -> This& = default;
 
-    constexpr auto operator|=(Flags f2) noexcept -> Flags& {
-        v |= f2.v;
+    constexpr auto operator=(Enum e) noexcept -> This& {
+        v = static_cast<Value>(e);
         return *this;
     }
-    constexpr auto operator|=(T e2) noexcept -> Flags& {
-        v |= static_cast<value_type>(e2);
-        return *this;
+
+    constexpr void swap(This& fl) noexcept { std::swap(v, fl.v); }
+
+    constexpr bool operator==(This f) const noexcept { return v == f.v; }
+    constexpr bool operator!=(This f) const noexcept { return v != f.v; }
+
+    constexpr bool operator[](Enum t) const noexcept { return (v & t) != 0; }
+
+    constexpr bool all(This f) const noexcept { return (v & f.v) == f.v; }
+    template<class... Args>
+    constexpr bool all(Enum b, Args... args) const noexcept {
+        return all(build(b, args...));
     }
 
-    constexpr friend auto operator|(Flags f1, Flags f2) noexcept -> Flags { return {f1.v | f2.v}; }
-
-    constexpr auto clear(Flags f = {}) const noexcept -> Flags { return {v & ~f.v}; }
-    constexpr bool hasAny(Flags f) const noexcept { return (v & f.v) != 0; }
-    constexpr bool hasAll(Flags f) const noexcept { return (v & f.v) == f.v; }
-
+    constexpr bool any(This f) const noexcept { return (v & f.v) != 0; }
     template<class... Args>
-    constexpr bool clear(T v, Args... args) const noexcept {
-        return clear(build(v, args...));
+    constexpr bool any(Enum b, Args... args) const noexcept {
+        return any(build(b, args...));
     }
+
+    constexpr bool none() const noexcept { return v == 0; }
+    constexpr bool none(This f) const noexcept { return (v & f.v) == 0; }
     template<class... Args>
-    constexpr bool hasAny(T v, Args... args) const noexcept {
-        return hasAny(build(v, args...));
+    constexpr bool none(Enum b, Args... args) const noexcept {
+        return none(build(b, args...));
     }
+
+    constexpr static auto resetAll() noexcept -> This { return Flags{}; }
+
+    constexpr auto set(This b) const noexcept -> This { return This{v | b.v}; }
     template<class... Args>
-    constexpr bool hasAll(T v, Args... args) const noexcept {
-        return hasAll(build(v, args...));
+    constexpr auto set(Enum b, Args... args) const noexcept -> This {
+        return set(build(b, args...));
+    }
+
+    constexpr auto reset(This b) const noexcept -> This { return This{v & ~b.v}; }
+    template<class... Args>
+    constexpr auto reset(Enum b, Args... args) const noexcept -> This {
+        return reset(build(b, args...));
+    }
+
+    constexpr auto flip(This b) const noexcept -> This { return This{v ^ b.v}; }
+    template<class... Args>
+    constexpr auto flip(Enum b, Args... args) const noexcept -> This {
+        return flip(build(b, args...));
+    }
+
+    constexpr auto mask(This b) const noexcept -> This { return This{v & b.v}; }
+    template<class... Args>
+    constexpr auto mask(Enum b, Args... args) const noexcept -> This {
+        return mask(build(b, args...));
+    }
+
+    template<class B>
+    constexpr auto operator|(B b) const noexcept -> This {
+        return set(b);
+    }
+    template<class B>
+    constexpr auto operator&(B b) const noexcept -> This {
+        return mask(b);
+    }
+    template<class B>
+    constexpr auto operator^(B b) const noexcept -> This {
+        return flip(b);
+    }
+
+    template<class B>
+    constexpr auto operator|=(B b) noexcept -> This& {
+        return *this = set(b);
+    }
+    template<class B>
+    constexpr auto operator&=(B b) noexcept -> This& {
+        return *this = mask(b);
+    }
+    template<class B>
+    constexpr auto operator^=(B b) noexcept -> This& {
+        return *this = flip(b);
+    }
+
+    template<class F>
+    constexpr void each_set(F&& f) const noexcept {
+        auto vt = Value{};
+        while (true) {
+            const auto t = static_cast<Enum>(1 << vt);
+            const auto ft = Flags{t};
+            if (ft.v > v) break;
+            if (any(ft)) f(t);
+            vt++;
+        }
     }
 
 private:
-    constexpr Flags(value_type v) noexcept
+    constexpr Flags(Value v) noexcept
         : v(v) {}
 
     template<class... Args>
     static constexpr auto build(Args... args) noexcept -> Flags {
-        return (Flags{static_cast<value_type>(args)} | ...);
+        return Flags{(... | static_cast<Value>(args))};
     }
 
 private:
-    value_type v;
+    Value v{};
 };
 
-} // namespace meta
+template<class Out, class T>
+auto operator<<(Out& out, Flags<T> f)
+    -> std::enable_if_t<std::is_same_v<decltype(out << std::declval<T>()), decltype(out)>, decltype(out)> //
+{
+    using flags_type = Flags<T>;
+    if (f == flags_type{}) return out << "<None>";
+    f.each_set([&, first = true](T t) mutable {
+        if (!first)
+            out << " | ";
+        else
+            first = false;
+        out << t;
+    });
+    return out;
+}
 
-#define META_FLAGS_OP(T)                                                                                               \
-    constexpr auto operator|(T e1, T e2) noexcept->meta::Flags<T> { return meta::Flags<T>(e1, e2); }
+} // namespace meta

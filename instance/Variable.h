@@ -18,10 +18,10 @@ struct Variable {
     TypeView type{};
     VariableFlag flags{};
 };
-using VariableView = const Variable *;
+using VariableView = const Variable*;
 
-inline auto nameOf(const Variable &var) -> const Name & { return var.name; }
+inline auto nameOf(const Variable& var) -> const Name& { return var.name; }
 
 } // namespace instance
 
-META_FLAGS_OP(instance::VariableFlag)
+META_FLAGS_OP(instance::VariableFlags)

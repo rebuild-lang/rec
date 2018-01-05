@@ -16,6 +16,7 @@ enum class ArgumentFlag {
     // …
 };
 using ArgumentFlags = meta::Flags<ArgumentFlag>;
+META_FLAGS_OP(ArgumentFlags)
 
 struct Argument {
     Name name;
@@ -23,11 +24,9 @@ struct Argument {
     ArgumentSide side{};
     ArgumentFlags flags{};
 };
-using ArgumentView = const Argument *;
+using ArgumentView = const Argument*;
 using Arguments = std::vector<Argument>;
 
-inline auto nameOf(const Argument &arg) -> const Name & { return arg.name; }
+inline auto nameOf(const Argument& arg) -> const Name& { return arg.name; }
 
 } // namespace instance
-
-META_FLAGS_OP(instance::ArgumentFlag);

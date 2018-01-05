@@ -15,7 +15,7 @@ enum class TypeFlag : uint64_t {
     Instance = 1 << 3,
 };
 using TypeFlags = meta::Flags<TypeFlag>;
-META_FLAGS_OP(TypeFlag)
+META_FLAGS_OP(TypeFlags)
 
 struct TypeInfo {
     const char* name{};
@@ -31,7 +31,7 @@ enum class ArgumentFlag : uint64_t {
     Unrolled = 1 << 1,
 };
 using ArgumentFlags = meta::Flags<ArgumentFlag>;
-META_FLAGS_OP(ArgumentFlag)
+META_FLAGS_OP(ArgumentFlags)
 
 enum class ArgumentSide { Left, Right, Result };
 
@@ -52,7 +52,7 @@ enum class FunctionFlag : uint64_t {
     CompileTimeOnly = 1 << 0,
 };
 using FunctionFlags = meta::Flags<FunctionFlag>;
-META_FLAGS_OP(FunctionFlag)
+META_FLAGS_OP(FunctionFlags)
 
 struct FunctionInfo {
     const char* name{};
@@ -68,21 +68,21 @@ template<class T>
 struct Argument<Arg<T>> {
     using type = typename T::type;
     static constexpr auto info = T::info;
-    static_assert(!info.flags.hasAny(ArgumentFlag::Assignable), "non-reference argument is not assignable");
+    static_assert(!info.flags.any(ArgumentFlag::Assignable), "non-reference argument is not assignable");
     static constexpr auto typeInfo = TypeOf<type>::info;
 };
 template<class T>
 struct Argument<const Arg<T>&> {
     using type = typename T::type;
     static constexpr auto info = T::info;
-    static_assert(!info.flags.hasAny(ArgumentFlag::Assignable), "const-reference argument is not assignable");
+    static_assert(!info.flags.any(ArgumentFlag::Assignable), "const-reference argument is not assignable");
     static constexpr auto typeInfo = TypeOf<type>::info;
 };
 template<class T>
 struct Argument<Arg<T>&> : T {
     using type = typename T::type;
     static constexpr auto info = T::info;
-    static_assert(info.flags.hasAny(ArgumentFlag::Assignable), "reference argument has to be assignable");
+    static_assert(info.flags.any(ArgumentFlag::Assignable), "reference argument has to be assignable");
     static constexpr auto typeInfo = TypeOf<type>::info;
 };
 

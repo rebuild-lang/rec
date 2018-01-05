@@ -25,7 +25,7 @@ struct List {
 
 private:
     Type* elementType{};
-    std::vector<uint8_t> m;
+    std::vector<uint8_t> m{};
 };
 
 struct Flags {
@@ -33,8 +33,8 @@ struct Flags {
         : ids(ids) {}
 
 private:
-    std::vector<uint64_t> ids;
-    uint64_t v;
+    std::vector<uint64_t> ids{};
+    uint64_t v{};
 };
 
 using String = strings::String;
