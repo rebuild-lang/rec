@@ -1,7 +1,7 @@
 #pragma once
-#include "expressionTree.h"
+#include "Tree.h"
 
-#include "expressionLineView.h"
+#include "LineView.h"
 
 #include "instance/ScopeLookup.h"
 

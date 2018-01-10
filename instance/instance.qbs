@@ -6,7 +6,10 @@ Project {
     StaticLibrary {
         name: "instance"
         Depends { name: "cpp" }
-        Depends { name: "scanner" }
+        cpp.combineCxxSources: true
+        cpp.includePaths: [".."]
+
+        Depends { name: "expressionTree" }
 
         files: [
             "Argument.cpp",
@@ -34,12 +37,14 @@ Project {
             "Variable.cpp",
             "Variable.h",
             "VariableOutput.h",
+            "Views.h",
         ]
-        cpp.combineCxxSources: true
 
         Export {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
+
+            Depends { name: "expressionTree" }
         }
     }
 

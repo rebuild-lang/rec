@@ -1,9 +1,9 @@
-#include "parser/block/blockParser.h"
+#include "parser/block/Parser.h"
 
-#include "parser/block/blockTokenBuilder.h"
-#include "parser/block/blockTokenOutput.h"
-#include "parser/filter/filterTokenBuilder.h"
-#include "parser/filter/filterTokenOutput.h"
+#include "parser/block/TokenBuilder.h"
+#include "parser/block/TokenOutput.h"
+#include "parser/filter/TokenBuilder.h"
+#include "parser/filter/TokenOutput.h"
 
 #include "gtest/gtest.h"
 

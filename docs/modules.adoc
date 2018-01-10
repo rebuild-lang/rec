@@ -9,13 +9,13 @@ Layer 3: token(text)
 
 Layer 4: filterToken(token), scanner(text, token)
 
-Layer 5: blockToken(filterToken), filterParser(token, filterToken)
+Layer 5: blockToken(filterToken), filterParser(filterToken)
 
-Layer 6: expression(blockToken), blockParser(filterToken, blockToken)
+Layer 6: expressionTree(blockToken), blockParser(filterToken, blockToken)
 
-Layer 7: instance(expression)
+Layer 7: instance(expressionTree)
 
-Layer 8: intrinsic(instance), expressionParser(blockToken, instance, expression)
+Layer 8: intrinsic(instance), expressionParser(instance)
 
 Layer 9: api(intrinsic, instance), intrinsicAdapter(intrinsic, instance)
 

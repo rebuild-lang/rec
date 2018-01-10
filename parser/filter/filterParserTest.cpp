@@ -1,7 +1,7 @@
-#include "parser/filter/filterParser.h"
+#include "parser/filter/Parser.h"
 
-#include "parser/filter/filterTokenBuilder.h"
-#include "parser/filter/filterTokenOutput.h"
+#include "parser/filter/TokenBuilder.h"
+#include "parser/filter/TokenOutput.h"
 #include "scanner/TokenBuilder.h"
 #include "scanner/TokenOutput.h"
 

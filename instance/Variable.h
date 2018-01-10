@@ -18,7 +18,6 @@ struct Variable {
     TypeView type{};
     VariableFlag flags{};
 };
-using VariableView = const Variable*;
 
 inline auto nameOf(const Variable& var) -> const Name& { return var.name; }
 

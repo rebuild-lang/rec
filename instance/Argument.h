@@ -24,7 +24,6 @@ struct Argument {
     ArgumentSide side{};
     ArgumentFlags flags{};
 };
-using ArgumentView = const Argument*;
 using Arguments = std::vector<Argument>;
 
 inline auto nameOf(const Argument& arg) -> const Name& { return arg.name; }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parser/filter/filterToken.h"
+#include "parser/filter/Token.h"
 
 namespace parser::block {
 
@@ -11,8 +11,8 @@ using TokenLine = std::vector<Token>;
 struct BlockLiteral {
     std::vector<TokenLine> lines{};
 
-    bool operator==(const BlockLiteral &o) const { return lines == o.lines; }
-    bool operator!=(const BlockLiteral &o) const { return lines != o.lines; }
+    bool operator==(const BlockLiteral& o) const { return lines == o.lines; }
+    bool operator!=(const BlockLiteral& o) const { return lines != o.lines; }
 };
 using ColonSeparator = filter::ColonSeparator;
 using CommaSeparator = filter::CommaSeparator;
@@ -47,8 +47,8 @@ struct Token {
         return data.holds<Ts...>();
     }
 
-    bool operator==(const Token &o) const { return range == o.range && data == o.data; }
-    bool operator!=(const Token &o) const { return !(*this == o); }
+    bool operator==(const Token& o) const { return range == o.range && data == o.data; }
+    bool operator!=(const Token& o) const { return !(*this == o); }
 };
 
 } // namespace parser::block

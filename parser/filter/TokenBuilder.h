@@ -1,5 +1,5 @@
 #pragma once
-#include "parser/filter/filterToken.h"
+#include "parser/filter/Token.h"
 
 namespace parser::filter {
 

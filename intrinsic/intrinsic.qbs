@@ -4,19 +4,22 @@ Project {
     minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
+        name: "intrinsic"
+        Depends { name: "cpp" }
+        cpp.includePaths: [".."]
+
+        Depends { name: "instance" }
+
         files: [
             "Function.cpp",
             "Function.h",
         ]
-        name: "intrinsic"
-        Depends { name: "cpp" }
-
-        Depends { name: "tools" }
-        Depends { name: "instance" }
 
         Export {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
+
+            Depends { name: "instance" }
         }
     }
 
@@ -25,7 +28,6 @@ Project {
         consoleApplication: true
         type: ["application", "autotest"]
 
-        Depends { name: "tools" }
         Depends { name: "intrinsic" }
         Depends { name: "googletest" }
         googletest.useMain: true

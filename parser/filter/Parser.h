@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parser/filter/filterToken.h"
+#include "parser/filter/Token.h"
 
 #include "meta/CoEnumerator.h"
 

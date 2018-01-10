@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parser/block/blockToken.h"
+#include "parser/block/Token.h"
 
 namespace parser::expression {
 

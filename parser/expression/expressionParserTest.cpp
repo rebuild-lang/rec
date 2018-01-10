@@ -1,9 +1,9 @@
-#include "expressionParser.h"
-#include "expressionTreeBuilder.h"
-#include "expressionTreeOutput.h"
+#include "Parser.h"
+#include "TreeBuilder.h"
+#include "TreeOutput.h"
 
-#include "parser/block/blockTokenBuilder.h"
-#include "parser/block/blockTokenOutput.h"
+#include "parser/block/TokenBuilder.h"
+#include "parser/block/TokenOutput.h"
 
 #include "instance/FunctionBuilder.h"
 #include "instance/FunctionOutput.h"

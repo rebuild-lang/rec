@@ -1,7 +1,7 @@
 #pragma once
-#include "parser/block/blockToken.h"
+#include "parser/block/Token.h"
 
-#include "parser/filter/filterTokenOutput.h"
+#include "parser/filter/TokenOutput.h"
 
 namespace parser::block {
 
