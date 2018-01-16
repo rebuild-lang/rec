@@ -30,7 +30,7 @@ struct NestedTypeImpl {
 };
 
 template<class T>
-struct NestedTypeImpl<T, std::enable_if_t<sizeof(T) == sizeof(std::declval<T>().v)>> {
+struct NestedTypeImpl<T, std::enable_if_t<sizeof(T) == sizeof(T::v)>> {
     using type = decltype(std::declval<T>().v);
 };
 
@@ -43,22 +43,22 @@ using NestedType = typename NestedTypeImpl<T>::type;
 template<class T>
 struct Argument {
     using type = details::NestedType<T>;
-    static constexpr auto info() { return T::info(); }
-    static constexpr auto typeInfo() { return TypeOf<type>::info(); }
+    static constexpr auto info() -> ArgumentInfo { return T::info(); }
+    static constexpr auto typeInfo() -> TypeInfo { return TypeOf<type>::info(); }
     static_assert(!info().flags.any(ArgumentFlag::Assignable), "non-reference argument is not assignable");
 };
 
 template<class T>
 struct Argument<const T&> {
     using type = details::NestedType<T>;
-    static constexpr auto info() { return T::info(); }
+    static constexpr auto info() -> ArgumentInfo { return T::info(); }
     static constexpr auto typeInfo() { return TypeOf<type>::info(); }
     static_assert(!info().flags.any(ArgumentFlag::Assignable), "const-reference argument is not assignable");
 };
 template<class T>
 struct Argument<T&> : T {
     using type = details::NestedType<T>;
-    static constexpr auto info() { return T::info(); }
+    static constexpr auto info() -> ArgumentInfo { return T::info(); }
     static constexpr auto typeInfo() { return TypeOf<type>::info(); }
     static_assert(info().flags.any(ArgumentFlag::Assignable), "reference argument has to be assignable");
 };

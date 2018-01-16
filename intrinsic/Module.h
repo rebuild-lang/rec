@@ -54,12 +54,14 @@ struct PrintVisitor {
         indent.resize(indent.size() - 2);
     }
 
-    template<auto Func, auto Info>
-    void function() {
-        auto info = decltype(Info){Info}();
+    using FunctionInfoFunc = FunctionInfo (*)();
+
+    template<FunctionInfoFunc Info, class... Args>
+    void function(void (*func)(Args...)) {
+        auto info = Info();
         std::cout << indent << "function " << info.name << '\n';
         indent += "  ";
-        arguments(Func);
+        (argument<Args>(), ...);
         indent.resize(indent.size() - 2);
     }
 
@@ -70,11 +72,6 @@ private:
     void argument() {
         std::cout << indent << "arg " << Argument<T>::info().name //
                   << " : " << Argument<T>::typeInfo().name << '\n';
-    }
-
-    template<class... Args>
-    void arguments(void (*)(Args...)) {
-        (argument<Args>(), ...);
     }
 };
 

@@ -10,8 +10,10 @@ Project {
 
         files: [
             "LineView.h",
+            "Tree.cpp",
             "Tree.h",
             "TreeBuilder.h",
+            "TreeOutput.cpp",
             "TreeOutput.h",
         ]
 

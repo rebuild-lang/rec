@@ -4,8 +4,6 @@
 #include "instance/Type.h"
 #include "scanner/NumberLiteral.h"
 
-#include "meta/LambdaPtr.h"
-#include "meta/TypeList.h"
 #include "strings/String.h"
 
 #include "gtest/gtest.h"
@@ -45,11 +43,6 @@ private:
 using String = strings::String;
 
 namespace intrinsic {
-
-template<class F>
-constexpr auto ptr(F f) {
-    return meta::lambdaPtr(f);
-}
 
 template<>
 struct TypeOf<uint64_t> {
@@ -114,27 +107,27 @@ struct TypeOf<uint64_t> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<&implicitFrom, ptr([] {
+        mod.template function<[] {
             auto info = FunctionInfo{};
             info.name = ".implicitFrom";
             info.flags = FunctionFlag::CompileTimeOnly;
             return info;
-        })>();
-        mod.template function<&add, ptr([] {
+        }>(&implicitFrom);
+        mod.template function<[] {
             auto info = FunctionInfo{};
             info.name = "add";
             return info;
-        })>();
-        mod.template function<&sub, ptr([] {
+        }>(&add);
+        mod.template function<[] {
             auto info = FunctionInfo{};
             info.name = "sub";
             return info;
-        })>();
-        mod.template function<&mul, ptr([] {
+        }>(&sub);
+        mod.template function<[] {
             auto info = FunctionInfo{};
             info.name = "mul";
             return info;
-        })>();
+        }>(&mul);
     }
 };
 
@@ -236,7 +229,7 @@ struct TypeOf<List> {
     }
 
     using TypeData = instance::Type*;
-    static auto eval(TypeArgument type) -> TypeData { return {type.v}; }
+    static auto eval(TypeArgument type) -> TypeData { return type.v; }
 
     static auto construct(TypeData typeData) -> List { return {*typeData}; }
     static auto destruct(List& list) { list.~List(); }
@@ -304,12 +297,12 @@ struct TypeOf<instance::Type> {
     static constexpr void module(Module& mod) {
         // mod.function<ReadName>();
         // mod.function<ReadParent>();
-        mod.template function<&readFlags, ptr([] {
+        mod.template function<[] {
             auto info = FunctionInfo{};
             info.name = ".flags";
             info.flags = FunctionFlag::CompileTimeOnly;
             return info;
-        })>();
+        }>(&readFlags);
         // mod.function<ReadSize>();
         // mod.function<Construct>();
         // mod.function<Destruct>();
