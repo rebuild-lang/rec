@@ -9,6 +9,7 @@ Project {
         files: [
             "CoEnumerator.h",
             "Flags.h",
+            "LambdaPtr.h",
             "Optional.h",
             "Overloaded.h",
             "TypeList.h",

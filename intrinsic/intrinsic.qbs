@@ -11,8 +11,11 @@ Project {
         Depends { name: "instance" }
 
         files: [
+            "Argument.h",
             "Function.cpp",
             "Function.h",
+            "Module.h",
+            "Type.h",
         ]
 
         Export {
