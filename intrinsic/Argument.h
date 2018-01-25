@@ -1,7 +1,7 @@
 #pragma once
 #include "Type.h"
 
-#include "tools/meta/Flags.h"
+#include "meta/Flags.h"
 
 #include <cinttypes>
 
@@ -17,7 +17,7 @@ META_FLAGS_OP(ArgumentFlags)
 enum class ArgumentSide { Left, Right, Result };
 
 struct ArgumentInfo {
-    const char* name{};
+    Name name{};
     ArgumentSide side{};
     ArgumentFlags flags{};
 };

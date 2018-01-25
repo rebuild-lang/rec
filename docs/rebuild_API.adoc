@@ -225,7 +225,7 @@ type `Function`::
   ** `.leftArguments :list(*Argument)`
   ** `.rightArguments :list(*Argument)`
   ** `.results :list(*Argument)`
-  ** _TODO_ `.precedencLevel :*Level = ()`
+  ** _TODO_ `.precedenceLevel :*Level = ()`
   ** `.implementation :parser.Block`
 
 type `Variable`::

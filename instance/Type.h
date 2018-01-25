@@ -5,18 +5,20 @@
 namespace instance {
 
 using Name = strings::String;
+struct Module;
+using ModuleView = const Module*;
 
 enum class TypeFlag {
-    CompileTime = 1 << 0,
-    RunTime = 1 << 1,
+    Constructor = 1 << 0,
+    Destructor = 1 << 1,
 };
 using TypeFlags = meta::Flags<TypeFlag>;
 
 struct Type {
-    Name name{};
+    Name name{}; // always "type"
     uint64_t size{};
     TypeFlags flags{};
-    // TODO
+    ModuleView module{};
 };
 using TypeView = const Type*;
 

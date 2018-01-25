@@ -15,6 +15,7 @@ Project {
             "Function.cpp",
             "Function.h",
             "Module.h",
+            "ModuleOutput.h",
             "Type.h",
         ]
 
@@ -26,12 +27,32 @@ Project {
         }
     }
 
+    StaticLibrary {
+        name: "intrinsicAdapter"
+        Depends { name: "cpp" }
+        cpp.includePaths: [".."]
+
+        Depends { name: "intrinsic" }
+
+        files: [
+            "Adapter.cpp",
+            "Adapter.h",
+        ]
+
+        Export {
+            Depends { name: "cpp" }
+            cpp.includePaths: [".."]
+
+            Depends { name: "intrinsic" }
+        }
+    }
+
     Application {
         name: "intrinsic.tests"
         consoleApplication: true
         type: ["application", "autotest"]
 
-        Depends { name: "intrinsic" }
+        Depends { name: "intrinsicAdapter" }
         Depends { name: "googletest" }
         googletest.useMain: true
 

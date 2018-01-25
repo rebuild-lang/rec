@@ -10,6 +10,7 @@ Project {
         "instance",
         "parser",
         "intrinsic",
+        "api",
     ]
 
     AutotestRunner {}

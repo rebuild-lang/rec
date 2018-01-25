@@ -1,9 +1,12 @@
 #pragma once
-#include "tools/meta/Flags.h"
+#include "meta/Flags.h"
+#include "strings/View.h"
 
 #include <cinttypes>
 
 namespace intrinsic {
+
+using Name = strings::View;
 
 enum class TypeFlag : uint64_t {
     CompileTime = 1 << 0,
@@ -15,7 +18,7 @@ using TypeFlags = meta::Flags<TypeFlag>;
 META_FLAGS_OP(TypeFlags)
 
 struct TypeInfo {
-    const char* name{};
+    Name name{};
     uint64_t size{};
     TypeFlags flags{};
 };

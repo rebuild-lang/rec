@@ -1,5 +1,8 @@
 #include "intrinsic/Function.h"
 #include "intrinsic/Module.h"
+#include "intrinsic/ModuleOutput.h"
+
+#include "intrinsic/Adapter.h"
 
 #include "instance/Type.h"
 #include "scanner/NumberLiteral.h"
@@ -48,7 +51,7 @@ template<>
 struct TypeOf<uint64_t> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = "u64";
+        info.name = Name{"u64"};
         info.size = sizeof(uint64_t);
         info.flags = TypeFlag::CompileTime | TypeFlag::RunTime;
         return info;
@@ -58,7 +61,7 @@ struct TypeOf<uint64_t> {
         uint64_t v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "result";
+            info.name = Name{"result"};
             info.side = ArgumentSide::Result;
             info.flags = ArgumentFlag::Assignable;
             return info;
@@ -68,7 +71,7 @@ struct TypeOf<uint64_t> {
         scanner::NumberLiteral v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "literal";
+            info.name = Name{"literal"};
             info.side = ArgumentSide::Right;
             return info;
         }
@@ -81,7 +84,7 @@ struct TypeOf<uint64_t> {
         uint64_t v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "left";
+            info.name = Name{"left"};
             info.side = ArgumentSide::Left;
             return info;
         }
@@ -90,7 +93,7 @@ struct TypeOf<uint64_t> {
         uint64_t v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "right";
+            info.name = Name{"right"};
             info.side = ArgumentSide::Right;
             return info;
         }
@@ -109,23 +112,23 @@ struct TypeOf<uint64_t> {
     static constexpr auto module(Module& mod) {
         mod.template function<[] {
             auto info = FunctionInfo{};
-            info.name = ".implicitFrom";
+            info.name = Name{".implicitFrom"};
             info.flags = FunctionFlag::CompileTimeOnly;
             return info;
         }>(&implicitFrom);
         mod.template function<[] {
             auto info = FunctionInfo{};
-            info.name = "add";
+            info.name = Name{"add"};
             return info;
         }>(&add);
         mod.template function<[] {
             auto info = FunctionInfo{};
-            info.name = "sub";
+            info.name = Name{"sub"};
             return info;
         }>(&sub);
         mod.template function<[] {
             auto info = FunctionInfo{};
-            info.name = "mul";
+            info.name = Name{"mul"};
             return info;
         }>(&mul);
     }
@@ -135,11 +138,14 @@ template<>
 struct TypeOf<String> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = "str";
+        info.name = Name{"str"};
         info.size = sizeof(String);
         info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
         return info;
     }
+
+    static auto construct() -> String { return {}; }
+    static auto destruct(String& str) { str.~String(); }
 
     template<class Module>
     static void module(Module& mod) {
@@ -157,7 +163,7 @@ template<>
 struct TypeOf<Flags> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = "Flags";
+        info.name = Name{"flags"};
         info.size = sizeof(uint64_t);
         info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
         return info;
@@ -167,7 +173,7 @@ struct TypeOf<Flags> {
         std::vector<uint64_t> v; // TODO: parser::Identifier
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "ids";
+            info.name = Name{"ids"};
             info.side = ArgumentSide::Right;
             info.flags = ArgumentFlag::Unrolled;
             return info;
@@ -191,7 +197,7 @@ template<>
 struct TypeOf<List> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = "List";
+        info.name = Name{"list"};
         info.size = sizeof(List);
         info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
         return info;
@@ -201,7 +207,7 @@ struct TypeOf<List> {
         List v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "result";
+            info.name = Name{"result"};
             info.side = ArgumentSide::Result;
             info.flags = ArgumentFlag::Assignable;
             return info;
@@ -212,7 +218,7 @@ struct TypeOf<List> {
         instance::Type* v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "type";
+            info.name = Name{"type"};
             info.side = ArgumentSide::Right;
             return info;
         }
@@ -223,7 +229,7 @@ struct TypeOf<List> {
     }
     static constexpr auto constructInfo() {
         auto info = FunctionInfo{};
-        info.name = ".construct";
+        info.name = Name{".construct"};
         info.flags = FunctionFlag::CompileTimeOnly;
         return info;
     }
@@ -247,7 +253,7 @@ template<>
 struct TypeOf<instance::TypeFlags> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = "TypeFlags";
+        info.name = Name{"TypeFlags"};
         info.size = sizeof(instance::TypeFlags);
         info.flags = intrinsic::TypeFlag::CompileTime | intrinsic::TypeFlag::Instance;
         return info;
@@ -264,7 +270,7 @@ template<>
 struct TypeOf<instance::Type> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = "Type";
+        info.name = Name{"Type"};
         info.size = sizeof(instance::Type);
         info.flags = TypeFlag::CompileTime;
         return info;
@@ -274,7 +280,7 @@ struct TypeOf<instance::Type> {
         instance::Type v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "this";
+            info.name = Name{"this"};
             info.side = ArgumentSide::Left;
             return info;
         }
@@ -283,7 +289,7 @@ struct TypeOf<instance::Type> {
         instance::TypeFlags v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
-            info.name = "result";
+            info.name = Name{"result"};
             info.side = ArgumentSide::Result;
             info.flags = ArgumentFlag::Assignable;
             return info;
@@ -299,7 +305,7 @@ struct TypeOf<instance::Type> {
         // mod.function<ReadParent>();
         mod.template function<[] {
             auto info = FunctionInfo{};
-            info.name = ".flags";
+            info.name = Name{".flags"};
             info.flags = FunctionFlag::CompileTimeOnly;
             return info;
         }>(&readFlags);
@@ -315,7 +321,7 @@ template<>
 struct TypeOf<scanner::NumberLiteral> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = "NumberLiteral";
+        info.name = Name{"NumberLiteral"};
         info.size = sizeof(scanner::NumberLiteral);
         info.flags = TypeFlag::CompileTime;
         return info;
@@ -328,7 +334,7 @@ struct TypeOf<scanner::NumberLiteral> {
 struct Rebuild {
     static constexpr auto info() {
         auto info = ModuleInfo{};
-        info.name = "Rebuild";
+        info.name = Name{"Rebuild"};
         return info;
     }
 
@@ -345,6 +351,17 @@ struct Rebuild {
 
 TEST(intrinsic, output) {
     using namespace intrinsic;
-    auto visitor = PrintVisitor{};
+    auto visitor = ModuleOutput{};
     visitor.module<Rebuild>();
+}
+
+TEST(intrinsic, adapter) {
+    using namespace intrinsic;
+    using Adapter = intrinsicAdapter::Adapter;
+    auto visitor = Adapter{};
+    visitor.module<Rebuild>();
+    auto module = std::move(visitor).takeModule();
+    auto rebuild = module.locals[strings::View{"Rebuild"}];
+    EXPECT_NE(rebuild, nullptr);
+    EXPECT_TRUE(rebuild->holds<instance::Module>());
 }

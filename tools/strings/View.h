@@ -16,7 +16,10 @@ using OptionalView = meta::Optional<meta::DefaultPacked<View>>;
 struct View {
     using This = View;
     using Byte = uint8_t;
-    using It = const Byte *;
+    using Char = char;
+    static_assert(sizeof(Char) == sizeof(Byte), "char is not a byte");
+    using It = const Char*;
+    using ByteIt = const Byte*;
 
 private:
     It start_m{};
@@ -26,25 +29,30 @@ public:
     constexpr View() noexcept = default;
 
     template<size_t N>
-    constexpr explicit View(const char (&str)[N]) noexcept // view a constant string literal
-        : View(reinterpret_cast<const Byte *>(str), reinterpret_cast<const Byte *>(str + N - 1)) {}
+    constexpr explicit View(const Char (&str)[N]) noexcept // view a constant string literal
+        : View(
+              It(str), //
+              It(&str[N - 1])) {}
 
-    constexpr View(const Byte *start, const Byte *end) noexcept // from iterator range
+    constexpr View(It start, It end) noexcept // from iterator range
         : start_m(start)
         , end_m(end) {}
 
-    View(const String &s) noexcept // view existing owning string
+    constexpr View(ByteIt start, ByteIt end) noexcept // from iterator range
+        : View(It(start), It(end)) {}
+
+    View(const String& s) noexcept // view existing owning string
         : View(s.data(), s.data() + s.byteCount().v) {}
 
-    explicit View(const std::string &s) noexcept // view owning std::string
-        : View(reinterpret_cast<const Byte *>(s.data()), reinterpret_cast<const Byte *>(s.data() + s.length())) {}
+    explicit View(const std::string& s) noexcept // view owning std::string
+        : View(s.data(), s.data() + s.length()) {}
 
     // enable fast optional
     // equal if view on the same range
     // use content_equals for content comparison
-    constexpr bool operator==(const This &o) const { return start_m == o.start_m && end_m == o.end_m; }
-    constexpr bool operator!=(const This &o) const { return !(*this == o); }
-    bool operator<(const This &o) const {
+    constexpr bool operator==(const This& o) const { return start_m == o.start_m && end_m == o.end_m; }
+    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator<(const This& o) const {
         auto l = *this;
         auto r = o;
         while (true) {
@@ -56,7 +64,7 @@ public:
         }
     }
 
-    constexpr bool isContentEqual(const This &o) const {
+    constexpr bool isContentEqual(const This& o) const {
         return byteCount().v == o.byteCount().v && meta::equals(*this, o.begin());
     }
 
@@ -118,8 +126,8 @@ public:
         });
     }
 
-    constexpr auto begin() const -> It { return start_m; }
-    constexpr auto end() const -> It { return end_m; }
+    constexpr auto begin() const -> ByteIt { return ByteIt(start_m); }
+    constexpr auto end() const -> ByteIt { return ByteIt(end_m); }
 
     constexpr auto front() const -> Byte { return *start_m; }
 
@@ -145,6 +153,9 @@ private:
     }
 };
 
-inline auto to_string(const View &v) { return String(v.begin(), v.end()); }
+inline auto to_string(const View& v) { //
+    using It = const uint8_t*;
+    return String(It(v.begin()), It(v.end()));
+}
 
 } // namespace strings
