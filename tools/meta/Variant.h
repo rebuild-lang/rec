@@ -23,50 +23,51 @@ public:
         class... A, // 1+ arguments
         typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, This>> // ensure this does not capture a copy
         >
-    Variant(S &&s, A &&... a)
+    Variant(S&& s, A&&... a)
         : m(std::forward<S>(s), std::forward<A>(a)...) {}
 
-        // note: templated constructors are not forwarded with using
+    // note: templated constructors are not forwarded with using
 #define META_VARIANT_CONSTRUCT(Derived, Variant)                                                                       \
+    using Variant::Variant;                                                                                            \
     template<class S, class... A, typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, Derived>>>              \
-    Derived(S &&s, A &&... a)                                                                                          \
+    Derived(S&& s, A&&... a)                                                                                           \
         : Variant(std::forward<S>(s), std::forward<A>(a)...) {}
 
-    bool operator==(const This &o) const { return m == o.m; }
-    bool operator!=(const This &o) const { return m != o.m; }
+    bool operator==(const This& o) const { return m == o.m; }
+    bool operator!=(const This& o) const { return m != o.m; }
 
     template<class... F>
-    auto visit(F &&... f) const & -> decltype(auto) {
+    auto visit(F&&... f) const& -> decltype(auto) {
         return std::visit(makeOverloaded(std::forward<F>(f)...), m);
     }
 
     template<class... F>
-    auto visit(F &&... f) & -> decltype(auto) {
+    auto visit(F&&... f) & -> decltype(auto) {
         return std::visit(makeOverloaded(std::forward<F>(f)...), m);
     }
 
     template<class... F>
-    auto visit(F &&... f) && -> decltype(auto) {
+    auto visit(F&&... f) && -> decltype(auto) {
         return std::visit(makeOverloaded(std::forward<F>(f)...), std::move(m));
     }
 
     template<class... F>
-    auto visitSome(F &&... f) const & -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)..., [](const auto &) {}), m);
+    auto visitSome(F&&... f) const& -> decltype(auto) {
+        return std::visit(makeOverloaded(std::forward<F>(f)..., [](const auto&) {}), m);
     }
 
     template<class... F>
-    auto visitSome(F &&... f) & -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)..., [](auto &) {}), m);
+    auto visitSome(F&&... f) & -> decltype(auto) {
+        return std::visit(makeOverloaded(std::forward<F>(f)..., [](auto&) {}), m);
     }
 
     template<class... F>
-    auto visitSome(F &&... f) && -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)..., [](auto &&) {}), std::move(m));
+    auto visitSome(F&&... f) && -> decltype(auto) {
+        return std::visit(makeOverloaded(std::forward<F>(f)..., [](auto&&) {}), std::move(m));
     }
 
     template<class R>
-    auto get(Type<R> = {}) const & -> decltype(auto) {
+    auto get(Type<R> = {}) const& -> decltype(auto) {
         return std::get<R>(m);
     }
     template<class R>
@@ -96,8 +97,8 @@ public:
 
         constexpr operator bool() const { return m < sizeof...(T); }
 
-        constexpr bool operator==(const This &o) { return m == o.m; }
-        constexpr bool operator!=(const This &o) { return m != o.m; }
+        constexpr bool operator==(const This& o) { return m == o.m; }
+        constexpr bool operator!=(const This& o) { return m != o.m; }
 
         template<class... C>
         constexpr bool holds() const {
