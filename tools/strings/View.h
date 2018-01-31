@@ -57,10 +57,9 @@ public:
         auto r = o;
         while (true) {
             auto lcp = l.pullCodePoint().orValue(CodePoint{0});
-            if (lcp == 0) return true;
             auto rcp = r.pullCodePoint().orValue(CodePoint{0});
-            if (lcp < rcp) continue;
-            return false;
+            if (lcp != 0 && lcp == rcp) continue;
+            return (lcp < rcp);
         }
     }
 
@@ -125,6 +124,8 @@ public:
             return {};
         });
     }
+
+    constexpr auto data() const -> It { return start_m; }
 
     constexpr auto begin() const -> ByteIt { return ByteIt(start_m); }
     constexpr auto end() const -> ByteIt { return ByteIt(end_m); }
