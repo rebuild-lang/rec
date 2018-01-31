@@ -98,7 +98,7 @@ struct TypeOf<uint64_t> {
             return info;
         }
     };
-    static void add(const Left& l, const Right& r, Result& res) {
+    static void add(Left l, Right r, Result& res) {
         res.v = l.v + r.v; //
     }
     static void sub(const Left& l, const Right& r, Result& res) {
@@ -110,27 +110,35 @@ struct TypeOf<uint64_t> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{".implicitFrom"};
-            info.flags = FunctionFlag::CompileTimeOnly;
-            return info;
-        }>(&implicitFrom);
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{"add"};
-            return info;
-        }>(&add);
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{"sub"};
-            return info;
-        }>(&sub);
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{"mul"};
-            return info;
-        }>(&mul);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{".implicitFrom"};
+                info.flags = FunctionFlag::CompileTimeOnly;
+                return info;
+            },
+            asPtr(&implicitFrom)>(&implicitFrom);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{"add"};
+                return info;
+            },
+            asPtr(&add)>(&add);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{"sub"};
+                return info;
+            },
+            asPtr(&sub)>(&sub);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{"mul"};
+                return info;
+            },
+            asPtr(&mul)>(&mul);
     }
 };
 
@@ -303,12 +311,14 @@ struct TypeOf<instance::Type> {
     static constexpr void module(Module& mod) {
         // mod.function<ReadName>();
         // mod.function<ReadParent>();
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{".flags"};
-            info.flags = FunctionFlag::CompileTimeOnly;
-            return info;
-        }>(&readFlags);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{".flags"};
+                info.flags = FunctionFlag::CompileTimeOnly;
+                return info;
+            },
+            asPtr(&readFlags)>(&readFlags);
         // mod.function<ReadSize>();
         // mod.function<Construct>();
         // mod.function<Destruct>();
@@ -358,10 +368,38 @@ TEST(intrinsic, output) {
 TEST(intrinsic, adapter) {
     using namespace intrinsic;
     using Adapter = intrinsicAdapter::Adapter;
-    auto visitor = Adapter{};
-    visitor.module<Rebuild>();
-    auto module = std::move(visitor).takeModule();
-    auto rebuild = module.locals[strings::View{"Rebuild"}];
-    EXPECT_NE(rebuild, nullptr);
-    EXPECT_TRUE(rebuild->holds<instance::Module>());
+    auto rebuild = Adapter::moduleInstance<Rebuild>();
+    EXPECT_EQ(rebuild.name, instance::Name{"Rebuild"});
+}
+
+TEST(intrinsic, invoke) {
+    using namespace intrinsic;
+    using View = strings::View;
+    using Adapter = intrinsicAdapter::Adapter;
+    auto rebuild = Adapter::moduleInstance<Rebuild>();
+    ASSERT_TRUE(rebuild.locals[View{"u64"}]);
+    ASSERT_TRUE(rebuild.locals[View{"u64"}]->holds<instance::Module>());
+    const auto& u64 = rebuild.locals[View{"u64"}]->get<instance::Module>();
+
+    ASSERT_TRUE(u64.locals[View{"add"}]);
+    ASSERT_TRUE(u64.locals[View{"add"}]->holds<instance::Function>());
+    const auto& add = u64.locals[View{"add"}]->get<instance::Function>();
+
+    ASSERT_TRUE(!add.body.nodes.empty());
+    ASSERT_TRUE(add.body.nodes.front().holds<parser::expression::IntrinsicInvocation>());
+    auto& invocation = add.body.nodes.front().get<parser::expression::IntrinsicInvocation>();
+
+    constexpr auto u64_size = intrinsic::TypeOf<uint64_t>::info().size;
+    using Memory = std::array<uint8_t, 3 * u64_size>;
+    auto memory = Memory{};
+    reinterpret_cast<uint64_t&>(memory[0]) = 23;
+    reinterpret_cast<uint64_t&>(memory[u64_size]) = 42;
+    reinterpret_cast<uint64_t&>(memory[2 * u64_size]) = 0;
+    // auto result = uint64_t{};
+    // reinterpret_cast<uint64_t*&>(memory[2 * u64_size]) = &result;
+
+    invocation.exec(memory.data());
+
+    auto result = reinterpret_cast<uint64_t&>(memory[2 * u64_size]);
+    ASSERT_EQ(result, 23u + 42);
 }

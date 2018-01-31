@@ -54,6 +54,15 @@ struct Invocation {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
+struct IntrinsicInvocation {
+    using This = IntrinsicInvocation;
+    using Exec = void (*)(uint8_t*);
+    Exec exec;
+
+    bool operator==(const This& o) const { return exec == o.exec; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+
 struct VariableReference {
     using This = VariableReference;
     instance::VariableView variable{};
@@ -81,14 +90,13 @@ struct Literal {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-using NodeVariant = meta::Variant<Block, Invocation, VariableReference, NamedTuple, Literal>;
+using NodeVariant = meta::Variant<Block, Invocation, IntrinsicInvocation, VariableReference, NamedTuple, Literal>;
 
 // note: this type is needed because we cannot forward a using definition
 class Node : public NodeVariant {
     using This = Node;
 
 public:
-    using NodeVariant::NodeVariant;
     META_VARIANT_CONSTRUCT(Node, NodeVariant)
 };
 using OptNode = meta::Optional<Node>;

@@ -5,6 +5,7 @@
 
 #include "strings/Output.h"
 
+#include <cassert>
 #include <iostream>
 
 namespace intrinsic {
@@ -38,8 +39,13 @@ struct ModuleOutput {
 
     using FunctionInfoFunc = FunctionInfo (*)();
 
-    template<FunctionInfoFunc Info, class... Args>
+#ifdef __clang__
+    template<FunctionInfoFunc Info, auto F, class... Args>
+#else
+    template<FunctionInfoFunc Info, GenericFunc F, class... Args>
+#endif
     void function(void (*func)(Args...)) {
+        assert((GenericFunc)func == (GenericFunc)F);
         auto info = Info();
         std::cout << indent << "function " << info.name << '\n';
         indent += "  ";

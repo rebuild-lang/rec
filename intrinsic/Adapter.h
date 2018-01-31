@@ -10,7 +10,66 @@
 #include "instance/Node.h"
 #include "instance/Type.h"
 
+#include <cassert>
+
 namespace intrinsicAdapter {
+
+using GenericFunc = intrinsic::GenericFunc;
+
+namespace details {
+
+template<size_t U, size_t... V, size_t... I>
+constexpr auto sumN(std::index_sequence<V...>, std::index_sequence<I...>) -> size_t {
+    return ((I < U ? V : 0) + ... + 0);
+}
+
+template<size_t... V, size_t... I>
+constexpr auto partialSum(std::index_sequence<V...> values, std::index_sequence<I...> indices) {
+    // 2018-01-31 arB note: VS2017 15.5.5 refuses to work properly with return type here!
+    return std::index_sequence<sumN<I>(decltype(values){}, decltype(indices){})...>{};
+}
+
+template<class Arg>
+struct ArgumentAt {
+    static auto from(uint8_t* memory) -> Arg { return *reinterpret_cast<Arg*>(memory); }
+};
+
+template<class Arg>
+struct ArgumentAt<Arg&> {
+    static auto from(uint8_t* memory) -> Arg& { return *reinterpret_cast<Arg*>(memory); }
+};
+
+#ifdef __clang__
+template<auto* F, class... Args>
+#else
+template<GenericFunc F, class... Args>
+#endif
+struct Invocation {
+    using Func = void (*)(Args...);
+    using Sizes = std::index_sequence<intrinsic::Argument<Args>::typeInfo().size...>;
+    using Indices = std::make_index_sequence<sizeof...(Args)>;
+
+    static void invoke(uint8_t* memory) {
+        constexpr auto sizes = Sizes{};
+        constexpr auto indices = Indices{};
+        constexpr auto offsets = partialSum(sizes, indices);
+        invokeImpl(memory, offsets);
+    }
+
+private:
+    template<size_t... Offset>
+    static void invokeImpl(uint8_t* memory, std::index_sequence<Offset...>) {
+        auto f = reinterpret_cast<Func>(F);
+        f(argumentAt<Args, Offset>(memory)...);
+    }
+
+    template<class Arg, size_t Offset>
+    static auto argumentAt(uint8_t* memory) -> Arg {
+        return ArgumentAt<Arg>::from(memory + Offset);
+    }
+};
+
+} // namespace details
 
 /*
  * intrinsic => instance adapter
@@ -18,7 +77,18 @@ namespace intrinsicAdapter {
 struct Adapter {
     using This = Adapter;
 
-    auto takeModule() && -> instance::Module&& { return std::move(instanceModule); }
+    template<class T>
+    static auto moduleInstance() -> instance::Module {
+        auto types = Types{};
+        auto inner = This{&types};
+
+        constexpr auto info = T::info();
+        inner.moduleName(info.name);
+        T::module(inner);
+
+        inner.resolveTypes();
+        return std::move(inner.instanceModule);
+    }
 
     template<class T>
     void type() {
@@ -31,22 +101,92 @@ struct Adapter {
             constructedType<T>(&TypeOf<T>::construct);
         }
         else {
-            auto inner = Adapter{};
-            inner.moduleName(info.name);
+            auto a = Adapter{&types};
+            a.moduleName(info.name);
 
-            TypeOf<T>::module(inner);
+            TypeOf<T>::module(a);
 
-            auto r = instance::Type{};
-            r.name = instance::Name{"type"};
-            r.size = info.size;
+            auto t = instance::Type{};
+            t.name = instance::Name{"type"};
+            t.size = info.size;
             // r.flags = typeFlags(info.flags); // TODO
-            inner.instanceModule.locals.emplace(r);
+            a.instanceModule.locals.emplace(std::move(t));
 
-            instanceModule.locals.emplace(std::move(inner.instanceModule));
+            auto node = a.instanceModule.locals[instance::View{"type"}];
+            assert(node != nullptr);
+            types.map[info.name.data()] = &node->get<instance::Type>();
+
+            instanceModule.locals.emplace(std::move(a.instanceModule));
         }
     }
 
+    template<class T>
+    void module() {
+        constexpr auto info = T::info();
+        auto inner = Adapter{&types};
+        inner.moduleName(info.name);
+        T::module(inner);
+
+        instanceModule.locals.emplace(std::move(inner.instanceModule));
+    }
+
+    using FunctionInfoFunc = intrinsic::FunctionInfo (*)();
+
+#ifdef __clang__
+    template<FunctionInfoFunc Info, auto* F, class... Args>
+#else
+    template<FunctionInfoFunc Info, GenericFunc F, class... Args>
+#endif
+    void function(void (*f2)(Args...)) {
+        assert((GenericFunc)f2 == (GenericFunc)F);
+        auto info = Info();
+        auto r = instance::Function{};
+        r.name = strings::to_string(info.name);
+        // r.flags = functionFlags(info.flags); // TODO
+        r.arguments = instance::Arguments{argument<Args>()...};
+
+        auto invoke = &details::Invocation<F, Args...>::invoke;
+        r.body.nodes.emplace_back(parser::expression::IntrinsicInvocation{invoke});
+
+        auto indices = std::make_index_sequence<sizeof...(Args)>{};
+        trackArguments<Args...>(r.arguments, indices);
+
+        instanceModule.locals.emplace(std::move(r));
+    }
+
+    void moduleName(intrinsic::Name name) { instanceModule.name = strings::to_string(name); }
+
 private:
+    struct ArgumentRef {
+        instance::Argument* ref;
+        const char* typeName;
+    };
+    using Arguments = std::vector<ArgumentRef>;
+    using TypeMap = std::map<const char*, instance::TypeView>;
+    struct Types {
+        TypeMap map{};
+        Arguments arguments{};
+        // TODO: add instance types etc.
+    };
+
+    Types& types;
+    instance::Module instanceModule;
+
+    Adapter(Types* types)
+        : types(*types) {}
+
+    void resolveTypes() {
+        for (auto [argument, typeName] : types.arguments) {
+            auto typeIt = types.map.find(typeName);
+            if (typeIt == types.map.end()) {
+                // TODO: error, unknown type
+                continue;
+            }
+            argument->type = typeIt->second;
+        }
+        // TODO: resolve other types
+    }
+
     template<class T, class R>
     void constructedType(R (*construct)()) {
         // TODO: normal type + construct & destruct functions
@@ -65,7 +205,7 @@ private:
         // invoke T::eval(…)
         // return Type that stores result & all functions
 
-        instanceModule.locals.emplace(r);
+        instanceModule.locals.emplace(std::move(r));
     }
 
     template<class R, class... Args>
@@ -82,34 +222,11 @@ private:
         return r;
     }
 
-public:
-    template<class T>
-    void module() {
-        constexpr auto info = T::info();
-        auto inner = Adapter{};
-        inner.moduleName(info.name);
-        T::module(inner);
-
-        instanceModule.locals.emplace(std::move(inner).takeModule());
+    template<class... Args, size_t... I>
+    auto trackArguments(instance::Arguments& args, std::index_sequence<I...>) {
+        using namespace intrinsic;
+        (types.arguments.push_back(ArgumentRef{&args[I], Argument<Args>::info().name.data()}), ...);
     }
-
-    using FunctionInfoFunc = intrinsic::FunctionInfo (*)();
-
-    template<FunctionInfoFunc Info, class... Args>
-    void function(void (*func)(Args...)) {
-        auto info = Info();
-        auto r = instance::Function{};
-        r.name = strings::to_string(info.name);
-        // r.flags = functionFlags(info.flags); // TODO
-        r.arguments = instance::Arguments{argument<Args>()...};
-        // r.body = // TODO
-        instanceModule.locals.emplace(r);
-    }
-
-    void moduleName(intrinsic::Name name) { instanceModule.name = strings::to_string(name); }
-
-private:
-    instance::Module instanceModule;
 
     template<class T>
     auto argument() -> instance::Argument {
