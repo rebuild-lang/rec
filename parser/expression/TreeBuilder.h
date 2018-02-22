@@ -17,22 +17,22 @@ using Function = instance::Function;
 struct ArgumentBuilder {
     using This = ArgumentBuilder;
 
-    Name name{};
+    View name{};
     ValueBuilders values{};
 
     template<size_t N, class... Value>
-    ArgumentBuilder(const char (&name)[N], Value &&... value)
+    ArgumentBuilder(const char (&name)[N], Value&&... value)
         : name(name)
         , values({std::forward<Value>(value)...}) {}
 
-    auto build(const Scope &scope, const Function &fun) && -> ArgumentAssignment;
+    auto build(const Scope& scope, const Function& fun) && -> ArgumentAssignment;
 };
 using ArgumentBuilders = std::vector<ArgumentBuilder>;
 
 struct InvokeBuilder {
     using This = InvokeBuilder;
 
-    Name name{};
+    View name{};
     ArgumentBuilders leftBuilder{};
     ArgumentBuilders rightBuilder{};
 
@@ -41,17 +41,17 @@ struct InvokeBuilder {
         : name(name) {}
 
     template<class... Args>
-    auto right(Args &&... args) && -> This { //
+    auto right(Args&&... args) && -> This { //
         rightBuilder.insert(rightBuilder.end(), {std::forward<Args>(args)...});
         return *this;
     }
 
-    auto build(const Scope &scope) && -> Invocation {
+    auto build(const Scope& scope) && -> Invocation {
         Invocation invocation;
-        const auto &fun = instance::lookupA<instance::Function>(scope, name);
+        const auto& fun = instance::lookupA<instance::Function>(scope, name);
         invocation.function = &fun;
-        for (auto &&arg : std::move(leftBuilder)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
-        for (auto &&arg : std::move(rightBuilder)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
+        for (auto&& arg : std::move(leftBuilder)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
+        for (auto&& arg : std::move(rightBuilder)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
         return invocation;
     }
 };
@@ -64,34 +64,34 @@ class ValueBuilder : public ValueVariant {
 public:
     META_VARIANT_CONSTRUCT(ValueBuilder, ValueVariant)
 
-    auto build(const Scope &scope) && -> Node {
+    auto build(const Scope& scope) && -> Node {
         return std::move(*this).visit(
-            [](LiteralVariant &&lit) -> Node {
+            [](LiteralVariant&& lit) -> Node {
                 return Literal{std::move(lit), {}};
             },
-            [&](InvokeBuilder &&inv) -> Node { return std::move(inv).build(scope); } //
+            [&](InvokeBuilder&& inv) -> Node { return std::move(inv).build(scope); } //
         );
     }
 };
 
 template<class Expr>
 struct ExpressionBuilder {
-    static auto build(const Scope &, Expr &&expr) -> Node { return std::move(expr); }
+    static auto build(const Scope&, Expr&& expr) -> Node { return std::move(expr); }
 };
 
 template<>
 struct ExpressionBuilder<InvokeBuilder> {
-    static auto build(const Scope &scope, InvokeBuilder &&inv) -> Node { return std::move(inv).build(scope); }
+    static auto build(const Scope& scope, InvokeBuilder&& inv) -> Node { return std::move(inv).build(scope); }
 };
 
-inline auto ArgumentBuilder::build(const Scope &scope, const Function &fun) && -> ArgumentAssignment {
+inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -> ArgumentAssignment {
     auto as = ArgumentAssignment{};
     auto arg = fun.lookupArgument(name);
     if (!arg) throw "missing argument";
     auto v = arg.value();
     as.argument = &v.get();
     as.values.reserve(values.size());
-    for (auto &&val : std::move(values)) as.values.emplace_back(std::move(val).build(scope));
+    for (auto&& val : std::move(values)) as.values.emplace_back(std::move(val).build(scope));
     return as;
 }
 
@@ -103,12 +103,12 @@ auto invoke(const char (&name)[N]) -> details::InvokeBuilder {
 }
 
 template<size_t N, class... Value>
-auto arg(const char (&name)[N], Value &&... value) -> details::ArgumentBuilder {
+auto arg(const char (&name)[N], Value&&... value) -> details::ArgumentBuilder {
     return {name, std::forward<Value>(value)...};
 }
 
 template<class Expr>
-auto buildExpression(const Scope &scope, Expr &&expr) -> Node {
+auto buildExpression(const Scope& scope, Expr&& expr) -> Node {
     return details::ExpressionBuilder<Expr>::build(scope, std::forward<Expr>(expr));
 }
 

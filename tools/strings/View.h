@@ -154,6 +154,15 @@ private:
     }
 };
 
+struct CompareView : View {
+    using View::View;
+    CompareView() = default;
+    CompareView(const View& v)
+        : View(v.begin(), v.end()) {}
+    constexpr bool operator==(const This& o) const { return View::operator==(o) || isContentEqual(o); }
+    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+};
+
 inline auto to_string(const View& v) { //
     using It = const uint8_t*;
     return String(It(v.begin()), It(v.end()));

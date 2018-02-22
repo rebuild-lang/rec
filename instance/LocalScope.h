@@ -5,10 +5,10 @@
 
 namespace instance {
 
-using View = strings::View;
+using Name = strings::CompareView;
 class Node;
 
-using NodeByName = std::map<View, Node>;
+using NodeByName = std::map<Name, Node>;
 
 struct LocalScope {
     using This = LocalScope;
@@ -24,7 +24,7 @@ struct LocalScope {
     LocalScope(This&&) = default;
     auto operator=(This &&) -> This& = default;
 
-    auto operator[](const View& name) const& -> const Node*;
+    auto operator[](const Name& name) const& -> const Node*;
 
     template<class T, class... Ts>
     bool emplace(T&& arg, Ts&&... args) & {

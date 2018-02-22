@@ -1,7 +1,6 @@
 #pragma once
 #include "Argument.h"
-
-#include "expression/Tree.h"
+#include "Body.h"
 
 #include "meta/Flags.h"
 #include "meta/VectorRange.h"
@@ -10,7 +9,7 @@
 
 namespace instance {
 
-using View = strings::View;
+using Name = strings::CompareView;
 
 enum class FunctionFlag {
     compile_time = 1 << 0,
@@ -18,17 +17,16 @@ enum class FunctionFlag {
 };
 using FunctionFlags = meta::Flags<FunctionFlag>;
 using ArgumentsRange = meta::VectorRange<const Argument>;
-using Block = parser::expression::Block;
 
 struct Function {
     Name name;
     FunctionFlag flags;
     Arguments arguments;
     // PrecedenceLevel level;
-    Block body;
+    Body body;
 
-    auto lookupArgument(const View& name) const -> decltype(auto) {
-        return meta::findIfOpt(arguments, [&](const auto& a) { return name.isContentEqual(a.name); });
+    auto lookupArgument(const Name& name) const -> decltype(auto) {
+        return meta::findIfOpt(arguments, [&](const auto& a) { return name.isContentEqual(a.typed.name); });
     }
     auto leftArguments() const -> ArgumentsRange {
         auto b = arguments.begin();

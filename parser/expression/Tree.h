@@ -5,7 +5,7 @@
 
 #include "scanner/TextRange.h"
 
-#include "tools/meta/Variant.h"
+#include "meta/Variant.h"
 
 #include <vector>
 
@@ -63,11 +63,28 @@ struct IntrinsicInvocation {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
+struct ArgumentReference {
+    using This = ArgumentReference;
+    instance::ArgumentView argument{};
+
+    bool operator==(const This& o) const { return argument == o.argument; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+
 struct VariableReference {
     using This = VariableReference;
     instance::VariableView variable{};
 
     bool operator==(const This& o) const { return variable == o.variable; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+
+struct VariableInit {
+    using This = VariableInit;
+    instance::VariableView variable{};
+    Nodes nodes{};
+
+    bool operator==(const This& o) const { return variable == o.variable && nodes == o.nodes; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
@@ -90,7 +107,15 @@ struct Literal {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-using NodeVariant = meta::Variant<Block, Invocation, IntrinsicInvocation, VariableReference, NamedTuple, Literal>;
+using NodeVariant = meta::Variant<
+    Block,
+    Invocation,
+    IntrinsicInvocation,
+    ArgumentReference,
+    VariableReference,
+    VariableInit,
+    NamedTuple,
+    Literal>;
 
 // note: this type is needed because we cannot forward a using definition
 class Node : public NodeVariant {

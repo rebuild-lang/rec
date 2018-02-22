@@ -1,7 +1,7 @@
 #pragma once
 #include "Argument.h"
 
-#include "instance/TypeOutput.h"
+#include "instance/TypeExpressionOutput.h"
 
 #include "strings/Output.h"
 #include "strings/join.h"
@@ -21,7 +21,7 @@ inline auto operator<<(std::ostream& out, const ArgumentFlags& f) -> std::ostrea
 }
 
 inline auto operator<<(std::ostream& out, const Argument& a) -> std::ostream& {
-    return out << a.name << a.type << ' ' << a.flags;
+    return out << a.typed.name << a.typed.type << ' ' << a.flags;
 }
 
 inline auto operator<<(std::ostream& out, const Arguments& av) -> std::ostream& {

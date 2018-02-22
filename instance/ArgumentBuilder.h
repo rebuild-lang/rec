@@ -15,7 +15,7 @@ struct ArgumentBuilder {
 
     template<size_t N>
     ArgumentBuilder(const char (&name)[N]) {
-        arg.name = Name{name};
+        arg.typed.name = Name{name};
     }
 
     template<size_t N>
@@ -41,11 +41,12 @@ struct ArgumentBuilder {
         return *this;
     }
 
-    auto build(const Scope &scope) && -> Argument {
+    auto build(const Scope& scope) && -> Argument {
         if (!typeName.isEmpty()) {
-            arg.type = &lookupA<Type>(scope, typeName);
+            auto* t = &lookupA<Type>(scope, typeName);
+            arg.typed.type = type::Instance{t};
         }
-        return arg;
+        return std::move(arg);
     }
 };
 

@@ -369,7 +369,7 @@ TEST(intrinsic, adapter) {
     using namespace intrinsic;
     using Adapter = intrinsicAdapter::Adapter;
     auto rebuild = Adapter::moduleInstance<Rebuild>();
-    EXPECT_EQ(rebuild.name, instance::Name{"Rebuild"});
+    EXPECT_EQ(strings::to_string(rebuild.name), strings::String{"Rebuild"});
 }
 
 TEST(intrinsic, invoke) {
@@ -385,9 +385,9 @@ TEST(intrinsic, invoke) {
     ASSERT_TRUE(u64.locals[View{"add"}]->holds<instance::Function>());
     const auto& add = u64.locals[View{"add"}]->get<instance::Function>();
 
-    ASSERT_TRUE(!add.body.nodes.empty());
-    ASSERT_TRUE(add.body.nodes.front().holds<parser::expression::IntrinsicInvocation>());
-    auto& invocation = add.body.nodes.front().get<parser::expression::IntrinsicInvocation>();
+    ASSERT_TRUE(!add.body.block.nodes.empty());
+    ASSERT_TRUE(add.body.block.nodes.front().holds<parser::expression::IntrinsicInvocation>());
+    auto& invocation = add.body.block.nodes.front().get<parser::expression::IntrinsicInvocation>();
 
     constexpr auto u64_size = intrinsic::TypeOf<uint64_t>::info().size;
     using Memory = std::array<uint8_t, 3 * u64_size>;

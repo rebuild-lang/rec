@@ -112,7 +112,7 @@ struct Adapter {
             // r.flags = typeFlags(info.flags); // TODO
             a.instanceModule.locals.emplace(std::move(t));
 
-            auto node = a.instanceModule.locals[instance::View{"type"}];
+            auto node = a.instanceModule.locals[instance::Name{"type"}];
             assert(node != nullptr);
             types.map[info.name.data()] = &node->get<instance::Type>();
 
@@ -141,12 +141,12 @@ struct Adapter {
         assert((GenericFunc)f2 == (GenericFunc)F);
         auto info = Info();
         auto r = instance::Function{};
-        r.name = strings::to_string(info.name);
+        r.name = info.name; // strings::to_string(info.name);
         // r.flags = functionFlags(info.flags); // TODO
         r.arguments = instance::Arguments{argument<Args>()...};
 
         auto invoke = &details::Invocation<F, Args...>::invoke;
-        r.body.nodes.emplace_back(parser::expression::IntrinsicInvocation{invoke});
+        r.body.block.nodes.emplace_back(parser::expression::IntrinsicInvocation{invoke});
 
         auto indices = std::make_index_sequence<sizeof...(Args)>{};
         trackArguments<Args...>(r.arguments, indices);
@@ -154,7 +154,7 @@ struct Adapter {
         instanceModule.locals.emplace(std::move(r));
     }
 
-    void moduleName(intrinsic::Name name) { instanceModule.name = strings::to_string(name); }
+    void moduleName(intrinsic::Name name) { instanceModule.name = name; } // strings::to_string(name); }
 
 private:
     struct ArgumentRef {
@@ -182,7 +182,7 @@ private:
                 // TODO: error, unknown type
                 continue;
             }
-            argument->type = typeIt->second;
+            argument->typed.type = instance::type::Instance{typeIt->second};
         }
         // TODO: resolve other types
     }
@@ -198,7 +198,7 @@ private:
         constexpr auto info = TypeOf<T>::info();
 
         auto r = instance::Function{};
-        r.name = strings::to_string(info.name);
+        r.name = info.name; // strings::to_string(info.name);
         // r.flags =;
         r.arguments = typeArguments(&T::eval);
         // r.body =;
@@ -215,8 +215,8 @@ private:
 
     auto typeResultArgument() -> instance::Argument {
         auto r = instance::Argument{};
-        r.name = strings::String{"result"};
-        // r.type = // prosponed "instance::Type"
+        r.typed.name = strings::String{"result"};
+        // r.typed.type = // prosponed "instance::Type"
         r.side = instance::ArgumentSide::result;
         // r.flags |= instance::ArgumentFlag::assignable; // TODO: missing
         return r;
@@ -233,8 +233,8 @@ private:
         using namespace intrinsic;
         constexpr auto info = Argument<T>::info();
         auto r = instance::Argument{};
-        r.name = strings::to_string(info.name);
-        // r.type = // this has to be delayed until all types are known
+        r.typed.name = info.name; // = strings::to_string(info.name);
+        // r.typed.type = // this has to be delayed until all types are known
         r.side = argumentSide(info.side);
         r.flags = argumentFlags(info.flags);
         return r;
@@ -248,6 +248,7 @@ private:
         case ArgumentSide::Result: return instance::ArgumentSide::result;
         }
     }
+
     constexpr auto argumentFlags(intrinsic::ArgumentFlags flags) -> instance::ArgumentFlags {
         using namespace intrinsic;
         auto r = instance::ArgumentFlags{};

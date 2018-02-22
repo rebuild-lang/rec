@@ -14,18 +14,23 @@ struct FunctionBuilder {
 
     template<size_t N>
     FunctionBuilder(const char (&name)[N]) {
-        fun_.name = strings::String(name);
+        fun_.name = Name{name};
     }
 
     template<class... Argument>
-    auto args(Argument &&... argument) && -> This {
+    auto args(Argument&&... argument) && -> This {
         auto x = {(args_.push_back(std::forward<Argument>(argument)), 0)...};
         (void)x;
-        return *this;
+        return std::move(*this);
     }
 
-    auto build(const Scope &scope) && -> Function {
-        for (auto &&a : args_) fun_.arguments.push_back(std::move(a).build(scope));
+    auto rawIntrinsic(void (*f)(uint8_t*)) && -> This {
+        fun_.body.block.nodes.emplace_back(parser::expression::IntrinsicInvocation{f});
+        return std::move(*this);
+    }
+
+    auto build(const Scope& scope) && -> Function {
+        for (auto&& a : args_) fun_.arguments.emplace_back(std::move(a).build(scope));
         return std::move(fun_);
     }
 };

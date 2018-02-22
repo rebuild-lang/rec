@@ -1,10 +1,10 @@
 #pragma once
 #include "meta/Flags.h"
-#include "strings/String.h"
+#include "strings/View.h"
 
 namespace instance {
 
-using Name = strings::String;
+using Name = strings::CompareView;
 struct Module;
 using ModuleView = const Module*;
 

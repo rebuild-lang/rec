@@ -9,7 +9,6 @@ Project {
         Depends { name: "blockToken" }
 
         files: [
-            "LineView.h",
             "Tree.cpp",
             "Tree.h",
             "TreeBuilder.h",
@@ -31,6 +30,7 @@ Project {
         Depends { name: "instance" }
 
         files: [
+            "LineView.h",
             "Parser.cpp",
             "Parser.h",
         ]

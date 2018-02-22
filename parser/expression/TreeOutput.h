@@ -31,7 +31,7 @@ inline auto operator<<(std::ostream& out, const Block& b) -> std::ostream& {
     return out;
 }
 inline auto operator<<(std::ostream& out, const ArgumentAssignment& as) -> std::ostream& {
-    return out << (as.argument ? as.argument->name : Name("<?>")) << " = " << as.values;
+    return out << (as.argument ? as.argument->typed.name : Name("<?>")) << " = " << as.values;
 }
 inline auto operator<<(std::ostream& out, const Invocation& inv) -> std::ostream& {
     out << (inv.function ? inv.function->name : Name("<?>")) << "(";
@@ -39,7 +39,7 @@ inline auto operator<<(std::ostream& out, const Invocation& inv) -> std::ostream
     return out << ")";
 }
 inline auto operator<<(std::ostream& out, const VariableReference& vr) -> std::ostream& {
-    return out << (vr.variable ? vr.variable->name : Name("<?>"));
+    return out << (vr.variable ? vr.variable->typed.name : Name("<?>"));
 }
 inline auto operator<<(std::ostream& out, const Named& n) -> std::ostream& {
     if (n.name.isEmpty()) {

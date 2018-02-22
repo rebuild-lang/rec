@@ -1,5 +1,5 @@
 #pragma once
-#include "Type.h"
+#include "Typed.h"
 
 #include "meta/Flags.h"
 
@@ -12,15 +12,14 @@ enum class VariableFlag {
     run_time = 1 << 3,
 };
 using VariableFlags = meta::Flags<VariableFlag>;
+META_FLAGS_OP(VariableFlags)
 
 struct Variable {
-    Name name;
-    TypeView type{};
+    Typed typed;
     VariableFlag flags{};
 };
+using Variables = std::vector<Variable>;
 
-inline auto nameOf(const Variable& var) -> const Name& { return var.name; }
+inline auto nameOf(const Variable& var) -> const Name& { return nameOf(var.typed); }
 
 } // namespace instance
-
-META_FLAGS_OP(instance::VariableFlags)

@@ -1,5 +1,7 @@
 #pragma once
-#include "Type.h"
+#include "instance/Typed.h"
+
+#include "expression/Tree.h"
 
 #include "meta/Flags.h"
 #include "strings/String.h"
@@ -13,19 +15,20 @@ enum class ArgumentFlag {
     token = 1 << 5, // unparsed token
     expression = 1 << 6, // unevaluated expression
     compile_time = 1 << 7, // compile time result
+    assignable = 1 << 8,
     // …
 };
 using ArgumentFlags = meta::Flags<ArgumentFlag>;
 META_FLAGS_OP(ArgumentFlags)
 
 struct Argument {
-    Name name;
-    TypeView type{};
+    Typed typed;
     ArgumentSide side{};
     ArgumentFlags flags{};
+    parser::expression::Nodes init{};
 };
 using Arguments = std::vector<Argument>;
 
-inline auto nameOf(const Argument& arg) -> const Name& { return arg.name; }
+inline auto nameOf(const Argument& arg) -> const Name& { return nameOf(arg.typed); }
 
 } // namespace instance

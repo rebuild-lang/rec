@@ -6,26 +6,32 @@ namespace instance {
 
 struct Scope {
     using This = Scope;
-    const Scope *parent{};
+
+    const This* parent{};
     LocalScope locals;
 
     Scope() = default;
     ~Scope() = default;
-    explicit Scope(const This *parent)
+    explicit Scope(const This* parent)
         : parent(parent) {}
 
     // move enabled
-    Scope(This &&) = default;
-    auto operator=(This &&) -> This & = default;
+    Scope(This&&) = default;
+    auto operator=(This &&) -> This& = default;
 
-    auto operator[](const View &name) const & -> const Node * {
+    // no copy
+    Scope(const This&) = delete;
+    auto operator=(const This&) -> This& = delete;
+
+public:
+    auto operator[](const Name& name) const& -> const Node* {
         auto node = locals[name];
         if (!node && parent) return (*parent)[name];
         return node;
     }
 
     template<class T, class... Ts>
-    bool emplace(T &&arg, Ts &&... args) & {
+    bool emplace(T&& arg, Ts&&... args) & {
         return locals.emplace(std::forward<T>(arg), std::forward<Ts>(args)...);
     }
 };

@@ -11,6 +11,7 @@ Project {
         "parser",
         "intrinsic",
         "api",
+        "execution",
     ]
 
     AutotestRunner {}
