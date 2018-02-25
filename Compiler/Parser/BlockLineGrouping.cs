@@ -53,7 +53,7 @@ namespace REC.Parser
                 if (!it.MoveNext()) return new BlockLiteral();
                 var blockColumn = 1;
                 if (it.Current.Type == Token.NewLineIndentation
-                    || it.Current.Type == Token.WhiteSpaceSeperator) {
+                    || it.Current.Type == Token.WhiteSpaceSeparator) {
                     // first whitespace is an indentation
                     blockColumn = GetIndent(it);
                     if (!it.MoveNext()) return new BlockLiteral();

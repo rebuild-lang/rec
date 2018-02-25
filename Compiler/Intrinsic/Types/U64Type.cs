@@ -24,7 +24,7 @@ namespace REC.Intrinsic.Types
         }
 
         static void FromNetType(dynamic net, byte[] bytes) {
-            var value = (ulong) net;
+            var value = (ulong)net;
             BitConverter.GetBytes(value).CopyTo(bytes, index: 0);
         }
 

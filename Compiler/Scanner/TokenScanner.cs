@@ -80,7 +80,7 @@ namespace REC.Scanner
         static TokenData ScanWhitespaces(TextInputRange input) {
             input.Extend();
             input.ExtendWhitespaces();
-            return new TokenData {Range = input.Clone(), Type = Token.WhiteSpaceSeperator};
+            return new TokenData {Range = input.Clone(), Type = Token.WhiteSpaceSeparator};
         }
 
         static TokenData ScanNewLine(TextInputRange input) {

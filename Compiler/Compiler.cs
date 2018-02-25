@@ -63,7 +63,7 @@ namespace REC
 
         public void AddCode(string code, string fileName = null, TextPosition position = null) {
             Console.WriteLine("AddCode: " + code);
-            _files.Add(new TextFile{Content = code, Filename = fileName ?? "__Added__"});
+            _files.Add(new TextFile { Content = code, Filename = fileName ?? "__Added__" });
         }
 
         public void AddTextFile(TextFile file) {
@@ -90,8 +90,7 @@ namespace REC
 #else
             var cppFileName = $"{Path.GetTempPath()}{Path.GetFileNameWithoutExtension(fileName)}{Guid.NewGuid()}.cpp";
 #endif
-            using (var writer = File.CreateText(cppFileName))
-            {
+            using (var writer = File.CreateText(cppFileName)) {
                 foreach (var ast in BuildAst()) CppGenerator.Generate(writer, ast);
             }
             RunCppCompiler(cppFileName, fileName);
@@ -99,18 +98,15 @@ namespace REC
 
         #region RunCppCompiler
 
-        static void RunCppCompiler(string sourcePath, string finalPath)
-        {
+        static void RunCppCompiler(string sourcePath, string finalPath) {
             const string shellEnv = @"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64\vcvars64.bat";
             var objPath = Path.ChangeExtension(sourcePath, extension: "obj");
 
-            string Escape(string path)
-            {
+            string Escape(string path) {
                 return $"\"{path}\"";
             }
 
-            var info = new ProcessStartInfo
-            {
+            var info = new ProcessStartInfo {
                 FileName = "cmd.exe",
                 Arguments = string.Join(
                     separator: " ",

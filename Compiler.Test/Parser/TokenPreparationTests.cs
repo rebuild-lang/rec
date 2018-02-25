@@ -31,7 +31,7 @@ namespace REC.Tests.Parser
             TestName = "Filter out starting indented comment")]
         [TestCase(
             new object[] {
-                Token.NewLineIndentation, Token.Comment, Token.WhiteSpaceSeperator, Token.Comment,
+                Token.NewLineIndentation, Token.Comment, Token.WhiteSpaceSeparator, Token.Comment,
                 Token.NewLineIndentation, ""
             },
             new[] {
@@ -48,7 +48,7 @@ namespace REC.Tests.Parser
             TestName = "Filter out final comment")]
         [TestCase(
             new object[] {
-                Token.NewLineIndentation, "", Token.WhiteSpaceSeperator,
+                Token.NewLineIndentation, "", Token.WhiteSpaceSeparator,
             },
             new[] {
                 Token.NewLineIndentation, Token.IdentifierLiteral,
@@ -99,7 +99,7 @@ namespace REC.Tests.Parser
             TestName = "Mutate identifier block start")]
         [TestCase(
             new object[] {
-                "begin", Token.ColonSeparator, Token.WhiteSpaceSeperator, Token.Comment, Token.NewLineIndentation,
+                "begin", Token.ColonSeparator, Token.WhiteSpaceSeparator, Token.Comment, Token.NewLineIndentation,
             },
             new[] {
                 Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
@@ -115,7 +115,7 @@ namespace REC.Tests.Parser
             TestName = "Mutate operator block start")]
         [TestCase(
             new object[] {
-                "begin", Token.ColonSeparator, Token.WhiteSpaceSeperator, Token.Comment, Token.NewLineIndentation,
+                "begin", Token.ColonSeparator, Token.WhiteSpaceSeparator, Token.Comment, Token.NewLineIndentation,
             },
             new[] {
                 Token.NewLineIndentation, Token.IdentifierLiteral, Token.BlockStartIndentation,
@@ -159,7 +159,7 @@ namespace REC.Tests.Parser
 
         [TestCase(
             new object[] {
-                Token.WhiteSpaceSeperator, "left", "none", "right", Token.WhiteSpaceSeperator, "both", Token.WhiteSpaceSeperator
+                Token.WhiteSpaceSeparator, "left", "none", "right", Token.WhiteSpaceSeparator, "both", Token.WhiteSpaceSeparator
             },
             new[] {
                 TestNeighor.Left, TestNeighor.None, TestNeighor.Right, TestNeighor.Both,
@@ -183,7 +183,7 @@ namespace REC.Tests.Parser
             TestName = "Brackets")]
         [TestCase(
             new object[] {
-                Token.WhiteSpaceSeperator, "a", Token.CommaSeparator, "b", Token.WhiteSpaceSeperator,
+                Token.WhiteSpaceSeparator, "a", Token.CommaSeparator, "b", Token.WhiteSpaceSeparator,
             },
             new[] {
                 TestNeighor.Both, TestNeighor.Both
@@ -191,7 +191,7 @@ namespace REC.Tests.Parser
             TestName = "Comma")]
         [TestCase(
             new object[] {
-                Token.WhiteSpaceSeperator, "a", Token.SemicolonSeparator, "b", Token.WhiteSpaceSeperator,
+                Token.WhiteSpaceSeparator, "a", Token.SemicolonSeparator, "b", Token.WhiteSpaceSeparator,
             },
             new[] {
                 TestNeighor.Both, TestNeighor.Both

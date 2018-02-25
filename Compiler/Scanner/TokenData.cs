@@ -2,7 +2,7 @@
 {
     public enum Token
     {
-        WhiteSpaceSeperator,
+        WhiteSpaceSeparator,
         NewLineIndentation,
         BlockStartIndentation, // used later
         BlockEndIndentation, // used later
