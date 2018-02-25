@@ -3,27 +3,35 @@ import qbs
 Project {
     minimumQbsVersion: "1.7.1"
 
-    StaticLibrary {
-        name: "tools"
-        Depends { name: "cpp" }
-        cpp.cxxLanguageVersion: "c++17"
-        cpp.includePaths: ["."]
-
-        files: [
-            "meta/algorithm.h",
-            "meta/optional.h",
-            "meta/overloaded.h",
-            "meta/variant.h",
-            "strings/code_point.h",
-            "strings/rope.h",
-            "strings/utf8_string.h",
-            "strings/utf8_view.h",
-        ]
+    Product {
+        name: "cpp17"
 
         Export {
             Depends { name: "cpp" }
             cpp.cxxLanguageVersion: "c++17"
-            cpp.includePaths: ["."]
+            cpp.cxxFlags: {
+                if (qbs.toolchain.contains('msvc')) return ["/await", "/permissive-"];
+                if (qbs.toolchain.contains('clang')) return ["-fcoroutines-ts"];
+            }
+            cpp.cxxStandardLibrary: {
+                if (qbs.toolchain.contains('clang')) return "libc++";
+            }
+            cpp.staticLibraries: {
+                if (qbs.toolchain.contains('clang')) return ["c++", "c++abi"];
+            }
+        }
+    }
+
+    references: [
+        "meta",
+        "strings",
+    ]
+
+    Product {
+        name: "tools"
+        Export {
+            Depends { name: "meta" }
+            Depends { name: "strings" }
         }
     }
 }

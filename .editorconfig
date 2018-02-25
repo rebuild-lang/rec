@@ -1,0 +1,24 @@
+root = true
+
+[*.{h,hpp,hxx,c,cpp,cxx}{,.in}]
+indent_size = 4
+tab_width = 8
+indent_style = spaces
+
+[*{.js,.qml}{,.in}]
+indent_size = 4
+tab_width = 8
+indent_style = spaces
+
+[Makefile]
+indent_size = 8
+tab_width = 8
+indent_style = tabs
+
+[*]
+indent_size = 4
+tab_width = 8
+indent_style = spaces
+insert_final_newline = 1
+trim_trailing_whitespace = 1
+charset = UTF-8

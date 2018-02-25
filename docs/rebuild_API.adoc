@@ -1,0 +1,302 @@
+= Rebuild.API
+:toc:
+
+A compile time API to interact with the Parser & Compiler
+
+== Types
+ 
+=== Basic
+* all are immutable value types
+* access with `rebuild.basic.`
+
+type `bool`::
+  ** `.type.size` = `8`
+  ** `.type.flags` = `compile_time | runtime`
+  ** `.implicitFrom(true) -> bool`
+  ** `.implicitFrom(false) -> bool`
+
+type `u64`::
+  ** `.type.size` = `8`
+  ** `.type.flags` = `compile_time | runtime`
+  ** `.implicitFrom(:NumberLiteral) -> :u64`
+  ** `.add(:u64) -> :u64`
+  ** `.sub(:u64) -> :u64`
+  ** `.mul(:u64) -> :u64`
+  ** `.div(:u64) -> :u64`
+  ** `.cmp(:u64) -> :enum(less, equal, greater)`
+
+type `f64`::
+  ** `.type.size` = `8`
+  ** `.type.flags` = `compile_time | runtime`
+  ** `.implicitFrom(NumberLiteral) -> :f64`
+  ** `.from(:u64) -> :f64`
+  ** `.add / sub / mul / div`
+  ** `.cmp(:f64, epsilon :f64 = ())`
+
+type `str`::
+  ** `.type.size` = `0`
+  ** `.type.flags` = `compile_time`
+  ** `.implicitFrom(:StringLiteral) -> :str`
+  ** `.length() -> :u64`
+  ** `.at(:u64) -> :u64`
+  ** `.append(*a :str) -> :str`
+
+type `rope`::
+  ** `.type.size` = `0`
+  ** `.type.flags` = `compile_time`
+  ** `.length() -> :u64`
+  ** `.at(:u64) -> :u64`
+
+type `flags(*f :IdentifierLiteral)`::
+  ** `.type.size` = `8`
+  ** `.type.flags` = `compile_time | runtime`
+  ** `.from(*:IdentifierLiteral)`
+  ** `.has(:IdentifierLiteral) -> :bool`
+  ** `.when(:IdentifierLiteral, b :Block)`
+  ** `.set(*:IdentifierLiteral) -> :flags`
+  ** `.clear(*:IdentifierLiteral) -> :flags`
+
+type `enum(*f :IdentifierLiteral)`::
+  ** `.type.size` = `8`
+  ** `.type.flags` = `compile_time | runtime`
+  ** `.implicitFrom(:IdentifierLiteral) -> :enum`
+  ** `.equal(:enum) -> :bool`
+
+type `variant(*v :Type)`::
+  ** `.type.size` = `0`
+  ** `.type.flags` = `compile_time`
+  ** `.is(:Type) -> :bool`
+  ** `.as(E:Type) -> :*E`
+
+type `list(E:Type)`::
+  ** `.type.size` = `0`
+  ** `.type.flags` = `compile_time`
+  ** `.element_type` = `E`
+  ** `.length() -> :u64`
+  ** `.at(index:u64) -> :*E`
+  ** `.append(*:Type) -> :list`
+  ** `.replace(index:u64, :Type) -> :list`
+  ** `.remove(index:u64) -> :list`
+
+type `map(K:Type, E:Type)`::
+  ** `.type.size` = `0`
+  ** `.type.flags` = `compile_time`
+  ** `.key_type` = `K`
+  ** `.element_type` = `E`
+  ** `.length() -> :u64`
+  ** `.at(:K) -> :*E`
+  ** `.insert(:K, :E) -> :map`
+  ** `.replace(:K, :E) -> :map`
+  ** `.remove(:K) -> :map`
+
+=== Literal
+* all comile time only
+* access with `rebuild.literal.`
+
+type `Identifier`::
+  ** `.Text :rope`
+
+type `Operator`::
+  ** `.Text :rope`
+
+type `Number`::
+  ** `.Radix :u64`
+  ** `.IntegerPart :rope`
+  ** `.FractionPart :rope`
+  ** `.ExponentSign :enum(plus, minus)`
+  ** `.ExponentPart :rope`
+  ** `.ToUnsigned(8) -> :u64`
+  ** _TODO_ more conversions
+
+type `String`::
+  ** `.Text :rope`
+
+type `Block`::
+  ** _MAYBE_ `.Tokens` _(opaque for now)_
+
+
+=== Expression
+* all compile time only
+* these types trigger different parsers
+* access with `rebuild.parser.`
+
+type `Literal`::
+  ** = `variant(literal.Identifier, literal.Operator, literal.Number, literal.String, literal.Block)`
+  ** parses any type of literal
+
+type `Expression`::
+  ** = `variant(Void, Literal, NamedTuple, Invocation, Reference, Block)`
+  ** single expression parser
+
+type `Named`::
+  ** parser: `(<id>=)? <expression>`
+  ** `.name :str`
+  ** `.expression :Expression`
+
+type `NamedTuple`::
+  ** parser: `'(' (<named>)* ')' | (<named>)*`
+  ** `.tuple :list(Named)`
+
+type `ArgumentAssignment`::
+  ** ! no parser (only part of invocation)
+  ** `.argument :*instance.Argument`
+  ** `.values :list(Expression)` _a value for each splat instance_
+
+type `Invocation`::
+  ** parser: limited single expression
+  ** `.function :*instance.Function`
+  ** `.arguments :list(ArgumentAssignment)`
+
+type `Reference`::
+  ** = `variant(*instance.Variable, *instance.Module, *instance.Type)`
+  ** parser: limited single expression
+
+type `Block`::
+  ** parser: limited single expression
+  ** `.expressions :list(Expression)`
+  ** `.instances :LocalScope`
+
+
+=== Declaration
+* all compile time only
+* used only for parsing
+* access with `rebuild.decl.`
+
+type `LeftArguments`::
+  ** single argument decl or braces required
+  ** no special parsers allowed
+  ** `.arguments :list(instance.Argument)`
+
+type `RightArguments`::
+  ** optional braces
+  ** `.arguments :list(instance.Argument)`
+
+type `Results`::
+  ** optional braces
+  ** default writable
+  ** `.arguments :list(instance.Argument)`
+
+type `FunctionFlags`::
+  ** parser: `'&'?`
+  ** no values
+
+type `Variable`::
+  ** parses: `<id> (':' <Type>)? ('=' <Expression>)?`
+  ** `.Name :str`
+  ** `.Flags :flags()`
+  ** `.Type :Type = ()`
+  ** `.Initialisation :parser.Expression = ()`
+
+type `Id(id:Identifier)`::
+  ** parser: `{id}`
+  ** no values
+
+
+=== Instance
+* all compile time only
+* access with `rebuild.instance.`
+
+type `Module`::
+  `.name :str`
+  `.parent :variant(*Module, *Type, *Function)`
+  `.flags :flags(compile_time, final)`
+  `.block :Block`
+
+type `Type`::
+  ** `.name :str`
+  ** `.parent :variant(*Module, *Type, *Function)`
+  ** `.flags :flags(compile_time, run_time)`
+  ** `.size :u64`
+  ** `.construct :FunctionOverloads`
+  ** `.destruct :Function?`
+  ** `.implicitFrom :FunctionOverloads`
+  ** `.instances :LocalScope`
+  ** _TODO_ `.identifiers :map(str, Instance)`
+
+type `FunctionOverloads`::
+  ** `.name :str`
+  ** `.overloads :list(Function)`
+
+type `Function`::
+  ** `.name :str`
+  ** `.parent :variant(*Module, *Type, *Function)`
+  ** `.flags :flags(compile_time, run_time, var_args)`
+  ** `.arguments :list(Argument)`
+  ** `.leftArguments :list(*Argument)`
+  ** `.rightArguments :list(*Argument)`
+  ** `.results :list(*Argument)`
+  ** _TODO_ `.precedenceLevel :*Level = ()`
+  ** `.implementation :parser.Block`
+
+type `Variable`::
+  ** `.name :str`
+  ** `.parent :variant(*Module, *Type, *Function)`
+  ** `.flags :flags(mutable, alias, compile_time, run_time)`
+  ** `.type :*Type`
+  ** `.initialisation :Expression?`
+
+type `Argument`::
+  ** `.name :str`
+  ** `.function :*Function`
+  ** `.flags :flags()`
+  ** `.type :*Type`
+  ** `.initialisation :list(Expression)`
+
+
+
+=== Parser Context
+* access with `rebuild.`
+
+type `Context`::
+  ** `.scope :Scope # instances`
+  ** _TODO_ `.stack :Stack # compile time variables`
+  ** `.declareFunction(leftArgs, name, rightArgs, results, body, flags = None, context = CurrentContext)`
+  ** `.declareVariable(varDecl, context = CurrentContext)`
+  ** `.declareModule(…)`
+  ** `.declareType()`
+
+type `Scope`::
+  ** `.parent :*Scope`
+  ** `.owner :variant(*instance.Module, *instance.Type, *instance.Function, *instance.Variable)`
+  ** `.local :LocalScope`
+
+type `LocalScope`::
+  ** `.identifiers :map(str, Instance)`
+
+`context : Context`::
+  ** current local parsing context
+
+`caller : Context`::
+  ** context of the current function invocation
+
+== Examples
+
+.declare `fn`
+[source,ruby]
+----
+rebuild.context.declareFunction(
+  (),                                          # no left arguments
+  "fn",                                        # name
+  (leftArgs : rebuild.decl.LeftArguments,      # right arguments
+   flags : rebuild.decl.FunctionFlags,
+   name : rebuild.literal.Identifier,
+   rightArgs : rebuild.decl.RightArguments,
+   result : rebuild.decl.Results = (),
+   body : rebuild.literal.Block),
+  (),                                          # no results
+  flags = CompileTime):                        # run `fn` at compile time
+
+  rebuild.caller.declareFunction
+    leftArgs, name, rightArgs, result, flags, body
+end
+----
+
+.use `fn` to declare `let`
+[source, ruby]
+----
+fn &let (varDecls : $n of VariableDecl):
+  varDecls.each varDecl:
+    rebuild.caller.declareVariable varDecl
+  end
+end
+----

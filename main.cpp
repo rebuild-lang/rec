@@ -1,10 +1,10 @@
-#include "tokenizer.h"
+#include "scanner/Tokenizer.h"
 
 //#include <iostream>
 
 int main() {
-    auto f = scanner::file_t{ strings::utf8_string{"TestFile"}, strings::utf8_string{"TestContent"} };
-    auto d = scanner::tokenizer(scanner::tokenizer::config{scanner::column_t{8}});
+    auto f = scanner::File{strings::String{"TestFile"}, strings::String{"TestContent"}};
+    auto d = scanner::Tokenizer(scanner::Tokenizer::Config{scanner::Column{8}});
 
-    //std::cout << "Example = " << d.example() << '\n';
+    // std::cout << "Example = " << d.example() << '\n';
 }
