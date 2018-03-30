@@ -50,7 +50,7 @@ TEST_P(BlockTransformations, BlockParser) {
         }
     }();
 
-    auto blk = block::Parser::parse(input);
+    auto blk = block::Parser::parse(std::move(input));
 
     ASSERT_EQ(blk, data.expected);
 }
