@@ -16,30 +16,30 @@ using ScannerTokens = std::vector<ScannerToken>;
 using FilterTokens = std::vector<Token>;
 
 struct TokensTransformData {
-    const char *name{};
+    const char* name{};
     ScannerTokens input{};
     FilterTokens expected{};
 
-    TokensTransformData(const char *name)
+    TokensTransformData(const char* name)
         : name{name} {}
 
     template<class... Tok>
-    auto in(Tok &&... tok) && -> TokensTransformData {
+    auto in(Tok&&... tok) && -> TokensTransformData {
         input = scanner::buildTokens(std::forward<Tok>(tok)...);
         return *this;
     }
     template<class... Tok>
-    auto out(Tok &&... tok) && -> TokensTransformData {
+    auto out(Tok&&... tok) && -> TokensTransformData {
         expected = filter::buildTokens(std::forward<Tok>(tok)...);
         return *this;
     }
 };
-static auto operator<<(std::ostream &out, const TokensTransformData &ttd) -> std::ostream & {
+static auto operator<<(std::ostream& out, const TokensTransformData& ttd) -> std::ostream& {
     out << "name: " << ttd.name << "\n";
     out << "input:\n";
-    for (auto &t : ttd.input) out << t << '\n';
+    for (auto& t : ttd.input) out << t << '\n';
     out << "expected:\n";
-    for (auto &t : ttd.expected) out << t << '\n';
+    for (auto& t : ttd.expected) out << t << '\n';
     return out;
 }
 
@@ -48,17 +48,17 @@ class TokenTransformations : public testing::TestWithParam<TokensTransformData> 
 TEST_P(TokenTransformations, FilterParser) {
     TokensTransformData data = GetParam();
     auto input = [&]() -> meta::CoEnumerator<ScannerToken> {
-        for (const auto &t : data.input) {
+        for (const auto& t : data.input) {
             co_yield t;
         }
     }();
 
     auto tokGen = filter::Parser::parse(std::move(input));
 
-    for (const auto &et : data.expected) {
+    for (const auto& et : data.expected) {
         tokGen++;
         ASSERT_TRUE(static_cast<bool>(tokGen));
-        const auto &tok = *tokGen;
+        const auto& tok = *tokGen;
         ASSERT_EQ(tok.data, et.data);
     }
 }

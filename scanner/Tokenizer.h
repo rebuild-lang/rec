@@ -2,8 +2,10 @@
 
 #include "meta/CoEnumerator.h"
 
+#include "CommentScanner.h"
 #include "FileInput.h"
 #include "NumberScanner.h"
+#include "StringScanner.h"
 #include "Token.h"
 
 namespace scanner {
@@ -15,7 +17,7 @@ struct Tokenizer {
     Tokenizer(Config c)
         : config(c) {}
 
-    auto scanFile(const File &file) -> meta::CoEnumerator<Token> {
+    auto scanFile(const File& file) -> meta::CoEnumerator<Token> {
         auto input = FileInput(file);
         while (true) {
             input.collapse();
@@ -26,20 +28,29 @@ struct Tokenizer {
                 continue;
             }
             const auto chr = optCp.value();
-            if (chr.isWhiteSpace()) co_yield scanWhiteSpace(input);
-            if (chr.isLineSeparator()) co_yield scanNewLine(chr, input);
-            if (chr.isDecimalNumber()) co_yield scanNumberLiteral(chr, input);
-            // switch (chr.v) {
-            // case '"': co_yield scanStringLiteral(input);
-            // case '#': co_yield scanComment(input);
-            // case ':': co_yield scanChar<ColonSeparator>(input);
-            // case ',': co_yield scanChar<CommaSeparator>(input);
-            // case ';': co_yield scanChar<SemicolonSeparator>(input);
-            // case '[': co_yield scanChar<SquareBracketOpen>(input);
-            // case ']': co_yield scanChar<SquareBracketClose>(input);
-            // case '(': co_yield scanChar<BracketOpen>(input);
-            // case ')': co_yield scanChar<BracketClose>(input);
-            //}
+            if (chr.isWhiteSpace()) {
+                co_yield scanWhiteSpace(input);
+                continue;
+            }
+            if (chr.isLineSeparator()) {
+                co_yield scanNewLine(chr, input);
+                continue;
+            }
+            if (chr.isDecimalNumber()) {
+                co_yield scanNumberLiteral(chr, input);
+                continue;
+            }
+            switch (chr.v) {
+            case '"': co_yield scanStringLiteral(input); continue;
+            case '#': co_yield scanComment(input); continue;
+            case ':': co_yield scanChar<ColonSeparator>(input); continue;
+            case ',': co_yield scanChar<CommaSeparator>(input); continue;
+            case ';': co_yield scanChar<SemicolonSeparator>(input); continue;
+            case '[': co_yield scanChar<SquareBracketOpen>(input); continue;
+            case ']': co_yield scanChar<SquareBracketClose>(input); continue;
+            case '(': co_yield scanChar<BracketOpen>(input); continue;
+            case ')': co_yield scanChar<BracketClose>(input); continue;
+            }
             // auto identToken = scanIdentifier(input);
             // if (identToken) co_yield identToken.value();
             // auto operatorToken = scanOperator(input);
@@ -50,20 +61,28 @@ struct Tokenizer {
     }
 
 private:
-    static auto scanNumberLiteral(CodePoint chr, FileInput &input) -> Token { return NumberScanner::scan(chr, input); }
+    static auto scanNumberLiteral(CodePoint chr, FileInput& input) -> Token { return NumberScanner::scan(chr, input); }
+    static auto scanStringLiteral(FileInput& input) -> Token { return StringScanner::scan(input); }
 
-    static auto scanInvalidEncoding(FileInput &input) -> Token {
+    auto scanComment(FileInput& input) -> Token { return CommentScanner::scan(input, config.tabStops); }
+
+    template<class Literal>
+    static auto scanChar(FileInput& input) -> Token {
+        return {input.range(), Literal{}};
+    }
+
+    static auto scanInvalidEncoding(FileInput& input) -> Token {
         // invalid bytes were already skipped
         return {input.range(), InvalidEncoding{}};
     }
 
-    auto scanWhiteSpace(FileInput &input) const -> Token {
+    auto scanWhiteSpace(FileInput& input) const -> Token {
         input.extend(config.tabStops);
         input.extendWhiteSpaces(config.tabStops);
         return {input.range(), WhiteSpaceSeparator{}};
     }
 
-    auto scanNewLine(CodePoint chr, FileInput &input) const -> Token {
+    auto scanNewLine(CodePoint chr, FileInput& input) const -> Token {
         input.skip();
         // skip 2nd char of newline pair
         if (chr == '\n' || chr == '\r') {
@@ -76,7 +95,7 @@ private:
         return {input.range(), NewLineIndentation{}};
     }
 
-    static auto scanInvalid(FileInput &input) -> Token {
+    static auto scanInvalid(FileInput& input) -> Token {
         input.extend();
         return {input.range(), UnexpectedCharacter{}};
     }

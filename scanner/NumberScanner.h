@@ -7,7 +7,7 @@ namespace scanner {
 
 struct NumberScanner {
 
-    static auto scan(CodePoint chr, FileInput &input) -> Token {
+    static auto scan(CodePoint chr, FileInput& input) -> Token {
         if (chr == '0') {
             auto optNext = input.peek<1>();
             if (optNext) {
@@ -26,7 +26,7 @@ struct NumberScanner {
 
 private:
     template<class Pred>
-    static auto extendWhile(FileInput &input, Pred pred) -> OptCodePoint {
+    static auto extendWhile(FileInput& input, Pred pred) -> OptCodePoint {
         while (true) {
             input.extend();
             auto chr = input.peek();
@@ -36,7 +36,7 @@ private:
     }
 
     template<class IsDigit, class IsExponent>
-    static auto scanWithRadix(FileInput &input, Radix radix, IsDigit isDigit, IsExponent isExponent) -> Token {
+    static auto scanWithRadix(FileInput& input, Radix radix, IsDigit isDigit, IsExponent isExponent) -> Token {
         auto literal = NumberLiteral{};
         literal.radix = radix;
 
@@ -45,7 +45,7 @@ private:
         if (intZero) {
             chr = extendWhile(input, isZeroOrIgnored);
         }
-        auto scanDigitsInto = [&](Rope &into) {
+        auto scanDigitsInto = [&](Rope& into) {
             auto it = input.current();
             while (chr.map(isDigit)) {
                 input.extend();

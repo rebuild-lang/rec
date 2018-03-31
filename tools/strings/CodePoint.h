@@ -251,7 +251,7 @@ struct CodePoint {
     }
 
     template<class Out>
-    void utf8_encode(Out &out) const {
+    void utf8_encode(Out& out) const {
         // see https://en.wikipedia.org/wiki/UTF-8
         if (v < 0x80) {
             out.push_back(v & 0x7F);

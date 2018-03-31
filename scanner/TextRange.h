@@ -20,13 +20,13 @@ struct Line {
     constexpr explicit Line(uint32_t x)
         : v(x) {}
 
-    constexpr Line &operator++() noexcept {
+    constexpr Line& operator++() noexcept {
         v++;
         return *this;
     }
 
-    constexpr bool operator==(const Line &o) const { return v == o.v; }
-    constexpr bool operator!=(const Line &o) const { return v != o.v; }
+    constexpr bool operator==(const Line& o) const { return v == o.v; }
+    constexpr bool operator!=(const Line& o) const { return v != o.v; }
 };
 
 struct Column {
@@ -36,18 +36,18 @@ struct Column {
     constexpr explicit Column(uint32_t x)
         : v(x) {}
 
-    constexpr Column &operator++() noexcept {
+    constexpr Column& operator++() noexcept {
         v++;
         return *this;
     }
 
-    constexpr bool operator==(const Column &o) const { return v == o.v; }
-    constexpr bool operator!=(const Column &o) const { return v != o.v; }
+    constexpr bool operator==(const Column& o) const { return v == o.v; }
+    constexpr bool operator!=(const Column& o) const { return v != o.v; }
 
-    constexpr bool operator<(const Column &o) const { return v < o.v; }
-    constexpr bool operator>(const Column &o) const { return v > o.v; }
-    constexpr bool operator>=(const Column &o) const { return v >= o.v; }
-    constexpr bool operator<=(const Column &o) const { return v <= o.v; }
+    constexpr bool operator<(const Column& o) const { return v < o.v; }
+    constexpr bool operator>(const Column& o) const { return v > o.v; }
+    constexpr bool operator>=(const Column& o) const { return v >= o.v; }
+    constexpr bool operator<=(const Column& o) const { return v <= o.v; }
 };
 
 struct Position {
@@ -55,26 +55,28 @@ struct Position {
     Column column{};
 
     constexpr void nextColumn() noexcept { ++column; }
-    constexpr void nextTabstop(Column tabstop) noexcept { column.v += tabstop.v - (column.v % tabstop.v); }
+    constexpr void nextTabstop(Column tabstop) noexcept { //
+        column.v += tabstop.v - ((column.v - 1) % tabstop.v);
+    }
     constexpr void nextLine() noexcept {
         ++line;
         column = {};
     }
 
-    constexpr bool operator==(const Position &o) const { return line == o.line && column == o.column; }
-    constexpr bool operator!=(const Position &o) const { return !(*this == o); }
+    constexpr bool operator==(const Position& o) const { return line == o.line && column == o.column; }
+    constexpr bool operator!=(const Position& o) const { return !(*this == o); }
 };
 
 struct TextRange {
-    const File *file{};
+    const File* file{};
     View text{};
     Position begin{};
     Position end{};
 
-    bool operator==(const TextRange &o) const {
+    bool operator==(const TextRange& o) const {
         return file == o.file && text.isContentEqual(o.text) && begin == o.begin && end == o.end;
     }
-    bool operator!=(const TextRange &o) const { return !(*this == o); }
+    bool operator!=(const TextRange& o) const { return !(*this == o); }
 };
 
 } // namespace scanner

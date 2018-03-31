@@ -43,9 +43,8 @@ struct CoEnumerator {
 
 #if !defined(__cpp_coroutines) && !defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
 #    pragma message("Warning: Lacking Coroutine Support!")
-#    define co_yield return
-#    define co_return                                                                                                  \
-        return {}
+#    define co_yield (void)
+#    define co_return (void)
 #endif
 
     ~CoEnumerator() {

@@ -16,59 +16,59 @@ class Optional {
 
 public:
     constexpr Optional() = default;
-    constexpr Optional(const T &t)
+    constexpr Optional(const T& t)
         : m{t} {}
-    constexpr Optional(T &&t)
+    constexpr Optional(T&& t)
         : m(std::move(t)) {}
 
     constexpr operator bool() const { return m.has_value(); }
-    constexpr auto value() const & -> decltype(auto) { return m.value(); }
+    constexpr auto value() const& -> decltype(auto) { return m.value(); }
     constexpr auto value() & -> decltype(auto) { return m.value(); }
     constexpr auto value() && -> decltype(auto) { return std::move(m).value(); }
 
     /// encapsulate the condition
     template<class F>
-    constexpr auto map(F &&f) const & -> decltype(f(value())) {
+    constexpr auto map(F&& f) const& -> decltype(f(value())) {
         if (m.has_value()) return f(value());
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
     }
     template<class F>
-    constexpr auto map(F &&f) && -> decltype(f(std::move(m).value())) {
+    constexpr auto map(F&& f) && -> decltype(f(std::move(m).value())) {
         if (m.has_value()) return f(std::move(m).value());
         if constexpr (!std::is_void_v<decltype(f(std::move(m).value()))>) return {};
     }
 
     /// default values
     template<class D>
-    constexpr auto orValue(D &&d) const & -> decltype(auto) {
+    constexpr auto orValue(D&& d) const& -> decltype(auto) {
         if (m.has_value()) return m.value();
         return std::forward<D>(d);
     }
     template<class D>
-    constexpr auto orValue(D &&d) & -> decltype(auto) {
+    constexpr auto orValue(D&& d) & -> decltype(auto) {
         if (m.has_value()) return m.value();
         return std::forward<D>(d);
     }
     template<class D>
-    constexpr auto orValue(D &&d) && -> decltype(auto) {
+    constexpr auto orValue(D&& d) && -> decltype(auto) {
         if (m.has_value()) return std::move(m).value();
         return std::forward<D>(d);
     }
 
-    constexpr bool operator==(const This &o) const { return m == o.m; }
-    constexpr bool operator!=(const This &o) const { return m != o.m; }
+    constexpr bool operator==(const This& o) const { return m == o.m; }
+    constexpr bool operator!=(const This& o) const { return m != o.m; }
 };
 
 template<class T>
-class Optional<T &> : public Optional<std::reference_wrapper<T>> {
+class Optional<T&> : public Optional<std::reference_wrapper<T>> {
     using This = Optional;
     using Base = Optional<std::reference_wrapper<T>>;
 
 public:
     constexpr Optional() = default;
-    constexpr Optional(const T &t)
+    constexpr Optional(const T& t)
         : Base{std::ref(t)} {}
-    constexpr Optional(const std::reference_wrapper<T> &t)
+    constexpr Optional(const std::reference_wrapper<T>& t)
         : Base{t} {}
 };
 
@@ -86,44 +86,44 @@ class Optional<Packed<InvalidFunc>> {
 
 public:
     constexpr Optional() = default;
-    constexpr Optional(const Data &data)
+    constexpr Optional(const Data& data)
         : data(data) {}
 
     constexpr operator bool() const { return !(data == InvalidFunc{}()); }
-    constexpr auto value() const & -> decltype(auto) { return data; }
+    constexpr auto value() const& -> decltype(auto) { return data; }
     constexpr auto value() && -> decltype(auto) { return std::move(data); }
     constexpr auto value() & -> decltype(auto) { return data; }
 
     /// encapsulate the condition
     template<class F>
-    constexpr auto map(F &&f) const & -> decltype(f(value())) {
+    constexpr auto map(F&& f) const& -> decltype(f(value())) {
         if (*this) return f(value());
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
     }
     template<class F>
-    constexpr auto map(F &&f) const && -> decltype(f(value())) {
+    constexpr auto map(F&& f) const&& -> decltype(f(value())) {
         if (*this) return f(value());
         if constexpr (!std::is_void_v<decltype(f(value()))>) return {};
     }
 
     /// default values
     template<class D>
-    constexpr auto orValue(D &&d) const & -> decltype(auto) {
+    constexpr auto orValue(D&& d) const& -> decltype(auto) {
         if (*this) return value();
         return std::forward<D>(d);
     }
     template<class D>
-    constexpr auto orValue(D &&d) & -> decltype(auto) {
+    constexpr auto orValue(D&& d) & -> decltype(auto) {
         if (*this) return value();
         return std::forward<D>(d);
     }
     template<class D>
-    constexpr auto orValue(D &&d) && -> decltype(std::move(*this).value()) {
+    constexpr auto orValue(D&& d) && -> decltype(std::move(*this).value()) {
         if (*this) return std::move(*this).value();
         return std::forward<D>(d);
     }
-    constexpr bool operator==(const This &o) const { return data == o.data; }
-    constexpr bool operator!=(const This &o) const { return data != o.data; }
+    constexpr bool operator==(const This& o) const { return data == o.data; }
+    constexpr bool operator!=(const This& o) const { return data != o.data; }
 };
 
 template<class T>

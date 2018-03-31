@@ -8,9 +8,9 @@ using CodePoint = strings::CodePoint;
 using OptCodePoint = strings::OptionalCodePoint;
 
 struct FileInput {
-    using StringIterator = const String::Data *;
+    using StringIterator = const String::Data*;
 
-    FileInput(const File &file)
+    FileInput(const File& file)
         : file(&file)
         , begin_(file.content.data())
         , current_(file.content.data())
@@ -19,8 +19,10 @@ struct FileInput {
         , currentPosition({}) {}
 
     bool hasMorePeek() const { return peek_ != end_(); }
+    bool hasMoreBytes(strings::Count bytes) const { return current_ + bytes.v <= end_(); }
 
-    auto range() const { return TextRange{file, View(begin_, current_), beginPosition, currentPosition}; }
+    auto view() const { return View(begin_, current_); }
+    auto range() const { return TextRange{file, view(), beginPosition, currentPosition}; }
 
     void collapse() {
         begin_ = current_;
@@ -41,6 +43,8 @@ struct FileInput {
         }
         return peekBuffer[index];
     }
+
+    auto currentView(strings::Count bytes) -> View { return View(current_, current_ + bytes.v); }
 
     bool skip();
 
@@ -71,12 +75,14 @@ struct FileInput {
 
     auto current() const -> StringIterator { return current_; }
 
+    void finish() { current_ = end_(); }
+
 private:
     auto end_() const -> StringIterator { return file->content.data() + file->content.byteCount().v; }
     bool fillPeek(size_t count);
 
 private:
-    const File *file{};
+    const File* file{};
     StringIterator begin_{};
     StringIterator current_{};
     StringIterator peek_{};

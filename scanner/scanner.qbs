@@ -36,6 +36,10 @@ Project {
             "NumberLiteral.h",
             "NumberLiteralOutput.cpp",
             "NumberLiteralOutput.h",
+            "StringLiteral.cpp",
+            "StringLiteral.h",
+            "StringLiteralOutput.cpp",
+            "StringLiteralOutput.h",
             "Token.cpp",
             "Token.h",
             "TokenBuilder.h",
@@ -60,10 +64,14 @@ Project {
         Depends { name: "token" }
 
         files: [
+            "CommentScanner.cpp",
+            "CommentScanner.h",
             "FileInput.cpp",
             "FileInput.h",
             "NumberScanner.cpp",
             "NumberScanner.h",
+            "StringScanner.cpp",
+            "StringScanner.h",
             "Tokenizer.cpp",
             "Tokenizer.h",
         ]
@@ -86,7 +94,9 @@ Project {
         googletest.useMain: true
 
         files: [
+            "CommentScannerTest.cpp",
             "NumberScannerTest.cpp",
+            "StringScannerTest.cpp",
             "TokenizerTest.cpp",
         ]
     }

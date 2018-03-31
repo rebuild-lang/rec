@@ -22,13 +22,13 @@ struct Overloaded;
 
 template<class T>
 struct Overloaded<T> : T {
-    Overloaded(T &&t)
+    Overloaded(T&& t)
         : T(std::forward<T>(t)) {}
     using T::operator();
 };
 template<class T, class... Ts>
 struct Overloaded<T, Ts...> : T, Overloaded<Ts...> {
-    Overloaded(T &&t, Ts &&... ts)
+    Overloaded(T&& t, Ts&&... ts)
         : T(std::forward<T>(t))
         , Overloaded<Ts...>(std::forward<Ts>(ts)...) {}
 
@@ -37,7 +37,7 @@ struct Overloaded<T, Ts...> : T, Overloaded<Ts...> {
 };
 
 template<class... Ts>
-auto makeOverloaded(Ts &&... ts) {
+auto makeOverloaded(Ts&&... ts) {
     return Overloaded<Ts...>(std::forward<Ts>(ts)...);
 }
 

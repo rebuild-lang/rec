@@ -78,11 +78,13 @@ public:
     // allows to check for multiple types
     template<class... C>
     bool holds() const {
-        // return std::holds_alternative<C>(m) || ...; // C++17
+        return (std::holds_alternative<C>(m) || ...); // C++17
+        /*
         bool sum = false;
         auto x = {(sum = sum || std::holds_alternative<C>(m), 0)...};
         (void)x;
         return sum;
+        */
     }
 
     class Index {

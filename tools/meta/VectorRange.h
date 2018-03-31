@@ -36,14 +36,14 @@ public:
     VectorRange() = default;
 
     auto front() & -> reference { return *b; }
-    auto front() const & -> const_reference { return *b; }
+    auto front() const& -> const_reference { return *b; }
     auto back() & -> reference { return *(e - 1); }
-    auto back() const & -> const_reference { return *(e - 1); }
+    auto back() const& -> const_reference { return *(e - 1); }
     auto at(size_type pos) & -> reference {
         if (pos >= size()) throw std::out_of_range("index out of range");
         return *(b + pos);
     }
-    auto at(size_type pos) const & -> const_reference { return const_cast<This *>(this)->at(pos); }
+    auto at(size_type pos) const& -> const_reference { return const_cast<This*>(this)->at(pos); }
 
     auto operator[](size_type pos) & noexcept -> reference { return *(b + pos); }
     auto operator[](size_type pos) const & noexcept -> const_reference { return *(b + pos); }
@@ -57,7 +57,7 @@ public:
     auto cend() const & noexcept -> const_iterator { return e; }
 
     auto size() const & noexcept -> size_type { return e - b; }
-    bool empty() const &noexcept { return b == e; }
+    bool empty() const& noexcept { return b == e; }
 };
 
 } // namespace meta

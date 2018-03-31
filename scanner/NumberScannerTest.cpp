@@ -17,7 +17,7 @@ struct NumberData {
     Sign exponentSign;
     String exponentPart;
 };
-static auto operator<<(std::ostream &o, const NumberData &nd) -> std::ostream & {
+static auto operator<<(std::ostream& o, const NumberData& nd) -> std::ostream& {
     return o << nd.input << " => " << nd.content << " @" << nd.endColumn.v << '\n' //
              << "NumberLiteral: " << to_string(nd.radix) << ' ' << nd.integerPart;
 }
@@ -38,7 +38,7 @@ TEST_P(NumberScanners, all) {
     EXPECT_EQ(endPosition, tok.range.end);
 
     ASSERT_TRUE(tok.data.holds<NumberLiteral>());
-    const NumberLiteral &lit = tok.data.get<NumberLiteral>();
+    const auto& lit = tok.data.get<NumberLiteral>();
     EXPECT_EQ(param.radix, lit.radix);
     EXPECT_EQ(param.integerPart, to_string(lit.integerPart));
     EXPECT_EQ(param.fractionalPart, to_string(lit.fractionalPart));
@@ -134,7 +134,7 @@ TEST_P(NumberFailures, all) {
     const auto tok = NumberScanner::scan(input.peek().value(), input);
 
     ASSERT_TRUE(tok.data.holds<NumberLiteral>());
-    const NumberLiteral &lit = tok.data.get<NumberLiteral>();
+    const NumberLiteral& lit = tok.data.get<NumberLiteral>();
     EXPECT_FALSE(lit);
 }
 
