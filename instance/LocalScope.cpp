@@ -4,6 +4,8 @@
 
 namespace instance {
 
+LocalScope::LocalScope() = default;
+
 auto LocalScope::operator[](const Name& name) const& -> const Node* {
     auto it = m.find(name);
     if (it == m.end()) return nullptr;

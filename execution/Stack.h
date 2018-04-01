@@ -10,7 +10,6 @@ using Byte = uint8_t;
  * initially allocated once never invalidates pointers!
  */
 struct Stack {
-
     Stack(size_t total = 1024 * 1024);
 
     struct StackDeleter {

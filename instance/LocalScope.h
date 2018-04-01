@@ -12,9 +12,9 @@ using NodeByName = std::map<Name, Node>;
 
 struct LocalScope {
     using This = LocalScope;
-    NodeByName m{};
+    NodeByName m;
 
-    LocalScope() = default;
+    LocalScope();
     ~LocalScope() = default;
 
     // non copyable

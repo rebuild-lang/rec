@@ -37,7 +37,7 @@ TEST_P(CommentScanners, all) {
 }
 
 INSTANTIATE_TEST_CASE_P( //
-    fields,
+    examples,
     CommentScanners,
     ::testing::Values( //
         CommentData{String{"# line \n"}, // line comment

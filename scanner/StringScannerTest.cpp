@@ -40,7 +40,7 @@ TEST_P(StringScanners, all) {
 }
 
 INSTANTIATE_TEST_CASE_P( //
-    fields,
+    examples,
     StringScanners,
     ::testing::Values( //
         StringData{String{R"("")"}, // empty
