@@ -68,8 +68,12 @@ Project {
             "CommentScanner.h",
             "FileInput.cpp",
             "FileInput.h",
+            "IdentifierScanner.cpp",
+            "IdentifierScanner.h",
             "NumberScanner.cpp",
             "NumberScanner.h",
+            "OperatorScanner.cpp",
+            "OperatorScanner.h",
             "StringScanner.cpp",
             "StringScanner.h",
             "Tokenizer.cpp",
@@ -95,7 +99,9 @@ Project {
 
         files: [
             "CommentScannerTest.cpp",
+            "IdentifierScannerTest.cpp",
             "NumberScannerTest.cpp",
+            "OperatorScannerTest.cpp",
             "StringScannerTest.cpp",
             "TokenizerTest.cpp",
         ]

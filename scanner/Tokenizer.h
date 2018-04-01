@@ -6,6 +6,8 @@
 #include "FileInput.h"
 #include "NumberScanner.h"
 #include "StringScanner.h"
+#include "IdentifierScanner.h"
+#include "OperatorScanner.h"
 #include "Token.h"
 
 namespace scanner {
@@ -51,11 +53,16 @@ struct Tokenizer {
             case '(': co_yield scanChar<BracketOpen>(input); continue;
             case ')': co_yield scanChar<BracketClose>(input); continue;
             }
-            // auto identToken = scanIdentifier(input);
-            // if (identToken) co_yield identToken.value();
-            // auto operatorToken = scanOperator(input);
-            // if (operatorToken) co_yield operatorToken.value();
-
+            auto identToken = scanIdentifier(input);
+            if (identToken) {
+                co_yield identToken.value();
+                continue;
+            }
+            auto operatorToken = scanOperator(input);
+            if (operatorToken) {
+                co_yield operatorToken.value();
+                continue;
+            }
             co_yield scanInvalid(input);
         }
     }
@@ -70,6 +77,9 @@ private:
     static auto scanChar(FileInput& input) -> Token {
         return {input.range(), Literal{}};
     }
+
+    static auto scanIdentifier(FileInput& input) -> OptToken { return IdentifierScanner::scan(input); }
+    static auto scanOperator(FileInput& input) -> OptToken { return OperatorScanner::scan(input); }
 
     static auto scanInvalidEncoding(FileInput& input) -> Token {
         // invalid bytes were already skipped

@@ -16,22 +16,22 @@ struct FileInput {
         , current_(file.content.data())
         , peek_(file.content.data())
         , beginPosition({})
-        , currentPosition({}) {}
+        , currentPosition_({}) {}
 
     bool hasMorePeek() const { return peek_ != end_(); }
     bool hasMoreBytes(strings::Count bytes) const { return current_ + bytes.v <= end_(); }
 
     auto view() const { return View(begin_, current_); }
-    auto range() const { return TextRange{file, view(), beginPosition, currentPosition}; }
+    auto range() const { return TextRange{file, view(), beginPosition, currentPosition_}; }
 
     void collapse() {
         begin_ = current_;
-        beginPosition = currentPosition;
+        beginPosition = currentPosition_;
     }
 
     void rollback() {
         current_ = begin_;
-        currentPosition = beginPosition;
+        currentPosition_ = beginPosition;
         peek_ = current_;
         peekBuffer.clear();
     }
@@ -71,9 +71,15 @@ struct FileInput {
         collapse();
     }
 
-    void nextLine() { currentPosition.nextLine(); }
+    void nextLine() { currentPosition_.nextLine(); }
 
     auto current() const -> StringIterator { return current_; }
+    auto currentPosition() const -> Position { return currentPosition_; }
+
+    void restoreCurrent(StringIterator it, Position position) {
+        current_ = it;
+        currentPosition_ = position;
+    }
 
     void finish() { current_ = end_(); }
 
@@ -87,7 +93,7 @@ private:
     StringIterator current_{};
     StringIterator peek_{};
     Position beginPosition{};
-    Position currentPosition{};
+    Position currentPosition_{};
     std::deque<CodePoint> peekBuffer{};
 };
 

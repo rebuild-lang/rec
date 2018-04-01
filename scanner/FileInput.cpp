@@ -20,9 +20,9 @@ bool FileInput::extend(scanner::Column tabstop) {
     auto view = View(current_, end_());
     return view.pullCodePoint().map([&](auto chr) {
         if (chr == '\t')
-            currentPosition.nextTabstop(tabstop);
+            currentPosition_.nextTabstop(tabstop);
         else
-            currentPosition.nextColumn();
+            currentPosition_.nextColumn();
         if (!peekBuffer.empty()) peekBuffer.pop_front();
         current_ = view.begin();
         return true;

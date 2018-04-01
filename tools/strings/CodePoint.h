@@ -114,6 +114,23 @@ struct CodePoint {
         return false;
     }
 
+    constexpr bool isLetter() const {
+        return ('a' <= v && v <= 'z') //
+            || ('A' <= v && v <= 'Z');
+    }
+
+    bool isSymbolMath() const;
+
+    bool isSymbolCurrency() const;
+
+    bool isSymbolOther() const;
+
+    bool isNumberOther() const;
+
+    bool isPunctuationConnector() const;
+
+    bool isPunctuationOther() const;
+
     constexpr bool isDecimalNumber() const { return decimalNumber(); }
 
     constexpr auto decimalNumber() const -> OptionalDecimal {

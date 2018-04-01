@@ -1,8 +1,9 @@
 #pragma once
 #include "NumberLiteral.h"
 #include "StringLiteral.h"
-
 #include "TextRange.h"
+
+#include "meta/Optional.h"
 
 namespace scanner {
 
@@ -91,5 +92,6 @@ struct Token {
         return data.holds<Ts...>();
     }
 };
+using OptToken = meta::Optional<Token>;
 
 } // namespace scanner
