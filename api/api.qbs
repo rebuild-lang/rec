@@ -10,11 +10,15 @@ Project {
         Depends { name: "cpp" }
         cpp.includePaths: ["..."]
 
-        Depends { name: "intrinsic" }
         Depends { name: "instance" }
+        Depends { name: "intrinsic" }
 
         files: [
             "Basic.cpp",
+            "Context.cpp",
+            "Context.h",
+            "Instance.cpp",
+            "Instance.h",
             "flags.h",
             "list.h",
             "str.h",

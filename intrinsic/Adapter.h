@@ -36,7 +36,12 @@ struct ArgumentAt {
 
 template<class Arg>
 struct ArgumentAt<Arg&> {
-    static auto from(uint8_t* memory) -> Arg& { return *reinterpret_cast<Arg*>(memory); }
+    static auto from(uint8_t* memory) -> Arg& { return **reinterpret_cast<Arg**>(memory); }
+};
+
+template<class Arg>
+struct ArgumentAt<const Arg&> {
+    static auto from(uint8_t* memory) -> Arg& { return **reinterpret_cast<Arg**>(memory); }
 };
 
 #ifdef __clang__
@@ -176,13 +181,17 @@ private:
         : types(*types) {}
 
     void resolveTypes() {
-        for (auto [argument, typeName] : types.arguments) {
+        for (auto[argument, typeName] : types.arguments) {
             auto typeIt = types.map.find(typeName);
             if (typeIt == types.map.end()) {
                 // TODO: error, unknown type
                 continue;
             }
-            argument->typed.type = instance::type::Instance{typeIt->second};
+            argument->typed.type.visit(
+                [&](instance::type::Pointer& p) {
+                    p.target = std::make_shared<instance::type::Expression>(instance::type::Instance{typeIt->second});
+                },
+                [&](auto) { argument->typed.type = instance::type::Instance{typeIt->second}; });
         }
         // TODO: resolve other types
     }
@@ -225,7 +234,7 @@ private:
     template<class... Args, size_t... I>
     auto trackArguments(instance::Arguments& args, std::index_sequence<I...>) {
         using namespace intrinsic;
-        (types.arguments.push_back(ArgumentRef{&args[I], Argument<Args>::info().name.data()}), ...);
+        (types.arguments.push_back(ArgumentRef{&args[I], Argument<Args>::typeInfo().name.data()}), ...);
     }
 
     template<class T>
@@ -233,7 +242,10 @@ private:
         using namespace intrinsic;
         constexpr auto info = Argument<T>::info();
         auto r = instance::Argument{};
-        r.typed.name = info.name; // = strings::to_string(info.name);
+        r.typed.name = info.name;
+        if (info.flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
+            r.typed.type = instance::type::Pointer{};
+        }
         // r.typed.type = // this has to be delayed until all types are known
         r.side = argumentSide(info.side);
         r.flags = argumentFlags(info.flags);
@@ -247,6 +259,7 @@ private:
         case ArgumentSide::Right: return instance::ArgumentSide::right;
         case ArgumentSide::Result: return instance::ArgumentSide::result;
         }
+        return {};
     }
 
     constexpr auto argumentFlags(intrinsic::ArgumentFlags flags) -> instance::ArgumentFlags {

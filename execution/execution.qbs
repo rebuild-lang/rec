@@ -6,10 +6,10 @@ Project {
     StaticLibrary {
         name: "vm"
         Depends { name: "cpp" }
-        Depends { name: "tools" }
-        Depends { name: "instance" }
         cpp.combineCxxSources: true
         cpp.includePaths: [".."]
+
+        Depends { name: "instance" }
 
         files: [
             "Machine.cpp",
@@ -22,26 +22,11 @@ Project {
 
         Export {
             Depends { name: "cpp" }
-            Depends { name: "tools" }
-            Depends { name: "instance" }
             cpp.includePaths: [".."]
+
+            Depends { name: "instance" }
         }
     }
-
-//    StaticLibrary {
-//        name: "expression_converter"
-//        Depends { name: "cpp" }
-//        cpp.combineCxxSources: true
-//        cpp.includePaths: [".."]
-
-//        files: [
-//        ]
-
-//        Export {
-//            Depends { name: "cpp" }
-//            cpp.includePaths: [".."]
-//        }
-//    }
 
     Application {
         name: "execution.tests"

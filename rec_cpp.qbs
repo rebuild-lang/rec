@@ -17,9 +17,14 @@ Project {
     AutotestRunner {}
 
     Application {
+        //multiplexByQbsProperties: ["buildVariants", "profiles"]
+        //qbs.buildVariants: ["debug", "release"]
         name: "rec"
         consoleApplication: true
         Depends { name: "scanner" }
+        Depends { name: "parser" }
+        Depends { name: "intrinsicAdapter" }
+        Depends { name: "api" }
         files: [
             "main.cpp",
         ]

@@ -20,7 +20,7 @@ using ArgumentsRange = meta::VectorRange<const Argument>;
 
 struct Function {
     Name name;
-    FunctionFlag flags;
+    FunctionFlags flags;
     Arguments arguments;
     // PrecedenceLevel level;
     Body body;

@@ -8,6 +8,7 @@ Project {
         Depends { name: "cpp" }
 
         Depends { name: "filterToken" }
+
         files: [
             "Token.cpp",
             "Token.h",

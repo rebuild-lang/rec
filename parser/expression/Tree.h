@@ -88,6 +88,14 @@ struct VariableInit {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
+struct ModuleReference {
+    using This = ModuleReference;
+    instance::ModuleView module{};
+
+    bool operator==(const This& o) const { return module == o.module; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+
 struct NamedTuple {
     using This = NamedTuple;
     NamedVec tuple{};
@@ -114,6 +122,7 @@ using NodeVariant = meta::Variant<
     ArgumentReference,
     VariableReference,
     VariableInit,
+    ModuleReference,
     NamedTuple,
     Literal>;
 
@@ -122,6 +131,7 @@ class Node : public NodeVariant {
     using This = Node;
 
 public:
+    Node() = default;
     META_VARIANT_CONSTRUCT(Node, NodeVariant)
 };
 using OptNode = meta::Optional<Node>;
