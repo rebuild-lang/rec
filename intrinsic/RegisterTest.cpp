@@ -73,6 +73,7 @@ struct TypeOf<uint64_t> {
             auto info = ArgumentInfo{};
             info.name = Name{"literal"};
             info.side = ArgumentSide::Right;
+            info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
@@ -101,10 +102,10 @@ struct TypeOf<uint64_t> {
     static void add(Left l, Right r, Result& res) {
         res.v = l.v + r.v; //
     }
-    static void sub(const Left& l, const Right& r, Result& res) {
+    static void sub(Left l, Right r, Result& res) {
         res.v = l.v - r.v; //
     }
-    static void mul(const Left& l, const Right& r, Result& res) {
+    static void mul(Left l, Right r, Result& res) {
         res.v = l.v * r.v; //
     }
 
@@ -290,6 +291,7 @@ struct TypeOf<instance::Type> {
             auto info = ArgumentInfo{};
             info.name = Name{"this"};
             info.side = ArgumentSide::Left;
+            info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
@@ -390,16 +392,15 @@ TEST(intrinsic, invoke) {
     auto& invocation = add.body.block.nodes.front().get<parser::expression::IntrinsicInvocation>();
 
     constexpr auto u64_size = intrinsic::TypeOf<uint64_t>::info().size;
-    using Memory = std::array<uint8_t, 3 * u64_size>;
+    constexpr auto ptr_size = sizeof(void*);
+    auto result = uint64_t{};
+    using Memory = std::array<uint8_t, 2 * u64_size + ptr_size>;
     auto memory = Memory{};
     reinterpret_cast<uint64_t&>(memory[0]) = 23;
     reinterpret_cast<uint64_t&>(memory[u64_size]) = 42;
-    reinterpret_cast<uint64_t&>(memory[2 * u64_size]) = 0;
-    // auto result = uint64_t{};
-    // reinterpret_cast<uint64_t*&>(memory[2 * u64_size]) = &result;
+    reinterpret_cast<uint64_t*&>(memory[2 * u64_size]) = &result;
 
     invocation.exec(memory.data());
 
-    auto result = reinterpret_cast<uint64_t&>(memory[2 * u64_size]);
     ASSERT_EQ(result, 23u + 42);
 }

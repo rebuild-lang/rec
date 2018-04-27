@@ -20,29 +20,29 @@ using Scope = instance::Scope;
 using BlockLine = block::TokenLine;
 
 struct ExpressionParserData {
-    const char *name{};
+    const char* name{};
     std::shared_ptr<Scope> scope{};
     BlockLine input{};
     Block expected{};
 
-    ExpressionParserData(const char *name)
+    ExpressionParserData(const char* name)
         : name{name}
         , scope{std::make_shared<Scope>()} {}
 
     template<class... Instance>
-    auto ctx(Instance &&... instance) && -> ExpressionParserData {
+    auto ctx(Instance&&... instance) && -> ExpressionParserData {
         instance::buildScope(*scope, std::forward<Instance>(instance)...);
         return std::move(*this);
     }
 
     template<class... Token>
-    auto in(Token &&... token) && -> ExpressionParserData {
+    auto in(Token&&... token) && -> ExpressionParserData {
         input = BlockLine{block::buildToken(std::forward<Token>(token))...};
         return std::move(*this);
     }
 
     template<class... Expr>
-    auto out(Expr &&... expr) && -> ExpressionParserData {
+    auto out(Expr&&... expr) && -> ExpressionParserData {
         expected.nodes.reserve(expected.nodes.size() + sizeof...(Expr));
         auto x = {
             (expected.nodes.emplace_back(expression::buildExpression(*scope, std::forward<Expr>(expr))), 0)... //
@@ -52,7 +52,7 @@ struct ExpressionParserData {
     }
 };
 
-static auto operator<<(std::ostream &out, const ExpressionParserData &epd) -> std::ostream & {
+static auto operator<<(std::ostream& out, const ExpressionParserData& epd) -> std::ostream& {
     out << "name: " << epd.name << "\n";
     out << "input:\n";
     out << epd.input << '\n';
@@ -64,10 +64,10 @@ static auto operator<<(std::ostream &out, const ExpressionParserData &epd) -> st
 class ExpressionParser : public testing::TestWithParam<ExpressionParserData> {};
 
 TEST_P(ExpressionParser, calls) {
-    const ExpressionParserData &data = GetParam();
+    const ExpressionParserData& data = GetParam();
     const auto input = block::BlockLiteral{{data.input}};
-    const auto &scope = data.scope;
-    const auto &expected = data.expected;
+    const auto& scope = data.scope;
+    const auto& expected = data.expected;
 
     auto parsed = expression::Parser::parse(input, *scope);
 
@@ -80,7 +80,7 @@ INSTANTIATE_TEST_CASE_P(
     ::testing::Values( //
         ExpressionParserData("Example") //
             .ctx( //
-                instance::fun("print").args(instance::arg("v").right()) // .type("rebuild.NumberLiteral")
+                instance::fun("print").runtime().args(instance::arg("v").right()) // .type("rebuild.NumberLiteral")
                 )
             .in(block::id("print"), block::num("1"))
             .out(expression::invoke("print").right(arg("v", LiteralVariant(block::num("1"))))) //

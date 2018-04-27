@@ -17,6 +17,16 @@ struct FunctionBuilder {
         fun_.name = Name{name};
     }
 
+    auto runtime() && -> This {
+        fun_.flags |= FunctionFlag::run_time;
+        return std::move(*this);
+    }
+
+    auto compiletime() && -> This {
+        fun_.flags |= FunctionFlag::compile_time;
+        return std::move(*this);
+    }
+
     template<class... Argument>
     auto args(Argument&&... argument) && -> This {
         auto x = {(args_.push_back(std::forward<Argument>(argument)), 0)...};

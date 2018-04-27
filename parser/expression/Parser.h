@@ -3,7 +3,10 @@
 
 #include "LineView.h"
 
+#include "instance/Function.h"
 #include "instance/ScopeLookup.h"
+
+#include "execution/Machine.h"
 
 namespace parser::expression {
 
@@ -118,11 +121,11 @@ private:
             [&](const block::BracketOpen&) {
                 if (result) return ParseOptions::finish_single;
                 auto tuple = parseTuple(it, scope);
-                result = OptNode{std::move(tuple)};
+                result = Node{std::move(tuple)};
                 return ParseOptions::continue_single;
             },
             [&](const block::IdentifierLiteral& id) {
-                const auto& instance = scope[it.current().range.text];
+                const auto& instance = lookupIdentifier(it.current().range.text, result, scope);
                 if (!instance) {
                     if (result) return ParseOptions::finish_single;
                     result = OptNode{Literal{id, it.current().range}};
@@ -152,6 +155,17 @@ private:
             [](const auto&) { return ParseOptions::finish_single; });
     }
 
+    static auto lookupIdentifier(const strings::View& id, OptNode& result, const Scope& scope)
+        -> const instance::Node* {
+
+        if (result.map([](const Node& n) { return n.holds<ModuleReference>(); })) {
+            auto ref = result.value().get<ModuleReference>();
+            result = {};
+            return ref.module->locals[id];
+        }
+        return scope[id];
+    }
+
     static auto parseInstance( //
         OptNode& result,
         const instance::Node& instance,
@@ -166,8 +180,7 @@ private:
             },
             [&](const instance::Argument& arg) {
                 if (result) return ParseOptions::finish_single;
-                (void)arg;
-                // result = OptNode{ArgumentReference{&arg}};
+                result = OptNode{ArgumentReference{&arg}};
                 ++it;
                 return ParseOptions::continue_single;
             },
@@ -305,18 +318,41 @@ private:
             if (completed.size() == 1) {
                 auto& o = completed.front();
                 it = o.it;
-                // TODO: add compile time execution
-                auto inv = Invocation{};
-                inv.function = o.function;
-                // TODO: assign left arguments
-                inv.arguments = o.rightArgs;
-                left = OptNode{{inv}};
+                auto inv = [&] {
+                    auto r = Invocation{};
+                    r.function = o.function;
+                    // TODO: assign left arguments
+                    r.arguments = o.rightArgs;
+                    return r;
+                };
+                left = buildInvocationNode(inv(), scope);
                 return ParseOptions::continue_single;
             }
         }
         if (left) return ParseOptions::finish_single;
         // left = OptNode{FunctionReference{fun}};
         return ParseOptions::continue_single;
+    }
+
+    static auto buildInvocationNode(Invocation&& inv, Scope& scope) -> OptNode {
+        if (inv.function->flags.none(instance::FunctionFlag::run_time)) {
+            // TODOs:
+            // * check arguments - have to be available
+            // * create result arguments
+            //
+            auto compiler = execution::Compiler{};
+            auto context = [&] {
+                auto r = execution::Context{};
+                r.compiler = &compiler;
+                return r;
+            }();
+
+            // * create from caller context
+            // * assign local scope
+            execution::Machine::invoke(inv, context);
+            return {};
+        }
+        return OptNode{{inv}};
     }
 
     static void parseArguments(OverloadSet& os, BlockLineView& it, Scope& scope) {

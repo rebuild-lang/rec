@@ -8,7 +8,7 @@ Project {
         Depends { name: "cpp" }
         cpp.includePaths: [".."]
 
-        Depends { name: "instance" }
+        Depends { name: "tools" }
 
         files: [
             "Argument.h",
@@ -23,7 +23,7 @@ Project {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
-            Depends { name: "instance" }
+            Depends { name: "tools" }
         }
     }
 
@@ -32,6 +32,7 @@ Project {
         Depends { name: "cpp" }
         cpp.includePaths: [".."]
 
+        Depends { name: "instance" }
         Depends { name: "intrinsic" }
 
         files: [
@@ -43,6 +44,7 @@ Project {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
+            Depends { name: "instance" }
             Depends { name: "intrinsic" }
         }
     }

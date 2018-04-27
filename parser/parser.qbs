@@ -16,9 +16,9 @@ Project {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
-            Depends { name: "filter" }
-            Depends { name: "block" }
-            Depends { name: "expression" }
+            Depends { name: "filterParser" }
+            Depends { name: "blockParser" }
+            Depends { name: "expressionParser" }
         }
     }
 }

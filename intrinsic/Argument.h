@@ -10,6 +10,7 @@ namespace intrinsic {
 enum class ArgumentFlag : uint64_t {
     Assignable = 1 << 0,
     Unrolled = 1 << 1,
+    Reference = 1 << 2,
 };
 using ArgumentFlags = meta::Flags<ArgumentFlag>;
 META_FLAGS_OP(ArgumentFlags)
@@ -45,7 +46,8 @@ struct Argument {
     using type = details::NestedType<T>;
     static constexpr auto info() -> ArgumentInfo { return T::info(); }
     static constexpr auto typeInfo() -> TypeInfo { return TypeOf<type>::info(); }
-    static_assert(!info().flags.any(ArgumentFlag::Assignable), "non-reference argument is not assignable");
+    static_assert(info().flags.none(ArgumentFlag::Assignable), "value argument is not assignable");
+    static_assert(info().flags.none(ArgumentFlag::Reference), "value argument is not reference");
 };
 
 template<class T>
@@ -53,7 +55,8 @@ struct Argument<const T&> {
     using type = details::NestedType<T>;
     static constexpr auto info() -> ArgumentInfo { return T::info(); }
     static constexpr auto typeInfo() { return TypeOf<type>::info(); }
-    static_assert(!info().flags.any(ArgumentFlag::Assignable), "const-reference argument is not assignable");
+    static_assert(info().flags.none(ArgumentFlag::Assignable), "const-reference argument is not assignable");
+    static_assert(info().flags.any(ArgumentFlag::Reference), "const-reference uses reference");
 };
 template<class T>
 struct Argument<T&> : T {
@@ -61,6 +64,7 @@ struct Argument<T&> : T {
     static constexpr auto info() -> ArgumentInfo { return T::info(); }
     static constexpr auto typeInfo() { return TypeOf<type>::info(); }
     static_assert(info().flags.any(ArgumentFlag::Assignable), "reference argument has to be assignable");
+    // static_assert(info().flags.any(ArgumentFlag::Reference), "reference uses reference");
 };
 
 } // namespace intrinsic

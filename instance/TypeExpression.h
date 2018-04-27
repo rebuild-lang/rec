@@ -33,7 +33,7 @@ struct Expression : ExpressionVariant {
 public:
     META_VARIANT_CONSTRUCT(Expression, ExpressionVariant)
     Expression()
-        : Expression(Auto{}) {}
+        : ExpressionVariant(Auto{}) {}
 };
 
 } // namespace type
