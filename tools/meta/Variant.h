@@ -18,20 +18,16 @@ class Variant {
 public:
     Variant() = default;
 
-    template<
-        class S,
-        class... A, // 1+ arguments
-        typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, This>> // ensure this does not capture a copy
-        >
-    Variant(S&& s, A&&... a)
-        : m(std::forward<S>(s), std::forward<A>(a)...) {}
+    template<class... A, typename = std::enable_if_t<std::is_constructible_v<Data, A...>>>
+    Variant(A&&... a)
+        : m(std::forward<A>(a)...) {}
 
     // note: templated constructors are not forwarded with using
 #define META_VARIANT_CONSTRUCT(Derived, Variant)                                                                       \
     using Variant::Variant;                                                                                            \
-    template<class S, class... A, typename = std::enable_if_t<!std::is_same_v<std::decay_t<S>, Derived>>>              \
-    Derived(S&& s, A&&... a)                                                                                           \
-        : Variant(std::forward<S>(s), std::forward<A>(a)...) {}
+    template<class... A, typename = std::enable_if_t<std::is_constructible_v<Variant, A...>>>                          \
+    Derived(A&&... a)                                                                                                  \
+        : Variant(std::forward<A>(a)...) {}
 
     bool operator==(const This& o) const { return m == o.m; }
     bool operator!=(const This& o) const { return m != o.m; }
@@ -79,12 +75,6 @@ public:
     template<class... C>
     bool holds() const {
         return (std::holds_alternative<C>(m) || ...); // C++17
-        /*
-        bool sum = false;
-        auto x = {(sum = sum || std::holds_alternative<C>(m), 0)...};
-        (void)x;
-        return sum;
-        */
     }
 
     class Index {
