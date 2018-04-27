@@ -184,8 +184,7 @@ private:
             },
             [&](const instance::Module& mod) {
                 if (result) return ParseOptions::finish_single;
-                (void)mod;
-                // result = OptNode{ModuleReference{&mod}};
+                result = OptNode{ModuleReference{&mod}};
                 ++it;
                 return ParseOptions::continue_single;
             });

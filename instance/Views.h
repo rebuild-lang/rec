@@ -2,6 +2,9 @@
 
 namespace instance {
 
+struct Module;
+using ModuleView = const Module*;
+
 struct Argument;
 using ArgumentView = const Argument*;
 

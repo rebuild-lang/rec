@@ -68,6 +68,7 @@ private:
             [&](const expression::ArgumentReference&) {},
             [&](const expression::VariableReference&) {},
             [&](const expression::VariableInit& var) { initVariable(var, context); },
+            [&](const expression::ModuleReference&) {},
             [&](const expression::NamedTuple& named) { runNamed(named, context); },
             [&](const expression::Literal&) {});
     }
@@ -244,6 +245,7 @@ private:
             [&](const expression::ArgumentReference& arg) { storeValue(arg.argument->typed, context, memory); },
             [&](const expression::VariableReference& var) { storeValue(var.variable->typed, context, memory); },
             [&](const expression::VariableInit&) { assert(false); },
+            [&](const expression::ModuleReference&) {},
             [&](const expression::NamedTuple&) {},
             [&](const expression::Literal& literal) { storeLiteral(literal, memory); });
     }
