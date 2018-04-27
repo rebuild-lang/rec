@@ -12,33 +12,62 @@ using namespace ::std::experimental;
 template<class V>
 struct CoEnumerator {
     using element_type = V;
+    using This = CoEnumerator;
     struct Promise;
     using Handle = std::coroutine_handle<Promise>;
 
     struct Promise {
         V v;
 
-        auto get_return_object() { return CoEnumerator{Handle::from_promise(*this)}; }
+        auto get_return_object() noexcept { return CoEnumerator{Handle::from_promise(*this)}; }
 
-        constexpr static auto initial_suspend() { return std::suspend_always{}; }
-        constexpr static auto final_suspend() { return std::suspend_always{}; }
+        constexpr static auto initial_suspend() noexcept { return std::suspend_always{}; }
+        constexpr static auto final_suspend() noexcept { return std::suspend_always{}; }
 
-        auto yield_value(V value) {
+        auto yield_value(V value) noexcept {
             v = std::move(value);
             return std::suspend_always{};
         }
-        auto return_void() {}
-        auto unhandled_exception() {}
+        auto return_void() noexcept {}
+        auto unhandled_exception() noexcept {}
     };
 
-    const V& operator*() const { return handle.promise().v; }
-    const V* operator->() const { return &handle.promise().v; }
-    V&& move() { return std::move(handle.promise().v); }
+    auto operator*() const noexcept -> const V& { return handle.promise().v; }
+    auto operator-> () const noexcept -> const V* { return &handle.promise().v; }
+    auto move() -> V { return std::move(handle.promise().v); }
 
     operator bool() const { return handle && !handle.done(); }
     bool operator++(int) {
         if (handle) handle.resume();
         return *this;
+    }
+    auto operator++() -> This& {
+        if (handle) handle.resume();
+        return *this;
+    }
+
+    struct End {};
+    static auto end() -> End { return {}; }
+
+    auto begin() {
+        struct Iterator {
+            using iterator_category = std::input_iterator_tag;
+            using difference_type = ptrdiff_t;
+            using value_type = V;
+            using reference = V const&;
+            using pointer = V const*;
+
+            CoEnumerator& gen;
+
+            auto operator*() const -> const V& { return *gen; }
+            auto operator++() -> Iterator& {
+                ++gen;
+                return *this;
+            }
+            bool operator==(End) const { return !gen; }
+            bool operator!=(End) const { return gen; }
+        };
+        return Iterator{++(*this)};
     }
 
 #if !defined(__cpp_coroutines) && !defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
@@ -51,13 +80,13 @@ struct CoEnumerator {
         if (handle) handle.destroy();
     }
     CoEnumerator() = delete;
-    CoEnumerator(const CoEnumerator&) = delete;
-    CoEnumerator(CoEnumerator&& o) noexcept
+    CoEnumerator(const This&) = delete;
+    CoEnumerator(This&& o) noexcept
         : handle(o.handle) {
         o.handle = {};
     }
-    CoEnumerator& operator=(const CoEnumerator&) = delete;
-    CoEnumerator& operator=(CoEnumerator&&) = delete;
+    This& operator=(const This&) = delete;
+    This& operator=(This&&) = delete;
 
 private:
     CoEnumerator(Handle h)
