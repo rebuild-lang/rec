@@ -209,7 +209,7 @@ private:
         auto r = instance::Function{};
         r.name = info.name; // strings::to_string(info.name);
         // r.flags =;
-        r.arguments = typeArguments(&T::eval);
+        r.arguments = typeArguments(&TypeOf<T>::eval);
         // r.body =;
         // call T::eval(…)
         // return Type that stores result & all functions

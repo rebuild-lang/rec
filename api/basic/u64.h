@@ -4,10 +4,16 @@
 
 #include "scanner/NumberLiteral.h"
 
+namespace api {
+
+using U64 = uint64_t;
+
+} // namespace api
+
 namespace intrinsic {
 
 template<>
-struct TypeOf<uint64_t> {
+struct TypeOf<api::U64> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"u64"};
@@ -17,7 +23,7 @@ struct TypeOf<uint64_t> {
     }
 
     struct Result {
-        uint64_t v;
+        api::U64 v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"result"};
@@ -32,6 +38,7 @@ struct TypeOf<uint64_t> {
             auto info = ArgumentInfo{};
             info.name = Name{"literal"};
             info.side = ArgumentSide::Right;
+            info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
@@ -40,7 +47,7 @@ struct TypeOf<uint64_t> {
     }
 
     struct Left {
-        uint64_t v;
+        api::U64 v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"left"};
@@ -49,7 +56,7 @@ struct TypeOf<uint64_t> {
         }
     };
     struct Right {
-        uint64_t v;
+        api::U64 v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"right"};
@@ -57,39 +64,47 @@ struct TypeOf<uint64_t> {
             return info;
         }
     };
-    static void add(const Left& l, const Right& r, Result& res) {
+    static void add(Left l, Right r, Result& res) {
         res.v = l.v + r.v; //
     }
-    static void sub(const Left& l, const Right& r, Result& res) {
+    static void sub(Left l, Right r, Result& res) {
         res.v = l.v - r.v; //
     }
-    static void mul(const Left& l, const Right& r, Result& res) {
+    static void mul(Left l, Right r, Result& res) {
         res.v = l.v * r.v; //
     }
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{".implicitFrom"};
-            info.flags = FunctionFlag::CompileTimeOnly;
-            return info;
-        }>(&implicitFrom);
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{"add"};
-            return info;
-        }>(&add);
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{"sub"};
-            return info;
-        }>(&sub);
-        mod.template function<[] {
-            auto info = FunctionInfo{};
-            info.name = Name{"mul"};
-            return info;
-        }>(&mul);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{".implicitFrom"};
+                info.flags = FunctionFlag::CompileTimeOnly;
+                return info;
+            },
+            asPtr(&implicitFrom)>(&implicitFrom);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{"add"};
+                return info;
+            },
+            asPtr(&add)>(&add);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{"sub"};
+                return info;
+            },
+            asPtr(&sub)>(&sub);
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{"mul"};
+                return info;
+            },
+            asPtr(&mul)>(&mul);
     }
 };
 

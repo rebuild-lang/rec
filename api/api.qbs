@@ -15,14 +15,17 @@ Project {
 
         files: [
             "Basic.cpp",
+            "Basic.h",
             "Context.cpp",
             "Context.h",
             "Instance.cpp",
             "Instance.h",
-            "flags.h",
-            "list.h",
-            "str.h",
-            "u64.h",
+            "Literal.cpp",
+            "Literal.h",
+            "basic/flags.h",
+            "basic/list.h",
+            "basic/str.h",
+            "basic/u64.h",
         ]
 
         Export {

@@ -1,12 +1,13 @@
 #pragma once
+#include "Basic.h"
+#include "Instance.h"
+#include "Literal.h"
+
 #include "intrinsic/Function.h"
 #include "intrinsic/Module.h"
 #include "intrinsic/Type.h"
 
-#include "scanner/StringLiteral.h"
 #include "strings/Output.h"
-
-#include "str.h"
 
 // TODO: tmp
 #include <iostream>
@@ -14,21 +15,6 @@
 namespace intrinsic {
 
 struct Context {};
-
-// TODO: move
-template<>
-struct TypeOf<scanner::StringLiteral> {
-    static constexpr auto info() {
-        auto info = TypeInfo{};
-        info.name = Name{"StringLiteral"};
-        info.size = sizeof(scanner::StringLiteral);
-        info.flags = TypeFlag::CompileTime;
-        return info;
-    }
-
-    template<class Module>
-    static constexpr auto module(Module&) {}
-};
 
 template<>
 struct TypeOf<Context> {
@@ -40,8 +26,41 @@ struct TypeOf<Context> {
         return info;
     }
 
+    struct Label {
+        scanner::Token v;
+        static constexpr auto info() {
+            auto info = ArgumentInfo{};
+            info.name = Name{"label"};
+            info.side = ArgumentSide::Right;
+            info.flags = ArgumentFlag::Reference;
+            return info;
+        }
+    };
+    struct Block {
+        parser::block::BlockLiteral v;
+        static constexpr auto info() {
+            auto info = ArgumentInfo{};
+            info.name = Name{"block"};
+            info.side = ArgumentSide::Right;
+            info.flags = ArgumentFlag::Reference;
+            return info;
+        }
+    };
+    struct ModuleResult {
+        instance::Module* v;
+        static constexpr auto info() {
+            auto info = ArgumentInfo{};
+            info.name = Name{"result"};
+            info.side = ArgumentSide::Result;
+            info.flags = ArgumentFlag::Assignable;
+            return info;
+        }
+    };
+
+    static void declareModule(const Label& label, const Block& block, ModuleResult& res) {}
+
     template<class Module>
-    static constexpr auto module(Module&) {
+    static constexpr auto module(Module& mod) {
         //        mod.template function<
         //            [] {
         //                auto info = FunctionInfo{};
@@ -59,6 +78,15 @@ struct TypeOf<Context> {
         //                return info;
         //            },
         //            asPtr(&declareVariable)>(&declareVariable);
+
+        mod.template function<
+            [] {
+                auto info = FunctionInfo{};
+                info.name = Name{".declareModule"};
+                info.flags = FunctionFlag::CompileTimeOnly;
+                return info;
+            },
+            asPtr(&declareModule)>(&declareModule);
     }
 };
 
@@ -69,7 +97,7 @@ struct Rebuild {
         return info;
     }
 
-    struct Literal {
+    struct SayLiteral {
         scanner::StringLiteral v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
@@ -79,13 +107,17 @@ struct Rebuild {
             return info;
         }
     };
-    static void debugSay(const Literal& literal) {
+    static void debugSay(const SayLiteral& literal) {
         auto text = literal.v.text;
         std::cout << text << '\n';
     }
 
     template<class Module>
     static constexpr auto module(Module& mod) {
+        mod.template module<Basic>();
+        mod.template module<Literal>();
+        mod.template module<Instance>();
+
         mod.template function<
             [] {
                 auto info = FunctionInfo{};
@@ -94,8 +126,6 @@ struct Rebuild {
                 return info;
             },
             asPtr(&debugSay)>(&debugSay);
-
-        mod.template type<scanner::StringLiteral>();
 
         // mod.template type<compiler::Context>();
         // mod.template type<compiler::Scope>();

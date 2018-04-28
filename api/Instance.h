@@ -6,6 +6,9 @@
 #include "instance/Module.h"
 #include "instance/Type.h"
 
+#include "block/Token.h"
+#include "scanner/Token.h"
+
 namespace intrinsic {
 
 template<>

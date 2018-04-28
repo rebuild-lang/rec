@@ -35,7 +35,7 @@ struct TypeOf<api::Flags> {
             auto info = ArgumentInfo{};
             info.name = Name{"ids"};
             info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Unrolled;
+            info.flags = ArgumentFlag::Unrolled | ArgumentFlag::Reference;
             return info;
         }
     };

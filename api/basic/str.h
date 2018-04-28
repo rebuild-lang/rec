@@ -19,7 +19,7 @@ struct TypeOf<api::String> {
         auto info = TypeInfo{};
         info.name = Name{"str"};
         info.size = sizeof(api::String);
-        info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
+        info.flags = TypeFlag::CompileTime; // | TypeFlag::Construct;
         return info;
     }
 
