@@ -15,6 +15,11 @@ using Function = instance::Function;
 using FunctionView = instance::FunctionView;
 using BlockLiteral = parser::block::BlockLiteral;
 
+struct Context {
+    Scope declarations;
+    execution::Context execution;
+};
+
 struct Parser {
     static auto parse(const BlockLiteral& block, const Scope& parentScope) -> Block { //
         auto localScope = Scope{&parentScope};
@@ -186,7 +191,7 @@ private:
             },
             [&](const instance::Function& fun) {
                 ++it;
-                return parseInvocation(result, fun, it, scope);
+                return parseCall(result, fun, it, scope);
             },
             [&](const instance::Type& type) {
                 if (result) return ParseOptions::finish_single;
@@ -304,7 +309,7 @@ private:
         size_t activeCount{};
     };
 
-    static auto parseInvocation( //
+    static auto parseCall( //
         OptNode& left,
         const Function& fun,
         BlockLineView& it,
@@ -319,13 +324,13 @@ private:
                 auto& o = completed.front();
                 it = o.it;
                 auto inv = [&] {
-                    auto r = Invocation{};
+                    auto r = Call{};
                     r.function = o.function;
                     // TODO: assign left arguments
                     r.arguments = o.rightArgs;
                     return r;
                 };
-                left = buildInvocationNode(inv(), scope);
+                left = buildCallNode(inv(), scope);
                 return ParseOptions::continue_single;
             }
         }
@@ -334,8 +339,8 @@ private:
         return ParseOptions::continue_single;
     }
 
-    static auto buildInvocationNode(Invocation&& inv, Scope& scope) -> OptNode {
-        if (inv.function->flags.none(instance::FunctionFlag::run_time)) {
+    static auto buildCallNode(Call&& call, Scope& scope) -> OptNode {
+        if (call.function->flags.none(instance::FunctionFlag::run_time)) {
             // TODOs:
             // * check arguments - have to be available
             // * create result arguments
@@ -349,10 +354,10 @@ private:
 
             // * create from caller context
             // * assign local scope
-            execution::Machine::invoke(inv, context);
+            execution::Machine::runCall(call, context);
             return {};
         }
-        return OptNode{{inv}};
+        return OptNode{{call}};
     }
 
     static void parseArguments(OverloadSet& os, BlockLineView& it, Scope& scope) {

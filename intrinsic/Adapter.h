@@ -49,21 +49,21 @@ template<auto* F, class... Args>
 #else
 template<GenericFunc F, class... Args>
 #endif
-struct Invocation {
+struct Call {
     using Func = void (*)(Args...);
     using Sizes = std::index_sequence<intrinsic::Argument<Args>::typeInfo().size...>;
     using Indices = std::make_index_sequence<sizeof...(Args)>;
 
-    static void invoke(uint8_t* memory) {
+    static void call(uint8_t* memory) {
         constexpr auto sizes = Sizes{};
         constexpr auto indices = Indices{};
         constexpr auto offsets = partialSum(sizes, indices);
-        invokeImpl(memory, offsets);
+        callImpl(memory, offsets);
     }
 
 private:
     template<size_t... Offset>
-    static void invokeImpl(uint8_t* memory, std::index_sequence<Offset...>) {
+    static void callImpl(uint8_t* memory, std::index_sequence<Offset...>) {
         auto f = reinterpret_cast<Func>(F);
         f(argumentAt<Args, Offset>(memory)...);
     }
@@ -150,8 +150,8 @@ struct Adapter {
         // r.flags = functionFlags(info.flags); // TODO
         r.arguments = instance::Arguments{argument<Args>()...};
 
-        auto invoke = &details::Invocation<F, Args...>::invoke;
-        r.body.block.nodes.emplace_back(parser::expression::IntrinsicInvocation{invoke});
+        auto call = &details::Call<F, Args...>::call;
+        r.body.block.nodes.emplace_back(parser::expression::IntrinsicCall{call});
 
         auto indices = std::make_index_sequence<sizeof...(Args)>{};
         trackArguments<Args...>(r.arguments, indices);
@@ -181,7 +181,7 @@ private:
         : types(*types) {}
 
     void resolveTypes() {
-        for (auto[argument, typeName] : types.arguments) {
+        for (auto [argument, typeName] : types.arguments) {
             auto typeIt = types.map.find(typeName);
             if (typeIt == types.map.end()) {
                 // TODO: error, unknown type
@@ -211,7 +211,7 @@ private:
         // r.flags =;
         r.arguments = typeArguments(&T::eval);
         // r.body =;
-        // invoke T::eval(…)
+        // call T::eval(…)
         // return Type that stores result & all functions
 
         instanceModule.locals.emplace(std::move(r));

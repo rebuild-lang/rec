@@ -83,5 +83,5 @@ INSTANTIATE_TEST_CASE_P(
                 instance::fun("print").runtime().args(instance::arg("v").right()) // .type("rebuild.NumberLiteral")
                 )
             .in(block::id("print"), block::num("1"))
-            .out(expression::invoke("print").right(arg("v", LiteralVariant(block::num("1"))))) //
+            .out(expression::call("print").right(arg("v", LiteralVariant(block::num("1"))))) //
         ));

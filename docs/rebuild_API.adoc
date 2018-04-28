@@ -125,7 +125,7 @@ type `Literal`::
   ** parses any type of literal
 
 type `Expression`::
-  ** = `variant(Void, Literal, NamedTuple, Invocation, Reference, Block)`
+  ** = `variant(Void, Literal, NamedTuple, Call, Reference, Block)`
   ** single expression parser
 
 type `Named`::
@@ -138,11 +138,11 @@ type `NamedTuple`::
   ** `.tuple :list(Named)`
 
 type `ArgumentAssignment`::
-  ** ! no parser (only part of invocation)
+  ** ! no parser (only part of call)
   ** `.argument :*instance.Argument`
   ** `.values :list(Expression)` _a value for each splat instance_
 
-type `Invocation`::
+type `Call`::
   ** parser: limited single expression
   ** `.function :*instance.Function`
   ** `.arguments :list(ArgumentAssignment)`
@@ -267,7 +267,7 @@ type `LocalScope`::
   ** current local parsing context
 
 `caller : Context`::
-  ** context of the current function invocation
+  ** context of the current function call
 
 == Examples
 

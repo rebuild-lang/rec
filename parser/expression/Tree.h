@@ -45,8 +45,8 @@ struct ArgumentAssignment {
 };
 using ArgumentAssignments = std::vector<ArgumentAssignment>;
 
-struct Invocation {
-    using This = Invocation;
+struct Call {
+    using This = Call;
     instance::FunctionView function{};
     ArgumentAssignments arguments{};
 
@@ -54,8 +54,8 @@ struct Invocation {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-struct IntrinsicInvocation {
-    using This = IntrinsicInvocation;
+struct IntrinsicCall {
+    using This = IntrinsicCall;
     using Exec = void (*)(uint8_t*);
     Exec exec;
 
@@ -117,8 +117,8 @@ struct Literal {
 
 using NodeVariant = meta::Variant<
     Block,
-    Invocation,
-    IntrinsicInvocation,
+    Call,
+    IntrinsicCall,
     ArgumentReference,
     VariableReference,
     VariableInit,

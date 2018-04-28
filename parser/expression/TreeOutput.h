@@ -33,7 +33,7 @@ inline auto operator<<(std::ostream& out, const Block& b) -> std::ostream& {
 inline auto operator<<(std::ostream& out, const ArgumentAssignment& as) -> std::ostream& {
     return out << (as.argument ? as.argument->typed.name : Name("<?>")) << " = " << as.values;
 }
-inline auto operator<<(std::ostream& out, const Invocation& inv) -> std::ostream& {
+inline auto operator<<(std::ostream& out, const Call& inv) -> std::ostream& {
     out << (inv.function ? inv.function->name : Name("<?>")) << "(";
     strings::join(out, inv.arguments, ", ");
     return out << ")";

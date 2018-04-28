@@ -374,7 +374,7 @@ TEST(intrinsic, adapter) {
     EXPECT_EQ(strings::to_string(rebuild.name), strings::String{"Rebuild"});
 }
 
-TEST(intrinsic, invoke) {
+TEST(intrinsic, call) {
     using namespace intrinsic;
     using View = strings::View;
     using Adapter = intrinsicAdapter::Adapter;
@@ -388,8 +388,8 @@ TEST(intrinsic, invoke) {
     const auto& add = u64.locals[View{"add"}]->get<instance::Function>();
 
     ASSERT_TRUE(!add.body.block.nodes.empty());
-    ASSERT_TRUE(add.body.block.nodes.front().holds<parser::expression::IntrinsicInvocation>());
-    auto& invocation = add.body.block.nodes.front().get<parser::expression::IntrinsicInvocation>();
+    ASSERT_TRUE(add.body.block.nodes.front().holds<parser::expression::IntrinsicCall>());
+    auto& call = add.body.block.nodes.front().get<parser::expression::IntrinsicCall>();
 
     constexpr auto u64_size = intrinsic::TypeOf<uint64_t>::info().size;
     constexpr auto ptr_size = sizeof(void*);
@@ -400,7 +400,7 @@ TEST(intrinsic, invoke) {
     reinterpret_cast<uint64_t&>(memory[u64_size]) = 42;
     reinterpret_cast<uint64_t*&>(memory[2 * u64_size]) = &result;
 
-    invocation.exec(memory.data());
+    call.exec(memory.data());
 
     ASSERT_EQ(result, 23u + 42);
 }

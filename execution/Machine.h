@@ -33,7 +33,7 @@ struct Context {
         return nullptr;
     }
 
-    auto createInvoke() const -> Context {
+    auto createCall() const -> Context {
         auto result = Context{};
         result.compiler = compiler;
         result.caller = this;
@@ -48,23 +48,23 @@ struct Context {
 };
 
 struct Machine {
-    static void invoke(const expression::Invocation& invocation, const Context& context) {
-        auto stackSize = argumentsSize(*invocation.function);
+    static void runCall(const expression::Call& call, const Context& context) {
+        auto stackSize = argumentsSize(*call.function);
         auto stackData = context.compiler->stack.allocate(stackSize);
 
-        auto invokeContext = context.createInvoke();
-        invokeContext.localBase = stackData.get();
-        storeArguments(invocation, invokeContext);
+        auto callContext = context.createCall();
+        callContext.localBase = stackData.get();
+        storeArguments(call, callContext);
 
-        runFunction(*invocation.function, invokeContext);
+        runFunction(*call.function, callContext);
     }
 
 private:
     static void runNode(const expression::Node& node, Context& context) {
         node.visit(
             [&](const expression::Block& block) { runBlock(block, context); },
-            [&](const expression::Invocation& invocation) { invoke(invocation, context); },
-            [&](const expression::IntrinsicInvocation& intrinsic) { runIntrinsic(intrinsic, context); },
+            [&](const expression::Call& call) { runCall(call, context); },
+            [&](const expression::IntrinsicCall& intrinsic) { runIntrinsic(intrinsic, context); },
             [&](const expression::ArgumentReference&) {},
             [&](const expression::VariableReference&) {},
             [&](const expression::VariableInit& var) { initVariable(var, context); },
@@ -95,13 +95,12 @@ private:
         }
     }
 
-    static void runIntrinsic(const expression::IntrinsicInvocation& intrinsic, Context& context) {
+    static void runIntrinsic(const expression::IntrinsicCall& intrinsic, Context& context) {
         Byte* memory = context.parent->localBase; // arguments
         intrinsic.exec(memory);
     }
 
     static void runFunction(const instance::Function& function, Context& context) {
-        // TODO: make space for variables
         runBlock(function.body.block, context);
     }
 
@@ -122,7 +121,6 @@ private:
     }
 
     static auto argumentsSize(const instance::Function& fun) -> size_t {
-        // TODO: this depends on the calling convention
         auto sum = 0u;
         for (auto& a : fun.arguments) {
             sum += argumentSize(a);
@@ -149,43 +147,43 @@ private:
             [](const type::Pointer&) -> size_t { return sizeof(void*); });
     }
 
-    static void storeArguments(const expression::Invocation& inv, Context& context) {
+    static void storeArguments(const expression::Call& call, Context& context) {
         Byte* memory = context.localBase;
-        const auto& fun = *inv.function;
-        // assert(invocation.arguments sufficient & valid)
+        const auto& fun = *call.function;
+        // assert(call.arguments sufficient & valid)
         for (const auto& funArg : fun.arguments) {
             context.locals.insert(&funArg.typed, memory);
-            assignArgument(inv, funArg, context, memory);
+            assignArgument(call, funArg, context, memory);
             memory += argumentSize(funArg);
         }
     }
 
     static void assignArgument(
-        const expression::Invocation& inv, //
-        const instance::Argument& funArg,
+        const expression::Call& call, //
+        const instance::Argument& argument,
         Context& context,
         Byte* memory) {
 
-        auto* assign = findAssign(inv.arguments, funArg);
+        auto* assign = findAssign(call.arguments, argument);
         if (assign != nullptr) {
-            storeArgument(*context.caller, memory, funArg, assign->values);
+            storeArgument(*context.caller, memory, argument, assign->values);
         }
         else {
-            storeArgument(*context.caller, memory, funArg, funArg.init);
+            storeArgument(*context.caller, memory, argument, argument.init);
         }
     }
 
-    static void storeArgumentsAt(const expression::Invocation& inv, Context& context, Byte* result) {
+    static void storeArgumentsAt(const expression::Call& call, Context& context, Byte* result) {
         Byte* memory = context.localBase;
-        const auto& fun = *inv.function;
-        // assert(invocation.arguments sufficient & valid)
+        const auto& fun = *call.function;
+        // assert(call.arguments sufficient & valid)
         for (const auto& funArg : fun.arguments) {
             context.locals.insert(&funArg.typed, memory);
             if (funArg.side == instance::ArgumentSide::result) {
                 storeResultAt(memory, funArg, result);
             }
             else {
-                assignArgument(inv, funArg, context, memory);
+                assignArgument(call, funArg, context, memory);
             }
             memory += argumentSize(funArg);
         }
@@ -240,8 +238,8 @@ private:
     static void storeNode(const expression::Node& node, const Context& context, Byte* memory) {
         node.visit(
             [&](const expression::Block&) { assert(false); },
-            [&](const expression::Invocation& invocation) { storeInvocationResult(invocation, context, memory); },
-            [&](const expression::IntrinsicInvocation&) { assert(false); },
+            [&](const expression::Call& call) { storeCallResult(call, context, memory); },
+            [&](const expression::IntrinsicCall&) { assert(false); },
             [&](const expression::ArgumentReference& arg) { storeValue(arg.argument->typed, context, memory); },
             [&](const expression::VariableReference& var) { storeValue(var.variable->typed, context, memory); },
             [&](const expression::VariableInit&) { assert(false); },
@@ -250,15 +248,15 @@ private:
             [&](const expression::Literal& literal) { storeLiteral(literal, memory); });
     }
 
-    static void storeInvocationResult(const expression::Invocation& invocation, const Context& context, Byte* memory) {
-        auto stackSize = argumentsSize(*invocation.function);
+    static void storeCallResult(const expression::Call& call, const Context& context, Byte* memory) {
+        auto stackSize = argumentsSize(*call.function);
         auto stackData = context.compiler->stack.allocate(stackSize);
 
-        auto invokeContext = context.createInvoke();
-        invokeContext.localBase = stackData.get();
-        storeArgumentsAt(invocation, invokeContext, memory);
+        auto callContext = context.createCall();
+        callContext.localBase = stackData.get();
+        storeArgumentsAt(call, callContext, memory);
 
-        runFunction(*invocation.function, invokeContext);
+        runFunction(*call.function, callContext);
     }
 
     static void storeAddress(const instance::Typed& typed, const Context& context, Byte* memory) {

@@ -18,7 +18,7 @@ namespace block = parser::block;
 struct ExecutionMachineData {
     const char* name{};
     std::shared_ptr<instance::Scope> scope;
-    expression::Invocation invocation;
+    expression::Call call;
     std::shared_ptr<execution::Compiler> compiler;
     std::shared_ptr<execution::Context> context;
 
@@ -47,8 +47,8 @@ struct ExecutionMachineData {
         return std::move(*this);
     }
 
-    auto invoke(expression::details::InvokeBuilder&& invoke) && -> ExecutionMachineData {
-        invocation = std::move(invoke).build(*scope);
+    auto run(expression::details::CallBuilder&& callBuilder) && -> ExecutionMachineData {
+        call = std::move(callBuilder).build(*scope);
         return std::move(*this);
     }
 
@@ -61,7 +61,7 @@ struct ExecutionMachineData {
 static auto operator<<(std::ostream& out, const ExecutionMachineData& emd) -> std::ostream& {
     out << "name: " << emd.name << "\n";
     out << "input:\n";
-    out << emd.invocation << '\n';
+    out << emd.call << '\n';
     out << "expected:\n";
     out << emd.expected << '\n';
     return out;
@@ -69,13 +69,13 @@ static auto operator<<(std::ostream& out, const ExecutionMachineData& emd) -> st
 
 class MachineTests : public testing::TestWithParam<ExecutionMachineData> {};
 
-TEST_P(MachineTests, invoke) {
+TEST_P(MachineTests, call) {
     const ExecutionMachineData& data = GetParam(); //
-    const auto& invocation = data.invocation;
+    const auto& call = data.call;
     const auto& context = *data.context;
 
     ExecutionMachineData::instance = const_cast<ExecutionMachineData*>(&data);
-    execution::Machine::invoke(invocation, context);
+    execution::Machine::runCall(call, context);
 
     EXPECT_EQ(data.expected, data.result);
 }
@@ -90,6 +90,5 @@ INSTANTIATE_TEST_CASE_P(
                 instance::fun("print")
                     .args(instance::arg("v").right().type("Lit"))
                     .rawIntrinsic(&ExecutionMachineData::literal))
-            .invoke(
-                expression::invoke("print").right(expression::arg("v", expression::LiteralVariant{block::num("42")})))
+            .run(expression::call("print").right(expression::arg("v", expression::LiteralVariant{block::num("42")})))
             .expect("42")));

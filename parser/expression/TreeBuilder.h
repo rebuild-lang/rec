@@ -29,15 +29,15 @@ struct ArgumentBuilder {
 };
 using ArgumentBuilders = std::vector<ArgumentBuilder>;
 
-struct InvokeBuilder {
-    using This = InvokeBuilder;
+struct CallBuilder {
+    using This = CallBuilder;
 
     View name{};
     ArgumentBuilders leftBuilder{};
     ArgumentBuilders rightBuilder{};
 
     template<size_t N>
-    InvokeBuilder(const char (&name)[N])
+    CallBuilder(const char (&name)[N])
         : name(name) {}
 
     template<class... Args>
@@ -46,17 +46,17 @@ struct InvokeBuilder {
         return *this;
     }
 
-    auto build(const Scope& scope) && -> Invocation {
-        Invocation invocation;
+    auto build(const Scope& scope) && -> Call {
+        Call call;
         const auto& fun = instance::lookupA<instance::Function>(scope, name);
-        invocation.function = &fun;
-        for (auto&& arg : std::move(leftBuilder)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
-        for (auto&& arg : std::move(rightBuilder)) invocation.arguments.emplace_back(std::move(arg).build(scope, fun));
-        return invocation;
+        call.function = &fun;
+        for (auto&& arg : std::move(leftBuilder)) call.arguments.emplace_back(std::move(arg).build(scope, fun));
+        for (auto&& arg : std::move(rightBuilder)) call.arguments.emplace_back(std::move(arg).build(scope, fun));
+        return call;
     }
 };
 
-using ValueVariant = meta::Variant<LiteralVariant, InvokeBuilder>;
+using ValueVariant = meta::Variant<LiteralVariant, CallBuilder>;
 
 class ValueBuilder : public ValueVariant {
     using This = ValueBuilder;
@@ -69,7 +69,7 @@ public:
             [](LiteralVariant&& lit) -> Node {
                 return Literal{std::move(lit), {}};
             },
-            [&](InvokeBuilder&& inv) -> Node { return std::move(inv).build(scope); } //
+            [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); } //
         );
     }
 };
@@ -80,8 +80,8 @@ struct ExpressionBuilder {
 };
 
 template<>
-struct ExpressionBuilder<InvokeBuilder> {
-    static auto build(const Scope& scope, InvokeBuilder&& inv) -> Node { return std::move(inv).build(scope); }
+struct ExpressionBuilder<CallBuilder> {
+    static auto build(const Scope& scope, CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }
 };
 
 inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -> ArgumentAssignment {
@@ -98,7 +98,7 @@ inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -
 } // namespace details
 
 template<size_t N>
-auto invoke(const char (&name)[N]) -> details::InvokeBuilder {
+auto call(const char (&name)[N]) -> details::CallBuilder {
     return {name};
 }
 
