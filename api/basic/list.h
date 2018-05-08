@@ -65,6 +65,8 @@ struct TypeOf<api::List> {
 
     static void construct(TypeArgument type, Result& res) {
         // TODO
+        (void)type;
+        (void)res;
     }
     static constexpr auto constructInfo() {
         auto info = FunctionInfo{};
@@ -81,6 +83,7 @@ struct TypeOf<api::List> {
 
     template<class Module>
     static void module(Module& mod) {
+        (void)mod;
         // mod.function<Construct>();
         // mod.function<Destruct>();
         // mod.function<Length>();

@@ -232,6 +232,7 @@ private:
     }
 
     static void storeResultAt(Byte* memory, const instance::Argument& arg, Byte* result) {
+        (void)arg;
         reinterpret_cast<void*&>(*memory) = result;
     }
 

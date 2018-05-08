@@ -57,7 +57,11 @@ struct TypeOf<Context> {
         }
     };
 
-    static void declareModule(const Label& label, const Block& block, ModuleResult& res) {}
+    static void declareModule(const Label& label, const Block& block, ModuleResult& res) {
+        (void)label;
+        (void)block;
+        (void)res;
+    }
 
     template<class Module>
     static constexpr auto module(Module& mod) {

@@ -340,6 +340,7 @@ private:
     }
 
     static auto buildCallNode(Call&& call, Scope& scope) -> OptNode {
+        (void)scope;
         if (call.function->flags.none(instance::FunctionFlag::run_time)) {
             // TODOs:
             // * check arguments - have to be available

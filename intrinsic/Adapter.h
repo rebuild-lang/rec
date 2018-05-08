@@ -194,10 +194,12 @@ private:
     template<class T, class R>
     void constructedType(R (*construct)()) {
         // TODO: normal type + construct & destruct functions
+        (void)construct;
     }
 
     template<class T, class R, class Arg>
     void constructedType(R (*construct)(const Arg&)) {
+        (void)construct;
         using namespace intrinsic;
         constexpr auto info = TypeOf<T>::info();
 

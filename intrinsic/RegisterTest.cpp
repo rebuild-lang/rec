@@ -79,6 +79,8 @@ struct TypeOf<uint64_t> {
     };
     static void implicitFrom(const Literal& literal, Result& res) {
         // TODO
+        (void)literal;
+        (void)res;
     }
 
     struct Left {
@@ -150,6 +152,7 @@ struct TypeOf<String> {
 
     template<class Module>
     static void module(Module& mod) {
+        (void)mod;
         // mod.function<ImplicitFromLiteral>();
         // mod.function<Length>();
         // mod.function<At>();
@@ -227,6 +230,8 @@ struct TypeOf<List> {
 
     static void construct(TypeArgument type, Result& res) {
         // TODO
+        (void)type;
+        (void)res;
     }
     static constexpr auto constructInfo() {
         auto info = FunctionInfo{};
@@ -243,6 +248,7 @@ struct TypeOf<List> {
 
     template<class Module>
     static void module(Module& mod) {
+        (void)mod;
         // mod.function<Construct>();
         // mod.function<Destruct>();
         // mod.function<Length>();

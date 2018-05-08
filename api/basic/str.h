@@ -25,6 +25,7 @@ struct TypeOf<api::String> {
 
     template<class Module>
     static void module(Module& mod) {
+        (void)mod;
         // TODO
         // mod.function<ImplicitFromLiteral>();
         // mod.function<Length>();
