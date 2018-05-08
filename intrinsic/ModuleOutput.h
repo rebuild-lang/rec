@@ -39,18 +39,22 @@ struct ModuleOutput {
 
     using FunctionInfoFunc = FunctionInfo (*)();
 
-    template<FunctionInfoFunc Info, auto F, class... Args>
-    void function(void (*func)(Args...)) {
-        assert((GenericFunc)func == (GenericFunc)F);
+    template<auto* F, FunctionInfoFunc Info>
+    void function() {
+        return functionImpl<Info, F>(makeSignature(F));
+    }
+
+private:
+    std::string indent{};
+
+    template<FunctionInfoFunc Info, auto* F, class... Args>
+    void functionImpl(FunctionSignature<void, Args...>) {
         auto info = Info();
         std::cout << indent << "function " << info.name << '\n';
         indent += "  ";
         (argument<Args>(), ...);
         indent.resize(indent.size() - 2);
     }
-
-private:
-    std::string indent{};
 
     template<class T>
     void argument() {

@@ -61,32 +61,28 @@ struct TypeOf<Context> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        //        mod.template function<
+        //        mod.template function<&declareFunction,
         //            [] {
         //                auto info = FunctionInfo{};
         //                info.name = Name{".declareFunction"};
         //                info.flags = FunctionFlag::CompileTimeOnly;
         //                return info;
-        //            },
-        //            asPtr(&declareFunction)>(&declareFunction);
+        //            }>();
 
-        //        mod.template function<
+        //        mod.template function<&declareVariable,
         //            [] {
         //                auto info = FunctionInfo{};
         //                info.name = Name{".declareVariable"};
         //                info.flags = FunctionFlag::CompileTimeOnly;
         //                return info;
-        //            },
-        //            asPtr(&declareVariable)>(&declareVariable);
+        //            }>();
 
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{".declareModule"};
-                info.flags = FunctionFlag::CompileTimeOnly;
-                return info;
-            },
-            asPtr(&declareModule)>(&declareModule);
+        mod.template function<&declareModule, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{".declareModule"};
+            info.flags = FunctionFlag::CompileTimeOnly;
+            return info;
+        }>();
     }
 };
 
@@ -118,27 +114,24 @@ struct Rebuild {
         mod.template module<Literal>();
         mod.template module<Instance>();
 
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{".say"};
-                info.flags = FunctionFlag::CompileTimeOnly;
-                return info;
-            },
-            asPtr(&debugSay)>(&debugSay);
+        mod.template function<&debugSay, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{".say"};
+            info.flags = FunctionFlag::CompileTimeOnly;
+            return info;
+        }>();
 
         // mod.template type<compiler::Context>();
         // mod.template type<compiler::Scope>();
         // mod.template type<compiler::LocalScope>();
 
-        //        mod.template function<
+        //        mod.template function<&currentContext,
         //            [] {
         //                auto info = FunctionInfo{};
         //                info.name = Name{".context"};
         //                info.flags = FunctionFlag::CompileTimeOnly;
         //                return info;
-        //            },
-        //            asPtr(&currentContext)>(&currentContext);
+        //            }>();
     }
 };
 

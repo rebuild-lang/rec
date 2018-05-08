@@ -62,14 +62,13 @@ struct TypeOf<instance::Type> {
     static constexpr void module(Module&) {
         // mod.function<ReadName>();
         // mod.function<ReadParent>();
-        //        mod.template function<
+        //        mod.template function<&readFlags,
         //            [] {
         //                auto info = FunctionInfo{};
         //                info.name = Name{".flags"};
         //                info.flags = FunctionFlag::CompileTimeOnly;
         //                return info;
-        //            },
-        //            asPtr(&readFlags)>(&readFlags);
+        //            }>();
         // mod.function<ReadSize>();
         // mod.function<Construct>();
         // mod.function<Destruct>();

@@ -76,35 +76,27 @@ struct TypeOf<api::U64> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{".implicitFrom"};
-                info.flags = FunctionFlag::CompileTimeOnly;
-                return info;
-            },
-            asPtr(&implicitFrom)>(&implicitFrom);
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{"add"};
-                return info;
-            },
-            asPtr(&add)>(&add);
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{"sub"};
-                return info;
-            },
-            asPtr(&sub)>(&sub);
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{"mul"};
-                return info;
-            },
-            asPtr(&mul)>(&mul);
+        mod.template function<&implicitFrom, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{".implicitFrom"};
+            info.flags = FunctionFlag::CompileTimeOnly;
+            return info;
+        }>();
+        mod.template function<&add, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{"add"};
+            return info;
+        }>();
+        mod.template function<&sub, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{"sub"};
+            return info;
+        }>();
+        mod.template function<&mul, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{"mul"};
+            return info;
+        }>();
     }
 };
 

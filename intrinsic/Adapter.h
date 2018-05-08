@@ -14,8 +14,6 @@
 
 namespace intrinsicAdapter {
 
-using GenericFunc = intrinsic::GenericFunc;
-
 namespace details {
 
 template<size_t U, size_t... V, size_t... I>
@@ -133,9 +131,14 @@ struct Adapter {
 
     using FunctionInfoFunc = intrinsic::FunctionInfo (*)();
 
+    template<auto* F, FunctionInfoFunc Info>
+    void function() {
+        return functionImpl<Info, F>(makeSignature(F));
+    }
+
     template<FunctionInfoFunc Info, auto* F, class... Args>
-    void function(void (*f2)(Args...)) {
-        assert((GenericFunc)f2 == (GenericFunc)F);
+    void functionImpl(intrinsic::FunctionSignature<void, Args...>) {
+        // assert((GenericFunc)f2 == (GenericFunc)F);
         auto info = Info();
         auto r = instance::Function{};
         r.name = info.name; // strings::to_string(info.name);

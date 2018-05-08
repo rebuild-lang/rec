@@ -111,35 +111,27 @@ struct TypeOf<uint64_t> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{".implicitFrom"};
-                info.flags = FunctionFlag::CompileTimeOnly;
-                return info;
-            },
-            asPtr(&implicitFrom)>(&implicitFrom);
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{"add"};
-                return info;
-            },
-            asPtr(&add)>(&add);
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{"sub"};
-                return info;
-            },
-            asPtr(&sub)>(&sub);
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{"mul"};
-                return info;
-            },
-            asPtr(&mul)>(&mul);
+        mod.template function<&implicitFrom, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{".implicitFrom"};
+            info.flags = FunctionFlag::CompileTimeOnly;
+            return info;
+        }>();
+        mod.template function<&add, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{"add"};
+            return info;
+        }>();
+        mod.template function<&sub, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{"sub"};
+            return info;
+        }>();
+        mod.template function<&mul, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{"mul"};
+            return info;
+        }>();
     }
 };
 
@@ -313,14 +305,12 @@ struct TypeOf<instance::Type> {
     static constexpr void module(Module& mod) {
         // mod.function<ReadName>();
         // mod.function<ReadParent>();
-        mod.template function<
-            [] {
-                auto info = FunctionInfo{};
-                info.name = Name{".flags"};
-                info.flags = FunctionFlag::CompileTimeOnly;
-                return info;
-            },
-            asPtr(&readFlags)>(&readFlags);
+        mod.template function<&readFlags, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{".flags"};
+            info.flags = FunctionFlag::CompileTimeOnly;
+            return info;
+        }>();
         // mod.function<ReadSize>();
         // mod.function<Construct>();
         // mod.function<Destruct>();

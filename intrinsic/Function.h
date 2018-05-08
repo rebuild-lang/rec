@@ -21,7 +21,12 @@ struct FunctionInfo {
     FunctionFlags flags{};
 };
 
-using GenericFunc = void (*)();
-#define asPtr(f) f
+template<class SigRet, class... SigArgs>
+struct FunctionSignature {};
+
+template<class Ret, class... Args>
+auto makeSignature(Ret (*)(Args...)) -> FunctionSignature<Ret, Args...> {
+    return {};
+}
 
 } // namespace intrinsic
