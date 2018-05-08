@@ -186,7 +186,7 @@ private:
                 [&](instance::type::Pointer& p) {
                     p.target = std::make_shared<instance::type::Expression>(instance::type::Instance{typeIt->second});
                 },
-                [&](auto) { argument->typed.type = instance::type::Instance{typeIt->second}; });
+                [&, a = argument](auto) { a->typed.type = instance::type::Instance{typeIt->second}; });
         }
         // TODO: resolve other types
     }
