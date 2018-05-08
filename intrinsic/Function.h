@@ -22,12 +22,6 @@ struct FunctionInfo {
 };
 
 using GenericFunc = void (*)();
-#ifdef __clang__
-    // clang refuses to work with GenericFunc
-#    define asPtr(f) f
-#else
-    // VS2017 cannot use auto template arguments (needs GenericFunc)
-#    define asPtr(f) (GenericFunc) f
-#endif
+#define asPtr(f) f
 
 } // namespace intrinsic

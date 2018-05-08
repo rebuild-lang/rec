@@ -44,11 +44,7 @@ struct ArgumentAt<const Arg&> {
     static auto from(uint8_t* memory) -> Arg& { return **reinterpret_cast<Arg**>(memory); }
 };
 
-#ifdef __clang__
 template<auto* F, class... Args>
-#else
-template<GenericFunc F, class... Args>
-#endif
 struct Call {
     using Func = void (*)(Args...);
     using Sizes = std::index_sequence<intrinsic::Argument<Args>::typeInfo().size...>;
@@ -137,11 +133,7 @@ struct Adapter {
 
     using FunctionInfoFunc = intrinsic::FunctionInfo (*)();
 
-#ifdef __clang__
     template<FunctionInfoFunc Info, auto* F, class... Args>
-#else
-    template<FunctionInfoFunc Info, GenericFunc F, class... Args>
-#endif
     void function(void (*f2)(Args...)) {
         assert((GenericFunc)f2 == (GenericFunc)F);
         auto info = Info();

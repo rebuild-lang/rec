@@ -39,11 +39,7 @@ struct ModuleOutput {
 
     using FunctionInfoFunc = FunctionInfo (*)();
 
-#ifdef __clang__
     template<FunctionInfoFunc Info, auto F, class... Args>
-#else
-    template<FunctionInfoFunc Info, GenericFunc F, class... Args>
-#endif
     void function(void (*func)(Args...)) {
         assert((GenericFunc)func == (GenericFunc)F);
         auto info = Info();

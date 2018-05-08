@@ -34,32 +34,32 @@ public:
 
     template<class... F>
     auto visit(F&&... f) const& -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)...), m);
+        return std::visit(Overloaded{std::forward<F>(f)...}, m);
     }
 
     template<class... F>
     auto visit(F&&... f) & -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)...), m);
+        return std::visit(Overloaded{std::forward<F>(f)...}, m);
     }
 
     template<class... F>
     auto visit(F&&... f) && -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)...), std::move(m));
+        return std::visit(Overloaded{std::forward<F>(f)...}, std::move(m));
     }
 
     template<class... F>
     auto visitSome(F&&... f) const& -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)..., [](const auto&) {}), m);
+        return std::visit(Overloaded{std::forward<F>(f)..., [](const auto&) {}}, m);
     }
 
     template<class... F>
     auto visitSome(F&&... f) & -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)..., [](auto&) {}), m);
+        return std::visit(Overloaded{std::forward<F>(f)..., [](const auto&) {}}, m);
     }
 
     template<class... F>
     auto visitSome(F&&... f) && -> decltype(auto) {
-        return std::visit(makeOverloaded(std::forward<F>(f)..., [](auto&&) {}), std::move(m));
+        return std::visit(Overloaded{std::forward<F>(f)..., [](const auto&) {}}, std::move(m));
     }
 
     template<class R>

@@ -10,7 +10,7 @@ Project {
             Depends { name: "cpp" }
             cpp.cxxLanguageVersion: "c++17"
             cpp.cxxFlags: {
-                if (qbs.toolchain.contains('msvc')) return ["/await", "/permissive-"];
+                if (qbs.toolchain.contains('msvc')) return ["/await", "/permissive-", "/Zc:__cplusplus"];
                 if (qbs.toolchain.contains('clang')) return ["-fcoroutines-ts"];
             }
             cpp.cxxStandardLibrary: {
