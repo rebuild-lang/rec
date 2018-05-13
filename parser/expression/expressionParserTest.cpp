@@ -69,7 +69,11 @@ TEST_P(ExpressionParser, calls) {
     const auto& scope = data.scope;
     const auto& expected = data.expected;
 
-    auto parsed = expression::Parser::parse(input, *scope);
+    auto context = makeContext(
+        [&](const strings::View& id) { return (*scope)[id]; }, //
+        [&](const expression::Call&) -> OptNode { return {}; });
+
+    auto parsed = expression::Parser::parse(input, context);
 
     ASSERT_EQ(parsed, expected);
 }

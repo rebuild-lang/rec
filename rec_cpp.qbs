@@ -24,6 +24,7 @@ Project {
         Depends { name: "scanner" }
         Depends { name: "parser" }
         Depends { name: "intrinsicAdapter" }
+        Depends { name: "vm" }
         Depends { name: "api" }
         files: [
             "main.cpp",
@@ -39,6 +40,8 @@ Project {
             "Makefile",
             "Readme.md",
             "Vagrantfile",
+            "docs/modules.adoc",
+            "docs/rebuild_API.adoc",
             "vagrant_install.sh",
             "vagrant_make.bat",
         ]

@@ -4,35 +4,46 @@
 #include "LineView.h"
 
 #include "instance/Function.h"
-#include "instance/ScopeLookup.h"
 
-#include "execution/Machine.h"
+#include <type_traits>
+#include <utility>
 
 namespace parser::expression {
 
-using Scope = instance::Scope;
 using Function = instance::Function;
 using FunctionView = instance::FunctionView;
 using BlockLiteral = parser::block::BlockLiteral;
 
+template<class Lookup, class RunCall>
 struct Context {
-    Scope declarations;
-    execution::Context execution;
+    Lookup lookup;
+    RunCall runCall;
 };
+template<class Lookup, class RunCall>
+auto makeContext(Lookup&& lookup, RunCall&& runCall) {
+    return Context<Lookup, RunCall>{std::forward<Lookup>(lookup), std::forward<RunCall>(runCall)};
+}
+
+template<class Context>
+constexpr void checkContext() noexcept {
+    static_assert(
+        std::is_same_v<const instance::Node*, std::invoke_result_t<decltype(Context::lookup), strings::View>>,
+        "no lookup");
+    static_assert(
+        std::is_same_v<OptNode, std::invoke_result_t<decltype(Context::runCall), Call>>, //
+        "no runCall");
+}
 
 struct Parser {
-    static auto parse(const BlockLiteral& block, const Scope& parentScope) -> Block { //
-        auto localScope = Scope{&parentScope};
-        return parseInto(block, localScope);
-    }
-
-    static auto parseInto(const BlockLiteral& blockLiteral, Scope& scope) -> Block { //
+    template<class Context>
+    static auto parse(const BlockLiteral& blockLiteral, Context& context) -> Block {
+        checkContext<Context>();
         auto block = Block{};
         for (const auto& line : blockLiteral.lines) {
             // TODO: split operators on the line
             auto it = BlockLineView(&line);
             if (it) {
-                auto expr = parseTuple(it, scope);
+                auto expr = parseTuple(it, context);
                 if (!expr.tuple.empty()) {
                     if (expr.tuple.size() == 1 && expr.tuple.front().name.isEmpty()) {
                         // no reason to keep the tuple around, unwrap it
@@ -52,12 +63,13 @@ struct Parser {
     }
 
 private:
-    static auto parseTuple(BlockLineView& it, Scope& scope) -> NamedTuple {
+    template<class Context>
+    static auto parseTuple(BlockLineView& it, Context& context) -> NamedTuple {
         auto tuple = NamedTuple{};
         if (!it) return tuple;
         auto withBrackets = it.current().oneOf<block::BracketOpen>();
         if (withBrackets) ++it;
-        parseTupleInto(tuple, it, scope);
+        parseTupleInto(tuple, it, context);
         if (withBrackets) {
             if (!it) {
                 // error: missing closing bracket
@@ -72,9 +84,10 @@ private:
         return tuple;
     }
 
-    static void parseTupleInto(NamedTuple& tuple, BlockLineView& it, Scope& scope) {
+    template<class Context>
+    static void parseTupleInto(NamedTuple& tuple, BlockLineView& it, Context& context) {
         while (it) {
-            auto opt = parseSingleNamed(it, scope);
+            auto opt = parseSingleNamed(it, context);
             if (opt) {
                 tuple.tuple.push_back(std::move(opt).value());
             }
@@ -98,9 +111,10 @@ private:
         return ParseOptions::continue_single;
     }
 
-    static auto parseSingleNamed(BlockLineView& it, Scope& scope) -> OptNamed {
+    template<class Context>
+    static auto parseSingleNamed(BlockLineView& it, Context& context) -> OptNamed {
         auto name = Name{}; // parseTupleName(it);
-        auto expr = parseSingle(it, scope);
+        auto expr = parseSingle(it, context);
         if (expr) {
             return Named{std::move(name), std::move(expr).value()};
         }
@@ -110,34 +124,36 @@ private:
         return {};
     }
 
-    static auto parseSingle(BlockLineView& it, Scope& scope) -> OptNode {
+    template<class Context>
+    static auto parseSingle(BlockLineView& it, Context& context) -> OptNode {
         auto result = OptNode{};
         while (it) {
-            auto opt = parseStep(result, it, scope);
+            auto opt = parseStep(result, it, context);
             if (opt == ParseOptions::finish_single) break;
         }
         return result;
     }
 
-    static auto parseStep(OptNode& result, BlockLineView& it, Scope& scope) -> ParseOptions {
+    template<class Context>
+    static auto parseStep(OptNode& result, BlockLineView& it, Context& context) -> ParseOptions {
         return it.current().data.visit(
             [](const block::CommaSeparator&) { return ParseOptions::finish_single; },
             [](const block::BracketClose&) { return ParseOptions::finish_single; },
             [&](const block::BracketOpen&) {
                 if (result) return ParseOptions::finish_single;
-                auto tuple = parseTuple(it, scope);
+                auto tuple = parseTuple(it, context);
                 result = Node{std::move(tuple)};
                 return ParseOptions::continue_single;
             },
             [&](const block::IdentifierLiteral& id) {
-                const auto& instance = lookupIdentifier(it.current().range.text, result, scope);
+                const auto& instance = lookupIdentifier(it.current().range.text, result, context);
                 if (!instance) {
                     if (result) return ParseOptions::finish_single;
                     result = OptNode{Literal{id, it.current().range}};
                     ++it;
                     return ParseOptions::continue_single;
                 }
-                return parseInstance(result, *instance, it, scope);
+                return parseInstance(result, *instance, it, context);
             },
             [&](const block::StringLiteral& s) {
                 if (result) return ParseOptions::finish_single;
@@ -160,22 +176,23 @@ private:
             [](const auto&) { return ParseOptions::finish_single; });
     }
 
-    static auto lookupIdentifier(const strings::View& id, OptNode& result, const Scope& scope)
-        -> const instance::Node* {
+    template<class Context>
+    static auto lookupIdentifier(const strings::View& id, OptNode& result, Context& context) -> const instance::Node* {
 
         if (result.map([](const Node& n) { return n.holds<ModuleReference>(); })) {
             auto ref = result.value().get<ModuleReference>();
             result = {};
             return ref.module->locals[id];
         }
-        return scope[id];
+        return context.lookup(id);
     }
 
+    template<class Context>
     static auto parseInstance( //
         OptNode& result,
         const instance::Node& instance,
         BlockLineView& it,
-        Scope& scope) -> ParseOptions {
+        Context& context) -> ParseOptions {
         return instance.visit(
             [&](const instance::Variable& var) {
                 if (result) return ParseOptions::finish_single;
@@ -191,7 +208,7 @@ private:
             },
             [&](const instance::Function& fun) {
                 ++it;
-                return parseCall(result, fun, it, scope);
+                return parseCall(result, fun, it, context);
             },
             [&](const instance::Type& type) {
                 if (result) return ParseOptions::finish_single;
@@ -309,16 +326,17 @@ private:
         size_t activeCount{};
     };
 
+    template<class Context>
     static auto parseCall( //
         OptNode& left,
         const Function& fun,
         BlockLineView& it,
-        Scope& scope) -> ParseOptions { //
+        Context& context) -> ParseOptions { //
 
         auto os = OverloadSet{fun};
         os.retireLeft(left);
         if (!os.active().empty() && it) {
-            parseArguments(os, it, scope);
+            parseArguments(os, it, context);
             auto completed = os.finish();
             if (completed.size() == 1) {
                 auto& o = completed.front();
@@ -330,7 +348,7 @@ private:
                     r.arguments = o.rightArgs;
                     return r;
                 };
-                left = buildCallNode(inv(), scope);
+                left = buildCallNode(inv(), context);
                 return ParseOptions::continue_single;
             }
         }
@@ -339,32 +357,19 @@ private:
         return ParseOptions::continue_single;
     }
 
-    static auto buildCallNode(Call&& call, Scope& scope) -> OptNode {
-        (void)scope;
+    template<class Context>
+    static auto buildCallNode(Call&& call, Context& context) -> OptNode {
         if (call.function->flags.none(instance::FunctionFlag::run_time)) {
-            // TODOs:
-            // * check arguments - have to be available
-            // * create result arguments
-            //
-            auto compiler = execution::Compiler{};
-            auto context = [&] {
-                auto r = execution::Context{};
-                r.compiler = &compiler;
-                return r;
-            }();
-
-            // * create from caller context
-            // * assign local scope
-            execution::Machine::runCall(call, context);
-            return {};
+            return context.runCall(call);
         }
         return OptNode{{call}};
     }
 
-    static void parseArguments(OverloadSet& os, BlockLineView& it, Scope& scope) {
+    template<class Context>
+    static void parseArguments(OverloadSet& os, BlockLineView& it, Context& context) {
         auto withBrackets = it.current().oneOf<block::BracketOpen>();
         if (withBrackets) ++it;
-        parseArgumentsWithout(os, it, scope);
+        parseArgumentsWithout(os, it, context);
         if (withBrackets) {
             if (!it) {
                 // error: missing closing bracket
@@ -378,7 +383,8 @@ private:
         }
     }
 
-    static void parseArgumentsWithout(OverloadSet& os, BlockLineView& it, Scope& scope) {
+    template<class Context>
+    static void parseArgumentsWithout(OverloadSet& os, BlockLineView& it, Context& context) {
         os.setupIt(it);
         while (!os.active().empty()) {
             // auto baseIt = it;
@@ -386,7 +392,7 @@ private:
             for (auto& o : os.active()) {
                 const auto& a = o.arg();
                 // auto p = nullptr; // parserForType(a.type);
-                auto optNamed = parseSingleNamed(o.it, scope); // : p.parse(o.it, scope);
+                auto optNamed = parseSingleNamed(o.it, context); // : p.parse(o.it, scope);
                 if (optNamed) {
                     Named& named = optNamed.value();
                     if (!named.name.isEmpty()) {

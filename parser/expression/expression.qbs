@@ -27,7 +27,7 @@ Project {
     StaticLibrary {
         name: "expressionParser"
 
-        Depends { name: "vm" }
+        Depends { name: "instance" }
 
         files: [
             "LineView.h",
@@ -39,7 +39,7 @@ Project {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
-            Depends { name: "vm" }
+            Depends { name: "instance" }
         }
     }
 
