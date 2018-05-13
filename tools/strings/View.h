@@ -49,7 +49,7 @@ public:
 
     // enable fast optional
     // equal if view on the same range
-    // use content_equals for content comparison
+    // use isContentEqual for content comparison
     constexpr bool operator==(const This& o) const { return start_m == o.start_m && end_m == o.end_m; }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
     bool operator<(const This& o) const {
@@ -139,9 +139,7 @@ private:
     }
     auto pop() -> meta::Optional<Byte> {
         if (0 == byteCount().v) return {};
-        auto v = *start_m;
-        start_m++;
-        return v;
+        return *start_m++;
     }
     template<size_t N>
     bool pop() {
