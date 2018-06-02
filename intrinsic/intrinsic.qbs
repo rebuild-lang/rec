@@ -12,6 +12,8 @@ Project {
 
         files: [
             "Argument.h",
+            "Context.cpp",
+            "Context.h",
             "Function.cpp",
             "Function.h",
             "Module.h",

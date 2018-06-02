@@ -1,5 +1,6 @@
 #pragma once
 #include "intrinsic/Argument.h"
+#include "intrinsic/Context.h"
 #include "intrinsic/Function.h"
 #include "intrinsic/Module.h"
 #include "intrinsic/Type.h"
@@ -8,7 +9,10 @@
 #include "instance/Function.h"
 #include "instance/Module.h"
 #include "instance/Node.h"
+#include "instance/Scope.h"
 #include "instance/Type.h"
+
+#include "tools/meta/TypeList.h"
 
 #include <cassert>
 
@@ -23,7 +27,6 @@ constexpr auto sumN(std::index_sequence<V...>, std::index_sequence<I...>) -> siz
 
 template<size_t... V, size_t... I>
 constexpr auto partialSum(std::index_sequence<V...> values, std::index_sequence<I...> indices) {
-    // 2018-01-31 arB note: VS2017 15.5.5 refuses to work properly with return type here!
     return std::index_sequence<sumN<I>(decltype(values){}, decltype(indices){})...>{};
 }
 
@@ -42,29 +45,49 @@ struct ArgumentAt<const Arg&> {
     static auto from(uint8_t* memory) -> Arg& { return **reinterpret_cast<Arg**>(memory); }
 };
 
+template<class Arg>
+constexpr auto argumentSize() -> size_t {
+    using namespace intrinsic;
+    if constexpr (Argument<Arg>::info().side == ArgumentSide::Implicit) {
+        return {};
+    }
+    else if constexpr (Argument<Arg>::info().flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
+        return sizeof(void*);
+    }
+    else {
+        return Argument<Arg>::typeInfo().size;
+    }
+}
+
 template<auto* F, class... Args>
 struct Call {
     using Func = void (*)(Args...);
-    using Sizes = std::index_sequence<intrinsic::Argument<Args>::typeInfo().size...>;
+    using Sizes = std::index_sequence<argumentSize<Args>()...>;
     using Indices = std::make_index_sequence<sizeof...(Args)>;
 
-    static void call(uint8_t* memory) {
+    static void call(uint8_t* memory, intrinsic::Context* context) {
         constexpr auto sizes = Sizes{};
         constexpr auto indices = Indices{};
         constexpr auto offsets = partialSum(sizes, indices);
-        callImpl(memory, offsets);
+        callImpl(memory, context, offsets);
     }
 
 private:
     template<size_t... Offset>
-    static void callImpl(uint8_t* memory, std::index_sequence<Offset...>) {
+    static void callImpl(uint8_t* memory, intrinsic::Context* context, std::index_sequence<Offset...>) {
         auto f = reinterpret_cast<Func>(F);
-        f(argumentAt<Args, Offset>(memory)...);
+        f(argumentAt<Args, Offset>(memory, context)...);
     }
 
     template<class Arg, size_t Offset>
-    static auto argumentAt(uint8_t* memory) -> Arg {
-        return ArgumentAt<Arg>::from(memory + Offset);
+    static auto argumentAt(uint8_t* memory, intrinsic::Context* context) -> Arg {
+        using namespace intrinsic;
+        if constexpr (Argument<Arg>::info().side == ArgumentSide::Implicit) {
+            return {context};
+        }
+        else {
+            return ArgumentAt<Arg>::from(memory + Offset);
+        }
     }
 };
 
@@ -116,6 +139,10 @@ struct Adapter {
             types.map[info.name.data()] = &node->get<instance::Type>();
 
             instanceModule.locals.emplace(std::move(a.instanceModule));
+
+            auto modNode = instanceModule.locals[info.name];
+            assert(modNode != nullptr);
+            node->get<instance::Type>().module = &modNode->get<instance::Module>();
         }
     }
 
@@ -136,20 +163,34 @@ struct Adapter {
         return functionImpl<Info, F>(makeSignature(F));
     }
 
+    struct IsImplicit {
+        template<class Arg>
+        constexpr bool operator()(meta::Type<Arg>) const {
+            using namespace intrinsic;
+            return Argument<Arg>::info().side == ArgumentSide::Implicit;
+        }
+    };
+
     template<FunctionInfoFunc Info, auto* F, class... Args>
     void functionImpl(intrinsic::FunctionSignature<void, Args...>) {
+        auto externArgs = meta::TypeList<Args...>::filterPred<IsImplicit>();
+        functionImpl2<Info, F, Args...>(externArgs);
+    }
+
+    template<FunctionInfoFunc Info, auto* F, class... Args, class... ExternArgs>
+    void functionImpl2(meta::TypeList<ExternArgs...>) {
         // assert((GenericFunc)f2 == (GenericFunc)F);
         auto info = Info();
         auto r = instance::Function{};
         r.name = info.name; // strings::to_string(info.name);
         // r.flags = functionFlags(info.flags); // TODO
-        r.arguments = instance::Arguments{argument<Args>()...};
+        r.arguments = instance::Arguments{argument<ExternArgs>()...};
 
         auto call = &details::Call<F, Args...>::call;
         r.body.block.nodes.emplace_back(parser::expression::IntrinsicCall{call});
 
-        auto indices = std::make_index_sequence<sizeof...(Args)>{};
-        trackArguments<Args...>(r.arguments, indices);
+        auto indices = std::make_index_sequence<sizeof...(ExternArgs)>{};
+        trackArguments<ExternArgs...>(r.arguments, indices);
 
         instanceModule.locals.emplace(std::move(r));
     }
@@ -255,6 +296,7 @@ private:
         case ArgumentSide::Left: return instance::ArgumentSide::left;
         case ArgumentSide::Right: return instance::ArgumentSide::right;
         case ArgumentSide::Result: return instance::ArgumentSide::result;
+        case ArgumentSide::Implicit: assert(false); return {}; // should be filtered before
         }
         return {};
     }
@@ -263,7 +305,7 @@ private:
         using namespace intrinsic;
         auto r = instance::ArgumentFlags{};
         if (flags.any(ArgumentFlag::Assignable)) {
-            // r |= instance::ArgumentFlag:: // TODO: missing
+            r |= instance::ArgumentFlag::assignable;
         }
         if (flags.any(ArgumentFlag::Unrolled)) {
             r |= instance::ArgumentFlag::splatted;

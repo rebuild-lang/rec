@@ -9,6 +9,10 @@
 
 #include <vector>
 
+namespace intrinsic {
+struct Context;
+}
+
 namespace parser::expression {
 
 using TextRange = scanner::TextRange;
@@ -20,12 +24,6 @@ using Nodes = std::vector<Node>;
 
 struct Named;
 using NamedVec = std::vector<Named>;
-
-using StringLiteral = block::StringLiteral;
-using NumberLiteral = block::NumberLiteral;
-using OperatorLiteral = block::OperatorLiteral;
-using IdentifierLiteral = block::IdentifierLiteral;
-using BlockLiteral = block::BlockLiteral;
 
 struct Block {
     using This = Block;
@@ -56,7 +54,7 @@ struct Call {
 
 struct IntrinsicCall {
     using This = IntrinsicCall;
-    using Exec = void (*)(uint8_t*);
+    using Exec = void (*)(uint8_t*, intrinsic::Context*);
     Exec exec;
 
     bool operator==(const This& o) const { return exec == o.exec; }
@@ -104,16 +102,20 @@ struct NamedTuple {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-using LiteralVariant = meta::Variant<StringLiteral, NumberLiteral, OperatorLiteral, IdentifierLiteral, BlockLiteral>;
-
-struct Literal {
-    using This = Literal;
-    LiteralVariant value{};
+template<class TokenType>
+struct TokenLiteral {
+    TokenType token{};
     TextRange range{};
 
-    bool operator==(const This& o) const { return value == o.value; }
+    using This = TokenLiteral;
+    bool operator==(const This& o) const { return token == o.token; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+using StringLiteral = TokenLiteral<block::StringLiteral>;
+using NumberLiteral = TokenLiteral<block::NumberLiteral>;
+using OperatorLiteral = TokenLiteral<block::OperatorLiteral>;
+using IdentifierLiteral = TokenLiteral<block::IdentifierLiteral>;
+using BlockLiteral = TokenLiteral<block::BlockLiteral>;
 
 using NodeVariant = meta::Variant<
     Block,
@@ -124,7 +126,11 @@ using NodeVariant = meta::Variant<
     VariableInit,
     ModuleReference,
     NamedTuple,
-    Literal>;
+    StringLiteral,
+    NumberLiteral,
+    OperatorLiteral,
+    IdentifierLiteral,
+    BlockLiteral>;
 
 // note: this type is needed because we cannot forward a using definition
 class Node : public NodeVariant {

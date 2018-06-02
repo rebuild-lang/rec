@@ -1,20 +1,27 @@
 #pragma once
-#include "execution/Scope.h"
+#include "execution/Frame.h"
 #include "execution/Stack.h"
 
 #include "expression/Tree.h"
 
 #include "instance/Function.h"
+#include "instance/Scope.h"
 #include "instance/Variable.h"
 
+#include "intrinsic/Context.h"
+
 #include <cassert>
+#include <functional>
 
 namespace execution {
 
 namespace expression = parser::expression;
 
+using ParseBlock = std::function<void(const parser::block::BlockLiteral& block, instance::Scope* scope)>;
+
 struct Compiler {
     Stack stack{}; // stack allocator
+    ParseBlock parseBlock{};
 };
 
 struct Context {
@@ -22,12 +29,13 @@ struct Context {
     Compiler* compiler{};
 
     const Context* caller{};
+    instance::Scope* parserScope{};
 
     Byte* localBase{};
-    LocalScope locals{};
+    LocalFrame localFrame{};
 
     auto operator[](instance::TypedView typed) const& -> Byte* {
-        auto addr = locals[typed];
+        auto addr = localFrame[typed];
         if (addr) return addr;
         if (parent) return (*parent)[typed];
         return nullptr;
@@ -37,13 +45,27 @@ struct Context {
         auto result = Context{};
         result.compiler = compiler;
         result.caller = this;
+        result.parserScope = parserScope;
         return result;
     }
     auto createNested() & -> Context {
         auto result = Context{};
         result.parent = this;
         result.compiler = compiler;
+        result.parserScope = parserScope;
         return result;
+    }
+};
+
+struct IntrinsicContext : intrinsic::Context {
+    ParseBlock parseBlock{};
+
+    IntrinsicContext(execution::Context& context, const instance::Scope* executionScope)
+        : parseBlock(context.compiler->parseBlock)
+        , intrinsic::Context{context.parserScope, executionScope} {}
+
+    void parse(const parser::expression::BlockLiteral& block, instance::Scope* scope) const override {
+        parseBlock(block.token, scope);
     }
 };
 
@@ -70,7 +92,11 @@ private:
             [&](const expression::VariableInit& var) { initVariable(var, context); },
             [&](const expression::ModuleReference&) {},
             [&](const expression::NamedTuple& named) { runNamed(named, context); },
-            [&](const expression::Literal&) {});
+            [&](const expression::StringLiteral&) {},
+            [&](const expression::NumberLiteral&) {},
+            [&](const expression::OperatorLiteral&) {},
+            [&](const expression::IdentifierLiteral&) {},
+            [&](const expression::BlockLiteral&) {});
     }
 
     static void initVariable(const expression::VariableInit& var, Context& context) {
@@ -83,11 +109,11 @@ private:
     }
 
     static void runBlock(const expression::Block& block, Context& context) {
-        auto stackSize = variablesInBlockSize(block.nodes);
-        auto stackData = context.compiler->stack.allocate(stackSize);
+        auto frameSize = variablesInBlockSize(block.nodes);
+        auto frameData = context.compiler->stack.allocate(frameSize);
 
         auto nested = context.createNested();
-        nested.localBase = stackData.get();
+        nested.localBase = frameData.get();
         layoutVariables(block.nodes, nested);
 
         for (const auto& node : block.nodes) {
@@ -97,7 +123,8 @@ private:
 
     static void runIntrinsic(const expression::IntrinsicCall& intrinsic, Context& context) {
         Byte* memory = context.parent->localBase; // arguments
-        intrinsic.exec(memory);
+        auto intrinsicContext = IntrinsicContext{context, nullptr};
+        intrinsic.exec(memory, &intrinsicContext);
     }
 
     static void runFunction(const instance::Function& function, Context& context) {
@@ -152,7 +179,7 @@ private:
         const auto& fun = *call.function;
         // assert(call.arguments sufficient & valid)
         for (const auto& funArg : fun.arguments) {
-            context.locals.insert(&funArg.typed, memory);
+            context.localFrame.insert(&funArg.typed, memory);
             assignArgument(call, funArg, context, memory);
             memory += argumentSize(funArg);
         }
@@ -178,7 +205,7 @@ private:
         const auto& fun = *call.function;
         // assert(call.arguments sufficient & valid)
         for (const auto& funArg : fun.arguments) {
-            context.locals.insert(&funArg.typed, memory);
+            context.localFrame.insert(&funArg.typed, memory);
             if (funArg.side == instance::ArgumentSide::result) {
                 storeResultAt(memory, funArg, result);
             }
@@ -193,7 +220,7 @@ private:
         Byte* memory = context.localBase;
         for (const auto& node : nodes) {
             node.visitSome([&](const expression::VariableInit& var) { //
-                context.locals.insert(&var.variable->typed, memory);
+                context.localFrame.insert(&var.variable->typed, memory);
                 memory += typeExpressionSize(var.variable->typed.type);
             });
         }
@@ -219,11 +246,13 @@ private:
             return;
         }
         if (arg.flags.any(ArgumentFlag::assignable)) {
+            /*
             assert(nodes.size() == 1);
             nodes[0].visit(
                 [&](const expression::VariableReference& var) { storeAddress(var.variable->typed, context, memory); },
                 [&](const expression::ArgumentReference& arg) { storeAddress(arg.argument->typed, context, memory); },
                 [&](const auto&) { assert(false); });
+                */
             return;
         }
         for (const auto& node : nodes) {
@@ -246,7 +275,7 @@ private:
             [&](const expression::VariableInit&) { assert(false); },
             [&](const expression::ModuleReference&) {},
             [&](const expression::NamedTuple&) {},
-            [&](const expression::Literal& literal) { storeLiteral(literal, memory); });
+            [&](const auto& literal) { storeLiteral(literal, memory); });
     }
 
     static void storeCallResult(const expression::Call& call, const Context& context, Byte* memory) {
@@ -264,10 +293,9 @@ private:
         reinterpret_cast<void*&>(*memory) = context[&typed];
     }
 
-    static void storeLiteral(const expression::Literal& literal, Byte* memory) {
-        literal.value.visit([&](const auto& lit) {
-            reinterpret_cast<const void*&>(*memory) = &lit; // store pointer to real instance
-        });
+    template<class TokenLiteral>
+    static void storeLiteral(const TokenLiteral& literal, Byte* memory) {
+        reinterpret_cast<const void*&>(*memory) = &literal; // store pointer to real instance
     }
 
     static void storeValue(const instance::Typed& typed, const Context& context, Byte* memory) {

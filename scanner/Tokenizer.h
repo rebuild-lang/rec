@@ -4,10 +4,10 @@
 
 #include "CommentScanner.h"
 #include "FileInput.h"
-#include "NumberScanner.h"
-#include "StringScanner.h"
 #include "IdentifierScanner.h"
+#include "NumberScanner.h"
 #include "OperatorScanner.h"
+#include "StringScanner.h"
 #include "Token.h"
 
 namespace scanner {
@@ -75,6 +75,7 @@ private:
 
     template<class Literal>
     static auto scanChar(FileInput& input) -> Token {
+        input.extend();
         return {input.range(), Literal{}};
     }
 

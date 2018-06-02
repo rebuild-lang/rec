@@ -56,7 +56,13 @@ struct CallBuilder {
     }
 };
 
-using ValueVariant = meta::Variant<LiteralVariant, CallBuilder>;
+using ValueVariant = meta::Variant<
+    block::StringLiteral,
+    block::NumberLiteral,
+    block::OperatorLiteral,
+    block::IdentifierLiteral,
+    block::BlockLiteral,
+    CallBuilder>;
 
 class ValueBuilder : public ValueVariant {
     using This = ValueBuilder;
@@ -66,11 +72,10 @@ public:
 
     auto build(const Scope& scope) && -> Node {
         return std::move(*this).visit(
-            [](LiteralVariant&& lit) -> Node {
-                return Literal{std::move(lit), {}};
-            },
-            [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); } //
-        );
+            [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }, //
+            [](auto&& lit) -> Node {
+                return TokenLiteral<std::decay_t<decltype(lit)>>{std::move(lit), {}};
+            });
     }
 };
 

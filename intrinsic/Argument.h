@@ -11,11 +11,12 @@ enum class ArgumentFlag : uint64_t {
     Assignable = 1 << 0,
     Unrolled = 1 << 1,
     Reference = 1 << 2,
+    Optional = 1 << 3,
 };
 using ArgumentFlags = meta::Flags<ArgumentFlag>;
 META_FLAGS_OP(ArgumentFlags)
 
-enum class ArgumentSide { Left, Right, Result };
+enum class ArgumentSide { Left, Right, Result, Implicit };
 
 struct ArgumentInfo {
     Name name{};
@@ -43,11 +44,21 @@ using NestedType = typename NestedTypeImpl<T>::type;
 // used to extract all types of arguments
 template<class T>
 struct Argument {
-    using type = details::NestedType<T>;
+    using nakedType = details::NestedType<T>;
+    using type = std::remove_const_t<std::remove_pointer_t<nakedType>>;
+    static constexpr bool is_pointer = std::is_pointer_v<nakedType>;
+    static constexpr bool is_const = std::is_const_v<std::remove_pointer_t<nakedType>>;
     static constexpr auto info() -> ArgumentInfo { return T::info(); }
     static constexpr auto typeInfo() -> TypeInfo { return TypeOf<type>::info(); }
-    static_assert(info().flags.none(ArgumentFlag::Assignable), "value argument is not assignable");
-    static_assert(info().flags.none(ArgumentFlag::Reference), "value argument is not reference");
+    static_assert(is_pointer || info().flags.none(ArgumentFlag::Assignable), "value argument is not assignable");
+    static_assert(is_pointer || info().flags.none(ArgumentFlag::Reference), "value argument is not reference");
+    static_assert(
+        !is_pointer || !is_const || info().flags.none(ArgumentFlag::Assignable),
+        "const-pointer argument is not assignable");
+    static_assert(
+        !is_pointer || !is_const || info().flags.any(ArgumentFlag::Reference), "const-pointer uses reference");
+    static_assert(
+        !is_pointer || is_const || info().flags.any(ArgumentFlag::Assignable), "pointer argument has to be assignable");
 };
 
 template<class T>

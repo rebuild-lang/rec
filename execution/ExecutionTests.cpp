@@ -52,9 +52,9 @@ struct ExecutionMachineData {
         return std::move(*this);
     }
 
-    static void literal(uint8_t* memory) {
+    static void literal(uint8_t* memory, intrinsic::Context*) {
         auto& lit = reinterpret_cast<expression::NumberLiteral*&>(*memory);
-        instance->result = strings::String{lit->integerPart};
+        instance->result = strings::String{lit->token.integerPart};
     }
 };
 
@@ -90,5 +90,5 @@ INSTANTIATE_TEST_CASE_P(
                 instance::fun("print")
                     .args(instance::arg("v").right().type("Lit"))
                     .rawIntrinsic(&ExecutionMachineData::literal))
-            .run(expression::call("print").right(expression::arg("v", expression::LiteralVariant{block::num("42")})))
+            .run(expression::call("print").right(expression::arg("v", block::num("42"))))
             .expect("42")));

@@ -4,6 +4,7 @@
 #include "intrinsic/Type.h"
 
 #include "instance/Module.h"
+#include "instance/Scope.h"
 #include "instance/Type.h"
 
 #include "block/Token.h"

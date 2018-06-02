@@ -57,11 +57,22 @@ inline auto operator<<(std::ostream& out, const NamedTuple& nt) -> std::ostream&
     if (size > 1) out << ")";
     return out;
 }
-inline auto operator<<(std::ostream& out, const Literal& lit) -> std::ostream& {
-    out << "lit: ";
-    lit.value.visit([&](const auto& a) { out << a; });
-    return out;
+inline auto operator<<(std::ostream& out, const StringLiteral& lit) -> std::ostream& {
+    return out << "lit: " << lit.token;
 }
+inline auto operator<<(std::ostream& out, const NumberLiteral& lit) -> std::ostream& {
+    return out << "lit: " << lit.token;
+}
+inline auto operator<<(std::ostream& out, const OperatorLiteral& lit) -> std::ostream& {
+    return out << "lit: " << lit.token;
+}
+inline auto operator<<(std::ostream& out, const IdentifierLiteral& lit) -> std::ostream& {
+    return out << "lit: " << lit.token;
+}
+inline auto operator<<(std::ostream& out, const BlockLiteral& lit) -> std::ostream& {
+    return out << "lit: " << lit.token;
+}
+
 inline auto operator<<(std::ostream& out, const Node& n) -> std::ostream& {
     n.visit([&](const auto& a) { out << a; });
     return out;

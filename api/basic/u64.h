@@ -2,7 +2,7 @@
 #include "intrinsic/Function.h"
 #include "intrinsic/Type.h"
 
-#include "scanner/NumberLiteral.h"
+#include "parser/expression/Tree.h"
 
 namespace api {
 
@@ -33,7 +33,7 @@ struct TypeOf<api::U64> {
         }
     };
     struct Literal {
-        scanner::NumberLiteral v;
+        parser::expression::NumberLiteral v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"literal"};

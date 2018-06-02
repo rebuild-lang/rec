@@ -4,6 +4,7 @@
 #include "LineView.h"
 
 #include "instance/Function.h"
+#include "instance/Module.h"
 
 #include <type_traits>
 #include <utility>
@@ -12,7 +13,7 @@ namespace parser::expression {
 
 using Function = instance::Function;
 using FunctionView = instance::FunctionView;
-using BlockLiteral = parser::block::BlockLiteral;
+using InputBlockLiteral = parser::block::BlockLiteral;
 
 template<class Lookup, class RunCall>
 struct Context {
@@ -36,7 +37,7 @@ constexpr void checkContext() noexcept {
 
 struct Parser {
     template<class Context>
-    static auto parse(const BlockLiteral& blockLiteral, Context& context) -> Block {
+    static auto parse(const InputBlockLiteral& blockLiteral, Context context) -> Block {
         checkContext<Context>();
         auto block = Block{};
         for (const auto& line : blockLiteral.lines) {
@@ -149,7 +150,7 @@ private:
                 const auto& instance = lookupIdentifier(it.current().range.text, result, context);
                 if (!instance) {
                     if (result) return ParseOptions::finish_single;
-                    result = OptNode{Literal{id, it.current().range}};
+                    result = OptNode{expression::IdentifierLiteral{id, it.current().range}};
                     ++it;
                     return ParseOptions::continue_single;
                 }
@@ -157,19 +158,19 @@ private:
             },
             [&](const block::StringLiteral& s) {
                 if (result) return ParseOptions::finish_single;
-                result = OptNode{Literal{s, it.current().range}};
+                result = OptNode{StringLiteral{s, it.current().range}};
                 ++it;
                 return ParseOptions::continue_single;
             },
             [&](const block::NumberLiteral& n) {
                 if (result) return ParseOptions::finish_single;
-                result = OptNode{Literal{n, it.current().range}};
+                result = OptNode{NumberLiteral{n, it.current().range}};
                 ++it;
                 return ParseOptions::continue_single;
             },
             [&](const block::BlockLiteral& b) {
                 if (result) return ParseOptions::finish_single;
-                result = OptNode{Literal{b, it.current().range}};
+                result = OptNode{BlockLiteral{b, it.current().range}};
                 ++it;
                 return ParseOptions::continue_single;
             },
@@ -383,6 +384,54 @@ private:
         }
     }
 
+    template<class Token>
+    static auto parseSingleToken(BlockLineView& it) -> OptNamed {
+        using BlockToken = decltype(Token::token);
+        auto name = Name{};
+        auto value = it.current().data.visit(
+            [&](const BlockToken& t) {
+                auto result = OptNode{Token{t, it.current().range}};
+                ++it;
+                return result;
+            },
+            [](const auto&) { return OptNode{}; });
+        if (value) {
+            return Named{std::move(name), std::move(value).value()};
+        }
+        // error
+        return {};
+    }
+
+    template<class Context>
+    using ParseFunc = OptNamed (*)(BlockLineView& it, Context& context);
+
+    static auto isTypeTo(const instance::type::Expression& type, View view) -> bool {
+        using namespace instance::type;
+
+        return type.visit(
+            [&](const Pointer& ptr) {
+                return ptr.target->visit(
+                    [&](const Instance& inst) {
+                        auto mod = inst.concrete->module;
+                        return (mod->name == view);
+                    },
+                    [](const auto&) { return false; });
+            },
+            [](const auto&) { return false; });
+    }
+
+    template<class Context>
+    static auto parserForType(const instance::type::Expression& type) -> ParseFunc<Context> {
+        if (isTypeTo(type, View{".Identifier"})) {
+            return [](BlockLineView& it, Context& context) { return parseSingleToken<IdentifierLiteral>(it); };
+        }
+        if (isTypeTo(type, View{".Block"})) {
+            return [](BlockLineView& it, Context& context) { return parseSingleToken<BlockLiteral>(it); };
+        }
+
+        return [](BlockLineView& it, Context& context) { return parseSingleNamed(it, context); };
+    }
+
     template<class Context>
     static void parseArgumentsWithout(OverloadSet& os, BlockLineView& it, Context& context) {
         os.setupIt(it);
@@ -391,8 +440,8 @@ private:
             // TODO: optimize for no custom parser case!
             for (auto& o : os.active()) {
                 const auto& a = o.arg();
-                // auto p = nullptr; // parserForType(a.type);
-                auto optNamed = parseSingleNamed(o.it, context); // : p.parse(o.it, scope);
+                auto p = parserForType<Context>(a.typed.type);
+                auto optNamed = p(o.it, context);
                 if (optNamed) {
                     Named& named = optNamed.value();
                     if (!named.name.isEmpty()) {

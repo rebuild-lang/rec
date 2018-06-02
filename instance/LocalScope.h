@@ -25,6 +25,7 @@ struct LocalScope {
     auto operator=(This &&) -> This& = default;
 
     auto operator[](const Name& name) const& -> const Node*;
+    auto operator[](const Name& name) & -> Node*;
 
     template<class T, class... Ts>
     bool emplace(T&& arg, Ts&&... args) & {

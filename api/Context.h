@@ -3,6 +3,7 @@
 #include "Instance.h"
 #include "Literal.h"
 
+#include "intrinsic/Context.h"
 #include "intrinsic/Function.h"
 #include "intrinsic/Module.h"
 #include "intrinsic/Type.h"
@@ -14,20 +15,18 @@
 
 namespace intrinsic {
 
-struct Context {};
-
 template<>
 struct TypeOf<Context> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = Name{"Context"};
+        info.name = Name{".Context"};
         info.size = sizeof(Context);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
 
     struct Label {
-        scanner::Token v;
+        parser::expression::IdentifierLiteral v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"label"};
@@ -37,7 +36,7 @@ struct TypeOf<Context> {
         }
     };
     struct Block {
-        parser::block::BlockLiteral v;
+        parser::expression::BlockLiteral v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"block"};
@@ -56,11 +55,46 @@ struct TypeOf<Context> {
             return info;
         }
     };
+    struct ImplicitContext {
+        Context* v;
+        static constexpr auto info() {
+            auto info = ArgumentInfo{};
+            info.name = Name{"context"};
+            info.side = ArgumentSide::Implicit;
+            info.flags = ArgumentFlag::Assignable; // | ArgumentFlag::Optional;
+            return info;
+        }
+    };
 
-    static void declareModule(const Label& label, const Block& block, ModuleResult& res) {
+    static void declareModule(const Label& label, const Block& block, ModuleResult res, ImplicitContext context) {
         (void)label;
         (void)block;
         (void)res;
+        (void)context;
+        auto name = label.v.range.text;
+        auto node = context.v->parserScope->locals[name];
+        if (node) {
+            if (node->holds<instance::Module>()) {
+                auto& module = node->get<instance::Module>();
+                auto moduleScope = instance::Scope(context.v->parserScope);
+                moduleScope.locals = std::move(module.locals);
+                context.v->parse(block.v, &moduleScope);
+                module.locals = std::move(moduleScope.locals);
+            }
+            else
+                return; // error
+        }
+        else {
+            auto module = instance::Module{};
+            module.name = name;
+            auto moduleScope = instance::Scope(context.v->parserScope);
+            context.v->parse(block.v, &moduleScope);
+            module.locals = std::move(moduleScope.locals);
+            context.v->parserScope->emplace(std::move(module));
+        }
+        // auto module = context.v->fetchOrCreateModule(label.v);
+        // context.v->parseModuleBlock(module, block);
+        // res.v = module;
     }
 
     template<class Module>
@@ -98,7 +132,7 @@ struct Rebuild {
     }
 
     struct SayLiteral {
-        scanner::StringLiteral v;
+        parser::expression::StringLiteral v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"literal"};
@@ -108,7 +142,7 @@ struct Rebuild {
         }
     };
     static void debugSay(const SayLiteral& literal) {
-        auto text = literal.v.text;
+        auto text = literal.v.token.text;
         std::cout << text << '\n';
     }
 
@@ -125,7 +159,7 @@ struct Rebuild {
             return info;
         }>();
 
-        // mod.template type<compiler::Context>();
+        mod.template type<Context>();
         // mod.template type<compiler::Scope>();
         // mod.template type<compiler::LocalScope>();
 

@@ -32,10 +32,13 @@ struct TypeList {
     }
 
     template<class C>
-    constexpr static size_t contains(Type<C> = {}) {
-        auto result = false;
-        auto x = {(Type<C>{} == Type<T>{} ? result = true : false)...};
-        return result;
+    constexpr static bool contains(Type<C> = {}) {
+        return (true || ... || (Type<C>{} == Type<T>{}));
+    }
+
+    template<class F>
+    constexpr static bool containsPred(F pred) {
+        return (true || ... || pred(Type<T>{}));
     }
 
     template<class... C>
@@ -59,6 +62,21 @@ struct TypeList {
         }
     }
 
+    template<typename... O>
+    constexpr static auto join(TypeList<O...> = {}) {
+        return TypeList<T..., O...>{};
+    }
+
+    template<class F>
+    constexpr static auto filterPred(F = {}) {
+        if constexpr (!containsPred(F{})) {
+            return TypeList<T...>{};
+        }
+        else {
+            return filterPredImpl<T...>(F{});
+        }
+    }
+
 private:
     template<class C, size_t... I>
     constexpr static size_t indexOfImpl(std::index_sequence<I...>) {
@@ -77,6 +95,26 @@ private:
         }
         else {
             return Type<void>{};
+        }
+    }
+
+    template<class V, class... W, class F>
+    constexpr static auto filterPredImpl(F pred) {
+        if constexpr (pred(Type<V>{})) {
+            if constexpr (0 != sizeof...(W)) {
+                return filterPredImpl<W...>(pred);
+            }
+            else {
+                return TypeList<>{};
+            }
+        }
+        else {
+            if constexpr (0 != sizeof...(W)) {
+                return TypeList<V>{}.join(filterPredImpl<W...>(pred));
+            }
+            else {
+                return TypeList<V>{};
+            }
         }
     }
 };

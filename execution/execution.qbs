@@ -12,10 +12,10 @@ Project {
         Depends { name: "instance" }
 
         files: [
+            "Frame.cpp",
+            "Frame.h",
             "Machine.cpp",
             "Machine.h",
-            "Scope.cpp",
-            "Scope.h",
             "Stack.cpp",
             "Stack.h",
         ]

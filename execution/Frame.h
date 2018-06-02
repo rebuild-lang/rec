@@ -9,18 +9,18 @@ namespace execution {
 
 using AddressByTyped = std::map<instance::TypedView, Byte*>;
 
-struct LocalScope {
-    using This = LocalScope;
+struct LocalFrame {
+    using This = LocalFrame;
 
 public:
-    LocalScope() = default;
-    ~LocalScope() = default;
+    LocalFrame() = default;
+    ~LocalFrame() = default;
 
     // no copy
-    LocalScope(const This&) = delete;
+    LocalFrame(const This&) = delete;
     auto operator=(const This&) -> This& = delete;
     // move
-    LocalScope(This&&) = default;
+    LocalFrame(This&&) = default;
     auto operator=(This &&) -> This& = default;
 
 public:
@@ -39,22 +39,22 @@ private:
     AddressByTyped m;
 };
 
-struct Scope {
-    using This = Scope;
+struct Frame {
+    using This = Frame;
 
     const This* parent{};
-    LocalScope locals;
+    LocalFrame locals;
 
-    explicit Scope(const This* parent)
+    explicit Frame(const This* parent)
         : parent(parent) {}
 
-    Scope() = default;
-    ~Scope() = default;
+    Frame() = default;
+    ~Frame() = default;
     // no copy
-    Scope(const This&) = delete;
+    Frame(const This&) = delete;
     auto operator=(const This&) -> This& = delete;
     // move
-    Scope(This&&) = default;
+    Frame(This&&) = default;
     auto operator=(This &&) -> This& = default;
 
 public:

@@ -144,6 +144,8 @@ INSTANTIATE_TEST_CASE_P( //
     ::testing::Values( //
         String{"0x"}, //
         String{"0o"}, //
+        String{"0o9"}, //
         String{"0b"}, //
+        String{"0b2"}, //
         String{"0.e"} //
         ));

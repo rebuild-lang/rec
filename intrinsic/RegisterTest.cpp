@@ -4,6 +4,7 @@
 
 #include "intrinsic/Adapter.h"
 
+#include "instance/Scope.h"
 #include "instance/Type.h"
 #include "scanner/NumberLiteral.h"
 
@@ -396,7 +397,7 @@ TEST(intrinsic, call) {
     reinterpret_cast<uint64_t&>(memory[u64_size]) = 42;
     reinterpret_cast<uint64_t*&>(memory[2 * u64_size]) = &result;
 
-    call.exec(memory.data());
+    call.exec(memory.data(), nullptr);
 
     ASSERT_EQ(result, 23u + 42);
 }

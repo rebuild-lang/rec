@@ -3,8 +3,6 @@ import qbs
 Project {
     minimumQbsVersion: "1.7.1"
 
-
-
     StaticLibrary {
         name: "api"
         Depends { name: "cpp" }
