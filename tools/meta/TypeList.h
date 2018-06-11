@@ -8,6 +8,22 @@ namespace meta {
 template<class T>
 struct Type {};
 
+namespace details {
+
+template<class T>
+struct UnwrapType {
+    using type = T;
+};
+template<class T>
+struct UnwrapType<Type<T>> {
+    using type = T;
+};
+
+} // namespace details
+
+template<class T>
+using unwrapType = typename details::UnwrapType<T>::type;
+
 template<class A, class B>
 constexpr bool operator==(Type<A>, Type<B>) noexcept {
     if constexpr (std::is_same_v<A, B>) {
@@ -75,6 +91,11 @@ struct TypeList {
         else {
             return filterPredImpl<T...>(F{});
         }
+    }
+
+    template<class F>
+    constexpr static auto map(F = {}) {
+        return TypeList<unwrapType<decltype(F(Type<T>{}))>...>{};
     }
 
 private:
