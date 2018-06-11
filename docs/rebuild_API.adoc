@@ -4,7 +4,7 @@
 A compile time API to interact with the Parser & Compiler
 
 == Types
- 
+
 === Basic
 * all are immutable value types
 * access with `rebuild.basic.`
@@ -197,10 +197,10 @@ type `Id(id:Identifier)`::
 * access with `rebuild.instance.`
 
 type `Module`::
-  `.name :str`
-  `.parent :variant(*Module, *Type, *Function)`
-  `.flags :flags(compile_time, final)`
-  `.block :Block`
+  ** `.name :str`
+  ** `.parent :variant(*Module, *Type, *Function)`
+  ** `.flags :flags(compile_time, final)`
+  ** _???_ `.blocks :list(parser.Block)`
 
 type `Type`::
   ** `.name :str`
@@ -227,6 +227,7 @@ type `Function`::
   ** `.results :list(*Argument)`
   ** _TODO_ `.precedenceLevel :*Level = ()`
   ** `.implementation :parser.Block`
+  ** `.define(:literal.Block)`
 
 type `Variable`::
   ** `.name :str`
