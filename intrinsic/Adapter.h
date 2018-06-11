@@ -128,11 +128,15 @@ struct Adapter {
 
             TypeOf<T>::module(a);
 
-            auto t = instance::Type{};
-            t.name = instance::Name{"type"};
-            t.size = info.size;
-            // r.flags = typeFlags(info.flags); // TODO
-            a.instanceModule.locals.emplace(std::move(t));
+            a.instanceModule.locals.emplace([]() -> instance::Type {
+                constexpr auto info = TypeOf<T>::info();
+                auto r = instance::Type{};
+                r.name = instance::Name{"type"};
+                r.size = info.size;
+                r.flags = typeFlags(info.flags);
+                r.parser = typeParser(info.parser);
+                return r;
+            }());
 
             auto node = a.instanceModule.locals[instance::Name{"type"}];
             assert(node != nullptr);
@@ -255,6 +259,25 @@ private:
         instanceModule.locals.emplace(std::move(r));
     }
 
+    static constexpr auto typeFlags(intrinsic::TypeFlags flags) -> instance::TypeFlags {
+        auto r = instance::TypeFlags{};
+        (void)flags;
+        // TODO
+        return r;
+    }
+
+    static constexpr auto typeParser(intrinsic::Parser parser) -> instance::TypeParser {
+        using namespace intrinsic;
+        switch (parser) {
+        case Parser::Expression: return instance::TypeParser::Expression;
+        case Parser::SingleToken: return instance::TypeParser::SingleToken;
+        case Parser::IdTypeValue: return instance::TypeParser::IdTypeValue;
+        case Parser::IdTypeValueTuple: return instance::TypeParser::IdTypeValueTuple;
+        case Parser::OptionalIdTypeValueTuple: return instance::TypeParser::OptionalIdTypeValueTuple;
+        }
+        return {};
+    }
+
     template<class R, class... Args>
     auto typeArguments(R (*)(Args...)) -> instance::Arguments {
         return {argument<Args>()..., typeResultArgument()};
@@ -290,7 +313,7 @@ private:
         return r;
     }
 
-    constexpr auto argumentSide(intrinsic::ArgumentSide side) -> instance::ArgumentSide {
+    constexpr static auto argumentSide(intrinsic::ArgumentSide side) -> instance::ArgumentSide {
         using namespace intrinsic;
         switch (side) {
         case ArgumentSide::Left: return instance::ArgumentSide::left;
@@ -301,7 +324,7 @@ private:
         return {};
     }
 
-    constexpr auto argumentFlags(intrinsic::ArgumentFlags flags) -> instance::ArgumentFlags {
+    constexpr static auto argumentFlags(intrinsic::ArgumentFlags flags) -> instance::ArgumentFlags {
         using namespace intrinsic;
         auto r = instance::ArgumentFlags{};
         if (flags.any(ArgumentFlag::Assignable)) {
@@ -312,6 +335,6 @@ private:
         }
         return r;
     }
-};
+}; // namespace intrinsicAdapter
 
 } // namespace intrinsicAdapter

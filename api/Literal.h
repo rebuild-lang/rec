@@ -14,6 +14,7 @@ struct TypeOf<parser::expression::StringLiteral> {
         info.name = Name{".String"};
         info.size = sizeof(parser::expression::StringLiteral);
         info.flags = TypeFlag::CompileTime;
+        info.parser = Parser::SingleToken;
         return info;
     }
 
@@ -30,6 +31,7 @@ struct TypeOf<parser::expression::NumberLiteral> {
         info.name = Name{".Number"};
         info.size = sizeof(parser::expression::NumberLiteral);
         info.flags = TypeFlag::CompileTime;
+        info.parser = Parser::SingleToken;
         return info;
     }
 
@@ -46,6 +48,7 @@ struct TypeOf<parser::expression::BlockLiteral> {
         info.name = Name{".Block"};
         info.size = sizeof(parser::expression::BlockLiteral);
         info.flags = TypeFlag::CompileTime;
+        info.parser = Parser::SingleToken;
         return info;
     }
 
@@ -62,6 +65,7 @@ struct TypeOf<parser::expression::IdentifierLiteral> {
         info.name = Name{".Identifier"};
         info.size = sizeof(parser::block::Token);
         info.flags = TypeFlag::CompileTime;
+        info.parser = Parser::SingleToken;
         return info;
     }
 

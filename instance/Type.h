@@ -14,10 +14,19 @@ enum class TypeFlag {
 };
 using TypeFlags = meta::Flags<TypeFlag>;
 
+enum class TypeParser {
+    Expression,
+    SingleToken,
+    IdTypeValue,
+    IdTypeValueTuple,
+    OptionalIdTypeValueTuple,
+};
+
 struct Type {
     Name name{}; // always "type"
     uint64_t size{};
     TypeFlags flags{};
+    TypeParser parser{};
     ModuleView module{};
 };
 using TypeView = const Type*;

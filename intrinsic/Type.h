@@ -17,10 +17,19 @@ enum class TypeFlag : uint64_t {
 using TypeFlags = meta::Flags<TypeFlag>;
 META_FLAGS_OP(TypeFlags)
 
+enum class Parser {
+    Expression,
+    SingleToken,
+    IdTypeValue,
+    IdTypeValueTuple,
+    OptionalIdTypeValueTuple,
+};
+
 struct TypeInfo {
     Name name{};
     uint64_t size{};
     TypeFlags flags{};
+    Parser parser{};
 };
 
 /* specialize for usage
