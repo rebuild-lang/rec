@@ -14,6 +14,9 @@ Project {
             "TreeBuilder.h",
             "TreeOutput.cpp",
             "TreeOutput.h",
+            "TypeTree.cpp",
+            "TypeTree.h",
+            "TypeTreeOutput.h",
         ]
 
         Export {

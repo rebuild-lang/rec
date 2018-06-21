@@ -228,10 +228,11 @@ private:
                 continue;
             }
             argument->typed.type.visit(
-                [&](instance::type::Pointer& p) {
-                    p.target = std::make_shared<instance::type::Expression>(instance::type::Instance{typeIt->second});
+                [&](parser::expression::Pointer& p) {
+                    p.target = std::make_shared<parser::expression::TypeExpression>(
+                        parser::expression::TypeInstance{typeIt->second});
                 },
-                [&, a = argument](auto) { a->typed.type = instance::type::Instance{typeIt->second}; });
+                [&, a = argument](auto) { a->typed.type = parser::expression::TypeInstance{typeIt->second}; });
         }
         // TODO: resolve other types
     }
@@ -266,14 +267,14 @@ private:
         return r;
     }
 
-    static constexpr auto typeParser(intrinsic::Parser parser) -> instance::TypeParser {
+    static constexpr auto typeParser(intrinsic::Parser parser) -> instance::Parser {
         using namespace intrinsic;
         switch (parser) {
-        case Parser::Expression: return instance::TypeParser::Expression;
-        case Parser::SingleToken: return instance::TypeParser::SingleToken;
-        case Parser::IdTypeValue: return instance::TypeParser::IdTypeValue;
-        case Parser::IdTypeValueTuple: return instance::TypeParser::IdTypeValueTuple;
-        case Parser::OptionalIdTypeValueTuple: return instance::TypeParser::OptionalIdTypeValueTuple;
+        case Parser::Expression: return instance::Parser::Expression;
+        case Parser::SingleToken: return instance::Parser::SingleToken;
+        case Parser::IdTypeValue: return instance::Parser::IdTypeValue;
+        case Parser::IdTypeValueTuple: return instance::Parser::IdTypeValueTuple;
+        case Parser::OptionalIdTypeValueTuple: return instance::Parser::OptionalIdTypeValueTuple;
         }
         return {};
     }
@@ -305,7 +306,7 @@ private:
         auto r = instance::Argument{};
         r.typed.name = info.name;
         if (info.flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
-            r.typed.type = instance::type::Pointer{};
+            r.typed.type = parser::expression::Pointer{};
         }
         // r.typed.type = // this has to be delayed until all types are known
         r.side = argumentSide(info.side);

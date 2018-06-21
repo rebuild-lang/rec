@@ -44,7 +44,7 @@ struct ArgumentBuilder {
     auto build(const Scope& scope) && -> Argument {
         if (!typeName.isEmpty()) {
             auto* t = &lookupA<Type>(scope, typeName);
-            arg.typed.type = type::Instance{t};
+            arg.typed.type = parser::expression::TypeInstance{t};
         }
         return std::move(arg);
     }

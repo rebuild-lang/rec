@@ -92,6 +92,7 @@ private:
             [&](const expression::VariableInit& var) { initVariable(var, context); },
             [&](const expression::ModuleReference&) {},
             [&](const expression::NamedTuple& named) { runNamed(named, context); },
+            [&](const expression::TypedTuple&) {},
             [&](const expression::StringLiteral&) {},
             [&](const expression::NumberLiteral&) {},
             [&](const expression::OperatorLiteral&) {},
@@ -165,13 +166,13 @@ private:
         return typeExpressionSize(arg.typed.type);
     }
 
-    static auto typeExpressionSize(const instance::type::Expression& type) -> size_t {
-        using namespace instance;
+    static auto typeExpressionSize(const parser::expression::TypeExpression& type) -> size_t {
+        using namespace parser::expression;
         return type.visit(
-            [](const type::Auto&) -> size_t { return 0u; },
-            [](const type::Array& a) -> size_t { return a.count * typeExpressionSize(*a.element); },
-            [](const type::Instance& i) -> size_t { return i.concrete->size; },
-            [](const type::Pointer&) -> size_t { return sizeof(void*); });
+            [](const Auto&) -> size_t { return 0u; },
+            [](const Array& a) -> size_t { return a.count * typeExpressionSize(*a.element); },
+            [](const TypeInstance& i) -> size_t { return i.concrete->size; },
+            [](const Pointer&) -> size_t { return sizeof(void*); });
     }
 
     static void storeArguments(const expression::Call& call, Context& context) {
@@ -275,6 +276,7 @@ private:
             [&](const expression::VariableInit&) { assert(false); },
             [&](const expression::ModuleReference&) {},
             [&](const expression::NamedTuple&) {},
+            [&](const expression::TypedTuple&) {},
             [&](const auto& literal) { storeLiteral(literal, memory); });
     }
 

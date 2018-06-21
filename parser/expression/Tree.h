@@ -1,4 +1,6 @@
 #pragma once
+#include "TypeTree.h"
+
 #include "instance/Views.h"
 
 #include "parser/block/Token.h"
@@ -21,9 +23,7 @@ using Name = strings::String;
 
 class Node;
 using Nodes = std::vector<Node>;
-
-struct Named;
-using NamedVec = std::vector<Named>;
+using NodePtr = std::unique_ptr<Node>;
 
 struct Block {
     using This = Block;
@@ -94,9 +94,22 @@ struct ModuleReference {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
+struct Named;
+using NamedVec = std::vector<Named>;
 struct NamedTuple {
     using This = NamedTuple;
     NamedVec tuple{};
+
+    bool operator==(const This& o) const { return tuple == o.tuple; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+
+struct Typed;
+using TypedVec = std::vector<Typed>;
+
+struct TypedTuple {
+    using This = TypedTuple;
+    TypedVec tuple{};
 
     bool operator==(const This& o) const { return tuple == o.tuple; }
     bool operator!=(const This& o) const { return !(*this == o); }
@@ -126,6 +139,7 @@ using NodeVariant = meta::Variant<
     VariableInit,
     ModuleReference,
     NamedTuple,
+    TypedTuple,
     StringLiteral,
     NumberLiteral,
     OperatorLiteral,
@@ -157,6 +171,16 @@ struct Named {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 using OptNamed = meta::Optional<Named>;
+
+struct Typed {
+    using This = Typed;
+    Name name{};
+    OptTypeExpression type{};
+    OptNode value{};
+
+    bool operator==(const This& o) const { return name == o.name && type == o.type && value == o.value; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
 
 struct NamedNodeView {
     using This = NamedNodeView;

@@ -14,7 +14,7 @@ enum class TypeFlag {
 };
 using TypeFlags = meta::Flags<TypeFlag>;
 
-enum class TypeParser {
+enum class Parser {
     Expression,
     SingleToken,
     IdTypeValue,
@@ -26,7 +26,7 @@ struct Type {
     Name name{}; // always "type"
     uint64_t size{};
     TypeFlags flags{};
-    TypeParser parser{};
+    Parser parser{};
     ModuleView module{};
 };
 using TypeView = const Type*;

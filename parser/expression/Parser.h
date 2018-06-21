@@ -5,6 +5,7 @@
 
 #include "instance/Function.h"
 #include "instance/Module.h"
+#include "instance/Type.h"
 
 #include <type_traits>
 #include <utility>
@@ -228,7 +229,7 @@ private:
         // TODO: add overloads
     }
 
-    static bool canImplicitConvertToType(NodeView node, const instance::type::Expression& type) {
+    static bool canImplicitConvertToType(NodeView node, const parser::expression::TypeExpression& type) {
         // TODO:
         // I guess we need a scope here
         (void)node;
@@ -413,28 +414,102 @@ private:
     }
 
     template<class Context>
+    static auto parseTypeExpression(BlockLineView& it, Context& context) -> OptTypeExpression {
+        return it.current().data.visit(
+            [&](const block::IdentifierLiteral&) -> OptTypeExpression {
+                auto name = it.current().range.text;
+                auto node = context.lookup(name);
+                if (node) return parseTypeInstance(*node, it, context);
+                return {};
+            },
+            [](const auto&) -> OptTypeExpression { // error
+                return {};
+            });
+    }
+
+    template<class Context>
+    static auto parseTypeInstance(const instance::Node& instance, BlockLineView& it, Context& context)
+        -> OptTypeExpression {
+        return instance.visit(
+            [&](const instance::Variable&) -> OptTypeExpression {
+                // TODO: var is a TypeModule / Epression or Callable
+                return {};
+            },
+            [&](const instance::Argument&) -> OptTypeExpression { return {}; },
+            [&](const instance::Function&) -> OptTypeExpression {
+                // TODO: compile time function that returns something useful
+                // ++it;
+                // auto result = OptNode{};
+                // return parseCall(result, fun, it, context);
+                return {};
+            },
+            [&](const instance::Type&) -> OptTypeExpression {
+                // this should not occur
+                return {};
+            },
+            [&](const instance::Module& mod) -> OptTypeExpression {
+                ++it;
+                auto typeNode = mod.locals[View{"type"}];
+                if (typeNode) {
+                    const auto& type = typeNode->get<instance::Type>();
+                    return {TypeInstance{&type}};
+                }
+                return {};
+            });
+    }
+
+    template<class Context>
+    static auto parseTyped(BlockLineView& it, Context& context) -> OptNamed {
+        auto name = it.current().data.visit(
+            [&](const block::IdentifierLiteral&) {
+                auto result = it.current().range.text;
+                ++it;
+                return result;
+            },
+            [](const auto&) { return View{}; });
+        auto type = [&]() -> OptTypeExpression {
+            if (!it.current().oneOf<block::ColonSeparator>()) return {};
+            ++it;
+            return parseTypeExpression(it, context);
+        }();
+        auto value = [&]() -> OptNode {
+            if (!it.current().data.visit(
+                    [&](const block::OperatorLiteral&) { return it.current().range.text == View{"="}; },
+                    [](const auto&) { return false; }))
+                return {};
+            ++it;
+            return parseSingle(it, context);
+        }();
+        return Named{Name{}, TypedTuple{{Typed{strings::to_string(name), std::move(type), std::move(value)}}}};
+    }
+
+    template<class Context>
     using ParseFunc = OptNamed (*)(BlockLineView& it, Context& context);
 
-    static auto getTypeParser(const instance::type::Expression& type) -> instance::TypeParser {
-        using namespace instance::type;
+    static auto getParserForType(const parser::expression::TypeExpression& type) -> instance::Parser {
+        using namespace parser::expression;
 
         return type.visit(
             [&](const Pointer& ptr) {
                 return ptr.target->visit(
-                    [&](const Instance& inst) { return inst.concrete->parser; },
-                    [](const auto&) { return instance::TypeParser::Expression; });
+                    [&](const TypeInstance& inst) { return inst.concrete->parser; },
+                    [](const auto&) { return instance::Parser::Expression; });
             },
-            [](const auto&) { return instance::TypeParser::Expression; });
+            [](const auto&) { return instance::Parser::Expression; });
     }
 
     template<class Context>
-    static auto parserForType(const instance::type::Expression& type) -> ParseFunc<Context> {
+    static auto parserForType(const parser::expression::TypeExpression& type) -> ParseFunc<Context> {
         using namespace instance;
-        switch (getTypeParser(type)) {
-        case TypeParser::Expression:
+        using Parser = instance::Parser;
+        switch (getParserForType(type)) {
+        case Parser::Expression:
             return [](BlockLineView& it, Context& context) { return parseSingleNamed(it, context); };
 
-        case TypeParser::SingleToken: return [](BlockLineView& it, Context&) { return parseSingleToken(it); };
+        case Parser::SingleToken: return [](BlockLineView& it, Context&) { return parseSingleToken(it); };
+
+        case Parser::IdTypeValue: return [](BlockLineView& it, Context& context) { return parseTyped(it, context); };
+
         default: return [](BlockLineView&, Context&) { return OptNamed{}; };
         }
     }
