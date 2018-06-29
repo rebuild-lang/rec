@@ -26,11 +26,7 @@ using unwrapType = typename details::UnwrapType<T>::type;
 
 template<class A, class B>
 constexpr bool operator==(Type<A>, Type<B>) noexcept {
-    if constexpr (std::is_same_v<A, B>) {
-        return true;
-    }
-    else
-        return false;
+    return std::is_same_v<A, B>;
 }
 template<class A, class B>
 constexpr bool operator!=(Type<A> a, Type<B> b) noexcept {

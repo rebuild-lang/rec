@@ -22,17 +22,18 @@ private:
 public:
     String() = default; // valid empty string
     String(const This&) = default;
-    String(This&&) = default;
-    This& operator=(const This&) & = default;
-    This& operator=(This&&) & = default;
+    String(This&&) noexcept = default;
+    String& operator=(const This&) & = default;
+    String& operator=(This&&) & noexcept = default;
+    ~String() = default;
 
-    String(std::vector<Data>&& src) noexcept // take data from existing vector
+    explicit String(std::vector<Data>&& src) noexcept // take data from existing vector
         : m(std::move(src)) {}
     // explicit String(const char* str) : data_m(str, str + strlen(str)) {}
 
-    explicit String(std::initializer_list<Data> il) // from initializer list
+    String(std::initializer_list<Data> il) // from initializer list
         : m(il) {}
-    explicit String(std::initializer_list<char> il)
+    String(std::initializer_list<char> il)
         : m(reinterpret_cast<std::initializer_list<Data>&>(il)) {}
 
     template<size_t N>

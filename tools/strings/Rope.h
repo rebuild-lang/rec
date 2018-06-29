@@ -58,11 +58,11 @@ public:
                 [&](const String& s) { meta::append(result, s); },
                 [&](const View& v) { meta::append(result, v); });
         }
-        return std::move(result);
+        return String{std::move(result)};
     }
 
     bool operator==(const This& o) const {
-        // TODO: avoid allocation
+        // TODO(arBmind): avoid allocation
         auto tmp = static_cast<String>(*this);
         auto tmp2 = static_cast<String>(o);
         return tmp == tmp2;
@@ -70,7 +70,7 @@ public:
     bool operator!=(const This& o) const { return !(*this == o); }
 
     bool operator==(const View& v) const {
-        // TODO: without allocation
+        // TODO(arBmind): without allocation
         auto tmp = static_cast<String>(*this);
         return v.isContentEqual(View(tmp));
     }

@@ -87,7 +87,7 @@ public:
         constexpr explicit Index(size_t v)
             : m(v) {}
 
-        constexpr operator bool() const { return m < sizeof...(T); }
+        constexpr explicit operator bool() const { return m < sizeof...(T); }
 
         constexpr bool operator==(const This& o) { return m == o.m; }
         constexpr bool operator!=(const This& o) { return m != o.m; }

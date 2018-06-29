@@ -130,16 +130,18 @@ public:
     constexpr auto begin() const -> ByteIt { return ByteIt(start_m); }
     constexpr auto end() const -> ByteIt { return ByteIt(end_m); }
 
-    constexpr auto front() const -> Byte { return *start_m; }
+    constexpr auto front() const -> Byte { return *begin(); }
 
 private:
     auto peek() -> meta::Optional<Byte> {
         if (0 == byteCount().v) return {};
-        return *start_m;
+        return front();
     }
     auto pop() -> meta::Optional<Byte> {
         if (0 == byteCount().v) return {};
-        return *start_m++;
+        auto r = front();
+        start_m++;
+        return r;
     }
     template<size_t N>
     bool pop() {

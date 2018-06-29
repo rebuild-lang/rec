@@ -122,7 +122,7 @@ struct Flags {
     }
 
 private:
-    constexpr Flags(Value v) noexcept
+    constexpr explicit Flags(Value v) noexcept
         : v(v) {}
 
     template<class... Args>

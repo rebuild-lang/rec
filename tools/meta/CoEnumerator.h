@@ -36,10 +36,10 @@ struct CoEnumerator {
     auto operator-> () const noexcept -> const V* { return &handle.promise().v; }
     auto move() -> V { return std::move(handle.promise().v); }
 
-    operator bool() const { return handle && !handle.done(); }
+    explicit operator bool() const { return handle && !handle.done(); }
     bool operator++(int) {
         if (handle) handle.resume();
-        return *this;
+        return static_cast<bool>(*this);
     }
     auto operator++() -> This& {
         if (handle) handle.resume();
@@ -65,7 +65,7 @@ struct CoEnumerator {
                 return *this;
             }
             bool operator==(End) const { return !gen; }
-            bool operator!=(End) const { return gen; }
+            bool operator!=(End) const { return !!gen; }
         };
         return Iterator{++(*this)};
     }
@@ -89,7 +89,7 @@ struct CoEnumerator {
     This& operator=(This&&) = delete;
 
 private:
-    CoEnumerator(Handle h)
+    explicit CoEnumerator(Handle h)
         : handle(h) {}
 
 private:

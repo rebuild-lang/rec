@@ -131,7 +131,7 @@ struct CodePoint {
 
     bool isPunctuationOther() const;
 
-    constexpr bool isDecimalNumber() const { return decimalNumber(); }
+    constexpr bool isDecimalNumber() const { return !!decimalNumber(); }
 
     constexpr auto decimalNumber() const -> OptionalDecimal {
         // see https://www.compart.com/en/unicode/category/Nd

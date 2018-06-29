@@ -21,7 +21,7 @@ public:
     constexpr Optional(T&& t)
         : m(std::move(t)) {}
 
-    constexpr operator bool() const { return m.has_value(); }
+    constexpr explicit operator bool() const { return m.has_value(); }
     constexpr auto value() const& -> decltype(auto) { return m.value(); }
     constexpr auto value() & -> decltype(auto) { return m.value(); }
     constexpr auto value() && -> decltype(auto) { return std::move(m).value(); }
@@ -53,6 +53,13 @@ public:
     constexpr auto orValue(D&& d) && -> decltype(auto) {
         if (m.has_value()) return std::move(m).value();
         return std::forward<D>(d);
+    }
+
+    template<class F>
+    constexpr auto operator&&(F&& f)
+        -> std::enable_if_t<std::is_same_v<decltype(std::declval<F>()(std::declval<T>())), bool>, bool> {
+        if (*this) return f(value());
+        return false;
     }
 
     constexpr bool operator==(const This& o) const { return m == o.m; }
@@ -89,7 +96,7 @@ public:
     constexpr Optional(const Data& data)
         : data(data) {}
 
-    constexpr operator bool() const { return !(data == InvalidFunc{}()); }
+    constexpr explicit operator bool() const { return !(data == InvalidFunc{}()); }
     constexpr auto value() const& -> decltype(auto) { return data; }
     constexpr auto value() && -> decltype(auto) { return std::move(data); }
     constexpr auto value() & -> decltype(auto) { return data; }
@@ -122,6 +129,14 @@ public:
         if (*this) return std::move(*this).value();
         return std::forward<D>(d);
     }
+
+    template<class F>
+    constexpr auto operator&&(F&& f)
+        -> std::enable_if_t<std::is_same_v<decltype(std::declval<F>()(std::declval<Data>())), bool>, bool> {
+        if (*this) return f(value());
+        return false;
+    }
+
     constexpr bool operator==(const This& o) const { return data == o.data; }
     constexpr bool operator!=(const This& o) const { return data != o.data; }
 };
