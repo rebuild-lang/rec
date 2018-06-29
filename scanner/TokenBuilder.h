@@ -10,9 +10,7 @@ namespace details {
 template<class Tok>
 struct TokenBuilder {
     static auto build(Tok&& t) -> Token { // token type => token
-        auto tok = Token{};
-        tok.data = std::move(t);
-        return tok;
+        return {std::move(t)};
     }
 };
 
@@ -24,9 +22,8 @@ struct TokenBuilder<Token> {
 template<>
 struct TokenBuilder<View> {
     static auto build(const View& b) -> Token {
-        auto tok = Token{};
+        auto tok = scanner::IdentifierLiteral{};
         tok.range.text = b;
-        tok.data = scanner::IdentifierLiteral{};
         return tok;
     }
 };

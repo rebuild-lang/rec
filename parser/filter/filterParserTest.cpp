@@ -59,7 +59,7 @@ TEST_P(TokenTransformations, FilterParser) {
         tokGen++;
         ASSERT_TRUE(static_cast<bool>(tokGen));
         const auto& tok = *tokGen;
-        ASSERT_EQ(tok.data, et.data);
+        ASSERT_EQ(tok, et);
     }
 }
 

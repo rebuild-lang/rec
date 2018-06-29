@@ -16,7 +16,7 @@ struct Tokenizer {
     struct Config {
         Column tabStops; ///< columns per tabstop
     };
-    Tokenizer(Config c)
+    explicit Tokenizer(Config c)
         : config(c) {}
 
     auto scanFile(const File& file) -> meta::CoEnumerator<Token> {
@@ -76,7 +76,7 @@ private:
     template<class Literal>
     static auto scanChar(FileInput& input) -> Token {
         input.extend();
-        return {input.range(), Literal{}};
+        return Literal{input.range()};
     }
 
     static auto scanIdentifier(FileInput& input) -> OptToken { return IdentifierScanner::scan(input); }
@@ -84,13 +84,13 @@ private:
 
     static auto scanInvalidEncoding(FileInput& input) -> Token {
         // invalid bytes were already skipped
-        return {input.range(), InvalidEncoding{}};
+        return InvalidEncoding{input.range()};
     }
 
     auto scanWhiteSpace(FileInput& input) const -> Token {
         input.extend(config.tabStops);
         input.extendWhiteSpaces(config.tabStops);
-        return {input.range(), WhiteSpaceSeparator{}};
+        return WhiteSpaceSeparator{input.range()};
     }
 
     auto scanNewLine(CodePoint chr, FileInput& input) const -> Token {
@@ -103,12 +103,12 @@ private:
         }
         input.nextLine();
         input.extendWhiteSpaces(config.tabStops);
-        return {input.range(), NewLineIndentation{}};
+        return NewLineIndentation{input.range()};
     }
 
     static auto scanInvalid(FileInput& input) -> Token {
         input.extend();
-        return {input.range(), UnexpectedCharacter{}};
+        return UnexpectedCharacter{input.range()};
     }
 
 private:

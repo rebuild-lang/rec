@@ -27,7 +27,7 @@ struct BlockTransformData {
     }
     template<class... Lines>
     auto out(Lines&&... lines) && -> BlockTransformData {
-        expected = BlockLiteral{{std::forward<Lines>(lines)...}};
+        expected = BlockLiteral{{{std::forward<Lines>(lines)...}}, {}};
         return *this;
     }
 };

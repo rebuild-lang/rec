@@ -12,7 +12,7 @@ struct IdentifierScanner {
         do {
             input.extend();
         } while (input.peek().map(isContinuation));
-        return Token{input.range(), IdentifierLiteral{}};
+        return Token{IdentifierLiteral{input.range()}};
     }
 
 private:

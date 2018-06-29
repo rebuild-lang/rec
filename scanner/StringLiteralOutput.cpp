@@ -2,7 +2,7 @@
 
 namespace scanner {
 
-auto operator<<(std::ostream& out, const StringLiteral& lit) -> std::ostream& {
+auto operator<<(std::ostream& out, const StringLiteralValue& lit) -> std::ostream& {
     out << '"';
     out << lit.text;
     return out << '"';

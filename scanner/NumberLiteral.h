@@ -33,7 +33,8 @@ constexpr auto to_string(Radix radix) -> View {
     return View{"[corrupted-radix]"};
 }
 
-struct NumberLiteral {
+struct NumberLiteralValue {
+    using This = NumberLiteralValue;
     Radix radix{Radix::invalid};
     Rope integerPart{};
     Rope fractionalPart{};
@@ -42,16 +43,15 @@ struct NumberLiteral {
 
     explicit operator bool() const { return radix != Radix::invalid; }
 
-    constexpr bool operator==(const NumberLiteral &o) const noexcept {
-        if (radix == Radix::invalid || o.radix == Radix::invalid) // fast optional invalid
-            return radix == o.radix;
+    constexpr bool operator==(const This& o) const noexcept {
+        if (radix == Radix::invalid || o.radix == Radix::invalid) return radix == o.radix; // fast optional invalid
         return radix == o.radix //
-               && integerPart == o.integerPart //
-               && fractionalPart == o.fractionalPart //
-               && (exponentPart.isEmpty() ? true : exponentSign == o.exponentSign) //
-               && exponentPart == o.exponentPart;
+            && integerPart == o.integerPart //
+            && fractionalPart == o.fractionalPart //
+            && (exponentPart.isEmpty() ? true : exponentSign == o.exponentSign) //
+            && exponentPart == o.exponentPart;
     }
-    constexpr bool operator!=(const NumberLiteral &o) const noexcept { return !(*this == o); }
+    constexpr bool operator!=(const This& o) const noexcept { return !(*this == o); }
 };
 
 } // namespace scanner

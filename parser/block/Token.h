@@ -4,16 +4,23 @@
 
 namespace parser::block {
 
+namespace details {
+
+using parser::filter::details::ValueToken;
+}
+
 using TextRange = scanner::TextRange;
 
 struct Token;
 using TokenLine = std::vector<Token>;
-struct BlockLiteral {
+struct BlockLiteralValue {
+    using This = BlockLiteralValue;
     std::vector<TokenLine> lines{};
 
-    bool operator==(const BlockLiteral& o) const { return lines == o.lines; }
-    bool operator!=(const BlockLiteral& o) const { return lines != o.lines; }
+    bool operator!=(const This& o) const { return lines != o.lines; }
+    bool operator==(const This& o) const { return lines == o.lines; }
 };
+using BlockLiteral = details::ValueToken<BlockLiteralValue>;
 using ColonSeparator = filter::ColonSeparator;
 using CommaSeparator = filter::CommaSeparator;
 using SquareBracketOpen = filter::SquareBracketOpen;
@@ -38,17 +45,8 @@ using TokenVariant = meta::Variant<
     IdentifierLiteral,
     OperatorLiteral>;
 
-struct Token {
-    TextRange range{};
-    TokenVariant data{};
-
-    template<class... Ts>
-    bool oneOf() const {
-        return data.holds<Ts...>();
-    }
-
-    bool operator==(const Token& o) const { return range == o.range && data == o.data; }
-    bool operator!=(const Token& o) const { return !(*this == o); }
+struct Token : TokenVariant {
+    META_VARIANT_CONSTRUCT(Token, TokenVariant)
 };
 
 } // namespace parser::block

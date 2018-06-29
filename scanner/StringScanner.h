@@ -13,7 +13,7 @@ struct StringScanner {
         auto ip = decltype(input.current()){};
         auto isWhitespace = false;
         auto flush = [&] {
-            if (ip) {
+            if (ip != nullptr) {
                 if (ip != input.current()) text += View{ip, input.current()};
                 ip = {};
                 isWhitespace = false;
@@ -57,11 +57,11 @@ struct StringScanner {
             else {
                 isWhitespace = false;
             }
-            if (!ip) ip = input.current();
+            if (ip == nullptr) ip = input.current();
             input.extend();
         }
         flush();
-        return {input.range(), StringLiteral{std::move(text)}};
+        return StringLiteral{{std::move(text)}, input.range()};
     }
 
 private:
@@ -114,7 +114,7 @@ private:
                 continue;
             }
             if (chr.isLineSeparator()) {
-                if (whitespaceIp && whitespaceIp != input.current()) {
+                if (whitespaceIp != nullptr && whitespaceIp != input.current()) {
                     if (ip != whitespaceIp) text += View{ip, whitespaceIp};
                     whitespaceIp = {};
                     ip = input.current();
@@ -128,15 +128,17 @@ private:
                 lineIp = {};
                 whitespaceIp = {};
             }
-            else if (!whitespaceIp)
+            else if (whitespaceIp == nullptr) {
                 whitespaceIp = input.current();
+            }
             input.extend();
         }
-        if (lineIp) {
+        if (lineIp != nullptr) {
             if (ip != lineIp) text += View{ip, lineIp};
         }
-        else if (ip != input.current())
+        else if (ip != input.current()) {
             text += View{ip, input.current()};
+        }
     }
 
     static auto handleEscape(FileInput& input, strings::Rope& text) -> bool {

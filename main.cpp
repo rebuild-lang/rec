@@ -32,6 +32,15 @@ class Compiler final {
 
     execution::Compiler compiler;
 
+    struct IntrinsicType {
+        const InstanceScope& global;
+
+        template<class T>
+        auto operator()(meta::Type<T>) const -> instance::TypeView {
+            return {};
+        }
+    };
+
     auto executionContext(InstanceScope& parserScope) {
         auto r = ExecutionContext{};
         r.compiler = &compiler;
@@ -58,8 +67,9 @@ class Compiler final {
             execution::Machine::runCall(call, executionContext(scope));
             return {};
         };
+        auto intrinsicType = IntrinsicType{globalScope};
 
-        return parser::expression::makeContext(std::move(lookup), std::move(runCall));
+        return parser::expression::Context{std::move(lookup), std::move(runCall), intrinsicType};
     }
 
 public:

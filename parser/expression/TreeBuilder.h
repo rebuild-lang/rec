@@ -74,7 +74,7 @@ public:
         return std::move(*this).visit(
             [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }, //
             [](auto&& lit) -> Node {
-                return TokenLiteral<std::decay_t<decltype(lit)>>{std::move(lit), {}};
+                return Value{std::move(lit), TypeExpression{}};
             });
     }
 };

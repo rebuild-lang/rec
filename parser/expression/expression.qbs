@@ -17,6 +17,8 @@ Project {
             "TypeTree.cpp",
             "TypeTree.h",
             "TypeTreeOutput.h",
+            "Value.cpp",
+            "Value.h",
         ]
 
         Export {

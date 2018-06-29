@@ -65,7 +65,7 @@ struct IntrinsicContext : intrinsic::Context {
         , intrinsic::Context{context.parserScope, executionScope} {}
 
     void parse(const parser::expression::BlockLiteral& block, instance::Scope* scope) const override {
-        parseBlock(block.token, scope);
+        parseBlock(block, scope);
     }
 };
 
@@ -93,11 +93,7 @@ private:
             [&](const expression::ModuleReference&) {},
             [&](const expression::NamedTuple& named) { runNamed(named, context); },
             [&](const expression::TypedTuple&) {},
-            [&](const expression::StringLiteral&) {},
-            [&](const expression::NumberLiteral&) {},
-            [&](const expression::OperatorLiteral&) {},
-            [&](const expression::IdentifierLiteral&) {},
-            [&](const expression::BlockLiteral&) {});
+            [&](const expression::Value&) {});
     }
 
     static void initVariable(const expression::VariableInit& var, Context& context) {
@@ -277,7 +273,7 @@ private:
             [&](const expression::ModuleReference&) {},
             [&](const expression::NamedTuple&) {},
             [&](const expression::TypedTuple&) {},
-            [&](const auto& literal) { storeLiteral(literal, memory); });
+            [&](const expression::Value& value) { storeLiteral(value, memory); });
     }
 
     static void storeCallResult(const expression::Call& call, const Context& context, Byte* memory) {
@@ -295,9 +291,8 @@ private:
         reinterpret_cast<void*&>(*memory) = context[&typed];
     }
 
-    template<class TokenLiteral>
-    static void storeLiteral(const TokenLiteral& literal, Byte* memory) {
-        reinterpret_cast<const void*&>(*memory) = &literal; // store pointer to real instance
+    static void storeLiteral(const expression::Value& value, Byte* memory) {
+        reinterpret_cast<const void*&>(*memory) = value.data(); // store pointer to real instance
     }
 
     static void storeValue(const instance::Typed& typed, const Context& context, Byte* memory) {

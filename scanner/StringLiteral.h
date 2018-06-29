@@ -5,11 +5,12 @@ namespace scanner {
 
 using Rope = strings::Rope;
 
-struct StringLiteral {
+struct StringLiteralValue {
+    using This = StringLiteralValue;
     Rope text;
 
-    bool operator==(const StringLiteral& o) const { return o.text == text; }
-    bool operator!=(const StringLiteral& o) const { return !(*this == o); }
+    bool operator==(const This& o) const { return o.text == text; }
+    bool operator!=(const This& o) const { return !(*this == o); }
 };
 
 } // namespace scanner

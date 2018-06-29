@@ -12,52 +12,48 @@ struct IdentBuilder {
     Token tok{};
 
     IdentBuilder() = delete;
-    IdentBuilder(IdentifierLiteral) { tok.data = IdentifierLiteral{}; }
-    IdentBuilder(OperatorLiteral) { tok.data = OperatorLiteral{}; }
+    IdentBuilder(IdentifierLiteral) { tok = IdentifierLiteral{}; }
+    IdentBuilder(OperatorLiteral) { tok = OperatorLiteral{}; }
 
-    auto lit() & -> IdentifierLiteral & {
-        if (tok.oneOf<OperatorLiteral>()) return tok.data.get<OperatorLiteral>();
-        return tok.data.get<IdentifierLiteral>();
+    auto lit() & -> IdentifierLiteral& {
+        if (tok.holds<OperatorLiteral>()) return tok.get<OperatorLiteral>();
+        return tok.get<IdentifierLiteral>();
     }
 
     auto leftSeparated() && -> This {
-        lit().leftSeparated = true;
+        lit().value.leftSeparated = true;
         return *this;
     }
     auto rightSeparated() && -> This {
-        lit().rightSeparated = true;
+        lit().value.rightSeparated = true;
         return *this;
     }
     auto bothSeparated() && -> This {
-        lit().leftSeparated = true;
-        lit().rightSeparated = true;
+        lit().value.leftSeparated = true;
+        lit().value.rightSeparated = true;
         return *this;
     }
 
     template<size_t N>
     auto text(const char (&text)[N]) && -> This {
-        tok.range.text = View{text};
+        lit().range.text = View{text};
         return *this;
     }
 
-    auto id() && -> Token && { return std::move(tok); }
+    auto id() && -> Token&& { return std::move(tok); }
 };
 
 template<class Tok>
 struct TokenBuilder {
-    static auto build(Tok &&t) -> Token {
-        auto tok = Token{};
-        tok.data = std::move(t);
-        return tok;
-    }
+    static auto build(Tok&& t) -> Token { return {std::move(t)}; }
 };
 template<>
 struct TokenBuilder<Token> {
-    static auto build(Token &&t) -> Token { return std::move(t); }
+    static auto build(Token&& t) -> Token { return std::move(t); }
 };
 template<>
 struct TokenBuilder<IdentBuilder> {
-    static auto build(IdentBuilder &&b) -> Token { return std::move(b).id(); }
+    static auto build(IdentBuilder&& b) -> Token { return std::move(b).id(); }
 };
 
 } // namespace details
@@ -75,12 +71,12 @@ auto op(const char (&text)[N]) -> details::IdentBuilder {
 }
 
 template<class Tok>
-auto buildToken(Tok &&t) -> Token {
+auto buildToken(Tok&& t) -> Token {
     return details::TokenBuilder<Tok>::build(std::forward<Tok>(t));
 }
 
 template<class... Tok>
-auto buildTokens(Tok &&... t) -> Tokens {
+auto buildTokens(Tok&&... t) -> Tokens {
     return Tokens{::parser::filter::buildToken(std::forward<Tok>(t))...};
 }
 

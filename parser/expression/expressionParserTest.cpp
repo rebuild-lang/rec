@@ -63,15 +63,22 @@ static auto operator<<(std::ostream& out, const ExpressionParserData& epd) -> st
 
 class ExpressionParser : public testing::TestWithParam<ExpressionParserData> {};
 
+struct IntrinsicType {
+    template<class T>
+    auto operator()(meta::Type<T>) -> instance::TypeView {
+        return {};
+    }
+};
+
 TEST_P(ExpressionParser, calls) {
     const ExpressionParserData& data = GetParam();
-    const auto input = block::BlockLiteral{{data.input}};
+    const auto input = block::BlockLiteral{{{data.input}}, {}};
     const auto& scope = data.scope;
     const auto& expected = data.expected;
 
-    auto context = makeContext(
-        [&](const strings::View& id) { return (*scope)[id]; }, //
-        [&](const expression::Call&) -> OptNode { return {}; });
+    auto context = Context{[&](const strings::View& id) { return (*scope)[id]; },
+                           [&](const expression::Call&) -> OptNode { return {}; },
+                           IntrinsicType{}};
 
     auto parsed = expression::Parser::parse(input, context);
 

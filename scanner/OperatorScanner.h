@@ -20,7 +20,7 @@ struct OperatorScanner {
             input.restoreCurrent(stack.front().it, stack.front().itPosition);
             if (input.view().isEmpty()) return {};
         }
-        return Token{input.range(), OperatorLiteral{}};
+        return Token{OperatorLiteral{input.range()}};
     }
 
 private:

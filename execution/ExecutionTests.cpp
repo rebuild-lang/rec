@@ -54,7 +54,7 @@ struct ExecutionMachineData {
 
     static void literal(uint8_t* memory, intrinsic::Context*) {
         auto& lit = reinterpret_cast<expression::NumberLiteral*&>(*memory);
-        instance->result = strings::String{lit->token.integerPart};
+        instance->result = strings::String{lit->value.integerPart};
     }
 };
 

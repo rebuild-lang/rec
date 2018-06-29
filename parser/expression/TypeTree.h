@@ -46,7 +46,14 @@ struct TypeInstance {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-using TypeExpressionVariant = meta::Variant<Auto, Array, TypeInstance, Pointer>;
+using TypeExpressionVariant = meta::Variant<
+    Auto,
+    Array,
+    Pointer,
+    TypeInstance
+    // TODO: Call?
+    // TODO: TypedTuple?
+    >;
 
 struct TypeExpression : TypeExpressionVariant {
     using This = TypeExpression;

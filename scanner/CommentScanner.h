@@ -5,9 +5,9 @@
 namespace scanner {
 
 struct CommentScanner {
-    static auto scan(FileInput& input, Column tabStops) -> Token {
+    static auto scan(FileInput& input, Column tabStops) -> CommentLiteral {
         size_t length = 1;
-        auto makeToken = [&]() -> Token { return {input.range(), CommentLiteral{}}; };
+        auto makeToken = [&]() -> CommentLiteral { return {input.range()}; };
         auto scanLine = [&] {
             do {
                 input.extend(tabStops);

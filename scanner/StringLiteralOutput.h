@@ -5,6 +5,6 @@
 
 namespace scanner {
 
-auto operator<<(std::ostream& out, const StringLiteral& lit) -> std::ostream&;
+auto operator<<(std::ostream& out, const StringLiteralValue& lit) -> std::ostream&;
 
 } // namespace scanner

@@ -5,18 +5,20 @@
 
 namespace parser::filter {
 
+namespace details {
+
+using scanner::details::TagToken;
+using scanner::details::ValueToken;
+
+} // namespace details
+
 using TextRange = scanner::TextRange;
 using View = scanner::View;
 
 using NewLineIndentation = scanner::NewLineIndentation;
-struct BlockStartIndentation {
-    bool operator==(const BlockStartIndentation &) const { return true; }
-    bool operator!=(const BlockStartIndentation &o) const { return !(*this == o); }
-};
-struct BlockEndIndentation {
-    bool operator==(const BlockEndIndentation &) const { return true; }
-    bool operator!=(const BlockEndIndentation &o) const { return !(*this == o); }
-};
+
+using BlockStartIndentation = details::TagToken<struct BlockStartIndentationTag>;
+using BlockEndIndentation = details::TagToken<struct BlockEndIndentationTag>;
 using ColonSeparator = scanner::ColonSeparator;
 using CommaSeparator = scanner::CommaSeparator;
 using SemicolonSeparator = scanner::SemicolonSeparator;
@@ -26,18 +28,20 @@ using BracketOpen = scanner::BracketOpen;
 using BracketClose = scanner::BracketClose;
 using StringLiteral = scanner::StringLiteral;
 using NumberLiteral = scanner::NumberLiteral;
-struct IdentifierLiteral {
+struct IdentifierLiteralValue {
+    using This = IdentifierLiteralValue;
     bool leftSeparated{false};
     bool rightSeparated{false};
 
-    bool operator==(const IdentifierLiteral &o) const {
+    bool operator==(const This& o) const {
         return leftSeparated == o.leftSeparated && rightSeparated == o.rightSeparated;
     }
-    bool operator!=(const IdentifierLiteral &o) const { return !(*this == o); }
+    bool operator!=(const This& o) const { return !(*this == o); }
 };
+using IdentifierLiteral = details::ValueToken<IdentifierLiteralValue>;
 struct OperatorLiteral : IdentifierLiteral {};
 
-using TokenVariant = meta::Variant<
+using Token = meta::Variant<
     NewLineIndentation,
     BlockStartIndentation,
     BlockEndIndentation,
@@ -52,15 +56,5 @@ using TokenVariant = meta::Variant<
     NumberLiteral,
     IdentifierLiteral,
     OperatorLiteral>;
-
-struct Token {
-    TextRange range{};
-    TokenVariant data{};
-
-    template<class... Ts>
-    bool oneOf() const {
-        return data.holds<Ts...>();
-    }
-};
 
 } // namespace parser::filter

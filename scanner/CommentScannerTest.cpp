@@ -26,14 +26,16 @@ TEST_P(CommentScanners, all) {
     auto input = FileInput{f};
     input.peek();
 
-    const auto tok = CommentScanner::scan(input, param.tabStops);
+    const auto lit = CommentScanner::scan(input, param.tabStops);
 
-    EXPECT_EQ(param.content, strings::to_string(tok.range.text));
+    // ASSERT_TRUE(tok.holds<CommentLiteral>());
+
+    // const auto& lit = tok.get<CommentLiteral>();
+
+    EXPECT_EQ(param.content, strings::to_string(lit.range.text));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
-    EXPECT_EQ(beginPosition, tok.range.begin);
-    EXPECT_EQ(param.end, tok.range.end);
-
-    ASSERT_TRUE(tok.data.holds<CommentLiteral>());
+    EXPECT_EQ(beginPosition, lit.range.begin);
+    EXPECT_EQ(param.end, lit.range.end);
 }
 
 INSTANTIATE_TEST_CASE_P( //

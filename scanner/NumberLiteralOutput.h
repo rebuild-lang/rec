@@ -9,6 +9,6 @@ inline auto operator<<(std::ostream& out, Sign sign) -> std::ostream& { return o
 
 inline auto operator<<(std::ostream& out, Radix radix) -> std::ostream& { return out << to_string(radix); }
 
-auto operator<<(std::ostream& out, const NumberLiteral& lit) -> std::ostream&;
+auto operator<<(std::ostream& out, const NumberLiteralValue& lit) -> std::ostream&;
 
 } // namespace scanner

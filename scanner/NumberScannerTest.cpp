@@ -29,21 +29,20 @@ TEST_P(NumberScanners, all) {
     auto f = File{String{"testfile"}, param.input};
     auto input = FileInput{f};
 
-    const auto tok = NumberScanner::scan(input.peek().value(), input);
+    const auto lit = NumberScanner::scan(input.peek().value(), input);
 
-    EXPECT_EQ(param.content, strings::to_string(tok.range.text));
+    const auto& value = lit.value;
+    EXPECT_EQ(param.radix, value.radix);
+    EXPECT_EQ(param.integerPart, to_string(value.integerPart));
+    EXPECT_EQ(param.fractionalPart, to_string(value.fractionalPart));
+    EXPECT_EQ(param.exponentSign, value.exponentSign);
+    EXPECT_EQ(param.exponentPart, to_string(value.exponentPart));
+
+    EXPECT_EQ(param.content, strings::to_string(lit.range.text));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
-    EXPECT_EQ(beginPosition, tok.range.begin);
+    EXPECT_EQ(beginPosition, lit.range.begin);
     const auto endPosition = Position{Line{1}, param.endColumn};
-    EXPECT_EQ(endPosition, tok.range.end);
-
-    ASSERT_TRUE(tok.data.holds<NumberLiteral>());
-    const auto& lit = tok.data.get<NumberLiteral>();
-    EXPECT_EQ(param.radix, lit.radix);
-    EXPECT_EQ(param.integerPart, to_string(lit.integerPart));
-    EXPECT_EQ(param.fractionalPart, to_string(lit.fractionalPart));
-    EXPECT_EQ(param.exponentSign, lit.exponentSign);
-    EXPECT_EQ(param.exponentPart, to_string(lit.exponentPart));
+    EXPECT_EQ(endPosition, lit.range.end);
 }
 
 INSTANTIATE_TEST_CASE_P( //
@@ -131,11 +130,11 @@ TEST_P(NumberFailures, all) {
 
     auto f = File{String{"testfile"}, param};
     auto input = FileInput{f};
-    const auto tok = NumberScanner::scan(input.peek().value(), input);
+    const auto lit = NumberScanner::scan(input.peek().value(), input);
 
-    ASSERT_TRUE(tok.data.holds<NumberLiteral>());
-    const NumberLiteral& lit = tok.data.get<NumberLiteral>();
-    EXPECT_FALSE(lit);
+    // ASSERT_TRUE(tok.holds<NumberLiteral>());
+    const auto& value = lit.value;
+    EXPECT_FALSE(value);
 }
 
 INSTANTIATE_TEST_CASE_P( //

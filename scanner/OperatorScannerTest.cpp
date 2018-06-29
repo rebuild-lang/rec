@@ -33,13 +33,14 @@ TEST_P(OperatorScanners, all) {
     }
     const auto tok = optTok.value();
 
-    EXPECT_EQ(param.content, strings::to_string(tok.range.text));
-    constexpr const auto beginPosition = Position{Line{1}, Column{1}};
-    EXPECT_EQ(beginPosition, tok.range.begin);
-    const auto endPosition = Position{Line{1}, param.endColumn};
-    EXPECT_EQ(endPosition, tok.range.end);
+    ASSERT_TRUE(tok.holds<OperatorLiteral>());
 
-    ASSERT_TRUE(tok.data.holds<OperatorLiteral>());
+    const auto& lit = tok.get<OperatorLiteral>();
+    EXPECT_EQ(param.content, strings::to_string(lit.range.text));
+    constexpr const auto beginPosition = Position{Line{1}, Column{1}};
+    EXPECT_EQ(beginPosition, lit.range.begin);
+    const auto endPosition = Position{Line{1}, param.endColumn};
+    EXPECT_EQ(endPosition, lit.range.end);
 }
 
 INSTANTIATE_TEST_CASE_P( //

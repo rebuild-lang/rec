@@ -7,7 +7,7 @@ namespace scanner {
 
 struct NumberScanner {
 
-    static auto scan(CodePoint chr, FileInput& input) -> Token {
+    static auto scan(CodePoint chr, FileInput& input) -> NumberLiteral {
         if (chr == '0') {
             auto optNext = input.peek<1>();
             if (optNext) {
@@ -36,8 +36,8 @@ private:
     }
 
     template<class IsDigit, class IsExponent>
-    static auto scanWithRadix(FileInput& input, Radix radix, IsDigit isDigit, IsExponent isExponent) -> Token {
-        auto literal = NumberLiteral{};
+    static auto scanWithRadix(FileInput& input, Radix radix, IsDigit isDigit, IsExponent isExponent) -> NumberLiteral {
+        auto literal = NumberLiteralValue{};
         literal.radix = radix;
 
         auto chr = input.peek();
@@ -84,10 +84,10 @@ private:
             scanDigitsInto(literal.exponentPart);
             if (!expZero && literal.exponentPart.isEmpty()) literal.radix = Radix::invalid;
         }
-        if (!intZero && literal.integerPart.isEmpty() && literal.fractionalPart.isEmpty())
+        if (!intZero && literal.integerPart.isEmpty() && literal.fractionalPart.isEmpty()) {
             literal.radix = Radix::invalid;
-
-        return {input.range(), literal};
+        }
+        return {literal, input.range()};
     }
 
     static bool isP(CodePoint _char) { return _char.v == 'p' || _char.v == 'P'; }
@@ -99,7 +99,9 @@ private:
     static bool isDot(CodePoint _char) { return _char.v == '.'; }
 
     static bool isZero(CodePoint _char) { return _char.v == '0'; }
-    static bool isDecimalZero(CodePoint _char) { return _char.decimalNumber() == 0; }
+    static bool isDecimalZero(CodePoint _char) {
+        return _char.decimalNumber() && [](auto decimal) { return decimal == strings::Decimal{0}; };
+    }
     static bool isIgnored(CodePoint _char) { return _char.v == '\''; }
     static bool isZeroOrIgnored(CodePoint _char) { return isZero(_char) || isIgnored(_char); }
 

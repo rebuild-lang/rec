@@ -20,15 +20,15 @@ struct Parser {
         if (!input++) return {};
         auto state_ = State{};
         auto blockColumn = Column{};
-        if (input->oneOf<filter::NewLineIndentation>()) {
+        if (input->holds<filter::NewLineIndentation>()) {
             blockColumn = state_.getIndentColumn(*input);
             if (!input++) return {};
         }
         auto block = parseBlock(input, blockColumn, state_);
         if (input) {
-            // TODO: report extra input
+            // TODO(arBmind): report extra input
         }
-        return block;
+        return {block, {}};
     }
 
 private:
@@ -36,9 +36,9 @@ private:
     struct State {
         OptionalChar indentChar{};
 
-        auto getIndentColumn(const FilterToken &tok) -> Column {
-            const auto &range = tok.range;
-            // TODO: extract indent char & verify it!
+        auto getIndentColumn(const FilterToken& tok) -> Column {
+            const auto& range = tok.visit([](auto& t) -> decltype(auto) { return t.range; });
+            // TODO(arBmind): extract indent char & verify it!
             // const auto &text = range.text;
             //        if (!text.isEmpty()) {
             //            if (!indentChar) {
@@ -59,27 +59,25 @@ private:
     using BlockToken = block::Token;
     using BlockLine = block::TokenLine;
 
-    static BlockToken translate(FilterToken &&tok) {
-        return std::move(tok.data).visit(
-            [](filter::NewLineIndentation &&) { return BlockToken{}; },
-            [](filter::BlockStartIndentation &&) { return BlockToken{}; },
-            [](filter::BlockEndIndentation &&) { return BlockToken{}; },
-            [](filter::SemicolonSeparator &&) { return BlockToken{}; },
-            [&](auto &&d) {
-                return BlockToken{std::move(tok.range), std::move(d)};
-            });
+    static BlockToken translate(FilterToken&& tok) {
+        return std::move(tok).visit(
+            [](filter::NewLineIndentation&&) { return BlockToken{}; },
+            [](filter::BlockStartIndentation&&) { return BlockToken{}; },
+            [](filter::BlockEndIndentation&&) { return BlockToken{}; },
+            [](filter::SemicolonSeparator&&) { return BlockToken{}; },
+            [](auto&& d) -> BlockToken { return std::move(d); });
     }
 
-    static auto extractLineTokens(BlockLine &line, Input &input) {
+    static auto extractLineTokens(BlockLine& line, Input& input) {
         using namespace filter;
         // TODO: add semicolon
-        while (!input->oneOf<NewLineIndentation, BlockStartIndentation, BlockEndIndentation, SemicolonSeparator>()) {
+        while (!input->holds<NewLineIndentation, BlockStartIndentation, BlockEndIndentation, SemicolonSeparator>()) {
             line.emplace_back(translate(input.move()));
             if (!input++) return;
         }
     }
 
-    static auto parseLine(Input &input, Column parentBlockColumn, State &state) -> BlockLine {
+    static auto parseLine(Input& input, Column parentBlockColumn, State& state) -> BlockLine {
         using namespace filter;
         auto line = BlockLine{};
         auto expectEnd = false;
@@ -88,7 +86,7 @@ private:
             if (!input) return line;
 
             while (true) {
-                if (input->oneOf<SemicolonSeparator>()) {
+                if (input->holds<SemicolonSeparator>()) {
                     if (expectEnd) {
                         // TODO: report error
                         // handling ignore
@@ -96,7 +94,7 @@ private:
                     input++; // consume semicolon
                     return line; // semicolon terminates current line
                 }
-                else if (input->oneOf<NewLineIndentation>()) {
+                else if (input->holds<NewLineIndentation>()) {
                     auto nextColumn = state.getIndentColumn(*input);
                     if (nextColumn < parentBlockColumn) {
                         if (expectEnd) {
@@ -112,14 +110,14 @@ private:
                         extractLineTokens(line, input);
                         if (!input) return line;
 
-                        if (!input->oneOf<NewLineIndentation>()) break;
+                        if (!input->holds<NewLineIndentation>()) break;
                         // auto continueColumn = state_.getIndentColumn(*input);
                         // if (continueColumn >= nextColumn) continue;
                         // TODO report continuation error
                         // TODO handling: add lines to a block as well
                     }
                 }
-                else if (input->oneOf<BlockEndIndentation>()) {
+                else if (input->holds<BlockEndIndentation>()) {
                     auto nextColumn = state.getIndentColumn(*input);
                     if (nextColumn < parentBlockColumn) {
                         if (expectEnd) {
@@ -140,23 +138,23 @@ private:
                     // handling: ignored
                     if (!input++) return line;
                 }
-                else if (input->oneOf<BlockStartIndentation>()) {
+                else if (input->holds<BlockStartIndentation>()) {
                     auto nextColumn = state.getIndentColumn(*input);
                     expectEnd = true;
                     if (nextColumn < parentBlockColumn) {
                         // TODO report missing end
                         // handling: add empty block and finish line
-                        line.push_back({input->range, BlockLiteral{}});
+                        line.push_back(BlockLiteral{{}, input->get<BlockStartIndentation>().range});
                         return line;
                     }
                     if (nextColumn == parentBlockColumn) { // empty block
-                        line.push_back({input->range, BlockLiteral{}});
+                        line.push_back(BlockLiteral{{}, input->get<BlockStartIndentation>().range});
                         if (!input++) return line;
                     }
                     else {
-                        auto range = input->range;
+                        auto range = input->get<BlockStartIndentation>().range;
                         auto block = parseBlock(input, nextColumn, state);
-                        line.push_back({std::move(range), std::move(block)});
+                        line.push_back(BlockLiteral{std::move(block), std::move(range)});
                     }
                 }
                 else
@@ -165,22 +163,22 @@ private:
         }
     }
 
-    static auto parseBlock(Input &input, Column blockColumn, State &state) -> BlockLiteral {
+    static auto parseBlock(Input& input, Column blockColumn, State& state) -> BlockLiteralValue {
         using namespace filter;
-        auto block = BlockLiteral{};
+        auto block = BlockLiteralValue{};
         while (true) {
             while (true) {
-                if (input->oneOf<SemicolonSeparator>()) {
+                if (input->holds<SemicolonSeparator>()) {
                     if (!input++) return block;
                 }
-                else if (input->oneOf<BlockEndIndentation>()) {
+                else if (input->holds<BlockEndIndentation>()) {
                     auto indent = state.getIndentColumn(*input);
                     if (indent < blockColumn) return block; // do not consume parent end block
                     // TODO report misplaced end
                     // handling: ignore it
                     if (!input++) return block;
                 }
-                else if (input->oneOf<BlockStartIndentation, NewLineIndentation>()) {
+                else if (input->holds<BlockStartIndentation, NewLineIndentation>()) {
                     auto indent = state.getIndentColumn(*input);
                     if (indent < blockColumn) return block; // line is not part of this block
                     if (indent > blockColumn) {

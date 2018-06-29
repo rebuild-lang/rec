@@ -19,7 +19,7 @@ Layer 4:
 * filterToken <- [token] // tokens for FilterPhase
 
 Layer 5:
-* filterParser <- [filterToken] // removes comments, combines tokens
+* filterParser <- [filterToken] // remove comments, combine tokens
 * blockToken <- [filterToken] // tokens for BlockParser
 
 Layer 6:

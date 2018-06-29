@@ -51,8 +51,9 @@ struct FileInput {
     bool extend(Column tabstop = {});
 
     bool extend(size_t count) {
-        for (auto i = 0u; i < count; ++i)
+        for (auto i = 0u; i < count; ++i) {
             if (!extend()) return false;
+        }
         return true;
     }
 

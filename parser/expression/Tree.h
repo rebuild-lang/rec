@@ -1,5 +1,6 @@
 #pragma once
 #include "TypeTree.h"
+#include "Value.h"
 
 #include "instance/Views.h"
 
@@ -115,20 +116,11 @@ struct TypedTuple {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-template<class TokenType>
-struct TokenLiteral {
-    TokenType token{};
-    TextRange range{};
-
-    using This = TokenLiteral;
-    bool operator==(const This& o) const { return token == o.token; }
-    bool operator!=(const This& o) const { return !(*this == o); }
-};
-using StringLiteral = TokenLiteral<block::StringLiteral>;
-using NumberLiteral = TokenLiteral<block::NumberLiteral>;
-using OperatorLiteral = TokenLiteral<block::OperatorLiteral>;
-using IdentifierLiteral = TokenLiteral<block::IdentifierLiteral>;
-using BlockLiteral = TokenLiteral<block::BlockLiteral>;
+using StringLiteral = block::StringLiteral;
+using NumberLiteral = block::NumberLiteral;
+using OperatorLiteral = block::OperatorLiteral;
+using IdentifierLiteral = block::IdentifierLiteral;
+using BlockLiteral = block::BlockLiteral;
 
 using NodeVariant = meta::Variant<
     Block,
@@ -136,15 +128,12 @@ using NodeVariant = meta::Variant<
     IntrinsicCall,
     ArgumentReference,
     VariableReference,
+    // TODO: add PlaceholderReference
     VariableInit,
     ModuleReference,
-    NamedTuple,
+    NamedTuple, // TODO: fully substitude with TypedTuple
     TypedTuple,
-    StringLiteral,
-    NumberLiteral,
-    OperatorLiteral,
-    IdentifierLiteral,
-    BlockLiteral>;
+    Value>;
 
 // note: this type is needed because we cannot forward a using definition
 class Node : public NodeVariant {
@@ -152,6 +141,10 @@ class Node : public NodeVariant {
 
 public:
     Node() = default;
+    //    Node(const Node&) = delete;
+    //    Node& operator=(const Node&) = delete;
+    //    Node(Node&&) noexcept = default;
+    //    Node& operator=(Node&&) noexcept = default;
     META_VARIANT_CONSTRUCT(Node, NodeVariant)
 };
 using OptNode = meta::Optional<Node>;

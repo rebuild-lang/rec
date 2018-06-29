@@ -142,7 +142,7 @@ struct Rebuild {
         }
     };
     static void debugSay(const SayLiteral& literal) {
-        auto text = literal.v.token.text;
+        auto text = literal.v.value.text;
         std::cout << text << '\n';
     }
 
