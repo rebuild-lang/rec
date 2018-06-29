@@ -16,19 +16,19 @@ Project {
         ]
 
         Depends { name: "cpp" }
-        cpp.cxxLanguageVersion: "c++17"
+        cpp.cxxLanguageVersion: "c++11"
         cpp.includePaths: [
             FileInfo.joinPaths(project.googletestPath, "googlemock"),
             FileInfo.joinPaths(project.googletestPath, "googlemock/include"),
             FileInfo.joinPaths(project.googletestPath, "googletest"),
             FileInfo.joinPaths(project.googletestPath, "googletest/include"),
         ]
-        cpp.defines: [
-            "GTEST_LANG_CXX11"
-        ]
-        cpp.cxxStandardLibrary: {
-            if (qbs.toolchain.contains('clang')) return "libc++";
+        cpp.defines: ["GTEST_LANG_CXX11"]
+        Properties {
+            condition: qbs.toolchain.contains('clang')
+            cpp.cxxStandardLibrary: "libc++"
         }
+
 
         Export {
             Depends { name: "cpp" }
@@ -37,9 +37,7 @@ Project {
                 FileInfo.joinPaths(project.googletestPath, "googlemock/include"),
                 FileInfo.joinPaths(project.googletestPath, "googletest/include")
             ]
-            cpp.defines: [
-                "GTEST_LANG_CXX11"
-            ]
+            cpp.defines: ["GTEST_LANG_CXX11"]
 
             property bool useMain: true
             Group {
@@ -51,11 +49,10 @@ Project {
                 ]
             }
 
-            cpp.cxxStandardLibrary: {
-                if (qbs.toolchain.contains('clang')) return "libc++";
-            }
-            cpp.staticLibraries: {
-                if (qbs.toolchain.contains('clang')) return ["pthread"];
+            Properties {
+                condition: qbs.toolchain.contains('clang')
+                cpp.cxxStandardLibrary: "libc++"
+                cpp.staticLibraries: ["pthread"]
             }
         }
     }

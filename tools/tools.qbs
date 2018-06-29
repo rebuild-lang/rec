@@ -9,15 +9,16 @@ Project {
         Export {
             Depends { name: "cpp" }
             cpp.cxxLanguageVersion: "c++17"
-            cpp.cxxFlags: {
-                if (qbs.toolchain.contains('msvc')) return ["/await", "/permissive-", "/Zc:__cplusplus"];
-                if (qbs.toolchain.contains('clang')) return ["-fcoroutines-ts"];
+
+            Properties {
+                condition: qbs.toolchain.contains('msvc')
+                cpp.cxxFlags: ["/await", "/permissive-", "/Zc:__cplusplus"]
             }
-            cpp.cxxStandardLibrary: {
-                if (qbs.toolchain.contains('clang')) return "libc++";
-            }
-            cpp.staticLibraries: {
-                if (qbs.toolchain.contains('clang')) return ["c++", "c++abi"];
+            Properties {
+                condition: qbs.toolchain.contains('clang')
+                cpp.cxxFlags: ["-fcoroutines-ts"]
+                cpp.cxxStandardLibrary: "libc++"
+                cpp.staticLibraries: ["c++", "c++abi"]
             }
         }
     }
