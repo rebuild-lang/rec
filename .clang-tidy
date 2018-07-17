@@ -1,0 +1,9 @@
+---
+Checks: >-
+  *,
+  ,-google-readability-namespace-comments,
+  ,-google-runtime-references,
+  ,-llvm-header-guard,
+  ,-llvm-namespace-comment,
+  ,-readability-braces-around-statements,
+  ,-readability-named-parameter

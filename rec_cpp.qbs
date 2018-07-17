@@ -35,6 +35,7 @@ Project {
         name: "Extra Files"
         files: [
             ".clang-format",
+            ".clang-tidy",
             ".editorconfig",
             ".gitignore",
             "Makefile",
