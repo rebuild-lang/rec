@@ -9,7 +9,7 @@ namespace details {
 
 template<class Variant>
 struct NodeBuilder {
-    static auto build(const Scope&, Variant&& v) -> Node { return std::move(v); }
+    static auto build(const Scope&, Variant&& v) -> Node { return Node{std::move(v).build()}; }
 };
 
 template<>
@@ -20,12 +20,12 @@ struct NodeBuilder<FunctionBuilder> {
 } // namespace details
 
 template<class V>
-inline auto buildNode(const Scope& scope, V&& v) -> decltype(auto) {
+auto buildNode(const Scope& scope, V&& v) -> decltype(auto) {
     return details::NodeBuilder<V>::build(scope, std::forward<V>(v));
 }
 
 template<class... P>
-inline auto buildScope(Scope& scope, P&&... p) {
+auto buildScope(Scope& scope, P&&... p) {
     auto x = {scope.emplace(buildNode(scope, std::forward<P>(p)))...};
     (void)x;
 }

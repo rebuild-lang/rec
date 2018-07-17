@@ -54,4 +54,6 @@ public:
     bool operator<(const This& o) const { return m < o.m; }
 };
 
+using OptionalString = meta::Optional<meta::DefaultPacked<String>>;
+
 } // namespace strings

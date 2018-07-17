@@ -51,14 +51,13 @@ struct Parser {
         checkContext<Context>();
         auto block = Block{};
         for (const auto& line : blockLiteral.value.lines) {
-            // TODO(arBmind): split operators on the line
             auto it = BlockLineView(&line);
             if (it) {
                 auto expr = parseTuple(it, context);
                 if (!expr.tuple.empty()) {
-                    if (expr.tuple.size() == 1 && expr.tuple.front().name.isEmpty()) {
+                    if (1 == expr.tuple.size() && expr.tuple.front().onlyValue()) {
                         // no reason to keep the tuple around, unwrap it
-                        block.nodes.emplace_back(std::move(expr).tuple.front().node);
+                        block.nodes.emplace_back(std::move(expr).tuple.front().value.value());
                     }
                     else {
                         block.nodes.emplace_back(std::move(expr));
@@ -75,8 +74,8 @@ struct Parser {
 
 private:
     template<class Context>
-    static auto parseTuple(BlockLineView& it, Context& context) -> NamedTuple {
-        auto tuple = NamedTuple{};
+    static auto parseTuple(BlockLineView& it, Context& context) -> TypedTuple {
+        auto tuple = TypedTuple{};
         if (!it) return tuple;
         auto withBrackets = it.current().holds<block::BracketOpen>();
         if (withBrackets) ++it;
@@ -96,9 +95,9 @@ private:
     }
 
     template<class Context>
-    static void parseTupleInto(NamedTuple& tuple, BlockLineView& it, Context& context) {
+    static void parseTupleInto(TypedTuple& tuple, BlockLineView& it, Context& context) {
         while (it) {
-            auto opt = parseSingleNamed(it, context);
+            auto opt = parseSingleTyped(it, context);
             if (opt) {
                 tuple.tuple.push_back(std::move(opt).value());
             }
@@ -122,15 +121,52 @@ private:
         return ParseOptions::continue_single;
     }
 
+    static bool isAssignment(const BlockToken& t) {
+        return t.visit(
+            [](const block::OperatorLiteral& o) { return o.range.text.isContentEqual(View{"="}); }, //
+            [](const auto&) { return false; });
+    }
+
     template<class Context>
-    static auto parseSingleNamed(BlockLineView& it, Context& context) -> OptNamed {
-        auto name = Name{}; // parseTupleName(it);
-        auto expr = parseSingle(it, context);
-        if (expr) {
-            return Named{std::move(name), std::move(expr).value()};
+    static auto parseSingleTyped(BlockLineView& it, Context& context) -> OptTyped {
+        if (it.current().holds<block::IdentifierLiteral>() && it.hasNext()) {
+            if (it.next().holds<block::ColonSeparator>()) {
+                // name :type
+                auto name = to_string(it.current().get<block::IdentifierLiteral>().range.text);
+                ++it;
+                ++it;
+                auto type = parseTypeExpression(it, context);
+                auto value = parseAssignmentNode(it, context);
+                return Typed{std::move(name), std::move(type), std::move(value)};
+            }
+            if (isAssignment(it.next())) {
+                // name =value
+                auto name = to_string(it.current().get<block::IdentifierLiteral>().range.text);
+                ++it;
+                ++it;
+                auto value = parseSingle(it, context);
+                return Typed{std::move(name), {}, std::move(value)};
+            }
         }
-        else if (!name.isEmpty()) {
-            // TODO(arBmind): named void?
+        if (it.current().holds<block::ColonSeparator>()) {
+            // :typed
+            ++it;
+            auto type = parseTypeExpression(it, context);
+            auto value = parseAssignmentNode(it, context);
+            return Typed{{}, std::move(type), std::move(value)};
+        }
+        // value
+        auto value = parseSingle(it, context);
+        if (value) return Typed{{}, {}, std::move(value)};
+        return {};
+    }
+
+    template<class Context>
+    static auto parseAssignmentNode(BlockLineView& it, Context& context) -> OptNode {
+        if (it && isAssignment(it.current())) {
+            // = value
+            ++it;
+            return parseSingle(it, context);
         }
         return {};
     }
@@ -267,16 +303,19 @@ private:
             explicit Overload(const Function& function)
                 : function(&function) {}
 
-            void retireLeft(const NamedTupleView& left) {
+            void retireLeft(const TypedViewTuple& left) {
                 auto o = 0u, t = 0u;
                 auto la = function->leftArguments();
-                for (const NamedNodeView& named : left.tuple) {
-                    if (!named.name.isEmpty()) {
-                        auto optArg = function->lookupArgument(named.name);
+                for (const TypedView& typed : left.tuple) {
+                    if (!typed.value) {
+                        // pass type?
+                    }
+                    else if (typed.name) {
+                        auto optArg = function->lookupArgument(typed.name.value());
                         if (optArg) {
                             const instance::Argument& arg = optArg.value();
                             if (arg.side == instance::ArgumentSide::left //
-                                && canImplicitConvertToType(named.node, arg.typed.type)) {
+                                && canImplicitConvertToType(typed.value.value(), arg.typed.type)) {
                                 t++;
                                 continue;
                             }
@@ -288,7 +327,7 @@ private:
                     else if (o < la.size()) {
                         const auto& arg = la[o];
                         if (arg.side == instance::ArgumentSide::left //
-                            && canImplicitConvertToType(named.node, arg.typed.type)) {
+                            && canImplicitConvertToType(typed.value.value(), arg.typed.type)) {
                             o++;
                             continue;
                         }
@@ -315,9 +354,9 @@ private:
         // TODO(arBmind): allow multiple overloads
 
         void retireLeft(const OptNode& left) {
-            auto leftView = left ? left.value().holds<NamedTuple>() ? NamedTupleView{left.value().get<NamedTuple>()}
-                                                                    : NamedTupleView{left.value()}
-                                 : NamedTupleView{};
+            auto leftView = left ? left.value().holds<TypedTuple>() ? TypedViewTuple{left.value().get<TypedTuple>()}
+                                                                    : TypedViewTuple{left.value()}
+                                 : TypedViewTuple{};
             for (auto& o : vec) o.retireLeft(leftView);
             update();
         }
@@ -418,14 +457,14 @@ private:
     }
 
     template<class Context>
-    static auto parseSingleToken(BlockLineView& it, Context& context) -> OptNamed {
-        auto name = Name{};
+    static auto parseSingleToken(BlockLineView& it, Context& context) -> OptTyped {
+        auto name = OptName{};
         auto value = it.current().visit(
             buildTokenVisitors<Context, BlockLiteral, StringLiteral, NumberLiteral, IdentifierLiteral, OperatorLiteral>(
                 it, context),
             [](const auto&) { return OptNode{}; });
         if (value) {
-            return Named{std::move(name), std::move(value).value()};
+            return Typed{std::move(name), {}, std::move(value).value()};
         }
         // error
         return {};
@@ -450,7 +489,7 @@ private:
         -> OptTypeExpression {
         return instance.visit(
             [&](const instance::Variable&) -> OptTypeExpression {
-                // TODO(arBmind): var is a TypeModule / Epression or Callable
+                // TODO(arBmind): var is a TypeModule / Expression or Callable
                 return {};
             },
             [&](const instance::Argument&) -> OptTypeExpression { return {}; },
@@ -477,7 +516,7 @@ private:
     }
 
     template<class Context>
-    static auto parseTyped(BlockLineView& it, Context& context) -> OptNamed {
+    static auto parseTyped(BlockLineView& it, Context& context) -> OptTyped {
         auto name = it.current().visit(
             [&](const block::IdentifierLiteral& id) {
                 auto result = id.range.text;
@@ -498,11 +537,11 @@ private:
             ++it;
             return parseSingle(it, context);
         }();
-        return Named{Name{}, TypedTuple{{Typed{strings::to_string(name), std::move(type), std::move(value)}}}};
+        return Typed{strings::to_string(name), std::move(type), std::move(value)};
     }
 
     template<class Context>
-    using ParseFunc = OptNamed (*)(BlockLineView& it, Context& context);
+    using ParseFunc = auto (*)(BlockLineView& it, Context& context) -> OptTyped;
 
     static auto getParserForType(const parser::expression::TypeExpression& type) -> instance::Parser {
         using parser::expression::Pointer;
@@ -523,14 +562,14 @@ private:
         using Parser = instance::Parser;
         switch (getParserForType(type)) {
         case Parser::Expression:
-            return [](BlockLineView& it, Context& context) { return parseSingleNamed(it, context); };
+            return [](BlockLineView& it, Context& context) { return parseSingleTyped(it, context); };
 
         case Parser::SingleToken:
             return [](BlockLineView& it, Context& context) { return parseSingleToken(it, context); };
 
         case Parser::IdTypeValue: return [](BlockLineView& it, Context& context) { return parseTyped(it, context); };
 
-        default: return [](BlockLineView&, Context&) { return OptNamed{}; };
+        default: return [](BlockLineView&, Context&) { return OptTyped{}; };
         }
     }
 
@@ -543,17 +582,17 @@ private:
             for (auto& o : os.active()) {
                 const auto& a = o.arg();
                 auto p = parserForType<Context>(a.typed.type);
-                auto optNamed = p(o.it, context);
-                if (optNamed) {
-                    Named& named = optNamed.value();
-                    if (!named.name.isEmpty()) {
-                        auto optArg = o.function->lookupArgument(named.name);
+                auto optTyped = p(o.it, context);
+                if (optTyped) {
+                    Typed& typed = optTyped.value();
+                    if (typed.name) {
+                        auto optArg = o.function->lookupArgument(typed.name.value());
                         if (optArg) {
                             const instance::Argument& arg = optArg.value();
-                            if (canImplicitConvertToType(&named.node, a.typed.type)) {
+                            if (canImplicitConvertToType(&typed.value.value(), a.typed.type)) {
                                 auto as = ArgumentAssignment{};
                                 as.argument = &arg;
-                                as.values = {std::move(optNamed).value().node};
+                                as.values = {std::move(optTyped).value().value.value()};
                                 o.rightArgs.push_back(std::move(as));
                             }
                             else {
@@ -565,10 +604,10 @@ private:
                         }
                     }
                     else {
-                        if (canImplicitConvertToType(&named.node, a.typed.type)) {
+                        if (canImplicitConvertToType(&typed.value.value(), a.typed.type)) {
                             auto as = ArgumentAssignment{};
                             as.argument = &a;
-                            as.values = {std::move(optNamed).value().node};
+                            as.values = {std::move(optTyped).value().value.value()};
                             o.rightArgs.push_back(std::move(as));
                             o.nextArg++;
                         }

@@ -22,7 +22,7 @@ struct Auto {
 };
 
 struct Pointer {
-    std::shared_ptr<TypeExpression> target;
+    std::shared_ptr<TypeExpression> target{};
 
     using This = Pointer;
     bool operator==(const This& o) const { return target == o.target; }
@@ -30,8 +30,8 @@ struct Pointer {
 };
 
 struct Array {
-    size_t count;
-    std::shared_ptr<TypeExpression> element;
+    size_t count{};
+    std::shared_ptr<TypeExpression> element{};
 
     using This = Array;
     bool operator==(const This& o) const { return count == o.count && element == o.element; }
@@ -39,7 +39,7 @@ struct Array {
 };
 
 struct TypeInstance {
-    TypeView concrete;
+    TypeView concrete{};
 
     using This = TypeInstance;
     bool operator==(const This& o) const { return concrete == o.concrete; }
@@ -64,5 +64,8 @@ public:
         : TypeExpressionVariant(Auto{}) {}
 };
 using OptTypeExpression = meta::Optional<TypeExpression>;
+
+using TypeExpressionView = const TypeExpression*;
+using OptTypeExpressionView = meta::Optional<meta::DefaultPacked<TypeExpressionView>>;
 
 } // namespace parser::expression

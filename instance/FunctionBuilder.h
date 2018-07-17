@@ -13,7 +13,7 @@ struct FunctionBuilder {
     std::vector<ArgumentBuilder> args_;
 
     template<size_t N>
-    FunctionBuilder(const char (&name)[N]) {
+    explicit FunctionBuilder(const char (&name)[N]) {
         fun_.name = Name{name};
     }
 
@@ -48,8 +48,8 @@ struct FunctionBuilder {
 } // namespace details
 
 template<size_t N>
-inline auto fun(const char (&name)[N]) -> details::FunctionBuilder {
-    return {name};
+inline auto fun(const char (&name)[N]) {
+    return details::FunctionBuilder{name};
 }
 
 } // namespace instance

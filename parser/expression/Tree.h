@@ -20,7 +20,9 @@ namespace parser::expression {
 
 using TextRange = scanner::TextRange;
 using View = scanner::View;
+using OptView = strings::OptionalView;
 using Name = strings::String;
+using OptName = strings::OptionalString;
 
 class Node;
 using Nodes = std::vector<Node>;
@@ -95,16 +97,6 @@ struct ModuleReference {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-struct Named;
-using NamedVec = std::vector<Named>;
-struct NamedTuple {
-    using This = NamedTuple;
-    NamedVec tuple{};
-
-    bool operator==(const This& o) const { return tuple == o.tuple; }
-    bool operator!=(const This& o) const { return !(*this == o); }
-};
-
 struct Typed;
 using TypedVec = std::vector<Typed>;
 
@@ -131,7 +123,6 @@ using NodeVariant = meta::Variant<
     // TODO: add PlaceholderReference
     VariableInit,
     ModuleReference,
-    NamedTuple, // TODO: fully substitude with TypedTuple
     TypedTuple,
     Value>;
 
@@ -149,54 +140,45 @@ public:
 };
 using OptNode = meta::Optional<Node>;
 using NodeView = const Node*;
-
-struct Named {
-    using This = Named;
-    Name name{}; // name might be empty!
-    Node node{};
-
-    Named() = default;
-    Named(Name&& name, Node&& node)
-        : name(std::move(name))
-        , node(std::move(node)) {}
-
-    bool operator==(const This& o) const { return name == o.name && node == o.node; }
-    bool operator!=(const This& o) const { return !(*this == o); }
-};
-using OptNamed = meta::Optional<Named>;
+using OptNodeView = meta::Optional<meta::DefaultPacked<NodeView>>;
 
 struct Typed {
     using This = Typed;
-    Name name{};
+    OptName name{}; // name might be empty!
     OptTypeExpression type{};
     OptNode value{};
+
+    auto onlyValue() const { return !name && !type && value; }
 
     bool operator==(const This& o) const { return name == o.name && type == o.type && value == o.value; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+using OptTyped = meta::Optional<Typed>;
 
-struct NamedNodeView {
-    using This = NamedNodeView;
-    View name{};
-    NodeView node{};
+struct TypedView {
+    using This = TypedView;
+    OptView name{};
+    OptTypeExpressionView type{};
+    OptNodeView value{};
 
-    NamedNodeView() = default;
-    NamedNodeView(const Named& named)
-        : name(named.name)
-        , node(&named.node) {}
-    NamedNodeView(const Node& node)
-        : node(&node) {}
+    TypedView() = default;
+    TypedView(const Typed& typed)
+        : name(typed.name.map([](const auto& n) { return n; }))
+        , type(typed.type.map([](const auto& t) { return &t; }))
+        , value(typed.value.map([](const auto& v) { return &v; })) {}
+    TypedView(const Node& node)
+        : value(&node) {}
 };
-using NamedNodeViews = std::vector<NamedNodeView>;
+using TypedViews = std::vector<TypedView>;
 
-struct NamedTupleView {
-    using This = NamedTupleView;
-    NamedNodeViews tuple{};
+struct TypedViewTuple {
+    using This = TypedViewTuple;
+    TypedViews tuple{};
 
-    NamedTupleView() = default;
-    NamedTupleView(const NamedTuple& named)
-        : tuple(named.tuple.begin(), named.tuple.end()) {}
-    NamedTupleView(const Node& node)
+    TypedViewTuple() = default;
+    TypedViewTuple(const TypedTuple& typed)
+        : tuple(typed.tuple.begin(), typed.tuple.end()) {}
+    TypedViewTuple(const Node& node)
         : tuple({node}) {}
 };
 

@@ -91,8 +91,7 @@ private:
             [&](const expression::VariableReference&) {},
             [&](const expression::VariableInit& var) { initVariable(var, context); },
             [&](const expression::ModuleReference&) {},
-            [&](const expression::NamedTuple& named) { runNamed(named, context); },
-            [&](const expression::TypedTuple&) {},
+            [&](const expression::TypedTuple& typed) { runTyped(typed, context); },
             [&](const expression::Value&) {});
     }
 
@@ -128,9 +127,9 @@ private:
         runBlock(function.body.block, context);
     }
 
-    static void runNamed(const expression::NamedTuple& named, Context& context) {
-        for (const auto& entry : named.tuple) {
-            runNode(entry.node, context);
+    static void runTyped(const expression::TypedTuple& typed, Context& context) {
+        for (const auto& entry : typed.tuple) {
+            runNode(entry.value.value(), context);
         }
     }
 
@@ -271,7 +270,6 @@ private:
             [&](const expression::VariableReference& var) { storeValue(var.variable->typed, context, memory); },
             [&](const expression::VariableInit&) { assert(false); },
             [&](const expression::ModuleReference&) {},
-            [&](const expression::NamedTuple&) {},
             [&](const expression::TypedTuple&) {},
             [&](const expression::Value& value) { storeLiteral(value, memory); });
     }

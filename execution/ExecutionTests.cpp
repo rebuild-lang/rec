@@ -7,6 +7,7 @@
 #include "instance/FunctionOutput.h"
 #include "instance/ScopeBuilder.h"
 #include "instance/TypeBuilder.h"
+#include "instance/TypeTreeBuilder.h"
 
 #include "gtest/gtest.h"
 
@@ -86,9 +87,9 @@ INSTANTIATE_TEST_CASE_P(
     ::testing::Values( //
         ExecutionMachineData("Example")
             .ctx(
-                instance::typeMod("Lit").size(sizeof(void*)).build(),
+                instance::typeMod("Lit").size(sizeof(void*)),
                 instance::fun("print")
-                    .args(instance::arg("v").right().type("Lit"))
+                    .args(instance::arg("v").right().type(expression::type().instance("Lit")))
                     .rawIntrinsic(&ExecutionMachineData::literal))
             .run(expression::call("print").right(expression::arg("v", block::num("42"))))
             .expect("42")));

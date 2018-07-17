@@ -152,11 +152,16 @@ struct DefaultFunc {
 /// convenience overload for default initialized invalid values
 template<class T>
 class Optional<DefaultPacked<T>> : public Optional<Packed<DefaultFunc<T>>> {
-    using Base = Optional<Packed<DefaultFunc<T>>>;
     using Optional<Packed<DefaultFunc<T>>>::Optional;
 };
 
 /// bool with map functionality
 using OptionalBool = Optional<DefaultPacked<bool>>;
+
+/// pointers are always default packed
+template<class T>
+class Optional<T*> : public Optional<DefaultPacked<T*>> {
+    using Optional<DefaultPacked<T*>>::Optional;
+};
 
 } // namespace meta

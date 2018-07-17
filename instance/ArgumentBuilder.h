@@ -4,23 +4,27 @@
 #include "Scope.h"
 #include "ScopeLookup.h"
 
+#include "functional"
+
 namespace instance {
 
 namespace details {
 
+using TypeExprBuilder = std::function<auto(const Scope&)->parser::expression::TypeExpression>;
+
 struct ArgumentBuilder {
     using This = ArgumentBuilder;
-    Argument arg;
-    Name typeName;
+    Argument arg{};
+    TypeExprBuilder typeExprBuilder{};
 
     template<size_t N>
-    ArgumentBuilder(const char (&name)[N]) {
+    explicit ArgumentBuilder(const char (&name)[N]) {
         arg.typed.name = Name{name};
     }
 
-    template<size_t N>
-    auto type(const char (&type)[N]) -> ArgumentBuilder {
-        typeName = Name{type};
+    template<class Builder>
+    auto type(Builder&& b) -> ArgumentBuilder {
+        typeExprBuilder = [b2 = std::move(b)](const Scope& scope) mutable { return std::move(b2).build(scope); };
         return *this;
     }
 
@@ -42,9 +46,8 @@ struct ArgumentBuilder {
     }
 
     auto build(const Scope& scope) && -> Argument {
-        if (!typeName.isEmpty()) {
-            auto* t = &lookupA<Type>(scope, typeName);
-            arg.typed.type = parser::expression::TypeInstance{t};
+        if (typeExprBuilder) {
+            arg.typed.type = typeExprBuilder(scope);
         }
         return std::move(arg);
     }
@@ -53,8 +56,8 @@ struct ArgumentBuilder {
 } // namespace details
 
 template<size_t N>
-inline auto arg(const char (&name)[N]) -> details::ArgumentBuilder {
-    return {name};
+auto arg(const char (&name)[N]) {
+    return details::ArgumentBuilder{name};
 }
 
 } // namespace instance

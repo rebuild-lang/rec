@@ -8,6 +8,8 @@
 #include "instance/FunctionBuilder.h"
 #include "instance/FunctionOutput.h"
 #include "instance/ScopeBuilder.h"
+#include "instance/TypeBuilder.h"
+#include "instance/TypeTreeBuilder.h"
 
 #include "gtest/gtest.h"
 
@@ -91,8 +93,9 @@ INSTANTIATE_TEST_CASE_P(
     ::testing::Values( //
         ExpressionParserData("Example") //
             .ctx( //
-                instance::fun("print").runtime().args(instance::arg("v").right()) // .type("rebuild.NumberLiteral")
-                )
+                instance::typeMod("NumLit").size(sizeof(void*)).parser(instance::Parser::SingleToken),
+                instance::fun("print").runtime().args(
+                    instance::arg("v").right().type(type().pointer().instance("NumLit"))))
             .in(block::id("print"), block::num("1"))
             .out(expression::call("print").right(arg("v", block::num("1")))) //
         ));

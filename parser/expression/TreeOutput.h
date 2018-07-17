@@ -1,5 +1,6 @@
 #pragma once
 #include "Tree.h"
+#include "TypeTreeOutput.h"
 
 #include "instance/Argument.h"
 #include "instance/Function.h"
@@ -41,26 +42,28 @@ inline auto operator<<(std::ostream& out, const Call& inv) -> std::ostream& {
 inline auto operator<<(std::ostream& out, const VariableReference& vr) -> std::ostream& {
     return out << (vr.variable ? vr.variable->typed.name : Name("<?>"));
 }
-inline auto operator<<(std::ostream& out, const Named& n) -> std::ostream& {
-    if (n.name.isEmpty()) {
-        out << n.node;
+inline auto operator<<(std::ostream& out, const Typed& t) -> std::ostream& {
+    if (t.name) {
+        out << t.name.value();
+        if (t.type) out << " :" << t.type.value();
+        if (t.value) out << " = " << t.value.value();
     }
-    else {
-        out << n.name << " = " << n.node;
+    else if (t.type) {
+        out << " :" << t.type.value();
+        if (t.value) out << " = " << t.value.value();
     }
-    return out;
-}
-inline auto operator<<(std::ostream& out, const NamedTuple& nt) -> std::ostream& {
-    size_t size = nt.tuple.size();
-    if (size > 1) out << "(";
-    strings::join(out, nt.tuple, ", ");
-    if (size > 1) out << ")";
+    else if (t.value) {
+        out << t.value.value();
+    }
+    else
+        out << "<invalid>";
+
     return out;
 }
 inline auto operator<<(std::ostream& out, const TypedTuple& nt) -> std::ostream& {
     size_t size = nt.tuple.size();
     if (size > 1) out << "(";
-    // strings::join(out, nt.tuple, ", ");
+    strings::join(out, nt.tuple, ", ");
     if (size > 1) out << ")";
     return out;
 }

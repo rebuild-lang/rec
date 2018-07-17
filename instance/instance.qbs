@@ -36,6 +36,7 @@ Project {
             "Type.cpp",
             "Type.h",
             "TypeBuilder.h",
+            "TypeTreeBuilder.h",
             "TypeOutput.h",
             "Typed.cpp",
             "Typed.h",
