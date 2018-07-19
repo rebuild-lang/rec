@@ -2,6 +2,7 @@
 #include "Tree.h"
 
 #include "instance/ScopeLookup.h"
+#include "instance/TypeTreeBuilder.h"
 
 namespace parser::expression {
 
@@ -56,13 +57,35 @@ struct CallBuilder {
     }
 };
 
+struct TypedBuilder {
+    using This = TypedBuilder;
+
+    Name name{};
+    TypeExprBuilder typeExpr{};
+    // ValueBuilder value{};
+
+    TypedBuilder() = default;
+
+    template<size_t N>
+    TypedBuilder(const char (&name)[N])
+        : name(name) {}
+
+    auto type(TypeExprBuilder&& builder) && -> This {
+        typeExpr = std::move(builder);
+        return *this;
+    }
+
+    auto build(const Scope& scope) && -> Typed { return Typed{name, std::move(typeExpr).build(scope), {}}; }
+};
+
 using ValueVariant = meta::Variant<
     block::StringLiteral,
     block::NumberLiteral,
     block::OperatorLiteral,
     block::IdentifierLiteral,
     block::BlockLiteral,
-    CallBuilder>;
+    CallBuilder,
+    TypedBuilder>;
 
 class ValueBuilder : public ValueVariant {
     using This = ValueBuilder;
@@ -73,6 +96,9 @@ public:
     auto build(const Scope& scope) && -> Node {
         return std::move(*this).visit(
             [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }, //
+            [&](TypedBuilder&& typ) -> Node {
+                return Value{std::move(typ).build(scope), TypeExpression{}};
+            },
             [](auto&& lit) -> Node {
                 return Value{std::move(lit), TypeExpression{}};
             });
@@ -104,6 +130,11 @@ inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -
 
 template<size_t N>
 auto call(const char (&name)[N]) -> details::CallBuilder {
+    return {name};
+}
+
+template<size_t N>
+auto typed(const char (&name)[N]) -> details::TypedBuilder {
     return {name};
 }
 

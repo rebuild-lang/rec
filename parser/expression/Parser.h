@@ -127,38 +127,59 @@ private:
             [](const auto&) { return false; });
     }
 
+    static bool isColon(const BlockToken& t) { return t.holds<block::ColonSeparator>(); }
+
     template<class Context>
     static auto parseSingleTyped(BlockLineView& it, Context& context) -> OptTyped {
+        auto parseValueInto = [&](Typed& typed) { typed.value = parseSingle(it, context); };
+        return parseSingleTypedCallback(it, context, parseValueInto);
+    }
+
+    template<class Context, class Callback>
+    static auto parseSingleTypedCallback(BlockLineView& it, Context& context, Callback&& callback) -> OptTyped {
+        auto result = Typed{};
+        auto extractName = [&] {
+            result.name = to_string(it.current().get<block::IdentifierLiteral>().range.text);
+            ++it; // skip name
+        };
+        auto parseType = [&] {
+            ++it; // skip colon
+            result.type = parseTypeExpression(it, context);
+        };
+        auto parseValue = [&] {
+            ++it; // skip assign
+            callback(result);
+        };
+        auto parseAssignValue = [&]() {
+            if (it && isAssignment(it.current())) parseValue();
+        };
+        if (!it) return result;
+
         if (it.current().holds<block::IdentifierLiteral>() && it.hasNext()) {
-            if (it.next().holds<block::ColonSeparator>()) {
+            auto next = it.next();
+            if (isColon(next)) {
                 // name :type
-                auto name = to_string(it.current().get<block::IdentifierLiteral>().range.text);
-                ++it;
-                ++it;
-                auto type = parseTypeExpression(it, context);
-                auto value = parseAssignmentNode(it, context);
-                return Typed{std::move(name), std::move(type), std::move(value)};
+                extractName();
+                parseType();
+                parseAssignValue();
+                return result;
             }
-            if (isAssignment(it.next())) {
+            if (isAssignment(next)) {
                 // name =value
-                auto name = to_string(it.current().get<block::IdentifierLiteral>().range.text);
-                ++it;
-                ++it;
-                auto value = parseSingle(it, context);
-                return Typed{std::move(name), {}, std::move(value)};
+                extractName();
+                parseValue();
+                return result;
             }
         }
-        if (it.current().holds<block::ColonSeparator>()) {
+        if (isColon(it.current())) {
             // :typed
-            ++it;
-            auto type = parseTypeExpression(it, context);
-            auto value = parseAssignmentNode(it, context);
-            return Typed{{}, std::move(type), std::move(value)};
+            parseType();
+            parseAssignValue();
+            return result;
         }
         // value
-        auto value = parseSingle(it, context);
-        if (value) return Typed{{}, {}, std::move(value)};
-        return {};
+        callback(result);
+        return result;
     }
 
     template<class Context>
@@ -457,17 +478,11 @@ private:
     }
 
     template<class Context>
-    static auto parseSingleToken(BlockLineView& it, Context& context) -> OptTyped {
-        auto name = OptName{};
-        auto value = it.current().visit(
+    static auto parseSingleToken(BlockLineView& it, Context& context) -> OptNode {
+        return it.current().visit(
             buildTokenVisitors<Context, BlockLiteral, StringLiteral, NumberLiteral, IdentifierLiteral, OperatorLiteral>(
                 it, context),
             [](const auto&) { return OptNode{}; });
-        if (value) {
-            return Typed{std::move(name), {}, std::move(value).value()};
-        }
-        // error
-        return {};
     }
 
     template<class Context>
@@ -541,7 +556,7 @@ private:
     }
 
     template<class Context>
-    using ParseFunc = auto (*)(BlockLineView& it, Context& context) -> OptTyped;
+    using ParseFunc = auto (*)(BlockLineView& it, Context& context) -> OptNode;
 
     static auto getParserForType(const parser::expression::TypeExpression& type) -> instance::Parser {
         using parser::expression::Pointer;
@@ -561,16 +576,35 @@ private:
         using namespace instance;
         using Parser = instance::Parser;
         switch (getParserForType(type)) {
-        case Parser::Expression:
-            return [](BlockLineView& it, Context& context) { return parseSingleTyped(it, context); };
+        case Parser::Expression: return [](BlockLineView& it, Context& context) { return parseSingle(it, context); };
 
         case Parser::SingleToken:
             return [](BlockLineView& it, Context& context) { return parseSingleToken(it, context); };
 
-        case Parser::IdTypeValue: return [](BlockLineView& it, Context& context) { return parseTyped(it, context); };
+        case Parser::IdTypeValue:
+            return [](BlockLineView& it, Context& context) -> OptNode {
+                auto optTyped = parseSingleTyped(it, context);
+                if (optTyped) {
+                    auto type = context.intrinsicType(meta::Type<Typed>{});
+                    auto value = Typed{optTyped.value()};
+                    return {Value{std::move(value), {TypeInstance{type}}}};
+                }
+                // return Node{TypedTuple{{optTyped.value()}}}; // TODO: store as value
+                return {};
+            };
 
-        default: return [](BlockLineView&, Context&) { return OptTyped{}; };
+        default: return [](BlockLineView&, Context&) { return OptNode{}; };
         }
+    }
+
+    static bool isTyped(const TypeExpression& t) {
+        return t.visit(
+            [](const Pointer& p) {
+                return p.target->visit(
+                    [](const TypeInstance& ti) { return ti.concrete->module->name == strings::View{"Typed"}; },
+                    [](const auto&) { return false; });
+            },
+            [](const auto&) { return false; });
     }
 
     template<class Context>
@@ -580,41 +614,74 @@ private:
             // auto baseIt = it;
             // TODO(arBmind): optimize for no custom parser case!
             for (auto& o : os.active()) {
-                const auto& a = o.arg();
-                auto p = parserForType<Context>(a.typed.type);
-                auto optTyped = p(o.it, context);
-                if (optTyped) {
-                    Typed& typed = optTyped.value();
-                    if (typed.name) {
-                        auto optArg = o.function->lookupArgument(typed.name.value());
-                        if (optArg) {
-                            const instance::Argument& arg = optArg.value();
-                            if (canImplicitConvertToType(&typed.value.value(), a.typed.type)) {
-                                auto as = ArgumentAssignment{};
-                                as.argument = &arg;
-                                as.values = {std::move(optTyped).value().value.value()};
-                                o.rightArgs.push_back(std::move(as));
-                            }
-                            else {
-                                // type does not match
-                            }
+                const auto& posArg = o.arg();
+                auto parseValueArgument = [&](Typed& typed) {
+                    if (typed.name && !typed.type) {
+                        auto optNamedArg = o.function->lookupArgument(typed.name.value());
+                        if (optNamedArg) {
+                            const instance::Argument& namedArg = optNamedArg.value();
+                            auto p = parserForType<Context>(namedArg.typed.type);
+                            typed.value = p(o.it, context);
+                            return;
                         }
                         else {
-                            // name not found
+                            // error: name not found / unless a == Typed{}
                         }
                     }
-                    else {
-                        if (canImplicitConvertToType(&typed.value.value(), a.typed.type)) {
+                    auto p = parserForType<Context>(posArg.typed.type);
+                    typed.value = p(o.it, context);
+                };
+
+                auto optTyped = parseSingleTypedCallback(o.it, context, parseValueArgument);
+                // auto p = parserForType<Context>(a.typed.type);
+                // auto optTyped = p(o.it, context);
+                if (optTyped) {
+                    Typed& typed = optTyped.value();
+                    do {
+                        if (typed.type || !typed.value) {
+                            if (isTyped(posArg.typed.type)) {
+                                auto as = ArgumentAssignment{};
+                                as.argument = &posArg;
+                                auto type = context.intrinsicType(meta::Type<Typed>{});
+                                auto value = Typed{typed};
+                                as.values = {Value{std::move(value), {TypeInstance{type}}}};
+                                o.rightArgs.push_back(std::move(as));
+                                o.nextArg++;
+                                break;
+                            }
+                            // unexpected type / no value
+                            break;
+                        }
+                        if (typed.name) {
+                            auto optNamedArg = o.function->lookupArgument(typed.name.value());
+                            if (optNamedArg) {
+                                const instance::Argument& namedArg = optNamedArg.value();
+                                if (canImplicitConvertToType(&typed.value.value(), namedArg.typed.type)) {
+                                    auto as = ArgumentAssignment{};
+                                    as.argument = &namedArg;
+                                    as.values = {std::move(optTyped).value().value.value()};
+                                    o.rightArgs.push_back(std::move(as));
+                                    // TODO: add to call completion
+                                    break;
+                                }
+                                // type does not match
+                                break;
+                            }
+                            else {
+                                // name not found
+                                break;
+                            }
+                        }
+                        if (canImplicitConvertToType(&typed.value.value(), posArg.typed.type)) {
                             auto as = ArgumentAssignment{};
-                            as.argument = &a;
+                            as.argument = &posArg;
                             as.values = {std::move(optTyped).value().value.value()};
                             o.rightArgs.push_back(std::move(as));
                             o.nextArg++;
+                            break;
                         }
-                        else {
-                            // type does not match
-                        }
-                    }
+                        // type does not match
+                    } while (false);
                 }
                 else {
                     // no value

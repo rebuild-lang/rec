@@ -105,6 +105,7 @@ inline auto newLine(Column c) -> filter::Token {
     tok.range.end.column = c;
     return tok;
 }
+inline auto colon() -> Token { return ColonSeparator{}; }
 
 template<class... Lines>
 auto blk(Column c, Lines&&... lines) -> Token {

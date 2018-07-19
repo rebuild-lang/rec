@@ -22,6 +22,7 @@ struct Value {
     using This = Value;
     bool operator==(const This& o) const { return m == o.m || *m == *o.m; }
     bool operator!=(const This& o) const { return !(*this == o); }
+    auto debugData(std::ostream& out) const -> std::ostream& { return m->operator<<(out); }
 
 private:
     struct Interface {
@@ -40,6 +41,7 @@ private:
         virtual auto data() const -> const void* = 0;
         virtual auto data() -> void* = 0;
         virtual auto operator==(const Interface&) const -> bool = 0;
+        virtual auto operator<<(std::ostream&) const -> std::ostream& = 0;
     };
 
     template<class T>
@@ -62,6 +64,7 @@ private:
         auto operator==(const Interface& o) const -> bool override {
             return v == static_cast<const Implementation&>(o).v;
         }
+        auto operator<<(std::ostream& out) const -> std::ostream& override { return out << v; }
     };
 
     std::shared_ptr<Interface> m;

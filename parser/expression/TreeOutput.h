@@ -69,7 +69,8 @@ inline auto operator<<(std::ostream& out, const TypedTuple& nt) -> std::ostream&
 }
 
 inline auto operator<<(std::ostream& out, const Value& val) -> std::ostream& {
-    return out << "val: "; //
+    out << "val: [" << val.type() << "] = ";
+    return val.debugData(out); //
 }
 
 inline auto operator<<(std::ostream& out, const Node& n) -> std::ostream& {
