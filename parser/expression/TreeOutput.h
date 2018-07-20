@@ -70,7 +70,10 @@ inline auto operator<<(std::ostream& out, const TypedTuple& nt) -> std::ostream&
 
 inline auto operator<<(std::ostream& out, const Value& val) -> std::ostream& {
     out << "val: [" << val.type() << "] = ";
-    return val.debugData(out); //
+#ifdef VALUE_DEBUG_DATA
+    val.debugData(out); //
+#endif
+    return out;
 }
 
 inline auto operator<<(std::ostream& out, const Node& n) -> std::ostream& {

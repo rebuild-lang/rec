@@ -1,6 +1,12 @@
 #pragma once
 #include "TypeTree.h"
 
+#if !defined(VALUE_DEBUG_DATA)
+#    if defined(GTEST_LANG_CXX11)
+#        define VALUE_DEBUG_DATA
+#    endif
+#endif
+
 namespace parser::expression {
 
 struct Value {
@@ -22,7 +28,9 @@ struct Value {
     using This = Value;
     bool operator==(const This& o) const { return m == o.m || *m == *o.m; }
     bool operator!=(const This& o) const { return !(*this == o); }
+#ifdef VALUE_DEBUG_DATA
     auto debugData(std::ostream& out) const -> std::ostream& { return m->operator<<(out); }
+#endif
 
 private:
     struct Interface {
@@ -41,7 +49,9 @@ private:
         virtual auto data() const -> const void* = 0;
         virtual auto data() -> void* = 0;
         virtual auto operator==(const Interface&) const -> bool = 0;
+#ifdef VALUE_DEBUG_DATA
         virtual auto operator<<(std::ostream&) const -> std::ostream& = 0;
+#endif
     };
 
     template<class T>
@@ -64,7 +74,9 @@ private:
         auto operator==(const Interface& o) const -> bool override {
             return v == static_cast<const Implementation&>(o).v;
         }
+#ifdef VALUE_DEBUG_DATA
         auto operator<<(std::ostream& out) const -> std::ostream& override { return out << v; }
+#endif
     };
 
     std::shared_ptr<Interface> m;
