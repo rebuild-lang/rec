@@ -24,16 +24,13 @@ struct Scope {
     auto operator=(const This&) -> This& = delete;
 
 public:
-    auto operator[](const Name& name) const& -> const Node* {
-        auto node = locals[name];
-        if (!node && parent) return (*parent)[name];
-        return node;
+    auto operator[](const Name& name) const& -> const OptConstNodeView {
+        auto optNode = locals[name];
+        if (!optNode && parent) return (*parent)[name];
+        return optNode;
     }
 
-    template<class T, class... Ts>
-    bool emplace(T&& arg, Ts&&... args) & {
-        return locals.emplace(std::forward<T>(arg), std::forward<Ts>(args)...);
-    }
+    auto emplace(Node&& node) & -> OptNodeView { return locals.emplace(std::move(node)); }
 };
 
 } // namespace instance

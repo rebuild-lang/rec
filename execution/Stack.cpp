@@ -23,6 +23,4 @@ void Stack::free(size_t size) {
     used -= size;
 }
 
-// TODO
-
 } // namespace execution

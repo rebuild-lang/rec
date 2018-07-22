@@ -7,9 +7,9 @@
 
 namespace instance {
 
-inline auto operator<<(std::ostream &out, const VariableFlags &f) -> std::ostream & {
+inline auto operator<<(std::ostream& out, const VariableFlags& f) -> std::ostream& {
     out << "flags=[";
-    auto labels = std::vector<const char *>{};
+    auto labels = std::vector<const char*>{};
     if (f.hasAny(VariableFlag::_mutable)) labels.push_back("mutable");
     if (f.hasAny(VariableFlag::alias)) labels.push_back("alias");
     if (f.hasAny(VariableFlag::compile_time)) labels.push_back("compile_time");
@@ -18,8 +18,8 @@ inline auto operator<<(std::ostream &out, const VariableFlags &f) -> std::ostrea
     return out << ']';
 }
 
-inline auto operator<<(std::ostream &out, const Variable &v) -> std::ostream & {
-    // TODO: print flags
+inline auto operator<<(std::ostream& out, const Variable& v) -> std::ostream& {
+    // TODO(arBmind): print flags
     return out << "var " << v.name << v.type;
 }
 

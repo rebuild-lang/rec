@@ -120,7 +120,7 @@ using NodeVariant = meta::Variant<
     IntrinsicCall,
     ArgumentReference,
     VariableReference,
-    // TODO: add PlaceholderReference
+    // TODO(arBmind): add PlaceholderReference
     VariableInit,
     ModuleReference,
     TypedTuple,
@@ -140,7 +140,7 @@ public:
 };
 using OptNode = meta::Optional<Node>;
 using NodeView = const Node*;
-using OptNodeView = meta::Optional<meta::DefaultPacked<NodeView>>;
+using OptNodeView = meta::Optional<NodeView>;
 
 struct Typed {
     using This = Typed;
@@ -153,7 +153,7 @@ struct Typed {
     bool operator==(const This& o) const { return name == o.name && type == o.type && value == o.value; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
-using OptTyped = meta::Optional<Typed>;
+using OptTyped = meta::Optional<meta::DefaultPacked<Typed>>;
 
 struct TypedView {
     using This = TypedView;

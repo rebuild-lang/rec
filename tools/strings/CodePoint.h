@@ -1,20 +1,10 @@
 #pragma once
+#include "Counter.h"
 #include "meta/Optional.h"
 
 #include <cinttypes>
 
 namespace strings {
-
-/// naively strong typed counter
-struct Count {
-    using This = Count;
-    uint32_t v;
-
-    constexpr bool operator==(This o) const noexcept { return v == o.v; }
-    constexpr bool operator!=(This o) const noexcept { return v != o.v; }
-
-    constexpr auto operator+(This c) const noexcept { return This{v + c.v}; }
-};
 
 /// naively strong typed decimal value
 struct Decimal {
@@ -258,7 +248,7 @@ struct CodePoint {
         return {};
     }
 
-    constexpr Count utf8_byteCount() const {
+    constexpr Counter utf8_byteCount() const {
         // see https://en.wikipedia.org/wiki/UTF-8
         if (v < 0x80) return {1};
         if (v < 0x800) return {2};

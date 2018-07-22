@@ -30,7 +30,7 @@ struct TypeOf<api::Flags> {
     }
 
     struct IdentifierLiterals {
-        std::vector<uint64_t> v; // TODO: parser::Identifier
+        std::vector<uint64_t> v; // TODO(arBmind): parser::Identifier
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"ids"};
@@ -40,7 +40,7 @@ struct TypeOf<api::Flags> {
         }
     };
 
-    using TypeData = std::vector<uint64_t>; // TODO: parser::Identifier
+    using TypeData = std::vector<uint64_t>; // TODO(arBmind): parser::Identifier
 
     static auto eval(const IdentifierLiterals& ids) -> TypeData { return {ids.v}; }
 
@@ -49,7 +49,7 @@ struct TypeOf<api::Flags> {
 
     template<class Module>
     static void module(Module&) {
-        // TODO
+        // TODO(arBmind)
     }
 };
 

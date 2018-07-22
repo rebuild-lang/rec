@@ -5,8 +5,6 @@
 #include "StringLiteralOutput.h"
 #include "TextRangeOutput.h"
 
-#include "strings/Output.h"
-
 namespace scanner {
 
 auto operator<<(std::ostream& out, const Token& v) -> std::ostream&;

@@ -2,6 +2,6 @@
 
 namespace scanner {
 
-// TODO
+// empty
 
 } // namespace scanner

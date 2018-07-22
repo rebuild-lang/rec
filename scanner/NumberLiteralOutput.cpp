@@ -1,5 +1,7 @@
 #include "NumberLiteralOutput.h"
 
+#include "strings/Rope.ostream.h"
+
 namespace scanner {
 
 auto operator<<(std::ostream& out, const NumberLiteralValue& lit) -> std::ostream& {

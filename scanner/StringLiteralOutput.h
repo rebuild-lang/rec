@@ -1,7 +1,7 @@
 #pragma once
 #include "StringLiteral.h"
 
-#include "strings/Output.h"
+#include <ostream>
 
 namespace scanner {
 

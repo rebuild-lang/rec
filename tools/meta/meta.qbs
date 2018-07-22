@@ -9,12 +9,14 @@ Project {
         files: [
             "CoEnumerator.h",
             "Flags.h",
-            "LambdaPtr.h",
+            "Flags.ostream.h",
             "Optional.h",
+            "Optional.ostream.h",
             "Overloaded.h",
             "TypeList.h",
             "ValueList.h",
             "Variant.h",
+            "Variant.ostream.h",
             "VectorRange.h",
             "algorithm.h",
         ]
@@ -24,5 +26,22 @@ Project {
             cpp.includePaths: [".."]
             Depends { name: "cpp17" }
         }
+    }
+
+    Application {
+        name: "meta.tests"
+        consoleApplication: true
+        type: ["application", "autotest"]
+
+        Depends { name: "meta" }
+        Depends { name: "googletest" }
+        googletest.useMain: true
+
+        files: [
+            "Flags.test.cpp",
+            "Optional.test.cpp",
+            "TypeList.test.cpp",
+            "Variant.test.cpp",
+        ]
     }
 }

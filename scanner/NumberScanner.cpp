@@ -3,4 +3,5 @@
 namespace scanner {
 
 // empty
-}
+
+} // namespace scanner

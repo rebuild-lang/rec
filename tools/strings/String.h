@@ -1,14 +1,12 @@
 #pragma once
-#include "strings/CodePoint.h"
+#include "Counter.h"
 
+#include "meta/Optional.h"
+
+#include <initializer_list>
 #include <vector>
 
 namespace strings {
-
-/// naively strong typed index
-struct Index {
-    uint32_t v;
-};
 
 /// owning utf8 encoded readonly string
 // all useful methods are on View !
@@ -29,7 +27,6 @@ public:
 
     explicit String(std::vector<Data>&& src) noexcept // take data from existing vector
         : m(std::move(src)) {}
-    // explicit String(const char* str) : data_m(str, str + strlen(str)) {}
 
     String(std::initializer_list<Data> il) // from initializer list
         : m(il) {}
@@ -43,8 +40,8 @@ public:
     String(const Data* b, const Data* e)
         : m(b, e) {}
 
-    const Data* data() const { return m.data(); }
-    Count byteCount() const { return {static_cast<uint32_t>(m.size())}; }
+    auto data() const -> const Data* { return m.data(); }
+    auto byteCount() const -> Counter { return {static_cast<uint32_t>(m.size())}; }
     bool isEmpty() const { return m.empty(); }
 
     auto begin() const { return data(); }
@@ -53,7 +50,6 @@ public:
     bool operator==(const This& o) const { return m == o.m; }
     bool operator<(const This& o) const { return m < o.m; }
 };
-
 using OptionalString = meta::Optional<meta::DefaultPacked<String>>;
 
 } // namespace strings

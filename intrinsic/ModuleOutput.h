@@ -3,7 +3,7 @@
 #include "Module.h"
 #include "Type.h"
 
-#include "strings/Output.h"
+#include "strings/String.ostream.h"
 
 #include <cassert>
 #include <iostream>
@@ -19,7 +19,7 @@ struct ModuleOutput {
         constexpr auto info = TypeOf<T>::info();
         std::cout << indent << "type " << info.name << '\n';
         if constexpr (info.flags.any(TypeFlag::Instance)) {
-            // TODO
+            // TODO(arBmind)
         }
         else {
             indent += "  ";

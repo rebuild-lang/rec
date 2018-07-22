@@ -1,7 +1,7 @@
 #pragma once
-#include "strings/CodePoint.h"
-#include "strings/String.h"
-#include "strings/View.h"
+#include "CodePoint.h"
+#include "String.h"
+#include "View.h"
 
 #include "meta/Overloaded.h"
 #include "meta/Variant.h"
@@ -39,8 +39,8 @@ public:
         return *this;
     }
 
-    Count byteCount() const {
-        return meta::accumulate(m, Count{0}, [](Count c, const Data& e) {
+    Counter byteCount() const {
+        return meta::accumulate(m, Counter{0}, [](Counter c, const Data& e) {
             return e.visit(
                 [=](CodePoint cp) { return c + cp.utf8_byteCount(); },
                 [=](const String& s) { return c + s.byteCount(); },
@@ -62,7 +62,7 @@ public:
     }
 
     bool operator==(const This& o) const {
-        // TODO(arBmind): avoid allocation
+        // TODO(arBmind): eliminate temporary allocations (when used outside of tests)
         auto tmp = static_cast<String>(*this);
         auto tmp2 = static_cast<String>(o);
         return tmp == tmp2;
@@ -70,10 +70,11 @@ public:
     bool operator!=(const This& o) const { return !(*this == o); }
 
     bool operator==(const View& v) const {
-        // TODO(arBmind): without allocation
+        // TODO(arBmind): eliminate temporary allocation (when used outside of tests)
         auto tmp = static_cast<String>(*this);
         return v.isContentEqual(View(tmp));
     }
+    bool operator!=(const View& o) const { return !(*this == o); }
 };
 
 inline String to_string(const Rope& r) { return static_cast<String>(r); }

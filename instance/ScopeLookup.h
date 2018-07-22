@@ -8,21 +8,21 @@ inline auto lookup(const Scope& scope, const Name& name) -> const Node& {
     auto it = name.begin();
     auto end = name.end();
     auto it2 = std::find(it, end, '.');
-    auto c = scope[Name(it, it2)];
-    if (!c) throw "name not found";
+    auto optNode = scope[Name(it, it2)];
+    if (!optNode) throw "name not found";
     while (it2 != end) {
         it = it2;
         it2 = std::find(it, end, '.');
-        auto cp = c;
-        cp->visit(
+        auto node = optNode.value();
+        node->visit(
             [&](const Module& m) -> decltype(auto) {
-                c = m.locals[Name{it, it2}];
+                optNode = m.locals[Name{it, it2}];
             },
             [](const auto&) { throw "not a module!"; } //
         );
-        if (!c) throw "nested name not found";
+        if (!optNode) throw "nested name not found";
     }
-    return *c;
+    return *optNode.value();
 }
 
 template<class T>
@@ -31,9 +31,9 @@ auto lookupA(const Scope& scope, const Name& name) -> const T& {
     if (!c.holds<T>()) {
         if constexpr (std::is_same_v<T, Type>) {
             const auto& m = c.get<Module>();
-            auto* t = m.locals[Name{"type"}];
+            auto t = m.locals[Name{"type"}];
             if (!t) throw "wrong type";
-            return t->get<T>();
+            return t.value()->get<T>();
         }
         throw "wrong type";
     }

@@ -12,7 +12,7 @@ Project {
 
             Properties {
                 condition: qbs.toolchain.contains('msvc')
-                cpp.cxxFlags: ["/await", "/permissive-", "/Zc:__cplusplus"]
+                cpp.cxxFlags: ["/await", "/permissive-", "/Zc:__cplusplus", "/diagnostics:caret"]
             }
             Properties {
                 condition: qbs.toolchain.contains('clang')

@@ -10,7 +10,7 @@ namespace api {
 
 struct List {
     using Type = instance::Type;
-    using Value = int; // TODO
+    using Value = int; // TODO(arBmind)
     using Index = uint64_t;
 
     List(Type& elementType)
@@ -64,7 +64,7 @@ struct TypeOf<api::List> {
     };
 
     static void construct(TypeArgument type, Result& res) {
-        // TODO
+        // TODO(arBmind)
         (void)type;
         (void)res;
     }

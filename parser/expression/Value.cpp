@@ -2,6 +2,6 @@
 
 namespace parser::expression {
 
-// TODO
+// empty
 
 } // namespace parser::expression

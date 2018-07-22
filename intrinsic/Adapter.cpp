@@ -2,6 +2,6 @@
 
 namespace intrinsicAdapter {
 
-// TODO
+// empty
 
 } // namespace intrinsicAdapter

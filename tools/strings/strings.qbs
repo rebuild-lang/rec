@@ -14,14 +14,19 @@ Project {
         files: [
             "CodePoint.cpp",
             "CodePoint.h",
-            "Output.cpp",
-            "Output.h",
+            "CodePoint.ostream.h",
+            "Counter.cpp",
+            "Counter.h",
+            "Counter.ostream.h",
             "Rope.cpp",
             "Rope.h",
+            "Rope.ostream.h",
             "String.cpp",
             "String.h",
+            "String.ostream.h",
             "View.cpp",
             "View.h",
+            "View.ostream.h",
             "join.h",
         ]
 
@@ -31,5 +36,23 @@ Project {
 
             Depends { name: "meta" }
         }
+    }
+
+    Application {
+        name: "strings.tests"
+        consoleApplication: true
+        type: ["application", "autotest"]
+
+        Depends { name: "strings" }
+        Depends { name: "googletest" }
+        googletest.useMain: true
+
+        files: [
+            "CodePoint.test.cpp",
+            "Counter.test.cpp",
+            "Rope.test.cpp",
+            "String.test.cpp",
+            "View.test.cpp",
+        ]
     }
 }

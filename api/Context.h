@@ -8,9 +8,9 @@
 #include "intrinsic/Module.h"
 #include "intrinsic/Type.h"
 
-#include "strings/Output.h"
+#include "strings/Rope.ostream.h"
 
-// TODO: tmp
+// TODO(arBmind): remove dependency
 #include <iostream>
 
 namespace intrinsic {
@@ -67,46 +67,67 @@ struct TypeOf<Context> {
     };
 
     static void declareModule(const Label& label, const Block& block, ModuleResult res, ImplicitContext context) {
-        (void)label;
-        (void)block;
         (void)res;
-        (void)context;
         auto name = label.v.range.text;
-        auto node = context.v->parserScope->locals[name];
-        if (node) {
+        auto optNode = context.v->parserScope->locals[name];
+        if (optNode) {
+            auto node = optNode.value();
             if (node->holds<instance::Module>()) {
                 auto& module = node->get<instance::Module>();
                 auto moduleScope = instance::Scope(context.v->parserScope);
                 moduleScope.locals = std::move(module.locals);
                 context.v->parse(block.v, &moduleScope);
                 module.locals = std::move(moduleScope.locals);
+                res.v = &module;
             }
             else
                 return; // error
         }
         else {
-            auto module = instance::Module{};
-            module.name = name;
-            auto moduleScope = instance::Scope(context.v->parserScope);
-            context.v->parse(block.v, &moduleScope);
-            module.locals = std::move(moduleScope.locals);
-            context.v->parserScope->emplace(std::move(module));
+            auto optNode = context.v->parserScope->emplace([&] {
+                auto module = instance::Module{};
+                module.name = name;
+                auto moduleScope = instance::Scope(context.v->parserScope);
+                context.v->parse(block.v, &moduleScope);
+                module.locals = std::move(moduleScope.locals);
+                return module;
+            }());
+            res.v = &optNode.value()->get<instance::Module>();
         }
-        // auto module = context.v->fetchOrCreateModule(label.v);
-        // context.v->parseModuleBlock(module, block);
-        // res.v = module;
+    }
+
+    struct Typed {
+        parser::expression::Typed v;
+        static constexpr auto info() {
+            auto info = ArgumentInfo{};
+            info.name = Name{};
+            info.side = ArgumentSide::Right;
+            info.flags = ArgumentFlag::Reference;
+            return info;
+        }
+    };
+    static void declareVariable(const Typed& typed, ImplicitContext context) {
+        if (!typed.v.name || !typed.v.type) {
+            return; // error
+        }
+        auto name = typed.v.name.value();
+        if (auto node = context.v->parserScope->locals[name]; node) {
+            return; // error
+        }
+        auto optNode = context.v->parserScope->emplace([&] {
+            auto variable = instance::Variable{};
+            variable.typed.name = name;
+            variable.typed.type = typed.v.type.value();
+            return variable;
+        }());
+        (void)optNode;
+
+        // assert(optNode);
+        // TODO(arBmind): emit variable init
     }
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        //        mod.template function<&declareFunction,
-        //            [] {
-        //                auto info = FunctionInfo{};
-        //                info.name = Name{".declareFunction"};
-        //                info.flags = FunctionFlag::CompileTimeOnly;
-        //                return info;
-        //            }>();
-
         //        mod.template function<&declareVariable,
         //            [] {
         //                auto info = FunctionInfo{};
@@ -118,6 +139,13 @@ struct TypeOf<Context> {
         mod.template function<&declareModule, [] {
             auto info = FunctionInfo{};
             info.name = Name{".declareModule"};
+            info.flags = FunctionFlag::CompileTimeOnly;
+            return info;
+        }>();
+
+        mod.template function<&declareVariable, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{".declareVariable"};
             info.flags = FunctionFlag::CompileTimeOnly;
             return info;
         }>();

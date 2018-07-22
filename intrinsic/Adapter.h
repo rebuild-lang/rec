@@ -117,7 +117,7 @@ struct Adapter {
         using namespace intrinsic;
         constexpr auto info = TypeOf<T>::info();
         if constexpr (info.flags.any(TypeFlag::Instance)) {
-            // TODO
+            // TODO(arBmind)
         }
         else if constexpr (info.flags.any(TypeFlag::Construct)) {
             constructedType<T>(&TypeOf<T>::construct);
@@ -138,15 +138,15 @@ struct Adapter {
                 return r;
             }());
 
-            auto node = a.instanceModule.locals[instance::Name{"type"}];
-            assert(node != nullptr);
-            types.map[info.name.data()] = &node->get<instance::Type>();
+            auto optNode = a.instanceModule.locals[instance::Name{"type"}];
+            assert(optNode);
+            types.map[info.name.data()] = &optNode.value()->get<instance::Type>();
 
             instanceModule.locals.emplace(std::move(a.instanceModule));
 
             auto modNode = instanceModule.locals[info.name];
             assert(modNode != nullptr);
-            node->get<instance::Type>().module = &modNode->get<instance::Module>();
+            optNode.value()->get<instance::Type>().module = &modNode.value()->get<instance::Module>();
         }
     }
 
@@ -187,7 +187,7 @@ struct Adapter {
         auto info = Info();
         auto r = instance::Function{};
         r.name = info.name; // strings::to_string(info.name);
-        // r.flags = functionFlags(info.flags); // TODO
+        // r.flags = functionFlags(info.flags); // TODO(arBmind)
         r.arguments = instance::Arguments{argument<ExternArgs>()...};
 
         auto call = &details::Call<F, Args...>::call;
@@ -211,7 +211,7 @@ private:
     struct Types {
         TypeMap map{};
         Arguments arguments{};
-        // TODO: add instance types etc.
+        // TODO(arBmind): add instance types etc.
     };
 
     Types& types;
@@ -224,7 +224,7 @@ private:
         for (auto [argument, typeName] : types.arguments) {
             auto typeIt = types.map.find(typeName);
             if (typeIt == types.map.end()) {
-                // TODO: error, unknown type
+                // TODO(arBmind): error, unknown type
                 continue;
             }
             argument->typed.type.visit(
@@ -234,12 +234,12 @@ private:
                 },
                 [&, a = argument](auto) { a->typed.type = parser::expression::TypeInstance{typeIt->second}; });
         }
-        // TODO: resolve other types
+        // TODO(arBmind): resolve other types
     }
 
     template<class T, class R>
     void constructedType(R (*construct)()) {
-        // TODO: normal type + construct & destruct functions
+        // TODO(arBmind): normal type + construct & destruct functions
         (void)construct;
     }
 
@@ -263,7 +263,7 @@ private:
     static constexpr auto typeFlags(intrinsic::TypeFlags flags) -> instance::TypeFlags {
         auto r = instance::TypeFlags{};
         (void)flags;
-        // TODO
+        // TODO(arBmind)
         return r;
     }
 
@@ -289,7 +289,7 @@ private:
         r.typed.name = strings::String{"result"};
         // r.typed.type = // prosponed "instance::Type"
         r.side = instance::ArgumentSide::result;
-        // r.flags |= instance::ArgumentFlag::assignable; // TODO: missing
+        // r.flags |= instance::ArgumentFlag::assignable; // TODO(arBmind): missing
         return r;
     }
 

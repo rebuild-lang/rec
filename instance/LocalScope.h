@@ -7,6 +7,9 @@ namespace instance {
 
 using Name = strings::CompareView;
 class Node;
+using NodeView = Node*;
+using OptNodeView = meta::Optional<NodeView>;
+using OptConstNodeView = meta::Optional<const Node*>;
 
 using NodeByName = std::map<Name, Node>;
 
@@ -24,16 +27,13 @@ struct LocalScope {
     LocalScope(This&&) = default;
     auto operator=(This &&) -> This& = default;
 
-    auto operator[](const Name& name) const& -> const Node*;
-    auto operator[](const Name& name) & -> Node*;
+    auto operator[](const Name& name) const& -> OptConstNodeView;
+    auto operator[](const Name& name) & -> OptNodeView;
 
-    template<class T, class... Ts>
-    bool emplace(T&& arg, Ts&&... args) & {
-        return (emplaceImpl(std::forward<T>(arg)) & ... & emplaceImpl(std::forward<Ts>(args)));
-    }
+    auto emplace(Node&& node) & -> OptNodeView { return emplaceImpl(std::move(node)); }
 
 private:
-    bool emplaceImpl(Node&& instance) &;
+    auto emplaceImpl(Node&&) & -> OptNodeView;
 
     // bool replace(old, new)
 };

@@ -17,7 +17,7 @@
 
 struct List {
     using Type = instance::Type;
-    using Value = int; // TODO
+    using Value = int; // TODO(arBmind)
     using Index = uint64_t;
 
     List(Type& elementType)
@@ -79,7 +79,7 @@ struct TypeOf<uint64_t> {
         }
     };
     static void implicitFrom(const Literal& literal, Result& res) {
-        // TODO
+        // TODO(arBmind)
         (void)literal;
         (void)res;
     }
@@ -161,7 +161,7 @@ struct TypeOf<String> {
     }
 };
 
-// TODO
+// TODO(arBmind)
 // template<> struct TypeOf<Rope> {};
 
 template<>
@@ -175,7 +175,7 @@ struct TypeOf<Flags> {
     }
 
     struct IdentifierLiterals {
-        std::vector<uint64_t> v; // TODO: parser::Identifier
+        std::vector<uint64_t> v; // TODO(arBmind): parser::Identifier
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"ids"};
@@ -185,7 +185,7 @@ struct TypeOf<Flags> {
         }
     };
 
-    using TypeData = std::vector<uint64_t>; // TODO: parser::Identifier
+    using TypeData = std::vector<uint64_t>; // TODO(arBmind): parser::Identifier
 
     static auto eval(const IdentifierLiterals& ids) -> TypeData { return {ids.v}; }
 
@@ -194,7 +194,7 @@ struct TypeOf<Flags> {
 
     template<class Module>
     static void module(Module&) {
-        // TODO
+        // TODO(arBmind)
     }
 };
 
@@ -230,7 +230,7 @@ struct TypeOf<List> {
     };
 
     static void construct(TypeArgument type, Result& res) {
-        // TODO
+        // TODO(arBmind)
         (void)type;
         (void)res;
     }
@@ -270,7 +270,7 @@ struct TypeOf<instance::TypeFlags> {
     using evalType = Flags;
     static auto constructArguments() -> TypeOf<Flags>::TypeData {
         // constexpr auto names = std::array<const char*, 2>{{"CompileTime", "RunTime"}};
-        return {}; // TODO
+        return {}; // TODO(arBmind)
     }
 };
 
@@ -377,12 +377,12 @@ TEST(intrinsic, call) {
     using Adapter = intrinsicAdapter::Adapter;
     auto rebuild = Adapter::moduleInstance<Rebuild>();
     ASSERT_TRUE(rebuild.locals[View{"u64"}]);
-    ASSERT_TRUE(rebuild.locals[View{"u64"}]->holds<instance::Module>());
-    const auto& u64 = rebuild.locals[View{"u64"}]->get<instance::Module>();
+    ASSERT_TRUE(rebuild.locals[View{"u64"}].value()->holds<instance::Module>());
+    const auto& u64 = rebuild.locals[View{"u64"}].value()->get<instance::Module>();
 
     ASSERT_TRUE(u64.locals[View{"add"}]);
-    ASSERT_TRUE(u64.locals[View{"add"}]->holds<instance::Function>());
-    const auto& add = u64.locals[View{"add"}]->get<instance::Function>();
+    ASSERT_TRUE(u64.locals[View{"add"}].value()->holds<instance::Function>());
+    const auto& add = u64.locals[View{"add"}].value()->get<instance::Function>();
 
     ASSERT_TRUE(!add.body.block.nodes.empty());
     ASSERT_TRUE(add.body.block.nodes.front().holds<parser::expression::IntrinsicCall>());

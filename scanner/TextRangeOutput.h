@@ -1,7 +1,8 @@
 #pragma once
 #include "TextRange.h"
 
-#include "strings/Output.h"
+#include "strings/String.ostream.h"
+#include "strings/View.ostream.h"
 
 namespace scanner {
 

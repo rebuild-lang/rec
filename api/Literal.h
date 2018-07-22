@@ -20,7 +20,7 @@ struct TypeOf<parser::expression::StringLiteral> {
 
     template<class Module>
     static constexpr auto module(Module&) {
-        // TODO: add .Text property
+        // TODO(arBmind): add .Text property
     }
 };
 
@@ -37,7 +37,7 @@ struct TypeOf<parser::expression::NumberLiteral> {
 
     template<class Module>
     static constexpr auto module(Module&) {
-        // TODO: add API
+        // TODO(arBmind): add API
     }
 };
 
@@ -54,7 +54,7 @@ struct TypeOf<parser::expression::BlockLiteral> {
 
     template<class Module>
     static constexpr auto module(Module&) {
-        // TODO: add API
+        // TODO(arBmind): add API
     }
 };
 
@@ -63,7 +63,7 @@ struct TypeOf<parser::expression::IdentifierLiteral> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".Identifier"};
-        info.size = sizeof(parser::block::Token);
+        info.size = sizeof(parser::expression::IdentifierLiteral);
         info.flags = TypeFlag::CompileTime;
         info.parser = Parser::SingleToken;
         return info;
@@ -71,7 +71,24 @@ struct TypeOf<parser::expression::IdentifierLiteral> {
 
     template<class Module>
     static constexpr auto module(Module&) {
-        // TODO: add API
+        // TODO(arBmind): add API
+    }
+};
+
+template<>
+struct TypeOf<parser::expression::Typed> {
+    static constexpr auto info() {
+        auto info = TypeInfo{};
+        info.name = Name{".Typed"};
+        info.size = sizeof(parser::expression::Typed);
+        info.flags = TypeFlag::CompileTime;
+        info.parser = Parser::IdTypeValue;
+        return info;
+    }
+
+    template<class Module>
+    static constexpr auto module(Module&) {
+        // TODO(arBmind): add API
     }
 };
 
@@ -84,12 +101,12 @@ struct Literal {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        // mod.template type<Identifier>(); // use Token
-        // mod.template type<Operator>();
         mod.template type<parser::expression::NumberLiteral>();
         mod.template type<parser::expression::StringLiteral>();
         mod.template type<parser::expression::BlockLiteral>();
         mod.template type<parser::expression::IdentifierLiteral>();
+        // mod.template type<OperatorLiteral>();
+        mod.template type<parser::expression::Typed>();
     }
 };
 

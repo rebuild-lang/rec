@@ -119,8 +119,8 @@ inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -
     auto as = ArgumentAssignment{};
     auto arg = fun.lookupArgument(name);
     if (!arg) throw "missing argument";
-    auto v = arg.value();
-    as.argument = &v.get();
+    auto& v = arg.value();
+    as.argument = &v;
     as.values.reserve(values.size());
     for (auto&& val : std::move(values)) as.values.emplace_back(std::move(val).build(scope));
     return as;

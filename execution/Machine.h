@@ -153,7 +153,7 @@ private:
     static auto argumentSize(const instance::Argument& arg) -> size_t {
         using namespace instance;
         if (arg.flags.any(ArgumentFlag::splatted)) {
-            return 8; // TODO: sizeof(Array)
+            return 8; // TODO(arBmind): sizeof(Array)
         }
         if (arg.flags.any(ArgumentFlag::assignable)) {
             return sizeof(void*); // passed as pointer
@@ -238,7 +238,7 @@ private:
 
         using namespace instance;
         if (arg.flags.any(ArgumentFlag::splatted)) {
-            assert(false); // TODO
+            assert(false); // TODO(arBmind)
             return;
         }
         if (arg.flags.any(ArgumentFlag::assignable)) {
@@ -294,7 +294,7 @@ private:
     }
 
     static void storeValue(const instance::Typed& typed, const Context& context, Byte* memory) {
-        // TODO: allow clone() method or ensure moving
+        // TODO(arBmind): allow clone() method or ensure moving
         memcpy(memory, context[&typed], typeExpressionSize(typed.type));
     }
 };

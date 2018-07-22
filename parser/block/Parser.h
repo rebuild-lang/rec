@@ -50,7 +50,7 @@ private:
             //                    indentChar = static_cast<char>(optCp.value().v);
             //                }
             //            }
-            //            // TODO: verify indent char
+            //            // TODO(arBmind): verify indent char
             //        }
             return range.end.column;
         }
@@ -70,7 +70,7 @@ private:
 
     static auto extractLineTokens(BlockLine& line, Input& input) {
         using namespace filter;
-        // TODO: add semicolon
+        // TODO(arBmind): add semicolon
         while (!input->holds<NewLineIndentation, BlockStartIndentation, BlockEndIndentation, SemicolonSeparator>()) {
             line.emplace_back(translate(input.move()));
             if (!input++) return;
@@ -88,7 +88,7 @@ private:
             while (true) {
                 if (input->holds<SemicolonSeparator>()) {
                     if (expectEnd) {
-                        // TODO: report error
+                        // TODO(arBmind): report error
                         // handling ignore
                     }
                     input++; // consume semicolon
@@ -98,7 +98,7 @@ private:
                     auto nextColumn = state.getIndentColumn(*input);
                     if (nextColumn < parentBlockColumn) {
                         if (expectEnd) {
-                            // TODO report missing end
+                            // TODO(arBmind): report missing end
                             // handling terminate line anyways
                         }
                         return line; // end of line in parent
@@ -113,28 +113,28 @@ private:
                         if (!input->holds<NewLineIndentation>()) break;
                         // auto continueColumn = state_.getIndentColumn(*input);
                         // if (continueColumn >= nextColumn) continue;
-                        // TODO report continuation error
-                        // TODO handling: add lines to a block as well
+                        // TODO(arBmind): report continuation error
+                        // TODO(arBmind): handling: add lines to a block as well
                     }
                 }
                 else if (input->holds<BlockEndIndentation>()) {
                     auto nextColumn = state.getIndentColumn(*input);
                     if (nextColumn < parentBlockColumn) {
                         if (expectEnd) {
-                            // TODO report missing end
+                            // TODO(arBmind): report missing end
                             // handling terminate line anyways
                         }
                         return line; // end of block in parent
                     }
                     if (nextColumn == parentBlockColumn) {
                         if (!expectEnd) {
-                            // TODO report unexpected end
+                            // TODO(arBmind): report unexpected end
                             // handling terminate line anyways
                         }
                         input++; // consume the end
                         return line;
                     }
-                    // TODO report nested end
+                    // TODO(arBmind): report nested end
                     // handling: ignored
                     if (!input++) return line;
                 }
@@ -142,7 +142,7 @@ private:
                     auto nextColumn = state.getIndentColumn(*input);
                     expectEnd = true;
                     if (nextColumn < parentBlockColumn) {
-                        // TODO report missing end
+                        // TODO(arBmind): report missing end
                         // handling: add empty block and finish line
                         line.push_back(BlockLiteral{{}, input->get<BlockStartIndentation>().range});
                         return line;
@@ -174,7 +174,7 @@ private:
                 else if (input->holds<BlockEndIndentation>()) {
                     auto indent = state.getIndentColumn(*input);
                     if (indent < blockColumn) return block; // do not consume parent end block
-                    // TODO report misplaced end
+                    // TODO(arBmind): report misplaced end
                     // handling: ignore it
                     if (!input++) return block;
                 }
@@ -182,7 +182,7 @@ private:
                     auto indent = state.getIndentColumn(*input);
                     if (indent < blockColumn) return block; // line is not part of this block
                     if (indent > blockColumn) {
-                        // TODO: report indentation error
+                        // TODO(arBmind): report indentation error
                         // handling: take the line into this block
                     }
                     if (!input++) return block;

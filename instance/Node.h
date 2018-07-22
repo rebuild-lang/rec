@@ -17,10 +17,10 @@ class Node : public NodeVariant {
 public:
     META_VARIANT_CONSTRUCT(Node, NodeVariant)
 };
-using NodeView = Node *;
+using NodeView = Node*;
 
-inline auto nameOf(const Node &v) -> const Name & {
-    return v.visit([](const auto &i) -> decltype(auto) { return nameOf(i); });
+inline auto nameOf(const Node& v) -> const Name& {
+    return v.visit([](const auto& i) -> decltype(auto) { return nameOf(i); });
 }
 
 } // namespace instance

@@ -10,10 +10,35 @@
 namespace meta {
 
 template<class... T>
+class VariantIndex {
+    using This = VariantIndex;
+    size_t m{sizeof...(T)};
+
+public:
+    constexpr VariantIndex() = default;
+
+    constexpr explicit VariantIndex(size_t v)
+        : m(v) {}
+
+    constexpr explicit operator bool() const { return m < sizeof...(T); }
+    constexpr size_t value() const { return m; }
+
+    constexpr bool operator==(const This& o) const { return m == o.m; }
+    constexpr bool operator!=(const This& o) const { return m != o.m; }
+
+    template<class... C>
+    constexpr bool holds() const {
+        using TypeList = TypeList<T...>;
+        using Indices = IndexList<TypeList::indexOf(Type<C>{})...>;
+        return Indices::contains(m);
+    }
+};
+
+template<class... T>
 class Variant {
     using This = Variant;
     using Data = std::variant<T...>;
-    Data m{};
+    Data m;
 
 public:
     Variant() = default;
@@ -77,30 +102,9 @@ public:
         return (std::holds_alternative<C>(m) || ...); // C++17
     }
 
-    class Index {
-        using This = Index;
-        size_t m{sizeof...(T)};
+    using Index = VariantIndex<T...>;
 
-    public:
-        constexpr Index() = default;
-
-        constexpr explicit Index(size_t v)
-            : m(v) {}
-
-        constexpr explicit operator bool() const { return m < sizeof...(T); }
-
-        constexpr bool operator==(const This& o) { return m == o.m; }
-        constexpr bool operator!=(const This& o) { return m != o.m; }
-
-        template<class... C>
-        constexpr bool holds() const {
-            using TypeList = TypeList<T...>;
-            using Indices = IndexList<TypeList::indexOf(Type<C>{})...>;
-            return Indices::contains(m);
-        }
-    };
-
-    auto index() const -> decltype(auto) { return Index(m.index()); }
+    auto index() const -> Index { return Index(m.index()); }
 
     template<class C>
     constexpr static auto indexOf() -> decltype(auto) {

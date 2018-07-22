@@ -1,7 +1,7 @@
-#include "Output.h"
+#include "Counter.h"
 
 namespace strings {
 
-// TODO
+// empty
 
 } // namespace strings

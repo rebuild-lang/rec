@@ -2,6 +2,6 @@
 
 namespace intrinsic {
 
-// TODO
+// empty
 
 } // namespace intrinsic

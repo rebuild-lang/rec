@@ -3,8 +3,6 @@
 
 #include "instance/TypeOutput.h"
 
-#include "strings/Output.h"
-
 namespace parser::expression {
 
 auto operator<<(std::ostream& out, const TypeExpression& e) -> std::ostream&;

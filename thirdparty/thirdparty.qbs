@@ -33,7 +33,7 @@ Project {
         Export {
             Depends { name: "cpp" }
 
-            cpp.includePaths: [
+            cpp.systemIncludePaths: [
                 FileInfo.joinPaths(project.googletestPath, "googlemock/include"),
                 FileInfo.joinPaths(project.googletestPath, "googletest/include")
             ]
@@ -53,6 +53,10 @@ Project {
                 condition: qbs.toolchain.contains('clang')
                 cpp.cxxStandardLibrary: "libc++"
                 cpp.staticLibraries: ["pthread"]
+            }
+            Properties {
+                condition: qbs.toolchain.contains('msvc')
+                cpp.cxxFlags: ["/experimental:external", "/external:W0", "/external:I", project.googletestPath]
             }
         }
     }

@@ -3,7 +3,6 @@
 
 #include "parser/expression/TypeTreeOutput.h"
 
-#include "strings/Output.h"
 #include "strings/join.h"
 
 namespace instance {

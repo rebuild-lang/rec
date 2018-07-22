@@ -52,6 +52,8 @@ public:
     // use isContentEqual for content comparison
     constexpr bool operator==(const This& o) const { return start_m == o.start_m && end_m == o.end_m; }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
+
+    // codepoint ordering
     bool operator<(const This& o) const {
         auto l = *this;
         auto r = o;
@@ -67,7 +69,7 @@ public:
         return byteCount().v == o.byteCount().v && meta::equals(*this, o.begin());
     }
 
-    constexpr auto byteCount() const -> Count { return {static_cast<uint32_t>(end_m - start_m)}; }
+    constexpr auto byteCount() const -> Counter { return {static_cast<uint32_t>(end_m - start_m)}; }
     constexpr bool isEmpty() const { return start_m == end_m; }
 
     /// view of the first N bytes
@@ -163,9 +165,9 @@ struct CompareView : View {
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-inline auto to_string(const View& v) { //
-    using It = const uint8_t*;
-    return String(It(v.begin()), It(v.end()));
+inline auto to_string(const View& v) -> String {
+    using It = View::ByteIt;
+    return {It{v.begin()}, It{v.end()}};
 }
 
 } // namespace strings

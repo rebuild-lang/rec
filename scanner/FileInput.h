@@ -19,7 +19,7 @@ struct FileInput {
         , currentPosition_({}) {}
 
     bool hasMorePeek() const { return peek_ != end_(); }
-    bool hasMoreBytes(strings::Count bytes) const { return current_ + bytes.v <= end_(); }
+    bool hasMoreBytes(strings::Counter bytes) const { return current_ + bytes.v <= end_(); }
 
     auto view() const { return View(begin_, current_); }
     auto range() const { return TextRange{file, view(), beginPosition, currentPosition_}; }
@@ -44,7 +44,7 @@ struct FileInput {
         return peekBuffer[index];
     }
 
-    auto currentView(strings::Count bytes) -> View { return View(current_, current_ + bytes.v); }
+    auto currentView(strings::Counter bytes) -> View { return View(current_, current_ + bytes.v); }
 
     bool skip();
 

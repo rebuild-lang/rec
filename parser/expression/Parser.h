@@ -33,7 +33,7 @@ Context(Lookup&&, RunCall&&, IntrinsicType &&)->Context<Lookup, RunCall, Intrins
 template<class Context>
 constexpr void checkContext() noexcept {
     static_assert(
-        std::is_same_v<const instance::Node*, std::invoke_result_t<decltype(Context::lookup), strings::View>>,
+        std::is_same_v<instance::OptConstNodeView, std::invoke_result_t<decltype(Context::lookup), strings::View>>,
         "no lookup");
     static_assert(
         std::is_same_v<OptNode, std::invoke_result_t<decltype(Context::runCall), Call>>, //
@@ -221,15 +221,15 @@ private:
                 return ParseOptions::continue_single;
             },
             [&](const block::IdentifierLiteral& id) {
-                const auto& instance = lookupIdentifier(id.range.text, result, context);
-                if (!instance) {
+                auto optNode = lookupIdentifier(id.range.text, result, context);
+                if (!optNode) {
                     if (result) return ParseOptions::finish_single;
 
                     result = OptNode{makeTokenValue<IdentifierLiteral>(it, id, context)};
                     ++it;
                     return ParseOptions::continue_single;
                 }
-                return parseInstance(result, *instance, it, context);
+                return parseInstance(result, *optNode.value(), it, context);
             },
             [&](const block::StringLiteral& s) {
                 if (result) return ParseOptions::finish_single;
@@ -253,7 +253,8 @@ private:
     }
 
     template<class Context>
-    static auto lookupIdentifier(const strings::View& id, OptNode& result, Context& context) -> const instance::Node* {
+    static auto lookupIdentifier(const strings::View& id, OptNode& result, Context& context)
+        -> instance::OptConstNodeView {
         if (result.map([](const Node& n) { return n.holds<ModuleReference>(); })) {
             auto ref = result.value().get<ModuleReference>();
             result = {};
@@ -491,7 +492,7 @@ private:
             [&](const block::IdentifierLiteral& id) -> OptTypeExpression {
                 auto name = id.range.text;
                 auto node = context.lookup(name);
-                if (node) return parseTypeInstance(*node, it, context);
+                if (node) return parseTypeInstance(*node.value(), it, context);
                 return {};
             },
             [](const auto&) -> OptTypeExpression { // error
@@ -523,7 +524,7 @@ private:
                 ++it;
                 auto typeNode = mod.locals[View{"type"}];
                 if (typeNode) {
-                    const auto& type = typeNode->get<instance::Type>();
+                    const auto& type = typeNode.value()->get<instance::Type>();
                     return {TypeInstance{&type}};
                 }
                 return {};
@@ -589,7 +590,7 @@ private:
                     auto value = Typed{optTyped.value()};
                     return {Value{std::move(value), {TypeInstance{type}}}};
                 }
-                // return Node{TypedTuple{{optTyped.value()}}}; // TODO: store as value
+                // return Node{TypedTuple{{optTyped.value()}}}; // TODO(arBmind): store as value
                 return {};
             };
 
@@ -661,7 +662,7 @@ private:
                                     as.argument = &namedArg;
                                     as.values = {std::move(optTyped).value().value.value()};
                                     o.rightArgs.push_back(std::move(as));
-                                    // TODO: add to call completion
+                                    // TODO(arBmind): add to call completion
                                     break;
                                 }
                                 // type does not match

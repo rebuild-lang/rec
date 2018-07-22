@@ -1,5 +1,4 @@
 #pragma once
-#include <initializer_list>
 #include <type_traits>
 
 namespace meta {
@@ -36,7 +35,7 @@ struct Flags {
     constexpr bool operator==(This f) const noexcept { return v == f.v; }
     constexpr bool operator!=(This f) const noexcept { return v != f.v; }
 
-    constexpr bool operator[](Enum t) const noexcept { return (v & t) != 0; }
+    constexpr bool operator[](Enum t) const noexcept { return (v & static_cast<Value>(t)) != 0; }
 
     constexpr bool all(This f) const noexcept { return (v & f.v) == f.v; }
     template<class... Args>
@@ -109,6 +108,7 @@ struct Flags {
         return *this = flip(b);
     }
 
+    /// calls f with each flag that is set
     template<class F>
     constexpr void each_set(F&& f) const noexcept {
         auto vt = Value{};
@@ -133,21 +133,5 @@ private:
 private:
     Value v{};
 };
-
-template<class Out, class T>
-auto operator<<(Out& out, Flags<T> f)
-    -> std::enable_if_t<std::is_same_v<decltype(out << std::declval<T>()), decltype(out)>, decltype(out)> //
-{
-    using flags_type = Flags<T>;
-    if (f == flags_type{}) return out << "<None>";
-    f.each_set([&, first = true](T t) mutable {
-        if (!first)
-            out << " | ";
-        else
-            first = false;
-        out << t;
-    });
-    return out;
-}
 
 } // namespace meta

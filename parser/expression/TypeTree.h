@@ -51,8 +51,8 @@ using TypeExpressionVariant = meta::Variant<
     Array,
     Pointer,
     TypeInstance
-    // TODO: Call?
-    // TODO: TypedTuple?
+    // TODO(arBmind): Call?
+    // TODO(arBmind): TypedTuple?
     >;
 
 struct TypeExpression : TypeExpressionVariant {
