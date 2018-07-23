@@ -8,7 +8,8 @@ Project {
         Depends { name: "cpp" }
         cpp.includePaths: [".."]
 
-        Depends { name: "tools" }
+        Depends { name: "meta" }
+        Depends { name: "strings" }
 
         files: [
             "Argument.h",
@@ -25,7 +26,8 @@ Project {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
-            Depends { name: "tools" }
+            Depends { name: "meta" }
+            Depends { name: "strings" }
         }
     }
 

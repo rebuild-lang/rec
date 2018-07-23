@@ -27,12 +27,4 @@ Project {
         "meta",
         "strings",
     ]
-
-    Product {
-        name: "tools"
-        Export {
-            Depends { name: "meta" }
-            Depends { name: "strings" }
-        }
-    }
 }
