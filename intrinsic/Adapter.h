@@ -12,7 +12,7 @@
 #include "instance/Scope.h"
 #include "instance/Type.h"
 
-#include "tools/meta/TypeList.h"
+#include "meta/TypeList.h"
 
 #include <cassert>
 

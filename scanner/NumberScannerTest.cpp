@@ -5,6 +5,8 @@
 #include "gtest/gtest.h"
 
 using namespace scanner;
+using String = strings::String;
+using namespace text;
 
 struct NumberData {
     String input;

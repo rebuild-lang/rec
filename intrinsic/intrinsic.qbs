@@ -8,8 +8,7 @@ Project {
         Depends { name: "cpp" }
         cpp.includePaths: [".."]
 
-        Depends { name: "meta" }
-        Depends { name: "strings" }
+        Depends { name: "expressionTree" }
 
         files: [
             "Argument.h",
@@ -26,8 +25,7 @@ Project {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
-            Depends { name: "meta" }
-            Depends { name: "strings" }
+            Depends { name: "expressionTree" }
         }
     }
 
@@ -59,8 +57,8 @@ Project {
         type: ["application", "autotest"]
 
         Depends { name: "intrinsicAdapter" }
-        Depends { name: "googletest" }
-        googletest.useMain: true
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
 
         files: [
             "RegisterTest.cpp",

@@ -4,12 +4,13 @@ Project {
     minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
-        name: "strings"
+        name: "strings.lib"
+        targetName: "strings"
+
         Depends { name: "cpp" }
         cpp.combineCxxSources: true
-        cpp.includePaths: [".."]
 
-        Depends { name: "meta" }
+        Depends { name: "meta.lib" }
 
         files: [
             "CodePoint.cpp",
@@ -34,7 +35,7 @@ Project {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
-            Depends { name: "meta" }
+            Depends { name: "meta.lib" }
         }
     }
 
@@ -43,9 +44,9 @@ Project {
         consoleApplication: true
         type: ["application", "autotest"]
 
-        Depends { name: "strings" }
-        Depends { name: "googletest" }
-        googletest.useMain: true
+        Depends { name: "strings.lib" }
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
 
         files: [
             "CodePoint.test.cpp",

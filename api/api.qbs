@@ -6,7 +6,7 @@ Project {
     StaticLibrary {
         name: "api"
         Depends { name: "cpp" }
-        cpp.includePaths: ["..."]
+        cpp.includePaths: [".."]
 
         Depends { name: "instance" }
         Depends { name: "intrinsic" }

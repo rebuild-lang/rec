@@ -9,7 +9,7 @@ namespace details {
 using parser::filter::details::ValueToken;
 }
 
-using TextRange = scanner::TextRange;
+using TextRange = text::TextRange;
 
 struct Token;
 using TokenLine = std::vector<Token>;

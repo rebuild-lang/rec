@@ -5,7 +5,7 @@ Project {
 
     references: [
         "thirdparty",
-        "tools",
+        "shared",
         "scanner",
         "instance",
         "parser",
@@ -17,8 +17,6 @@ Project {
     AutotestRunner {}
 
     Application {
-        //multiplexByQbsProperties: ["buildVariants", "profiles"]
-        //qbs.buildVariants: ["debug", "release"]
         name: "rec"
         consoleApplication: true
         Depends { name: "scanner" }
@@ -29,6 +27,26 @@ Project {
         files: [
             "main.cpp",
         ]
+    }
+
+    Product {
+        name: "cpp17"
+
+        Export {
+            Depends { name: "cpp" }
+            cpp.cxxLanguageVersion: "c++17"
+
+            Properties {
+                condition: qbs.toolchain.contains('msvc')
+                cpp.cxxFlags: ["/await", "/permissive-", "/Zc:__cplusplus", "/diagnostics:caret"]
+            }
+            Properties {
+                condition: qbs.toolchain.contains('clang')
+                cpp.cxxFlags: ["-fcoroutines-ts"]
+                cpp.cxxStandardLibrary: "libc++"
+                cpp.staticLibraries: ["c++", "c++abi"]
+            }
+        }
     }
 
     Product {

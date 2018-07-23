@@ -4,7 +4,7 @@ Project {
     minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
-        name: "meta"
+        name: "meta.lib"
 
         files: [
             "CoEnumerator.h",
@@ -33,9 +33,9 @@ Project {
         consoleApplication: true
         type: ["application", "autotest"]
 
-        Depends { name: "meta" }
-        Depends { name: "googletest" }
-        googletest.useMain: true
+        Depends { name: "meta.lib" }
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
 
         files: [
             "Flags.test.cpp",

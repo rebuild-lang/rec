@@ -1,13 +1,14 @@
 #pragma once
-#include "FileInput.h"
 #include "Token.h"
+
+#include "text/FileInput.h"
 
 #include "meta/Optional.h"
 
 namespace scanner {
 
 struct IdentifierScanner {
-    static auto scan(FileInput& input) -> OptToken {
+    static auto scan(text::FileInput& input) -> OptToken {
         if (!isStart(input)) return {};
         do {
             input.extend();
@@ -16,7 +17,7 @@ struct IdentifierScanner {
     }
 
 private:
-    static bool isStart(FileInput& input) {
+    static bool isStart(text::FileInput& input) {
         auto chr = input.peek().value();
         if (chr == '.') {
             auto optCp = input.peek<1>();
@@ -28,9 +29,9 @@ private:
         return isFirst(chr);
     }
 
-    static bool isFirst(CodePoint cp) { return cp.isLetter() || cp.isPunctuationConnector(); }
+    static bool isFirst(text::CodePoint cp) { return cp.isLetter() || cp.isPunctuationConnector(); }
 
-    static bool isContinuation(CodePoint cp) {
+    static bool isContinuation(text::CodePoint cp) {
         return cp.isLetter() || cp.isPunctuationConnector() || cp.isDecimalNumber();
     }
 };

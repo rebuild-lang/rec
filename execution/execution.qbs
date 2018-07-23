@@ -34,8 +34,8 @@ Project {
         type: ["application", "autotest"]
 
         Depends { name: "vm" }
-        Depends { name: "googletest" }
-        googletest.useMain: true
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
 
         files: [
             "ExecutionTests.cpp"

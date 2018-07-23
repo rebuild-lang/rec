@@ -1,17 +1,7 @@
 #pragma once
+#include <cinttypes>
 
-#include "strings/String.h"
-#include "strings/View.h"
-
-namespace scanner {
-
-using String = strings::String;
-using View = strings::View;
-
-struct File {
-    String filename{};
-    String content{};
-};
+namespace text {
 
 struct Line {
     uint32_t v{1}; // 1 is first line
@@ -67,16 +57,4 @@ struct Position {
     constexpr bool operator!=(const Position& o) const { return !(*this == o); }
 };
 
-struct TextRange {
-    const File* file{};
-    View text{};
-    Position begin{};
-    Position end{};
-
-    bool operator==(const TextRange& o) const {
-        return file == o.file && text.isContentEqual(o.text) && begin == o.begin && end == o.end;
-    }
-    bool operator!=(const TextRange& o) const { return !(*this == o); }
-};
-
-} // namespace scanner
+}

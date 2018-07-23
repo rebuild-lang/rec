@@ -4,6 +4,7 @@
 
 TEST(scanner, basic) {
     using namespace scanner;
+    using namespace text;
 
     auto t = Tokenizer{Tokenizer::Config{Column{8}}};
     auto f = File{String{"testfile"}, String{"\n "}};

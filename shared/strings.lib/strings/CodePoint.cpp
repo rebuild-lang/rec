@@ -1,4 +1,4 @@
-#include "strings/CodePoint.h"
+#include "CodePoint.h"
 
 namespace strings {
 
@@ -4894,7 +4894,7 @@ bool CodePoint::isNumberOther() const {
 }
 
 bool CodePoint::isPunctuationConnector() const {
-    switch(v) {
+    switch (v) {
     case 0x005F: // _ LOW LINE
     case 0xFE33: // ︳ PRESENTATION FORM FOR VERTICAL LOW LINE
     case 0xFE34: // ︴ PRESENTATION FORM FOR VERTICAL WAVY LOW LINE
@@ -4959,7 +4959,7 @@ bool CodePoint::isPunctuationOther() const {
     case 0xFE55: // ﹕ SMALL COLON
     case 0xFF1A: // ： FULLWIDTH COLON
     case 0x003B: // ; SEMICOLON
-    case 0x037E:    // ; GREEK QUESTION MARK
+    case 0x037E: // ; GREEK QUESTION MARK
     case 0xFE14: // ︔ PRESENTATION FORM FOR VERTICAL SEMICOLON
     case 0xFE54: // ﹔ SMALL SEMICOLON
     case 0xFF1B: // ； FULLWIDTH SEMICOLON

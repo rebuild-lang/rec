@@ -1,11 +1,12 @@
 #pragma once
-#include "FileInput.h"
 #include "Token.h"
+
+#include "text/FileInput.h"
 
 namespace scanner {
 
 struct CommentScanner {
-    static auto scan(FileInput& input, Column tabStops) -> CommentLiteral {
+    static auto scan(text::FileInput& input, text::Column tabStops) -> CommentLiteral {
         size_t length = 1;
         auto makeToken = [&]() -> CommentLiteral { return {input.range()}; };
         auto scanLine = [&] {

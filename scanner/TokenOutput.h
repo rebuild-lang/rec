@@ -3,7 +3,8 @@
 
 #include "NumberLiteralOutput.h"
 #include "StringLiteralOutput.h"
-#include "TextRangeOutput.h"
+
+#include "text/TextRange.ostream.h"
 
 namespace scanner {
 

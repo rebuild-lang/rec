@@ -54,17 +54,17 @@ Project {
         }
     }
 
-    Application {
-        condition: false
-        name: "instance.tests"
-        consoleApplication: true
-        type: ["application", "autotest"]
+    //    Application {
+    //        condition: false
+    //        name: "instance.tests"
+    //        consoleApplication: true
+    //        type: ["application", "autotest"]
 
-        Depends { name: "instance" }
-        Depends { name: "googletest" }
-        googletest.useMain: true
+    //        Depends { name: "instance" }
+    //        Depends { name: "googletest.lib" }
+    //        googletest.lib.useMain: true
 
-        files: [
-        ]
-    }
+    //        files: [
+    //        ]
+    //    }
 }

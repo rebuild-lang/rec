@@ -1,8 +1,10 @@
 #pragma once
+#include "File.h"
 #include "TextRange.h"
+
 #include <deque>
 
-namespace scanner {
+namespace text {
 
 using CodePoint = strings::CodePoint;
 using OptCodePoint = strings::OptionalCodePoint;
@@ -98,4 +100,4 @@ private:
     std::deque<CodePoint> peekBuffer{};
 };
 
-} // namespace scanner
+} // namespace text

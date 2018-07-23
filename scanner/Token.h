@@ -1,7 +1,8 @@
 #pragma once
 #include "NumberLiteral.h"
 #include "StringLiteral.h"
-#include "TextRange.h"
+
+#include "text/TextRange.h"
 
 #include "meta/Optional.h"
 
@@ -10,7 +11,7 @@ namespace scanner {
 namespace details {
 template<class Tag>
 struct TagToken {
-    TextRange range{};
+    text::TextRange range{};
 
     using This = TagToken;
     bool operator==(const This& o) const { return true; }
@@ -19,7 +20,7 @@ struct TagToken {
 template<class Value>
 struct ValueToken {
     Value value{};
-    TextRange range{};
+    text::TextRange range{};
 
     using This = ValueToken;
     bool operator==(const This& o) const { return value == o.value; }

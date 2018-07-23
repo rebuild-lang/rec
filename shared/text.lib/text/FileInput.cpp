@@ -1,6 +1,6 @@
 #include "FileInput.h"
 
-namespace scanner {
+namespace text {
 
 bool FileInput::skip() {
     if (peekBuffer.size() == 1) {
@@ -16,7 +16,7 @@ bool FileInput::skip() {
     });
 }
 
-bool FileInput::extend(scanner::Column tabstop) {
+bool FileInput::extend(Column tabstop) {
     auto view = View(current_, end_());
     return view.pullCodePoint().map([&](auto chr) {
         if (chr == '\t')
@@ -40,4 +40,4 @@ bool FileInput::fillPeek(size_t count) {
     return true;
 }
 
-} // namespace scanner
+} // namespace text

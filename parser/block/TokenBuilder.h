@@ -5,7 +5,7 @@
 namespace parser::block {
 
 using Tokens = std::vector<Token>;
-using Column = scanner::Column;
+using Column = text::Column;
 using View = scanner::View;
 
 namespace details {

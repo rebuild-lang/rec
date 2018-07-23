@@ -7,8 +7,7 @@ Project {
 
     property string googletestPath: "googletest"
     StaticLibrary {
-        id: googletest
-        name: "googletest"
+        name: "googletest.lib"
 
         files: [
             FileInfo.joinPaths(project.googletestPath, "googlemock/src/gmock-all.cc"),
@@ -42,7 +41,7 @@ Project {
             property bool useMain: true
             Group {
                 name: "Main"
-                condition: product.googletest.useMain
+                condition: product.googletest.lib.useMain
 
                 files: [
                     FileInfo.joinPaths(root.googletestPath, "googlemock/src/gmock_main.cc"),

@@ -1,13 +1,16 @@
 #pragma once
-#include "FileInput.h"
 #include "NumberLiteral.h"
 #include "Token.h"
 
+#include "text/FileInput.h"
+
 namespace scanner {
+
+using CodePoint = strings::CodePoint;
 
 struct NumberScanner {
 
-    static auto scan(CodePoint chr, FileInput& input) -> NumberLiteral {
+    static auto scan(CodePoint chr, text::FileInput& input) -> NumberLiteral {
         if (chr == '0') {
             auto optNext = input.peek<1>();
             if (optNext) {
@@ -26,7 +29,7 @@ struct NumberScanner {
 
 private:
     template<class Pred>
-    static auto extendWhile(FileInput& input, Pred pred) -> OptCodePoint {
+    static auto extendWhile(text::FileInput& input, Pred pred) -> text::OptCodePoint {
         while (true) {
             input.extend();
             auto chr = input.peek();
@@ -36,7 +39,8 @@ private:
     }
 
     template<class IsDigit, class IsExponent>
-    static auto scanWithRadix(FileInput& input, Radix radix, IsDigit isDigit, IsExponent isExponent) -> NumberLiteral {
+    static auto scanWithRadix(text::FileInput& input, Radix radix, IsDigit isDigit, IsExponent isExponent)
+        -> NumberLiteral {
         auto literal = NumberLiteralValue{};
         literal.radix = radix;
 

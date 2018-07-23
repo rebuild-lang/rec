@@ -54,8 +54,8 @@ Project {
         type: ["application", "autotest"]
 
         Depends { name: "expressionParser" }
-        Depends { name: "googletest" }
-        googletest.useMain: true
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
 
         files: [
             "expressionParserTest.cpp",

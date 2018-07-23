@@ -1,25 +1,27 @@
 #pragma once
-
-#include "meta/CoEnumerator.h"
-
 #include "CommentScanner.h"
-#include "FileInput.h"
 #include "IdentifierScanner.h"
 #include "NumberScanner.h"
 #include "OperatorScanner.h"
 #include "StringScanner.h"
 #include "Token.h"
 
+#include "text/FileInput.h"
+
+#include "meta/CoEnumerator.h"
+
 namespace scanner {
+
+using FileInput = text::FileInput;
 
 struct Tokenizer {
     struct Config {
-        Column tabStops; ///< columns per tabstop
+        text::Column tabStops; ///< columns per tabstop
     };
     explicit Tokenizer(Config c)
         : config(c) {}
 
-    auto scanFile(const File& file) -> meta::CoEnumerator<Token> {
+    auto scanFile(const text::File& file) -> meta::CoEnumerator<Token> {
         auto input = FileInput(file);
         while (true) {
             input.collapse();

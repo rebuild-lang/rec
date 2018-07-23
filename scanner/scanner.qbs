@@ -4,33 +4,11 @@ Project {
     minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
-        name: "text"
-        Depends { name: "cpp" }
-        cpp.combineCxxSources: true
-
-        Depends { name: "strings" }
-
-        files: [
-            "TextRange.cpp",
-            "TextRange.h",
-            "TextRangeOutput.cpp",
-            "TextRangeOutput.h",
-        ]
-
-        Export {
-            Depends { name: "cpp" }
-            cpp.includePaths: [".."]
-
-            Depends { name: "strings" }
-        }
-    }
-
-    StaticLibrary {
         name: "token"
         Depends { name: "cpp" }
         cpp.combineCxxSources: true
 
-        Depends { name: "text" }
+        Depends { name: "text.lib" }
 
         files: [
             "NumberLiteral.h",
@@ -51,7 +29,7 @@ Project {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
-            Depends { name: "text" }
+            Depends { name: "text.lib" }
         }
 
     }
@@ -66,8 +44,6 @@ Project {
         files: [
             "CommentScanner.cpp",
             "CommentScanner.h",
-            "FileInput.cpp",
-            "FileInput.h",
             "IdentifierScanner.cpp",
             "IdentifierScanner.h",
             "NumberScanner.cpp",
@@ -94,8 +70,8 @@ Project {
         type: ["application", "autotest"]
 
         Depends { name: "scanner" }
-        Depends { name: "googletest" }
-        googletest.useMain: true
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
 
         files: [
             "CommentScannerTest.cpp",

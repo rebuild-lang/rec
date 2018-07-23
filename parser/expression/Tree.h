@@ -6,7 +6,7 @@
 
 #include "parser/block/Token.h"
 
-#include "scanner/TextRange.h"
+#include "text/TextRange.h"
 
 #include "meta/Variant.h"
 
@@ -18,8 +18,8 @@ struct Context;
 
 namespace parser::expression {
 
-using TextRange = scanner::TextRange;
-using View = scanner::View;
+using TextRange = text::TextRange;
+using View = text::View;
 using OptView = strings::OptionalView;
 using Name = strings::String;
 using OptName = strings::OptionalString;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tools/meta/Optional.h"
-#include "tools/meta/Variant.h"
+#include "meta/Optional.h"
+#include "meta/Variant.h"
 
 #include <memory>
 

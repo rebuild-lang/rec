@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 
 using namespace scanner;
+using namespace text;
 
 struct IdentifierData {
     String input;

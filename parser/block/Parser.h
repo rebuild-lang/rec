@@ -6,7 +6,7 @@
 namespace parser::block {
 
 using View = strings::View;
-using Column = scanner::Column;
+using Column = text::Column;
 using FilterToken = filter::Token;
 
 /**

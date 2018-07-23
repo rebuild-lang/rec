@@ -1,13 +1,16 @@
 #pragma once
-#include "FileInput.h"
 #include "Token.h"
+
+#include "text/FileInput.h"
 
 #include "strings/Rope.h"
 
 namespace scanner {
 
+using CodePoint = strings::CodePoint;
+
 struct StringScanner {
-    static auto scan(FileInput& input) -> Token {
+    static auto scan(text::FileInput& input) -> Token {
         input.extend();
         auto text = strings::Rope{};
         auto ip = decltype(input.current()){};
@@ -65,7 +68,7 @@ struct StringScanner {
     }
 
 private:
-    static void scanUnescaped(FileInput& input, strings::Rope& text) {
+    static void scanUnescaped(text::FileInput& input, strings::Rope& text) {
         input.extend();
         auto ip = input.current();
         auto lineIp = ip;
@@ -141,7 +144,7 @@ private:
         }
     }
 
-    static auto handleEscape(FileInput& input, strings::Rope& text) -> bool {
+    static auto handleEscape(text::FileInput& input, strings::Rope& text) -> bool {
         input.extend();
         auto optCp = input.peek();
         if (!optCp) return false;

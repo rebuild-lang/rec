@@ -51,8 +51,8 @@ Project {
         type: ["application", "autotest"]
 
         Depends { name: "blockParser" }
-        Depends { name: "googletest" }
-        googletest.useMain: true
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
 
         files: [
             "blockParserTest.cpp",

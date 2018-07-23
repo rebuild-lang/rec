@@ -1,13 +1,16 @@
 #pragma once
-#include "FileInput.h"
 #include "Token.h"
+
+#include "text/FileInput.h"
 
 #include <stack>
 
 namespace scanner {
 
+using CodePoint = strings::CodePoint;
+
 struct OperatorScanner {
-    static auto scan(FileInput& input) -> OptToken {
+    static auto scan(text::FileInput& input) -> OptToken {
         auto stack = Stack{};
         auto isValid = [&] { //
             return input.peek().map([&](CodePoint cp) { return isPart(cp, input, stack); });
@@ -26,12 +29,12 @@ struct OperatorScanner {
 private:
     struct Entry {
         CodePoint closeCp;
-        FileInput::StringIterator it{};
-        Position itPosition;
+        text::FileInput::StringIterator it{};
+        text::Position itPosition;
     };
     using Stack = std::vector<Entry>;
 
-    static void scanEnclosed(FileInput& input, Stack& stack) {
+    static void scanEnclosed(text::FileInput& input, Stack& stack) {
         auto isValid = [&] { //
             return input.peek().map([&](CodePoint cp) { return isEnclosedPart(cp, input, stack); });
         };
@@ -40,7 +43,7 @@ private:
         } while (isValid());
     }
 
-    static bool isPart(CodePoint cp, FileInput& input, Stack& stack) {
+    static bool isPart(CodePoint cp, text::FileInput& input, Stack& stack) {
         if (cp == '-' || cp.isSymbolMath() || cp.isSymbolOther() || cp.isNumberOther()) return true;
         if (cp.isSymbolCurrency() && cp.v != '$') return true;
         if (cp.isPunctuationOther() && cp.v != '.') return true; // others are handled before
@@ -53,7 +56,7 @@ private:
         return false;
     }
 
-    static bool isEnclosedPart(CodePoint cp, FileInput& input, Stack& stack) {
+    static bool isEnclosedPart(CodePoint cp, text::FileInput& input, Stack& stack) {
         if (cp.isWhiteSpace() || cp.isLineSeparator()) return false;
         if (stack.back().closeCp == cp) {
             stack.pop_back();
@@ -67,7 +70,7 @@ private:
         return true;
     }
 
-    static auto closePunctuation(CodePoint cp) -> OptCodePoint {
+    static auto closePunctuation(CodePoint cp) -> text::OptCodePoint {
         // https://www.unicode.org/charts/script/chart_Punctuation-Open.html
         // <-> https://www.unicode.org/charts/script/chart_Punctuation-Close.html
         switch (cp.v) {

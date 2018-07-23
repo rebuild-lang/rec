@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 
 using namespace scanner;
+using namespace text;
 
 struct CommentData {
     String input;

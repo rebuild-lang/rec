@@ -81,7 +81,7 @@ public:
         };
     }
 
-    auto compile(const scanner::File& file) -> Block {
+    auto compile(const text::File& file) -> Block {
         auto tokenize = [&](const auto& file) { return scanner::Tokenizer(config).scanFile(file); };
         auto filter = [&](const auto& file) { return parser::filter::Parser::parse(tokenize(file)); };
         auto blockify = [&](const auto& file) { return parser::block::Parser::parse(filter(file)); };
@@ -94,7 +94,7 @@ public:
 };
 
 int main() {
-    auto config = scanner::Tokenizer::Config{scanner::Column{8}};
+    auto config = scanner::Tokenizer::Config{text::Column{8}};
     auto globals = instance::Scope{};
     globals.emplace(intrinsicAdapter::Adapter::moduleInstance<intrinsic::Rebuild>());
 
@@ -106,7 +106,7 @@ int main() {
     auto filter = [&](const auto& file) { return parser::filter::Parser::parse(tokenize(file)); };
     auto blockify = [&](const auto& file) { return parser::block::Parser::parse(filter(file)); };
 
-    auto file = scanner::File{strings::String{"TestFile"}, strings::String{R"(
+    auto file = text::File{strings::String{"TestFile"}, strings::String{R"(
 # Rebuild.say "Hello!"
 Rebuild.Context.declareModule test:
     Rebuild.say "parsing inside!"

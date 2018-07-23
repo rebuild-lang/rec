@@ -1,6 +1,6 @@
 #pragma once
-#include "strings/CodePoint.h"
-#include "strings/String.h"
+#include "CodePoint.h"
+#include "String.h"
 
 #include "meta/Optional.h"
 #include "meta/algorithm.h"

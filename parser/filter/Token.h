@@ -12,8 +12,8 @@ using scanner::details::ValueToken;
 
 } // namespace details
 
-using TextRange = scanner::TextRange;
-using View = scanner::View;
+using TextRange = text::TextRange;
+using View = text::View;
 
 using NewLineIndentation = scanner::NewLineIndentation;
 
