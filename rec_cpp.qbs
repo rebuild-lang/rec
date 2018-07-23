@@ -1,33 +1,16 @@
 import qbs
 
 Project {
+    name: "Rebuild Experimental Compiler"
     minimumQbsVersion: "1.7.1"
 
     references: [
         "thirdparty",
         "shared",
-        "scanner",
-        "instance",
-        "parser",
-        "intrinsic",
-        "api",
-        "execution",
+        "src",
     ]
 
     AutotestRunner {}
-
-    Application {
-        name: "rec"
-        consoleApplication: true
-        Depends { name: "scanner" }
-        Depends { name: "parser" }
-        Depends { name: "intrinsicAdapter" }
-        Depends { name: "vm" }
-        Depends { name: "api" }
-        files: [
-            "main.cpp",
-        ]
-    }
 
     Product {
         name: "cpp17"
