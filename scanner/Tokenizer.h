@@ -29,41 +29,27 @@ struct Tokenizer {
                 co_yield scanInvalidEncoding(input);
                 continue;
             }
-            const auto chr = optCp.value();
-            if (chr.isWhiteSpace()) {
-                co_yield scanWhiteSpace(input);
-                continue;
-            }
-            if (chr.isLineSeparator()) {
-                co_yield scanNewLine(chr, input);
-                continue;
-            }
-            if (chr.isDecimalNumber()) {
-                co_yield scanNumberLiteral(chr, input);
-                continue;
-            }
-            switch (chr.v) {
-            case '"': co_yield scanStringLiteral(input); continue;
-            case '#': co_yield scanComment(input); continue;
-            case ':': co_yield scanChar<ColonSeparator>(input); continue;
-            case ',': co_yield scanChar<CommaSeparator>(input); continue;
-            case ';': co_yield scanChar<SemicolonSeparator>(input); continue;
-            case '[': co_yield scanChar<SquareBracketOpen>(input); continue;
-            case ']': co_yield scanChar<SquareBracketClose>(input); continue;
-            case '(': co_yield scanChar<BracketOpen>(input); continue;
-            case ')': co_yield scanChar<BracketClose>(input); continue;
-            }
-            auto identToken = scanIdentifier(input);
-            if (identToken) {
-                co_yield identToken.value();
-                continue;
-            }
-            auto operatorToken = scanOperator(input);
-            if (operatorToken) {
-                co_yield operatorToken.value();
-                continue;
-            }
-            co_yield scanInvalid(input);
+            co_yield optCp.map([&](auto chr) -> Token {
+                if (chr.isWhiteSpace()) return scanWhiteSpace(input);
+                if (chr.isLineSeparator()) return scanNewLine(chr, input);
+                if (chr.isDecimalNumber()) return scanNumberLiteral(chr, input);
+
+                switch (chr.v) {
+                case '"': return scanStringLiteral(input);
+                case '#': return scanComment(input);
+                case ':': return scanChar<ColonSeparator>(input);
+                case ',': return scanChar<CommaSeparator>(input);
+                case ';': return scanChar<SemicolonSeparator>(input);
+                case '[': return scanChar<SquareBracketOpen>(input);
+                case ']': return scanChar<SquareBracketClose>(input);
+                case '(': return scanChar<BracketOpen>(input);
+                case ')': return scanChar<BracketClose>(input);
+                }
+
+                if (auto optToken = scanIdentifier(input); optToken) return optToken.value();
+                if (auto optToken = scanOperator(input); optToken) return optToken.value();
+                return scanInvalid(input);
+            });
         }
     }
 
