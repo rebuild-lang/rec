@@ -4,7 +4,6 @@
 
 #include "gtest/gtest.h"
 
-using namespace scanner;
 using namespace text;
 
 struct CommentData {
@@ -27,11 +26,7 @@ TEST_P(CommentScanners, all) {
     auto input = FileInput{f};
     input.peek();
 
-    const auto lit = CommentScanner::scan(input, param.tabStops);
-
-    // ASSERT_TRUE(tok.holds<CommentLiteral>());
-
-    // const auto& lit = tok.get<CommentLiteral>();
+    const auto lit = scanner::extractComment(input, param.tabStops);
 
     EXPECT_EQ(param.content, strings::to_string(lit.range.text));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
@@ -62,4 +57,8 @@ INSTANTIATE_TEST_CASE_P( //
         CommentData{String{"#end#\ncomment\n#end#"}, // block comment
                     Column{4},
                     String{"#end#\ncomment\n#end#"},
-                    {Line{3}, Column{6}}}));
+                    {Line{3}, Column{6}}},
+        CommentData{String{"#end#\ncomment\n\t#end#"}, // block comment
+                    Column{4},
+                    String{"#end#\ncomment\n\t#end#"},
+                    {Line{3}, Column{10}}}));
