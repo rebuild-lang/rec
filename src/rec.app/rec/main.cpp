@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-using ParserConfig = scanner::Tokenizer::Config;
+using ParserConfig = scanner::Config;
 using InstanceScope = instance::Scope;
 using InstanceNode = instance::Node;
 using ExecutionContext = execution::Context;
@@ -83,7 +83,7 @@ public:
     }
 
     auto compile(const text::File& file) -> Block {
-        auto tokenize = [&](const auto& file) { return scanner::Tokenizer(config).scanFile(file); };
+        auto tokenize = [&](const auto& file) { return scanner::tokensFromFile(file, config); };
         auto filter = [&](const auto& file) { return filter::Filter::parse(tokenize(file)); };
         auto blockify = [&](const auto& file) { return nesting::Parser::parse(filter(file)); };
         auto parse = [&](const auto& file) {
@@ -95,7 +95,7 @@ public:
 };
 
 int main() {
-    auto config = scanner::Tokenizer::Config{text::Column{8}};
+    auto config = scanner::Config{text::Column{8}};
     auto globals = instance::Scope{};
     globals.emplace(intrinsicAdapter::Adapter::moduleInstance<intrinsic::Rebuild>());
 
@@ -103,7 +103,7 @@ int main() {
 
     auto compiler = Compiler(config, std::move(globals));
 
-    auto tokenize = [&](const auto& file) { return scanner::Tokenizer(config).scanFile(file); };
+    auto tokenize = [&](const auto& file) { return scanner::tokensFromFile(file, config); };
     auto filter = [&](const auto& file) { return filter::Filter::parse(tokenize(file)); };
     auto blockify = [&](const auto& file) { return nesting::Parser::parse(filter(file)); };
 

@@ -6,9 +6,9 @@ TEST(scanner, basic) {
     using namespace scanner;
     using namespace text;
 
-    auto t = Tokenizer{Tokenizer::Config{Column{8}}};
+    auto c = Config{Column{8}};
     auto f = File{String{"testfile"}, String{"\n "}};
-    auto tokGen = t.scanFile(f);
+    auto tokGen = tokensFromFile(f, c);
     ASSERT_TRUE(tokGen++);
     const auto& tok = *tokGen;
 
