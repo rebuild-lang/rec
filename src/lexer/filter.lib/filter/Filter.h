@@ -29,7 +29,7 @@ using ScannerTokenIndex = scanner::Token::Index;
  * • this buffers only one token O(n)
  *
  **/
-struct Parser {
+struct Filter {
     static auto parse(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnumerator<Token> {
         while (true) {
             if (!input++) co_return;

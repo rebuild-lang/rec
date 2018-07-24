@@ -1,4 +1,4 @@
-#include "filter/Parser.h"
+#include "Filter.h"
 
 #include "filter/Token.builder.h"
 #include "filter/Token.ostream.h"
@@ -52,7 +52,7 @@ TEST_P(TokenTransformations, FilterParser) {
         }
     }();
 
-    auto tokGen = filter::Parser::parse(std::move(input));
+    auto tokGen = Filter::parse(std::move(input));
 
     for (const auto& et : data.expected) {
         tokGen++;
