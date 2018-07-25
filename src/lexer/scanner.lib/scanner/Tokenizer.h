@@ -42,7 +42,7 @@ inline auto tokensFromFile(const text::File& file, Config config) -> meta::CoEnu
         input.extendWhiteSpaces(config.tabStops);
         return NewLineIndentation{input.range()};
     };
-    auto numberLiteral = [&](CodePoint chr) -> Token { return NumberScanner::scan(chr, input); };
+    auto numberLiteral = [&](CodePoint chr) -> Token { return extractNumber(chr, input); };
     auto stringLiteral = [&]() -> Token { return StringScanner::scan(input); };
     auto comment = [&]() -> Token { return extractComment(input, config.tabStops); };
     auto charToken = [&](auto tokenType) -> Token {

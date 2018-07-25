@@ -31,7 +31,7 @@ TEST_P(NumberScanners, all) {
     auto f = File{String{"testfile"}, param.input};
     auto input = FileInput{f};
 
-    const auto lit = NumberScanner::scan(input.peek().value(), input);
+    const auto lit = extractNumber(input.peek().value(), input);
 
     const auto& value = lit.value;
     EXPECT_EQ(param.radix, value.radix);
@@ -132,7 +132,7 @@ TEST_P(NumberFailures, all) {
 
     auto f = File{String{"testfile"}, param};
     auto input = FileInput{f};
-    const auto lit = NumberScanner::scan(input.peek().value(), input);
+    const auto lit = extractNumber(input.peek().value(), input);
 
     // ASSERT_TRUE(tok.holds<NumberLiteral>());
     const auto& value = lit.value;
@@ -148,5 +148,6 @@ INSTANTIATE_TEST_CASE_P( //
         String{"0o9"}, //
         String{"0b"}, //
         String{"0b2"}, //
-        String{"0.e"} //
-        ));
+        String{"0.e"},
+        String{"1e+"},
+        String{"1.e-"}));
