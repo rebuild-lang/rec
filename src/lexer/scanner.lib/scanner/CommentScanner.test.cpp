@@ -7,6 +7,7 @@
 using namespace text;
 
 struct CommentData {
+    std::string name;
     String input;
     Column tabStops;
     // expected:
@@ -38,27 +39,15 @@ INSTANTIATE_TEST_CASE_P( //
     examples,
     CommentScanners,
     ::testing::Values( //
-        CommentData{String{"# line \n"}, // line comment
-                    Column{8},
-                    String{"# line "},
-                    {Line{1}, Column{8}}},
-        CommentData{String{"#comment"}, // terminating comment
-                    Column{8},
-                    String{"#comment"},
-                    {Line{1}, Column{9}}},
-        CommentData{String{"#\tcomment #\n"}, // comment with tab
-                    Column{4},
-                    String{"#\tcomment #"},
-                    {Line{1}, Column{14}}},
-        CommentData{String{"#  \tcomment #\n"}, // comment with tab
-                    Column{4},
-                    String{"#  \tcomment #"},
-                    {Line{1}, Column{14}}},
-        CommentData{String{"#end#\ncomment\n#end#"}, // block comment
-                    Column{4},
-                    String{"#end#\ncomment\n#end#"},
-                    {Line{3}, Column{6}}},
-        CommentData{String{"#end#\ncomment\n\t#end#"}, // block comment
+        CommentData{"line", String{"# line \n"}, Column{8}, String{"# line "}, {Line{1}, Column{8}}},
+        CommentData{"terminating", String{"#comment"}, Column{8}, String{"#comment"}, {Line{1}, Column{9}}},
+        CommentData{"withTab", String{"#\tcomment #\n"}, Column{4}, String{"#\tcomment #"}, {Line{1}, Column{14}}},
+        CommentData{"withTab2", String{"#  \tcomment #\n"}, Column{4}, String{"#  \tcomment #"}, {Line{1}, Column{14}}},
+        CommentData{
+            "block", String{"#end#\ncomment\n#end#"}, Column{4}, String{"#end#\ncomment\n#end#"}, {Line{3}, Column{6}}},
+        CommentData{"blockTab",
+                    String{"#end#\ncomment\n\t#end#"},
                     Column{4},
                     String{"#end#\ncomment\n\t#end#"},
-                    {Line{3}, Column{10}}}));
+                    {Line{3}, Column{10}}}),
+    [](const ::testing::TestParamInfo<CommentData>& inf) { return inf.param.name; });

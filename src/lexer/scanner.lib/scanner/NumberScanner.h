@@ -36,6 +36,7 @@ inline auto extractNumber(CodePoint chr, text::FileInput& input) -> NumberLitera
         auto chr = cp.v;
         return (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
     };
+    auto isNoBoundary = [](CodePoint cp) { return cp.isDecimalNumber() || cp.isLetter(); };
 
     auto withRadix = [&](Radix radix, auto isDigit, auto isExponent) -> NumberLiteral {
         auto number = NumberLiteralValue{};
@@ -86,6 +87,9 @@ inline auto extractNumber(CodePoint chr, text::FileInput& input) -> NumberLitera
         }
         if (!startZero && number.integerPart.isEmpty() && number.fractionalPart.isEmpty()) {
             number.radix = Radix::invalid; // 0x or 0x. is not valid
+        }
+        else if (optCp.map(isNoBoundary)) {
+            number.radix = Radix::invalid; // wrong end
         }
         return {number, input.range()};
     };

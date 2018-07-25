@@ -9,6 +9,7 @@ using String = strings::String;
 using namespace text;
 
 struct NumberData {
+    std::string name;
     String input;
     // expected:
     String content;
@@ -51,7 +52,8 @@ INSTANTIATE_TEST_CASE_P( //
     fields,
     NumberScanners,
     ::testing::Values( //
-        NumberData{String{"12'3"},
+        NumberData{"intOnly",
+                   String{"12'3"},
                    String{"12'3"},
                    Column{5},
                    Radix::decimal,
@@ -59,7 +61,8 @@ INSTANTIATE_TEST_CASE_P( //
                    String{},
                    Sign::positive,
                    String{}},
-        NumberData{String{"0.12'3"},
+        NumberData{"fractionOnly",
+                   String{"0.12'3"},
                    String{"0.12'3"},
                    Column{7},
                    Radix::decimal,
@@ -67,7 +70,8 @@ INSTANTIATE_TEST_CASE_P( //
                    String{"123"},
                    Sign::positive,
                    String{}},
-        NumberData{String{"0e12'3"},
+        NumberData{"exponentOnly",
+                   String{"0e12'3"},
                    String{"0e12'3"},
                    Column{7},
                    Radix::decimal,
@@ -75,40 +79,87 @@ INSTANTIATE_TEST_CASE_P( //
                    String{},
                    Sign::positive,
                    String{"123"}},
-        NumberData{String{"1.2e-3"},
+        NumberData{"negativeExponent",
+                   String{"1.2e-3"},
                    String{"1.2e-3"},
                    Column{7},
                    Radix::decimal,
                    String{"1"},
                    String{"2"},
                    Sign::negative,
-                   String{"3"}}));
+                   String{"3"}}),
+    [](const ::testing::TestParamInfo<NumberData>& inf) { return inf.param.name; });
+
 INSTANTIATE_TEST_CASE_P( //
     zeros,
     NumberScanners,
     ::testing::Values( //
-        NumberData{String{"0"}, String{"0"}, Column{2}, Radix::decimal, String{}, String{}, Sign::positive, String{}},
-        NumberData{String{"0."}, String{"0."}, Column{3}, Radix::decimal, String{}, String{}, Sign::positive, String{}},
-        NumberData{String{"0x0"}, String{"0x0"}, Column{4}, Radix::hex, String{}, String{}, Sign::positive, String{}},
-        NumberData{String{"0o0"}, String{"0o0"}, Column{4}, Radix::octal, String{}, String{}, Sign::positive, String{}},
+        NumberData{"justZero",
+                   String{"0"},
+                   String{"0"},
+                   Column{2},
+                   Radix::decimal,
+                   String{},
+                   String{},
+                   Sign::positive,
+                   String{}},
         NumberData{
-            String{"0b0"}, String{"0b0"}, Column{4}, Radix::binary, String{}, String{}, Sign::positive, String{}},
-        NumberData{String{"0x0."}, String{"0x0."}, Column{5}, Radix::hex, String{}, String{}, Sign::positive, String{}},
-        NumberData{String{"0'.e0"},
+            "dot", String{"0."}, String{"0."}, Column{3}, Radix::decimal, String{}, String{}, Sign::positive, String{}},
+        NumberData{
+            "hex", String{"0x0"}, String{"0x0"}, Column{4}, Radix::hex, String{}, String{}, Sign::positive, String{}},
+        NumberData{"octal",
+                   String{"0o0"},
+                   String{"0o0"},
+                   Column{4},
+                   Radix::octal,
+                   String{},
+                   String{},
+                   Sign::positive,
+                   String{}},
+        NumberData{"binary",
+                   String{"0b0"},
+                   String{"0b0"},
+                   Column{4},
+                   Radix::binary,
+                   String{},
+                   String{},
+                   Sign::positive,
+                   String{}},
+        NumberData{"hexFloat",
+                   String{"0x0."},
+                   String{"0x0."},
+                   Column{5},
+                   Radix::hex,
+                   String{},
+                   String{},
+                   Sign::positive,
+                   String{}},
+        NumberData{"exponent",
+                   String{"0'.e0"},
                    String{"0'.e0"},
                    Column{6},
                    Radix::decimal,
                    String{},
                    String{},
                    Sign::positive,
-                   String{}}));
+                   String{}}),
+    [](const ::testing::TestParamInfo<NumberData>& inf) { return inf.param.name; });
+
 INSTANTIATE_TEST_CASE_P( //
     hex,
     NumberScanners,
     ::testing::Values( //
-        NumberData{
-            String{"0xF'F"}, String{"0xF'F"}, Column{6}, Radix::hex, String{"FF"}, String{}, Sign::positive, String{}},
-        NumberData{String{"0.12"},
+        NumberData{"int",
+                   String{"0xF'F"},
+                   String{"0xF'F"},
+                   Column{6},
+                   Radix::hex,
+                   String{"FF"},
+                   String{},
+                   Sign::positive,
+                   String{}},
+        NumberData{"float",
+                   String{"0.12"},
                    String{"0.12"},
                    Column{5},
                    Radix::decimal,
@@ -116,25 +167,32 @@ INSTANTIATE_TEST_CASE_P( //
                    String{"12"},
                    Sign::positive,
                    String{}},
-        NumberData{String{"0b012"},
+        NumberData{"binary",
+                   String{"0b01"},
                    String{"0b01"},
                    Column{5},
                    Radix::binary,
                    String{"1"},
                    String{},
                    Sign::positive,
-                   String{}}));
+                   String{}}),
+    [](const ::testing::TestParamInfo<NumberData>& inf) { return inf.param.name; });
 
-class NumberFailures : public testing::TestWithParam<String> {};
+struct NumberFailureData {
+    std::string name;
+    String input;
+};
+static auto operator<<(std::ostream& o, const NumberFailureData& nd) -> std::ostream& { return o << nd.input; }
+
+class NumberFailures : public testing::TestWithParam<NumberFailureData> {};
 
 TEST_P(NumberFailures, all) {
-    String param = GetParam();
+    NumberFailureData param = GetParam();
 
-    auto f = File{String{"testfile"}, param};
+    auto f = File{String{"testfile"}, param.input};
     auto input = FileInput{f};
     const auto lit = extractNumber(input.peek().value(), input);
 
-    // ASSERT_TRUE(tok.holds<NumberLiteral>());
     const auto& value = lit.value;
     EXPECT_FALSE(value);
 }
@@ -143,11 +201,14 @@ INSTANTIATE_TEST_CASE_P( //
     all,
     NumberFailures,
     ::testing::Values( //
-        String{"0x"}, //
-        String{"0o"}, //
-        String{"0o9"}, //
-        String{"0b"}, //
-        String{"0b2"}, //
-        String{"0.e"},
-        String{"1e+"},
-        String{"1.e-"}));
+        NumberFailureData{"hexNothing", String{"0x"}}, //
+        NumberFailureData{"octalNothing", String{"0o"}}, //
+        NumberFailureData{"octalOutOfBounds", String{"0o9"}}, //
+        NumberFailureData{"octalSecondOutOfBounds", String{"0o19"}}, //
+        NumberFailureData{"binaryNothing", String{"0b"}}, //
+        NumberFailureData{"binaryOutOfBounds", String{"0b2"}}, //
+        NumberFailureData{"fractionNothing", String{"0.e"}},
+        NumberFailureData{"positiveFractionNothing", String{"1e+"}},
+        NumberFailureData{"negativeFractionNothing", String{"1.e-"}},
+        NumberFailureData{"notTerminated", String{"0z"}}),
+    [](const ::testing::TestParamInfo<NumberFailureData>& inf) { return inf.param.name; });
