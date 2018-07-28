@@ -9,162 +9,245 @@ namespace scanner {
 
 using CodePoint = strings::CodePoint;
 
-struct StringScanner {
-    static auto scan(text::FileInput& input) -> Token {
-        input.extend();
-        auto text = strings::Rope{};
-        auto ip = decltype(input.current()){};
-        auto isWhitespace = false;
-        auto flush = [&] {
-            if (ip != nullptr) {
-                if (ip != input.current()) text += View{ip, input.current()};
-                ip = {};
-                isWhitespace = false;
-            }
-        };
+/**
+ * features:
+ * * "" => empty string
+ * * """raw""" => raw string
+ * * whitespaces before newlines are skipped
+ */
+inline auto extractString(text::FileInput& input) -> StringLiteral {
+    auto text = Rope{};
+    auto errors = StringErrors{};
 
-        while (input.hasMore()) {
-            auto optCp = input.peek();
-            if (!optCp) break;
-            auto chr = optCp.value();
-            if (isDoubleQuote(chr)) {
-                flush();
-                input.extend();
-                if (text.isEmpty() && input.peek().map(isDoubleQuote)) {
-                    scanUnescaped(input, text);
-                }
-                break;
-            }
-            if (chr.isLineSeparator()) {
-                if (!isWhitespace) flush();
-                ip = {};
-                input.extend();
-                input.nextLine();
-                isWhitespace = false;
-                continue;
-            }
-            if (isBackslash(chr)) {
-                flush();
-                if (!handleEscape(input, text)) break;
-                continue;
-            }
-            if (!isTab(chr) && chr.isControl()) {
-                flush();
-                input.extend(); // skip random control chars
-                continue;
-            }
-            if (!isWhitespace && chr.isWhiteSpace()) {
-                flush();
-                isWhitespace = true;
-            }
-            else {
-                isWhitespace = false;
-            }
-            if (ip == nullptr) ip = input.current();
-            input.extend();
+    auto endOfInput = [&] { errors.push_back({StringError::Kind::EndOfInput, View{}, input.currentPosition()}); };
+    auto invalidCodePoint = [&] {
+        auto position = input.currentPosition();
+        auto start = input.current();
+        input.extend();
+        errors.push_back({StringError::Kind::InvalidEncoding, View{start, input.current()}, position});
+    };
+    auto invalidControl = [&] {
+        auto position = input.currentPosition();
+        auto start = input.current();
+        input.extend();
+        errors.push_back({StringError::Kind::InvalidControl, View{start, input.current()}, position});
+    };
+
+    auto isDoubleQuote = [](CodePoint cp) { return cp.v == '"'; };
+    auto isBackslash = [](CodePoint cp) { return cp.v == '\\'; };
+    auto isTab = [](CodePoint cp) { return cp.v == '\t'; };
+
+    auto newLine = [&](CodePoint cp) {
+        input.extend();
+        // skip 2nd char of newline pair
+        if (cp == '\n' || cp == '\r') {
+            input.peek().map([&](auto cp2) {
+                if (cp2 != cp && (cp2 == '\n' || cp2 == '\r')) input.extend();
+            });
         }
-        flush();
-        return StringLiteral{{std::move(text)}, input.range()};
-    }
+        input.nextLine();
+    };
 
-private:
-    static void scanUnescaped(text::FileInput& input, strings::Rope& text) {
-        input.extend();
-        auto ip = input.current();
-        auto lineIp = ip;
-        auto whitespaceIp = decltype(ip){};
-        auto flush = [&](size_t offset = 0) {
-            if (ip != input.current() - offset) {
-                text += View{ip, input.current() - offset};
-                lineIp = {};
-                ip = input.current();
+    auto raw = [&] {
+        input.extend(); // skip 3rd doublequote
+        auto start = input.current();
+        auto lineStart = start;
+        auto spaceStart = start;
+
+        auto reset = [&] { spaceStart = lineStart = start = input.current(); };
+        auto nonSpace = [&] { lineStart = spaceStart = input.current(); };
+
+        auto flushToLine = [&]() { text += View{start, lineStart}; };
+        auto flushToCurrent = [&](size_t offset = 0) { text += View{start, input.current() - offset}; };
+        auto flushToSpace = [&] { text += View{start, spaceStart}; };
+
+        while (true) {
+            if (!input.hasMore()) {
+                flushToCurrent();
+                endOfInput();
+                return;
             }
-        };
-
-        while (input.hasMore()) {
             auto optCp = input.peek();
-            if (!optCp) break;
-            auto chr = optCp.value();
-            if (isDoubleQuote(chr)) {
-                whitespaceIp = {};
+            if (!optCp) {
+                flushToCurrent();
+                invalidCodePoint();
+                reset();
+                continue;
+            }
+            auto cp = optCp.value();
+            if (isDoubleQuote(cp)) {
                 input.extend(); // "
                 if (!input.peek().map(isDoubleQuote)) {
-                    lineIp = {};
-                    continue; // normal char
+                    nonSpace();
+                    continue; // => "
                 }
                 input.extend(); // ""
                 if (!input.peek().map(isDoubleQuote)) {
-                    lineIp = {};
-                    continue; // normal quotes
+                    nonSpace();
+                    continue; // => ""
                 }
                 input.extend(); // """
                 if (!input.peek().map(isDoubleQuote)) {
-                    flush(3);
-                    break; // string end
+                    flushToLine();
+                    return; // string end
                 }
                 input.extend(); // " """
                 if (!input.peek().map(isDoubleQuote)) {
-                    flush(3);
-                    break; // " + string end
+                    flushToCurrent(3);
+                    return; // " + string end
                 }
                 input.extend(); // "" """
                 if (!input.peek().map(isDoubleQuote)) {
-                    flush(3);
-                    break; // "" + string end
+                    flushToCurrent(3);
+                    return; // "" + string end
                 }
-                input.extend(); // """
-                flush(3);
+                input.extend(); // """ """
+                flushToCurrent(3); // skip """
+                reset();
                 continue;
             }
-            if (chr.isLineSeparator()) {
-                if (whitespaceIp != nullptr && whitespaceIp != input.current()) {
-                    if (ip != whitespaceIp) text += View{ip, whitespaceIp};
-                    whitespaceIp = {};
-                    ip = input.current();
+            if (cp.isLineSeparator()) {
+                lineStart = input.current();
+                if (spaceStart != input.current()) {
+                    flushToSpace();
+                    start = lineStart;
                 }
-                lineIp = input.current();
-                input.extend();
-                input.nextLine();
+                newLine(cp);
+                spaceStart = input.current();
                 continue;
-            }
-            if (!chr.isWhiteSpace()) {
-                lineIp = {};
-                whitespaceIp = {};
-            }
-            else if (whitespaceIp == nullptr) {
-                whitespaceIp = input.current();
             }
             input.extend();
+            if (!cp.isWhiteSpace()) nonSpace();
         }
-        if (lineIp != nullptr) {
-            if (ip != lineIp) text += View{ip, lineIp};
-        }
-        else if (ip != input.current()) {
-            text += View{ip, input.current()};
-        }
-    }
+    };
 
-    static auto handleEscape(text::FileInput& input, strings::Rope& text) -> bool {
-        input.extend();
+    auto handleEscape = [&] {
+        auto start = input.current();
+        auto position = input.currentPosition();
+
+        auto escapeError = [&](StringError::Kind kind) {
+            errors.push_back({kind, View{start, input.current()}, position});
+        };
+        auto hexUnicode = [&] {
+            input.extend(); // skip x
+            // \x
+            // \x1_ \xA_
+            // \x12 \xAB
+            // \x12345678
+            auto unicode = CodePoint{0};
+            auto storeUnicode = [&] {
+                if (unicode.v == 0)
+                    escapeError(StringError::Kind::InvalidHexUnicode);
+                else
+                    text += unicode;
+            };
+
+            for (int i = 0; i < 8; i++) {
+                auto optCp = input.peek();
+                if (!optCp) {
+                    if (unicode.v != 0) storeUnicode();
+                    invalidCodePoint();
+                    return;
+                }
+                auto cp = optCp.value();
+                if (cp.v >= '0' && cp.v <= '9') {
+                    unicode.v = (unicode.v << 4) + (cp.v - '0');
+                }
+                else if (cp.v >= 'a' && cp.v <= 'f') {
+                    unicode.v = (unicode.v << 4) + (10 + cp.v - 'a');
+                }
+                else if (cp.v >= 'A' && cp.v <= 'F') {
+                    unicode.v = (unicode.v << 4) + (10 + cp.v - 'A');
+                }
+                else {
+                    break;
+                }
+                input.extend();
+            }
+            storeUnicode();
+        };
+        auto decimalUnicode = [&] {
+            input.extend();
+            return escapeError(StringError::Kind::InvalidDecimalUnicode); // TODO(arBmind) decimal unicode character
+        };
+
+        input.extend(); // skip escape sign
         auto optCp = input.peek();
-        if (!optCp) return false;
-        auto chr = optCp.value();
-        switch (chr.v) {
-        case '\0': return false;
+        if (!optCp) return invalidCodePoint();
+
+        auto cp = optCp.value();
+        switch (cp.v) {
+        case '0': text += CodePoint{0}; break;
+        case '"':
+        case '\\': text += cp; break;
         case 't': text += CodePoint{'\t'}; break;
         case 'r': text += CodePoint{'\r'}; break;
         case 'n': text += CodePoint{'\n'}; break;
-        // case 'x': // TODO(arBmind)
-        // case 'u': // TODO(arBmind)
-        default: text += chr;
+        case 'x': return hexUnicode();
+        case 'u': return decimalUnicode();
+        default: return escapeError(StringError::Kind::InvalidEscape);
         }
         input.extend();
-        return true;
-    }
+    };
 
-    static bool isDoubleQuote(CodePoint cp) { return cp.v == '"'; }
-    static bool isBackslash(CodePoint cp) { return cp.v == '\\'; }
-    static bool isTab(CodePoint cp) { return cp.v == '\t'; }
-};
+    auto regular = [&] {
+        auto start = input.current();
+        auto spaceStart = start;
+
+        auto reset = [&] { spaceStart = start = input.current(); };
+        auto flushTerminal = [&](auto handler) {
+            text += View{start, input.current()};
+            handler();
+        };
+        auto flushToCurrent = [&](auto handler) {
+            flushTerminal(handler);
+            reset();
+        };
+        auto flushToSpace = [&](auto handler) {
+            text += View{start, spaceStart};
+            handler();
+            reset();
+        };
+
+        while (input.hasMore()) {
+            auto optCp = input.peek();
+            if (!optCp) {
+                flushToCurrent(invalidCodePoint);
+                continue;
+            }
+            auto cp = optCp.value();
+            if (isDoubleQuote(cp)) {
+                flushToCurrent([&] { input.extend(); }); // skip final doublequote
+                return; // done
+            }
+            if (cp.isLineSeparator()) {
+                flushToSpace([=] { newLine(cp); });
+                continue;
+            }
+            if (isBackslash(cp)) {
+                flushToCurrent(handleEscape);
+                continue;
+            }
+            if (!isTab(cp) && cp.isControl()) {
+                flushToCurrent(invalidControl);
+                continue;
+            }
+            input.extend();
+            if (!cp.isWhiteSpace()) spaceStart = input.current();
+        }
+        flushTerminal(endOfInput); // out of input
+    };
+
+    input.extend(); // skip 1st doublequote
+    if (input.peek().map(isDoubleQuote)) {
+        input.extend(); // skip 2nd doublequote
+        if (input.peek().map(isDoubleQuote)) raw(); // three quotes => raw string
+        // two quotes => empty string
+    }
+    else {
+        regular();
+    }
+    return StringLiteral{{std::move(text), std::move(errors)}, input.range()};
+}
 
 } // namespace scanner
