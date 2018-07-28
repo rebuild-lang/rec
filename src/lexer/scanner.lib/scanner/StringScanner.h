@@ -130,23 +130,13 @@ inline auto extractString(text::FileInput& input) -> StringLiteral {
         };
         auto hexUnicode = [&] {
             input.extend(); // skip x
-            // \x
-            // \x1_ \xA_
-            // \x12 \xAB
-            // \x12345678
             auto unicode = CodePoint{0};
-            auto storeUnicode = [&] {
-                if (unicode.v == 0)
-                    escapeError(StringError::Kind::InvalidHexUnicode);
-                else
-                    text += unicode;
-            };
 
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < 6; i++) {
                 auto optCp = input.peek();
                 if (!optCp) {
-                    if (unicode.v != 0) storeUnicode();
-                    invalidCodePoint();
+                    if (unicode.v != 0) text += unicode;
+                    if (input.hasMore()) invalidCodePoint();
                     return;
                 }
                 auto cp = optCp.value();
@@ -164,11 +154,39 @@ inline auto extractString(text::FileInput& input) -> StringLiteral {
                 }
                 input.extend();
             }
-            storeUnicode();
+            if (unicode.v > 0 && unicode.v <= 0x10FFFF) {
+                text += unicode;
+            }
+            else {
+                escapeError(StringError::Kind::InvalidHexUnicode);
+            }
         };
         auto decimalUnicode = [&] {
-            input.extend();
-            return escapeError(StringError::Kind::InvalidDecimalUnicode); // TODO(arBmind) decimal unicode character
+            input.extend(); // skip u
+            auto unicode = CodePoint{0};
+
+            for (int i = 0; i < 7; i++) { // 0 .. 1114111
+                auto optCp = input.peek();
+                if (!optCp) {
+                    if (unicode.v != 0) text += unicode;
+                    if (input.hasMore()) invalidCodePoint();
+                    return;
+                }
+                auto cp = optCp.value();
+                if (cp.v >= '0' && cp.v <= '9') {
+                    unicode.v = (unicode.v * 10) + (cp.v - '0');
+                }
+                else {
+                    break;
+                }
+                input.extend();
+            }
+            if (unicode.v > 0 && unicode.v <= 0x10FFFF) {
+                text += unicode;
+            }
+            else {
+                escapeError(StringError::Kind::InvalidDecimalUnicode);
+            }
         };
 
         input.extend(); // skip escape sign
@@ -185,7 +203,7 @@ inline auto extractString(text::FileInput& input) -> StringLiteral {
         case 'n': text += CodePoint{'\n'}; break;
         case 'x': return hexUnicode();
         case 'u': return decimalUnicode();
-        default: return escapeError(StringError::Kind::InvalidEscape);
+        default: input.extend(); return escapeError(StringError::Kind::InvalidEscape);
         }
         input.extend();
     };

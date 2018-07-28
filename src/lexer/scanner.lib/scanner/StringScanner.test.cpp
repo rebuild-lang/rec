@@ -48,12 +48,18 @@ INSTANTIATE_TEST_CASE_P( //
         StringData{"whitespace", String{R"("he lo")"}, String{R"("he lo")"}, {Line{1}, Column{8}}, String{R"(he lo)"}},
         StringData{"newline", String{"\"h \nlo\""}, String{"\"h \nlo\""}, {Line{2}, Column{4}}, String{"hlo"}},
         StringData{"emptyNewline", String{"\"\n\""}, String{"\"\n\""}, {Line{2}, Column{2}}, String{""}},
-        StringData{
-            "escapedNewline", String{R"("he\nlo")"}, String{R"("he\nlo")"}, {Line{1}, Column{9}}, String{"he\nlo"}},
+        StringData{"escapedNewline", //
+                   String{R"("he\nlo")"},
+                   String{R"("he\nlo")"},
+                   {Line{1}, Column{9}},
+                   String{"he\nlo"}},
         StringData{"escapedQuote", String{R"("\"")"}, String{R"("\"")"}, {Line{1}, Column{5}}, String{"\""}},
         StringData{"rawEmpty", String{R"("""""")"}, String{R"("""""")"}, {Line{1}, Column{7}}, String{}},
-        StringData{
-            "rawLetters", String{R"("""hello""")"}, String{R"("""hello""")"}, {Line{1}, Column{12}}, String{"hello"}},
+        StringData{"rawLetters", //
+                   String{R"("""hello""")"},
+                   String{R"("""hello""")"},
+                   {Line{1}, Column{12}},
+                   String{"hello"}},
         StringData{"rawWithNewline",
                    String{"\"\"\"line1  \n  line2\"\"\""},
                    String{"\"\"\"line1  \n  line2\"\"\""},
@@ -74,11 +80,27 @@ INSTANTIATE_TEST_CASE_P( //
                    String{R"("""hello """"""unit"""""")"},
                    {Line{1}, Column{26}},
                    String{"hello \"\"\"unit\"\"\""}},
-        StringData{
-            "missingTerminator", String{R"("tailing)"}, String{R"("tailing)"}, {Line{1}, Column{9}}, String{"tailing"}},
-        StringData{"hexUnicode", String{R"("\x23abCD")"}, String{R"("\x23abCD")"}, {Line{1}, Column{11}}, String{[] {
+        StringData{"missingTerminator", //
+                   String{R"("tailing)"},
+                   String{R"("tailing)"},
+                   {Line{1}, Column{9}},
+                   String{"tailing"}},
+        StringData{"hexUnicode", //
+                   String{R"("\x10abCD")"},
+                   String{R"("\x10abCD")"},
+                   {Line{1}, Column{11}},
+                   String{[] {
                        auto vec = std::vector<String::Data>{};
-                       strings::CodePoint{0x23abCD}.utf8_encode(vec);
+                       strings::CodePoint{0x10abCD}.utf8_encode(vec);
+                       return vec;
+                   }()}},
+        StringData{"decimalUnicode", //
+                   String{R"("\u1114111")"},
+                   String{R"("\u1114111")"},
+                   {Line{1}, Column{12}},
+                   String{[] {
+                       auto vec = std::vector<String::Data>{};
+                       strings::CodePoint{0x10FFFF}.utf8_encode(vec);
                        return vec;
                    }()}}),
     [](const ::testing::TestParamInfo<StringData>& inf) { return inf.param.name; });
@@ -90,17 +112,9 @@ struct StringCompareError : StringError {
     }
     bool operator!=(const StringError& o) const { return !(*this == o); }
 };
-
-struct StringErrorData {
-    std::string name;
-    String input;
-    // expected:
-    String content;
-    std::vector<StringCompareError> errors;
-    Position end;
-    // string
-    String text;
-};
+static auto operator<<(std::ostream& out, const StringCompareError& error) -> std::ostream& {
+    return out << static_cast<const StringError&>(error);
+}
 static auto operator<<(std::ostream& out, const std::vector<StringCompareError>& errors) -> std::ostream& {
     for (const auto& error : errors) {
         out << "  error: " << error << '\n';
@@ -116,6 +130,16 @@ static bool operator==(const std::vector<StringCompareError>& l, const StringErr
     return (l_i != l.end()) == (r_i != r.end());
 }
 
+struct StringErrorData {
+    std::string name;
+    String input;
+    // expected:
+    String content;
+    std::vector<StringCompareError> errors;
+    Position end;
+    // string
+    String text;
+};
 static auto operator<<(std::ostream& o, const StringErrorData& sd) -> std::ostream& {
     return o << sd.input << " => " << sd.content << " @" << sd.end << "\n"
              << "StringLiteral: " << sd.text << "\n"
@@ -145,18 +169,52 @@ INSTANTIATE_TEST_CASE_P( //
     error_cases,
     StringErrorScanners,
     ::testing::Values( //
-        StringErrorData{
-            "invalidCodePoint",
-            String{"\"\0\""},
-            String{"\"\0\""},
-            {StringCompareError{StringError::Kind::InvalidControl, View{"\0"}, Position{Line{1}, Column{2}}}},
-            {Line{1}, Column{4}},
-            String{}},
-        StringErrorData{
-            "invalidHexUnicode",
-            String{"\"\\x\""},
-            String{"\"\\x\""},
-            {StringCompareError{StringError::Kind::InvalidHexUnicode, View{"\\x"}, Position{Line{1}, Column{2}}}},
-            {Line{1}, Column{5}},
-            String{}}),
+        StringErrorData{"earlyTerminated",
+                        String{"\"ab"},
+                        String{"\"ab"},
+                        {StringCompareError{StringError::Kind::EndOfInput, //
+                                            View{""},
+                                            Position{Line{1}, Column{4}}}},
+                        {Line{1}, Column{4}},
+                        String{"ab"}},
+        StringErrorData{"invalidCodePoint",
+                        String{"\"\0\""},
+                        String{"\"\0\""},
+                        {StringCompareError{StringError::Kind::InvalidControl, //
+                                            View{"\0"},
+                                            Position{Line{1}, Column{2}}}},
+                        {Line{1}, Column{4}},
+                        String{}},
+        StringErrorData{"invalidEscape",
+                        String{"\"\\?\""},
+                        String{"\"\\?\""},
+                        {StringCompareError{StringError::Kind::InvalidEscape, //
+                                            View{"\\?"},
+                                            Position{Line{1}, Column{2}}}},
+                        {Line{1}, Column{5}},
+                        String{}},
+        StringErrorData{"noHexUnicode",
+                        String{"\"\\x\""},
+                        String{"\"\\x\""},
+                        {StringCompareError{StringError::Kind::InvalidHexUnicode, //
+                                            View{"\\x"},
+                                            Position{Line{1}, Column{2}}}},
+                        {Line{1}, Column{5}},
+                        String{}},
+        StringErrorData{"toobigHexUnicode",
+                        String{"\"\\x110000\""},
+                        String{"\"\\x110000\""},
+                        {StringCompareError{StringError::Kind::InvalidHexUnicode, //
+                                            View{"\\x110000"},
+                                            Position{Line{1}, Column{2}}}},
+                        {Line{1}, Column{11}},
+                        String{}},
+        StringErrorData{"noDecimalUnicode",
+                        String{"\"\\uA\""},
+                        String{"\"\\uA\""},
+                        {StringCompareError{StringError::Kind::InvalidDecimalUnicode, //
+                                            View{"\\u"},
+                                            Position{Line{1}, Column{2}}}},
+                        {Line{1}, Column{6}},
+                        String{"A"}}),
     [](const ::testing::TestParamInfo<StringErrorData>& inf) { return inf.param.name; });
