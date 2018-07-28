@@ -9,68 +9,16 @@ namespace scanner {
 
 using CodePoint = strings::CodePoint;
 
-struct OperatorScanner {
-    static auto scan(text::FileInput& input) -> OptToken {
-        auto stack = Stack{};
-        auto isValid = [&] { //
-            return input.peek().map([&](CodePoint cp) { return isPart(cp, input, stack); });
-        };
-        if (!isValid()) return {};
-        do {
-            input.extend();
-        } while (isValid());
-        if (!stack.empty()) {
-            input.restoreCurrent(stack.front().it, stack.front().itPosition);
-            if (input.view().isEmpty()) return {};
-        }
-        return Token{OperatorLiteral{input.range()}};
-    }
-
-private:
+inline auto extractOperator(text::FileInput& input) -> OptToken {
     struct Entry {
         CodePoint closeCp;
         text::FileInput::StringIterator it{};
         text::Position itPosition;
     };
     using Stack = std::vector<Entry>;
+    auto stack = Stack{};
 
-    static void scanEnclosed(text::FileInput& input, Stack& stack) {
-        auto isValid = [&] { //
-            return input.peek().map([&](CodePoint cp) { return isEnclosedPart(cp, input, stack); });
-        };
-        do {
-            input.extend();
-        } while (isValid());
-    }
-
-    static bool isPart(CodePoint cp, text::FileInput& input, Stack& stack) {
-        if (cp == '-' || cp.isSymbolMath() || cp.isSymbolOther() || cp.isNumberOther()) return true;
-        if (cp.isSymbolCurrency() && cp.v != '$') return true;
-        if (cp.isPunctuationOther() && cp.v != '.') return true; // others are handled before
-        auto cpu = closePunctuation(cp);
-        if (cpu) {
-            stack.push_back({cpu.value(), input.current(), input.currentPosition()});
-            scanEnclosed(input, stack);
-            return true;
-        }
-        return false;
-    }
-
-    static bool isEnclosedPart(CodePoint cp, text::FileInput& input, Stack& stack) {
-        if (cp.isWhiteSpace() || cp.isLineSeparator()) return false;
-        if (stack.back().closeCp == cp) {
-            stack.pop_back();
-            return !stack.empty();
-        }
-        auto cpu = closePunctuation(cp);
-        if (cpu) {
-            stack.push_back({cpu.value(), input.current(), input.currentPosition()});
-            return true;
-        }
-        return true;
-    }
-
-    static auto closePunctuation(CodePoint cp) -> text::OptCodePoint {
+    auto closePunctuation = [](CodePoint cp) -> text::OptCodePoint {
         // https://www.unicode.org/charts/script/chart_Punctuation-Open.html
         // <-> https://www.unicode.org/charts/script/chart_Punctuation-Close.html
         switch (cp.v) {
@@ -110,7 +58,57 @@ private:
         case 0x2E20: return CodePoint{0x2E21}; // ⸠ - ⸡
         }
         return {};
+    };
+
+    auto isEnclosedPart = [&](CodePoint cp) -> bool {
+        if (cp.isWhiteSpace() || cp.isLineSeparator()) return false;
+        if (stack.back().closeCp == cp) {
+            stack.pop_back();
+            return !stack.empty();
+        }
+        auto cpu = closePunctuation(cp);
+        if (cpu) {
+            stack.push_back({cpu.value(), input.current(), input.currentPosition()});
+            return true;
+        }
+        return true;
+    };
+
+    auto scanEnclosed = [&] {
+        auto isValid = [&] { //
+            return input.peek().map([&](CodePoint cp) { return isEnclosedPart(cp); });
+        };
+        do {
+            input.extend();
+        } while (isValid());
+    };
+
+    auto isPart = [&](CodePoint cp) -> bool {
+        if (cp == '-' || cp.isSymbolMath() || cp.isSymbolOther() || cp.isNumberOther()) return true;
+        if (cp.isSymbolCurrency() && cp.v != '$') return true;
+        if (cp.isPunctuationOther() && cp.v != '.') return true; // others are handled before
+        auto cpu = closePunctuation(cp);
+        if (cpu) {
+            stack.push_back({cpu.value(), input.current(), input.currentPosition()});
+            scanEnclosed();
+            return true;
+        }
+        return false;
+    };
+
+    auto isValid = [&] { //
+        return input.peek().map([&](CodePoint cp) { return isPart(cp); });
+    };
+
+    if (!isValid()) return {};
+    do {
+        input.extend();
+    } while (isValid());
+    if (!stack.empty()) {
+        input.restoreCurrent(stack.front().it, stack.front().itPosition);
+        if (input.view().isEmpty()) return {};
     }
-};
+    return Token{OperatorLiteral{input.range()}};
+}
 
 } // namespace scanner

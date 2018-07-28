@@ -8,6 +8,7 @@ using namespace scanner;
 using namespace text;
 
 struct OperatorData {
+    std::string name;
     String input;
     // expected:
     String content;
@@ -26,7 +27,7 @@ TEST_P(OperatorScanners, all) {
     auto input = FileInput{f};
     input.peek();
 
-    const auto optTok = OperatorScanner::scan(input);
+    const auto optTok = extractOperator(input);
 
     if (param.content.isEmpty()) {
         EXPECT_FALSE(optTok);
@@ -48,24 +49,11 @@ INSTANTIATE_TEST_CASE_P( //
     examples,
     OperatorScanners,
     ::testing::Values( //
-        OperatorData{String{"id"}, // no op
-                     String{},
-                     Column{1}},
-        OperatorData{String{"+"}, // single
-                     String{"+"},
-                     Column{2}},
-        OperatorData{String{"*/+"}, // combo
-                     String{"*/+"},
-                     Column{4}},
-        OperatorData{String{"{add}"}, // enclosed
-                     String{"{add}"},
-                     Column{6}},
-        OperatorData{String{"{add{nest}more}"}, // nested
-                     String{"{add{nest}more}"},
-                     Column{16}},
-        OperatorData{String{"+{a}{b"}, // not closed
-                     String{"+{a}"},
-                     Column{5}},
-        OperatorData{String{"½¼⅓²©®-"}, // extra chars
-                     String{"½¼⅓²©®-"},
-                     Column{8}}));
+        OperatorData{"noOp", String{"id"}, String{}, Column{1}},
+        OperatorData{"single", String{"+"}, String{"+"}, Column{2}},
+        OperatorData{"combo", String{"*/+"}, String{"*/+"}, Column{4}},
+        OperatorData{"enclosed", String{"{add}"}, String{"{add}"}, Column{6}},
+        OperatorData{"nested", String{"{add{nest}more}"}, String{"{add{nest}more}"}, Column{16}},
+        OperatorData{"notClosed", String{"+{a}{b"}, String{"+{a}"}, Column{5}},
+        OperatorData{"extraChars", String{"½¼⅓²©®-"}, String{"½¼⅓²©®-"}, Column{8}}),
+    [](const ::testing::TestParamInfo<OperatorData>& inf) { return inf.param.name; });

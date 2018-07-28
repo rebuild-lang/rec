@@ -51,7 +51,7 @@ inline auto tokensFromFile(const text::File& file, Config config) -> meta::CoEnu
         return TokenType{input.range()};
     };
     auto identifier = [&]() -> OptToken { return extractIdentifier(input); };
-    auto operatorT = [&]() -> OptToken { return OperatorScanner::scan(input); };
+    auto operatorT = [&]() -> OptToken { return extractOperator(input); };
     auto invalid = [&]() -> Token {
         input.extend();
         return UnexpectedCharacter{input.range()};
