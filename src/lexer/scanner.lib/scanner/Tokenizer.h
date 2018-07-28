@@ -61,7 +61,7 @@ inline auto tokensFromFile(const text::File& file, Config config) -> meta::CoEnu
         input.collapse();
         const auto optCp = input.peek();
         if (!optCp) {
-            if (!input.hasMorePeek()) co_return; // end of file
+            if (!input.hasMore()) co_return; // end of file
             co_yield invalidEncoding();
         }
         else {

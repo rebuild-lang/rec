@@ -23,7 +23,7 @@ struct StringScanner {
             }
         };
 
-        while (input.hasMorePeek()) {
+        while (input.hasMore()) {
             auto optCp = input.peek();
             if (!optCp) break;
             auto chr = optCp.value();
@@ -81,7 +81,7 @@ private:
             }
         };
 
-        while (input.hasMorePeek()) {
+        while (input.hasMore()) {
             auto optCp = input.peek();
             if (!optCp) break;
             auto chr = optCp.value();

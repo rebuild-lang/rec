@@ -20,7 +20,7 @@ struct FileInput {
         , beginPosition({})
         , currentPosition_({}) {}
 
-    bool hasMorePeek() const { return peek_ != end_(); }
+    bool hasMore() const { return current_ != end_(); }
     bool hasMoreBytes(strings::Counter bytes) const { return current_ + bytes.v <= end_(); }
 
     auto view() const { return View(begin_, current_); }

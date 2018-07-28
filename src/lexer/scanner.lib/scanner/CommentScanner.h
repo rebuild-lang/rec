@@ -19,7 +19,7 @@ inline auto extractComment(text::FileInput& input, text::Column tabStops) -> Com
     auto scanLine = [&] {
         while (true) {
             input.extend(tabStops);
-            if (!input.hasMorePeek()) return makeToken();
+            if (!input.hasMore()) return makeToken();
             auto optCp = input.peek();
             if (!optCp) return makeToken(); // force faulty code point to be visible
             auto cp = optCp.value();
@@ -48,7 +48,7 @@ inline auto extractComment(text::FileInput& input, text::Column tabStops) -> Com
     while (true) {
         input.extend(); // no whitespace allowed
         markerExtends++;
-        if (!input.hasMorePeek()) return makeToken();
+        if (!input.hasMore()) return makeToken();
         auto optCp = input.peek();
         if (!optCp) return makeToken(); // force faulty code point error to be visible
         auto cp = optCp.value();
