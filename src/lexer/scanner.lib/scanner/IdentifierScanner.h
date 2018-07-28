@@ -7,17 +7,13 @@
 
 namespace scanner {
 
-struct IdentifierScanner {
-    static auto scan(text::FileInput& input) -> OptToken {
-        if (!isStart(input)) return {};
-        do {
-            input.extend();
-        } while (input.peek().map(isContinuation));
-        return Token{IdentifierLiteral{input.range()}};
-    }
+inline auto extractIdentifier(text::FileInput& input) -> OptToken {
+    auto isFirst = [](text::CodePoint cp) -> bool { return cp.isLetter() || cp.isPunctuationConnector(); };
+    auto isContinuation = [](text::CodePoint cp) -> bool {
+        return cp.isLetter() || cp.isPunctuationConnector() || cp.isDecimalNumber();
+    };
 
-private:
-    static bool isStart(text::FileInput& input) {
+    auto isStart = [&]() -> bool {
         auto chr = input.peek().value();
         if (chr == '.') {
             auto optCp = input.peek<1>();
@@ -27,13 +23,13 @@ private:
             if (r) input.extend();
         }
         return isFirst(chr);
-    }
+    };
 
-    static bool isFirst(text::CodePoint cp) { return cp.isLetter() || cp.isPunctuationConnector(); }
-
-    static bool isContinuation(text::CodePoint cp) {
-        return cp.isLetter() || cp.isPunctuationConnector() || cp.isDecimalNumber();
-    }
-};
+    if (!isStart()) return {};
+    do {
+        input.extend();
+    } while (input.peek().map(isContinuation));
+    return Token{IdentifierLiteral{input.range()}};
+}
 
 } // namespace scanner

@@ -8,6 +8,7 @@ using namespace scanner;
 using namespace text;
 
 struct IdentifierData {
+    std::string name;
     String input;
     // expected:
     String content;
@@ -26,7 +27,7 @@ TEST_P(IdentifierScanners, all) {
     auto input = FileInput{f};
     input.peek();
 
-    const auto optTok = IdentifierScanner::scan(input);
+    const auto optTok = extractIdentifier(input);
 
     if (param.content.isEmpty()) {
         EXPECT_FALSE(optTok);
@@ -48,21 +49,10 @@ INSTANTIATE_TEST_CASE_P( //
     examples,
     IdentifierScanners,
     ::testing::Values( //
-        IdentifierData{String{"1"}, // no id
-                       String{},
-                       Column{3}},
-        IdentifierData{String{"id"}, // id
-                       String{"id"},
-                       Column{3}},
-        IdentifierData{String{"HiLo"}, // upper case
-                       String{"HiLo"},
-                       Column{5}},
-        IdentifierData{String{"i3_v("}, // id
-                       String{"i3_v"},
-                       Column{5}},
-        IdentifierData{String{".id"}, // dot start
-                       String{".id"},
-                       Column{4}},
-        IdentifierData{String{"id.2"}, // dot stops
-                       String{"id"},
-                       Column{3}}));
+        IdentifierData{"noId", String{"1"}, String{}, Column{3}},
+        IdentifierData{"id", String{"id"}, String{"id"}, Column{3}},
+        IdentifierData{"upperCase", String{"HiLo"}, String{"HiLo"}, Column{5}},
+        IdentifierData{"long_id", String{"i3_v("}, String{"i3_v"}, Column{5}},
+        IdentifierData{"dotStart", String{".id"}, String{".id"}, Column{4}},
+        IdentifierData{"dotStops", String{"id.2"}, String{"id"}, Column{3}}),
+    [](const ::testing::TestParamInfo<IdentifierData>& inf) { return inf.param.name; });
