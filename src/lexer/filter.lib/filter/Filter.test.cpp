@@ -52,7 +52,7 @@ TEST_P(TokenTransformations, FilterParser) {
         }
     }();
 
-    auto tokGen = Filter::parse(std::move(input));
+    auto tokGen = filterTokens(std::move(input));
 
     for (const auto& et : data.expected) {
         tokGen++;

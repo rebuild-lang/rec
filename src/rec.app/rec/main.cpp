@@ -84,7 +84,7 @@ public:
 
     auto compile(const text::File& file) -> Block {
         auto tokenize = [&](const auto& file) { return scanner::tokensFromFile(file, config); };
-        auto filter = [&](const auto& file) { return filter::Filter::parse(tokenize(file)); };
+        auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
         auto blockify = [&](const auto& file) { return nesting::Parser::parse(filter(file)); };
         auto parse = [&](const auto& file) {
             return parser::Parser::parse(blockify(file), parserContext(globalScope));
@@ -104,7 +104,7 @@ int main() {
     auto compiler = Compiler(config, std::move(globals));
 
     auto tokenize = [&](const auto& file) { return scanner::tokensFromFile(file, config); };
-    auto filter = [&](const auto& file) { return filter::Filter::parse(tokenize(file)); };
+    auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
     auto blockify = [&](const auto& file) { return nesting::Parser::parse(filter(file)); };
 
     auto file = text::File{strings::String{"TestFile"}, strings::String{R"(
