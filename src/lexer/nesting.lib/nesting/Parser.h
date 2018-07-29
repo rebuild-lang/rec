@@ -15,23 +15,7 @@ using FilterToken = filter::Token;
  * scans all the indentations and blocks
  *
  */
-struct Parser {
-    static auto parse(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
-        if (!input++) return {};
-        auto state_ = State{};
-        auto blockColumn = Column{};
-        if (input->holds<filter::NewLineIndentation>()) {
-            blockColumn = state_.getIndentColumn(*input);
-            if (!input++) return {};
-        }
-        auto block = parseBlock(input, blockColumn, state_);
-        if (input) {
-            // TODO(arBmind): report extra input
-        }
-        return {block, {}};
-    }
-
-private:
+inline auto nestTokens(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
     using OptionalChar = meta::Optional<meta::DefaultPacked<char>>;
     struct State {
         OptionalChar indentChar{};
@@ -59,25 +43,27 @@ private:
     using BlockToken = nesting::Token;
     using BlockLine = nesting::TokenLine;
 
-    static BlockToken translate(FilterToken&& tok) {
+    if (!input++) return {};
+    auto state_ = State{};
+
+    auto translate = [](FilterToken&& tok) -> BlockToken {
         return std::move(tok).visit(
-            [](filter::NewLineIndentation&&) { return BlockToken{}; },
+            [](filter::NewLineIndentation&&) { return BlockToken{}; }, // TODO(arBmind): add assert
             [](filter::BlockStartIndentation&&) { return BlockToken{}; },
             [](filter::BlockEndIndentation&&) { return BlockToken{}; },
             [](filter::SemicolonSeparator&&) { return BlockToken{}; },
             [](auto&& d) -> BlockToken { return std::move(d); });
-    }
+    };
 
-    static auto extractLineTokens(BlockLine& line, Input& input) {
+    auto extractLineTokens = [&](BlockLine& line, Input& input) {
         using namespace filter;
-        // TODO(arBmind): add semicolon
         while (!input->holds<NewLineIndentation, BlockStartIndentation, BlockEndIndentation, SemicolonSeparator>()) {
             line.emplace_back(translate(input.move()));
             if (!input++) return;
         }
-    }
+    };
 
-    static auto parseLine(Input& input, Column parentBlockColumn, State& state) -> BlockLine {
+    auto parseLine = [&](Column parentBlockColumn, auto& parseBlock, auto& parseLine) -> BlockLine {
         using namespace filter;
         auto line = BlockLine{};
         auto expectEnd = false;
@@ -95,7 +81,7 @@ private:
                     return line; // semicolon terminates current line
                 }
                 else if (input->holds<NewLineIndentation>()) {
-                    auto nextColumn = state.getIndentColumn(*input);
+                    auto nextColumn = state_.getIndentColumn(*input);
                     if (nextColumn < parentBlockColumn) {
                         if (expectEnd) {
                             // TODO(arBmind): report missing end
@@ -118,7 +104,7 @@ private:
                     }
                 }
                 else if (input->holds<BlockEndIndentation>()) {
-                    auto nextColumn = state.getIndentColumn(*input);
+                    auto nextColumn = state_.getIndentColumn(*input);
                     if (nextColumn < parentBlockColumn) {
                         if (expectEnd) {
                             // TODO(arBmind): report missing end
@@ -139,7 +125,7 @@ private:
                     if (!input++) return line;
                 }
                 else if (input->holds<BlockStartIndentation>()) {
-                    auto nextColumn = state.getIndentColumn(*input);
+                    auto nextColumn = state_.getIndentColumn(*input);
                     expectEnd = true;
                     if (nextColumn < parentBlockColumn) {
                         // TODO(arBmind): report missing end
@@ -153,7 +139,7 @@ private:
                     }
                     else {
                         auto range = input->get<BlockStartIndentation>().range;
-                        auto block = parseBlock(input, nextColumn, state);
+                        auto block = parseBlock(nextColumn, parseBlock, parseLine);
                         line.push_back(BlockLiteral{std::move(block), std::move(range)});
                     }
                 }
@@ -161,9 +147,9 @@ private:
                     break;
             }
         }
-    }
+    };
 
-    static auto parseBlock(Input& input, Column blockColumn, State& state) -> BlockLiteralValue {
+    auto parseBlock = [&](Column blockColumn, auto& parseBlock, auto& parseLine) -> BlockLiteralValue {
         using namespace filter;
         auto block = BlockLiteralValue{};
         while (true) {
@@ -172,14 +158,14 @@ private:
                     if (!input++) return block;
                 }
                 else if (input->holds<BlockEndIndentation>()) {
-                    auto indent = state.getIndentColumn(*input);
+                    auto indent = state_.getIndentColumn(*input);
                     if (indent < blockColumn) return block; // do not consume parent end block
                     // TODO(arBmind): report misplaced end
                     // handling: ignore it
                     if (!input++) return block;
                 }
                 else if (input->holds<BlockStartIndentation, NewLineIndentation>()) {
-                    auto indent = state.getIndentColumn(*input);
+                    auto indent = state_.getIndentColumn(*input);
                     if (indent < blockColumn) return block; // line is not part of this block
                     if (indent > blockColumn) {
                         // TODO(arBmind): report indentation error
@@ -190,12 +176,23 @@ private:
                 else
                     break;
             }
-            auto line = parseLine(input, blockColumn, state);
+            auto line = parseLine(blockColumn, parseBlock, parseLine);
             block.lines.emplace_back(std::move(line));
             if (!input) break;
         }
         return block;
+    };
+
+    auto blockColumn = Column{};
+    if (input->holds<filter::NewLineIndentation>()) {
+        blockColumn = state_.getIndentColumn(*input);
+        if (!input++) return {};
     }
-};
+    auto block = parseBlock(blockColumn, parseBlock, parseLine);
+    if (input) {
+        // TODO(arBmind): report extra input
+    }
+    return {block, {}};
+}
 
 } // namespace nesting

@@ -50,7 +50,7 @@ TEST_P(BlockTransformations, BlockParser) {
         }
     }();
 
-    auto blk = nesting::Parser::parse(std::move(input));
+    auto blk = nesting::nestTokens(std::move(input));
 
     ASSERT_EQ(blk, data.expected);
 }
