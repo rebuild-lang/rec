@@ -5,6 +5,10 @@ Project {
 
     StaticLibrary {
         name: "meta.lib"
+        targetName: "meta"
+
+        Depends { name: "cpp" }
+        Depends { name: "cpp17" }
 
         files: [
             "CoEnumerator.h",
@@ -14,6 +18,8 @@ Project {
             "Optional.ostream.h",
             "Overloaded.h",
             "TypeList.h",
+            "Unreachable.cpp",
+            "Unreachable.h",
             "ValueList.h",
             "Variant.h",
             "Variant.ostream.h",

@@ -3,6 +3,7 @@
 #include "filter/Token.h"
 
 #include "meta/CoEnumerator.h"
+#include "meta/Unreachable.h"
 
 namespace filter {
 
@@ -77,10 +78,10 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
 
     auto translate = [](ScannerToken&& tok) -> Token {
         return std::move(tok).visit(
-            [](scanner::WhiteSpaceSeparator&&) { return Token{}; }, // TODO(arBmind): should not happen, add assert
-            [](scanner::CommentLiteral&&) { return Token{}; },
-            [](scanner::InvalidEncoding&&) { return Token{}; },
-            [](scanner::UnexpectedCharacter&&) { return Token{}; },
+            [](scanner::WhiteSpaceSeparator&&) { return meta::unreachable<Token>(); },
+            [](scanner::CommentLiteral&&) { return meta::unreachable<Token>(); },
+            [](scanner::InvalidEncoding&&) { return meta::unreachable<Token>(); },
+            [](scanner::UnexpectedCharacter&&) { return meta::unreachable<Token>(); },
             [](scanner::IdentifierLiteral&& id) -> Token {
                 return IdentifierLiteral{{}, id.range};
             },
@@ -138,8 +139,8 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
         if (current.holds<scanner::NewLineIndentation>()) {
             if (previous.holds<ColonSeparator>()) {
                 // if (lastYieldType.oneOf<NewLineIndentation, BlockStartIndentation>()) {
-                // not allowed
-                //}
+                // TODO(arBmind): report error (not allowed)
+                // }
                 // we do not merge the range here, because there might be skipped comments between
                 previous = BlockStartIndentation{std::move(current.get<scanner::NewLineIndentation>().range)};
                 continue; // [':' + '\n'] => block start

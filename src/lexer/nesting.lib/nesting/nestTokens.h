@@ -2,6 +2,7 @@
 #include "nesting/Token.h"
 
 #include "meta/CoEnumerator.h"
+#include "meta/Unreachable.h"
 
 namespace nesting {
 
@@ -16,9 +17,9 @@ using FilterToken = filter::Token;
  *
  */
 inline auto nestTokens(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
-    using OptionalChar = meta::Optional<meta::DefaultPacked<char>>;
+    // using OptionalChar = meta::Optional<meta::DefaultPacked<char>>;
     struct State {
-        OptionalChar indentChar{};
+        // OptionalChar indentChar{};
 
         auto getIndentColumn(const FilterToken& tok) -> Column {
             const auto& range = tok.visit([](auto& t) -> decltype(auto) { return t.range; });
@@ -48,10 +49,10 @@ inline auto nestTokens(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
 
     auto translate = [](FilterToken&& tok) -> BlockToken {
         return std::move(tok).visit(
-            [](filter::NewLineIndentation&&) { return BlockToken{}; }, // TODO(arBmind): add assert
-            [](filter::BlockStartIndentation&&) { return BlockToken{}; },
-            [](filter::BlockEndIndentation&&) { return BlockToken{}; },
-            [](filter::SemicolonSeparator&&) { return BlockToken{}; },
+            [](filter::NewLineIndentation&&) { return meta::unreachable<BlockToken>(); },
+            [](filter::BlockStartIndentation&&) { return meta::unreachable<BlockToken>(); },
+            [](filter::BlockEndIndentation&&) { return meta::unreachable<BlockToken>(); },
+            [](filter::SemicolonSeparator&&) { return meta::unreachable<BlockToken>(); },
             [](auto&& d) -> BlockToken { return std::move(d); });
     };
 
