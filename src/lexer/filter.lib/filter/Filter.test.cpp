@@ -14,26 +14,26 @@ using namespace filter;
 using ScannerTokens = std::vector<ScannerToken>;
 using FilterTokens = std::vector<Token>;
 
-struct TokensTransformData {
+struct TokensFilterData {
     const char* name{};
     ScannerTokens input{};
     FilterTokens expected{};
 
-    TokensTransformData(const char* name)
+    TokensFilterData(const char* name)
         : name{name} {}
 
     template<class... Tok>
-    auto in(Tok&&... tok) && -> TokensTransformData {
+    auto in(Tok&&... tok) && -> TokensFilterData {
         input = scanner::buildTokens(std::forward<Tok>(tok)...);
         return *this;
     }
     template<class... Tok>
-    auto out(Tok&&... tok) && -> TokensTransformData {
+    auto out(Tok&&... tok) && -> TokensFilterData {
         expected = filter::buildTokens(std::forward<Tok>(tok)...);
         return *this;
     }
 };
-static auto operator<<(std::ostream& out, const TokensTransformData& ttd) -> std::ostream& {
+static auto operator<<(std::ostream& out, const TokensFilterData& ttd) -> std::ostream& {
     out << "name: " << ttd.name << "\n";
     out << "input:\n";
     for (auto& t : ttd.input) out << t << '\n';
@@ -42,10 +42,10 @@ static auto operator<<(std::ostream& out, const TokensTransformData& ttd) -> std
     return out;
 }
 
-class TokenTransformations : public testing::TestWithParam<TokensTransformData> {};
+class TokenTransformations : public testing::TestWithParam<TokensFilterData> {};
 
 TEST_P(TokenTransformations, FilterParser) {
-    TokensTransformData data = GetParam();
+    TokensFilterData data = GetParam();
     auto input = [&]() -> meta::CoEnumerator<ScannerToken> {
         for (const auto& t : data.input) {
             co_yield t;
@@ -66,13 +66,13 @@ INSTANTIATE_TEST_CASE_P(
     filterStart,
     TokenTransformations,
     ::testing::Values(
-        TokensTransformData("Filter out starting comment")
+        TokensFilterData("Filter out starting comment")
             .in(scanner::CommentLiteral{}, NewLineIndentation{}, View{})
             .out(NewLineIndentation{}, id().bothSeparated()),
-        TokensTransformData("Filter out starting indented comment")
+        TokensFilterData("Filter out starting indented comment")
             .in(NewLineIndentation{}, scanner::CommentLiteral{}, NewLineIndentation{}, View{})
             .out(NewLineIndentation{}, id().bothSeparated()),
-        TokensTransformData("Filter out starting comment whitespace comment")
+        TokensFilterData("Filter out starting comment whitespace comment")
             .in(NewLineIndentation{},
                 scanner::CommentLiteral{},
                 scanner::WhiteSpaceSeparator{},
@@ -80,10 +80,10 @@ INSTANTIATE_TEST_CASE_P(
                 NewLineIndentation{},
                 View{})
             .out(NewLineIndentation{}, id().bothSeparated()),
-        TokensTransformData("Filter multiple newlines")
+        TokensFilterData("Filter multiple newlines")
             .in(NewLineIndentation{}, NewLineIndentation{}, View{})
             .out(NewLineIndentation{}, id().bothSeparated()),
-        TokensTransformData("Filter even more newlines")
+        TokensFilterData("Filter even more newlines")
             .in(NewLineIndentation{}, NewLineIndentation{}, NewLineIndentation{}, View{})
             .out(NewLineIndentation{}, id().bothSeparated()) //
         ));
@@ -92,13 +92,13 @@ INSTANTIATE_TEST_CASE_P(
     filterEnd,
     TokenTransformations,
     ::testing::Values(
-        TokensTransformData("Filter out final comment")
+        TokensFilterData("Filter out final comment")
             .in(NewLineIndentation{}, View{}, scanner::CommentLiteral{})
             .out(NewLineIndentation{}, id().bothSeparated()),
-        TokensTransformData("Filter out final whitespace")
+        TokensFilterData("Filter out final whitespace")
             .in(NewLineIndentation{}, View{}, scanner::WhiteSpaceSeparator{})
             .out(NewLineIndentation{}, id().bothSeparated()),
-        TokensTransformData("Filter out final newline")
+        TokensFilterData("Filter out final newline")
             .in(NewLineIndentation{}, View{}, NewLineIndentation{})
             .out(NewLineIndentation{}, id().bothSeparated()) //
         ));
@@ -107,11 +107,11 @@ INSTANTIATE_TEST_CASE_P(
     blocks,
     TokenTransformations,
     ::testing::Values(
-        TokensTransformData("Mutate identifier block start")
+        TokensFilterData("Mutate identifier block start")
             .in(NewLineIndentation{}, View{"begin"}, ColonSeparator{}, NewLineIndentation{})
             .out(NewLineIndentation{}, id("begin").bothSeparated(), BlockStartIndentation{}),
 
-        TokensTransformData("Mutate identifier block start with comment")
+        TokensFilterData("Mutate identifier block start with comment")
             .in(View{"begin"},
                 ColonSeparator{},
                 scanner::WhiteSpaceSeparator{},
@@ -119,7 +119,7 @@ INSTANTIATE_TEST_CASE_P(
                 NewLineIndentation{})
             .out(NewLineIndentation{}, id("begin").bothSeparated(), BlockStartIndentation{}),
 
-        TokensTransformData("Mutate block end")
+        TokensFilterData("Mutate block end")
             .in(NewLineIndentation{}, ColonSeparator{}, NewLineIndentation{}, View{"end"}, NewLineIndentation{})
             .out(NewLineIndentation{}, BlockStartIndentation{}, BlockEndIndentation{}) //
         ));
@@ -128,7 +128,7 @@ INSTANTIATE_TEST_CASE_P(
     neighbors,
     TokenTransformations,
     ::testing::Values(
-        TokensTransformData("With white spaces")
+        TokensFilterData("With white spaces")
             .in(scanner::WhiteSpaceSeparator{},
                 View{"left"},
                 View{"middle"},
@@ -143,11 +143,11 @@ INSTANTIATE_TEST_CASE_P(
                 id("right").rightSeparated(),
                 id("free").bothSeparated()),
 
-        TokensTransformData("border cases")
+        TokensFilterData("border cases")
             .in(View{"left"}, View{"right"})
             .out(NewLineIndentation{}, id("left").leftSeparated(), id("right").rightSeparated()),
 
-        TokensTransformData("Brackets")
+        TokensFilterData("Brackets")
             .in(BracketOpen{}, View{"left"}, View{"right"}, BracketClose{}, View{"stuck"}, BracketOpen{})
             .out(
                 NewLineIndentation{},
@@ -158,11 +158,11 @@ INSTANTIATE_TEST_CASE_P(
                 id("stuck"),
                 BracketOpen{}),
 
-        TokensTransformData("Comma")
+        TokensFilterData("Comma")
             .in(scanner::WhiteSpaceSeparator{}, View{"left"}, CommaSeparator{}, View{"right"})
             .out(NewLineIndentation{}, id("left").bothSeparated(), CommaSeparator{}, id("right").bothSeparated()),
 
-        TokensTransformData("Semicolon")
+        TokensFilterData("Semicolon")
             .in(scanner::WhiteSpaceSeparator{}, View{"left"}, SemicolonSeparator{}, View{"right"})
             .out(
                 NewLineIndentation{},
