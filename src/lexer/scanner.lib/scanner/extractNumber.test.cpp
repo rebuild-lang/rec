@@ -1,4 +1,4 @@
-#include "scanner/NumberScanner.h"
+#include "scanner/extractNumber.h"
 
 #include "scanner/Token.ostream.h"
 

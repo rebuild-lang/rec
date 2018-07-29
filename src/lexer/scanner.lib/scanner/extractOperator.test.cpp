@@ -1,4 +1,4 @@
-#include "scanner/OperatorScanner.h"
+#include "scanner/extractOperator.h"
 
 #include "scanner/Token.ostream.h"
 

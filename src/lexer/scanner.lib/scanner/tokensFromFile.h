@@ -1,9 +1,9 @@
 #pragma once
-#include "CommentScanner.h"
-#include "IdentifierScanner.h"
-#include "NumberScanner.h"
-#include "OperatorScanner.h"
-#include "StringScanner.h"
+#include "extractComment.h"
+#include "extractIdentifier.h"
+#include "extractNumber.h"
+#include "extractOperator.h"
+#include "extractString.h"
 
 #include "scanner/Token.h"
 

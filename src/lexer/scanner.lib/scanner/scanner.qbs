@@ -12,18 +12,18 @@ Project {
         Depends { name: "scanner.data" }
 
         files: [
-            "CommentScanner.cpp",
-            "CommentScanner.h",
-            "IdentifierScanner.cpp",
-            "IdentifierScanner.h",
-            "NumberScanner.cpp",
-            "NumberScanner.h",
-            "OperatorScanner.cpp",
-            "OperatorScanner.h",
-            "StringScanner.cpp",
-            "StringScanner.h",
-            "Tokenizer.cpp",
-            "Tokenizer.h",
+            "extractComment.cpp",
+            "extractComment.h",
+            "extractIdentifier.cpp",
+            "extractIdentifier.h",
+            "extractNumber.cpp",
+            "extractNumber.h",
+            "extractOperator.cpp",
+            "extractOperator.h",
+            "extractString.cpp",
+            "extractString.h",
+            "tokensFromFile.cpp",
+            "tokensFromFile.h",
         ]
 
         Export {
@@ -45,12 +45,12 @@ Project {
         googletest.lib.useMain: true
 
         files: [
-            "CommentScanner.test.cpp",
-            "IdentifierScanner.test.cpp",
-            "NumberScanner.test.cpp",
-            "OperatorScanner.test.cpp",
-            "StringScanner.test.cpp",
-            "Tokenizer.test.cpp",
+            "extractComment.test.cpp",
+            "extractIdentifier.test.cpp",
+            "extractNumber.test.cpp",
+            "extractOperator.test.cpp",
+            "extractString.test.cpp",
+            "tokensFromFile.test.cpp",
         ]
     }
 }

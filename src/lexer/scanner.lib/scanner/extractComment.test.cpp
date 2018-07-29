@@ -1,4 +1,4 @@
-#include "scanner/CommentScanner.h"
+#include "scanner/extractComment.h"
 
 #include "scanner/Token.ostream.h"
 

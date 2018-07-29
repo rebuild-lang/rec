@@ -10,8 +10,8 @@ Project {
         Depends { name: "nesting.data" }
 
         files: [
-            "Parser.cpp",
-            "Parser.h",
+            "nestTokens.cpp",
+            "nestTokens.h",
         ]
 
         Export {
@@ -33,7 +33,7 @@ Project {
         googletest.lib.useMain: true
 
         files: [
-            "blockParser.test.cpp",
+            "nestTokens.test.cpp",
         ]
     }
 }

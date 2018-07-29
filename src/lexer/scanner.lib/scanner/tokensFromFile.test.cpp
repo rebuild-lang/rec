@@ -1,4 +1,4 @@
-#include "scanner/Tokenizer.h"
+#include "scanner/tokensFromFile.h"
 
 #include "gtest/gtest.h"
 

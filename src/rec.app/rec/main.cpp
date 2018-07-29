@@ -1,7 +1,7 @@
-#include "scanner/Tokenizer.h"
+#include "scanner/tokensFromFile.h"
 
-#include "filter/Filter.h"
-#include "nesting/Parser.h"
+#include "filter/filterTokens.h"
+#include "nesting/nestTokens.h"
 #include "parser/Parser.h"
 
 #include "instance/Scope.h"

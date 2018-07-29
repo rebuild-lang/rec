@@ -12,8 +12,8 @@ Project {
         Depends { name: "filter.data" }
 
         files: [
-            "Filter.cpp",
-            "Filter.h",
+            "filterTokens.cpp",
+            "filterTokens.h",
         ]
 
         Export {
@@ -35,7 +35,7 @@ Project {
         googletest.lib.useMain: true
 
         files: [
-            "Filter.test.cpp",
+            "filterTokens.test.cpp",
         ]
     }
 }
