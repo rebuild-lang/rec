@@ -269,6 +269,7 @@ private:
         const instance::Node& instance,
         BlockLineView& it,
         Context& context) -> ParseOptions {
+
         return instance.visit(
             [&](const instance::Variable& var) {
                 if (result) return ParseOptions::finish_single;
@@ -411,6 +412,7 @@ private:
         const Function& fun,
         BlockLineView& it,
         Context& context) -> ParseOptions { //
+
         auto os = OverloadSet{fun};
         os.retireLeft(left);
         if (!os.active().empty() && it) {
