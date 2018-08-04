@@ -13,11 +13,11 @@
 namespace intrinsic {
 
 template<>
-struct TypeOf<instance::Module> {
+struct TypeOf<instance::Module*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"Module"};
-        info.size = sizeof(instance::Module);
+        info.size = sizeof(instance::Module*);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
@@ -27,11 +27,11 @@ struct TypeOf<instance::Module> {
 };
 
 template<>
-struct TypeOf<instance::Type> {
+struct TypeOf<instance::Type*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"Type"};
-        info.size = sizeof(instance::Type);
+        info.size = sizeof(instance::Type*);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
@@ -87,8 +87,8 @@ struct Instance {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template type<instance::Module>();
-        mod.template type<instance::Type>();
+        mod.template type<instance::Module*>();
+        mod.template type<instance::Type*>();
         // mod.template type<instance::Function>();
         // mod.template type<instance::Variable>();
         // mod.template type<instance::Argument>();

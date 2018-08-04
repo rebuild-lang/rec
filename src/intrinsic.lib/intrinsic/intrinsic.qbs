@@ -15,6 +15,8 @@ Project {
         files: [
             "Adapter.cpp",
             "Adapter.h",
+            "ResolveType.cpp",
+            "ResolveType.h",
         ]
 
         Export {

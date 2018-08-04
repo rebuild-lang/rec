@@ -29,4 +29,6 @@ auto makeSignature(Ret (*)(Args...)) -> FunctionSignature<Ret, Args...> {
     return {};
 }
 
+using FunctionInfoFunc = intrinsic::FunctionInfo (*)();
+
 } // namespace intrinsic

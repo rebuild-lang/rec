@@ -12,7 +12,12 @@ namespace parser {
 struct Value {
     template<class T>
     Value(T&& v, TypeExpression&& t)
-        : m(std::make_shared<Implementation<T>>(std::move(t), std::move(v))) {}
+        : m(std::make_shared<Implementation<std::remove_reference_t<T>>>(std::move(t), std::move(v))) {}
+
+    template<class T>
+    static auto uninitialized(const TypeExpression& t) -> Value {
+        return Value{std::make_shared<Uninitialized<std::remove_reference_t<T>>>(t)};
+    }
 
     Value() = default;
     Value(Value&&) noexcept = default;
@@ -33,11 +38,31 @@ struct Value {
 #endif
 
 private:
+    struct Virtual {
+        using Self = void*;
+
+        using DataConst = auto(const void*) -> const void*;
+        DataConst* dataConst;
+
+        using Data = auto(void*) -> void*;
+        Data* data;
+
+        using Equal = bool(const void*, const void*);
+        Equal* equal;
+
+#ifdef VALUE_DEBUG_DATA
+        using DebugData = auto(const Self, std::ostream&) const -> std::ostream&;
+        DebugData* debugData;
+#endif
+    };
+
     struct Interface {
+        const Virtual* vptr{};
         TypeExpression t{};
 
-        explicit Interface(TypeExpression&& t)
-            : t(std::move(t)) {}
+        explicit Interface(const Virtual* vptr, TypeExpression&& t)
+            : vptr(vptr)
+            , t(std::move(t)) {}
 
         Interface() = default;
         Interface(Interface&&) noexcept = default;
@@ -45,13 +70,38 @@ private:
         Interface(const Interface&) = default;
         Interface& operator=(const Interface&) = default;
 
-        virtual ~Interface() = default;
-        virtual auto data() const -> const void* = 0;
-        virtual auto data() -> void* = 0;
-        virtual auto operator==(const Interface&) const -> bool = 0;
+        auto data() const -> const void* { return vptr->dataConst(this); }
+        auto data() -> void* { return vptr->data(this); }
+        auto operator==(const Interface& o) const -> bool { return vptr->equal(this, &o); }
 #ifdef VALUE_DEBUG_DATA
-        virtual auto operator<<(std::ostream&) const -> std::ostream& = 0;
+        auto debugData(std::ostream& out) const -> std::ostream& { return vptr->debugData(out); }
 #endif
+    };
+
+    template<class T>
+    static auto implementationVirtual() -> const Virtual* {
+        static auto d = Virtual{
+            [](const void* self) -> const void* { return reinterpret_cast<const Implementation<T>*>(self)->data(); },
+            [](void* self) -> void* { return reinterpret_cast<Implementation<T>*>(self)->data(); },
+            [](const void* l, const void* r) -> bool {
+                return *reinterpret_cast<const Implementation<T>*>(l) == *reinterpret_cast<const Implementation<T>*>(r);
+            }
+#ifdef VALUE_DEBUG_DATA
+            ,
+            [](const void* self, std::ostream& out) -> std::ostream& {
+                return reinterpret_cast<const Implementation<T>*>(self)->debugData(out);
+            }
+#endif
+        };
+        return &d;
+    }
+
+    template<class T>
+    struct Uninitialized : Interface {
+        uint8_t data[sizeof(T)];
+
+        Uninitialized(const TypeExpression& t)
+            : Interface(implementationVirtual<T>(), TypeExpression{t}) {}
     };
 
     template<class T>
@@ -59,7 +109,7 @@ private:
         T v;
 
         Implementation(TypeExpression&& t, T&& v)
-            : Interface(std::move(t))
+            : Interface(implementationVirtual<T>(), std::move(t))
             , v(std::move(v)) {}
 
         Implementation() = default;
@@ -68,18 +118,19 @@ private:
         Implementation(const Implementation&) = default;
         Implementation& operator=(const Implementation&) = default;
 
-        ~Implementation() override = default;
-        auto data() const -> const void* override { return &v; }
-        auto data() -> void* override { return &v; }
-        auto operator==(const Interface& o) const -> bool override {
-            return v == static_cast<const Implementation&>(o).v;
-        }
+        ~Implementation() = default;
+        auto data() const -> const void* { return &v; }
+        auto data() -> void* { return &v; }
+        auto operator==(const Interface& o) const -> bool { return v == static_cast<const Implementation&>(o).v; }
 #ifdef VALUE_DEBUG_DATA
-        auto operator<<(std::ostream& out) const -> std::ostream& override { return out << v; }
+        auto operator<<(std::ostream& out) const -> std::ostream& { return out << v; }
 #endif
     };
 
     std::shared_ptr<Interface> m;
-};
+
+    Value(std::shared_ptr<Interface>&& ptr)
+        : m(std::move(ptr)) {}
+}; // namespace parser
 
 } // namespace parser

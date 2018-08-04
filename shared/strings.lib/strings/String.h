@@ -40,12 +40,16 @@ public:
     String(const Data* b, const Data* e)
         : m(b, e) {}
 
+    explicit operator std::string() const {
+        return {reinterpret_cast<const char*>(begin()), reinterpret_cast<const char*>(end())};
+    }
+
     auto data() const -> const Data* { return m.data(); }
     auto byteCount() const -> Counter { return {static_cast<uint32_t>(m.size())}; }
     bool isEmpty() const { return m.empty(); }
 
-    auto begin() const { return data(); }
-    auto end() const { return data() + byteCount().v; }
+    auto begin() const -> const Data* { return data(); }
+    auto end() const -> const Data* { return data() + byteCount().v; }
 
     bool operator==(const This& o) const { return m == o.m; }
     bool operator<(const This& o) const { return m < o.m; }

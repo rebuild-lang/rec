@@ -38,8 +38,6 @@ struct ModuleOutput {
         indent.resize(indent.size() - 2);
     }
 
-    using FunctionInfoFunc = FunctionInfo (*)();
-
     template<auto* F, FunctionInfoFunc Info>
     void function() {
         return functionImpl<Info, F>(makeSignature(F));

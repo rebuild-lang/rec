@@ -21,9 +21,6 @@ struct Context {
     Lookup lookup;
     RunCall runCall;
     IntrinsicType intrinsicType;
-
-    // template<class T>
-    // auto intrinsicType(meta::Type<T>) -> instance::TypeView;
 };
 
 // template deduction guide
@@ -524,11 +521,17 @@ private:
             },
             [&](const instance::Module& mod) -> OptTypeExpression {
                 ++it;
+                if (it && it.current().holds<nesting::IdentifierLiteral>()) {
+                    auto subName = it.current().get<nesting::IdentifierLiteral>().range.text;
+                    auto subNode = mod.locals[subName];
+                    if (subNode) return parseTypeInstance(*subNode.value(), it, context);
+                }
                 auto typeNode = mod.locals[View{"type"}];
                 if (typeNode) {
                     const auto& type = typeNode.value()->get<instance::Type>();
                     return {TypeInstance{&type}};
                 }
+                // error
                 return {};
             });
     }
@@ -602,11 +605,7 @@ private:
 
     static bool isTyped(const TypeExpression& t) {
         return t.visit(
-            [](const Pointer& p) {
-                return p.target->visit(
-                    [](const TypeInstance& ti) { return ti.concrete->module->name == strings::View{"Typed"}; },
-                    [](const auto&) { return false; });
-            },
+            [](const TypeInstance& ti) { return strings::CompareView{".Typed"} == ti.concrete->module->name; },
             [](const auto&) { return false; });
     }
 

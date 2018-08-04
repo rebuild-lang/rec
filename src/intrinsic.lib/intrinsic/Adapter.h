@@ -123,7 +123,7 @@ struct Adapter {
             constructedType<T>(&TypeOf<T>::construct);
         }
         else {
-            auto a = Adapter{&types};
+            auto a = This{&types};
             a.moduleName(info.name);
 
             TypeOf<T>::module(a);
@@ -134,6 +134,12 @@ struct Adapter {
                 r.size = info.size;
                 r.flags = typeFlags(info.flags);
                 r.parser = typeParser(info.parser);
+                r.clone = [](uint8_t* dest, const uint8_t* source) {
+                    new (dest) T(*reinterpret_cast<const T*>(source));
+                };
+                r.makeUninitialized = [](const parser::TypeExpression& typeExpr) {
+                    return parser::Value::uninitialized<T>(typeExpr);
+                };
                 return r;
             }());
 
@@ -152,14 +158,14 @@ struct Adapter {
     template<class T>
     void module() {
         constexpr auto info = T::info();
-        auto inner = Adapter{&types};
+        auto inner = This{&types};
         inner.moduleName(info.name);
         T::module(inner);
 
         instanceModule.locals.emplace(std::move(inner.instanceModule));
     }
 
-    using FunctionInfoFunc = intrinsic::FunctionInfo (*)();
+    using FunctionInfoFunc = intrinsic::FunctionInfoFunc;
 
     template<auto* F, FunctionInfoFunc Info>
     void function() {
@@ -228,9 +234,17 @@ private:
             }
             argument->typed.type.visit(
                 [&](parser::Pointer& p) {
-                    p.target = std::make_shared<parser::TypeExpression>(parser::TypeInstance{typeIt->second});
+                    if (p.target) {
+                        p.target->get<parser::Pointer>().target =
+                            std::make_shared<parser::TypeExpression>(parser::TypeInstance{typeIt->second});
+                    }
+                    else {
+                        p.target = std::make_shared<parser::TypeExpression>(parser::TypeInstance{typeIt->second});
+                    }
                 },
-                [&, a = argument](auto) { a->typed.type = parser::TypeInstance{typeIt->second}; });
+                [&, a = argument](auto) { //
+                    a->typed.type = parser::TypeInstance{typeIt->second};
+                });
         }
         // TODO(arBmind): resolve other types
     }
@@ -304,6 +318,13 @@ private:
         auto r = instance::Argument{};
         r.typed.name = strings::to_string(info.name);
         if (info.flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
+            if (Argument<T>::is_pointer) {
+                r.typed.type = parser::Pointer{std::make_shared<parser::TypeExpression>(parser::Pointer{})};
+            }
+            else
+                r.typed.type = parser::Pointer{};
+        }
+        else if (Argument<T>::is_pointer) {
             r.typed.type = parser::Pointer{};
         }
         // r.typed.type = // this has to be delayed until all types are known

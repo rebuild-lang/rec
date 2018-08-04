@@ -237,13 +237,12 @@ private:
             return;
         }
         if (arg.flags.any(ArgumentFlag::assignable)) {
-            /*
             assert(nodes.size() == 1);
             nodes[0].visit(
-                [&](const parser::VariableReference& var) { storeAddress(var.variable->typed, context, memory); },
-                [&](const parser::ArgumentReference& arg) { storeAddress(arg.argument->typed, context, memory); },
+                [&](const parser::VariableReference& var) { storeTypedAddress(var.variable->typed, context, memory); },
+                [&](const parser::ArgumentReference& arg) { storeTypedAddress(arg.argument->typed, context, memory); },
+                [&](const parser::Value& value) { storeValueAddress(value, memory); },
                 [&](const auto&) { assert(false); });
-                */
             return;
         }
         for (const auto& node : nodes) {
@@ -261,12 +260,12 @@ private:
             [&](const parser::Block&) { assert(false); },
             [&](const parser::Call& call) { storeCallResult(call, context, memory); },
             [&](const parser::IntrinsicCall&) { assert(false); },
-            [&](const parser::ArgumentReference& arg) { storeValue(arg.argument->typed, context, memory); },
-            [&](const parser::VariableReference& var) { storeValue(var.variable->typed, context, memory); },
+            [&](const parser::ArgumentReference& arg) { storeTypedValue(arg.argument->typed, context, memory); },
+            [&](const parser::VariableReference& var) { storeTypedValue(var.variable->typed, context, memory); },
             [&](const parser::VariableInit&) { assert(false); },
             [&](const parser::ModuleReference&) {},
             [&](const parser::TypedTuple&) {},
-            [&](const parser::Value& value) { storeLiteral(value, memory); });
+            [&](const parser::Value& value) { storeValueCopy(value, memory); });
     }
 
     static void storeCallResult(const parser::Call& call, const Context& context, Byte* memory) {
@@ -280,17 +279,30 @@ private:
         runFunction(*call.function, callContext);
     }
 
-    static void storeAddress(const instance::Typed& typed, const Context& context, Byte* memory) {
+    static void storeTypedAddress(const instance::Typed& typed, const Context& context, Byte* memory) {
         reinterpret_cast<void*&>(*memory) = context[&typed];
     }
 
-    static void storeLiteral(const parser::Value& value, Byte* memory) {
+    static void storeValueAddress(const parser::Value& value, Byte* memory) {
         reinterpret_cast<const void*&>(*memory) = value.data(); // store pointer to real instance
     }
 
-    static void storeValue(const instance::Typed& typed, const Context& context, Byte* memory) {
-        // TODO(arBmind): allow clone() method or ensure moving
-        memcpy(memory, context[&typed], typeExpressionSize(typed.type));
+    static void storeTypedValue(const instance::Typed& typed, const Context& context, Byte* memory) {
+        auto* source = context[&typed];
+        cloneTypeInto(typed.type, memory, source);
+    }
+
+    static void storeValueCopy(const parser::Value& value, Byte* memory) {
+        cloneTypeInto(value.type(), memory, reinterpret_cast<const Byte*>(value.data()));
+    }
+
+    static void cloneTypeInto(const parser::TypeExpression& type, Byte* dest, const Byte* source) {
+        type.visit(
+            [&](const parser::TypeInstance& i) { i.concrete->clone(dest, source); },
+            [&](const parser::Pointer& p) {
+                *reinterpret_cast<void**>(dest) = *reinterpret_cast<void* const*>(source);
+            },
+            [](auto) { abort(); });
     }
 };
 

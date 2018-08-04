@@ -10,6 +10,7 @@
 
 #include "api/Context.h"
 #include "intrinsic/Adapter.h"
+#include "intrinsic/ResolveType.h"
 
 #include "nesting/Token.ostream.h"
 #include "scanner/Token.ostream.h"
@@ -29,16 +30,17 @@ using OptNode = parser::OptNode;
 
 class Compiler final {
     ParserConfig config;
+    InstanceScope globals;
     InstanceScope globalScope;
 
     execution::Compiler compiler;
 
     struct IntrinsicType {
-        const InstanceScope& global;
+        const InstanceScope* globals;
 
         template<class T>
         auto operator()(meta::Type<T>) const -> instance::TypeView {
-            return {};
+            return intrinsic::ResolveType<T>::moduleInstance<intrinsic::Rebuild>(globals);
         }
     };
 
@@ -55,28 +57,74 @@ class Compiler final {
         return r;
     }
 
+    static auto assignResultStorage(Call& call) {
+        const auto* f = call.function;
+        for (auto& a : f->arguments) {
+            if (a.side == instance::ArgumentSide::result //
+                && a.typed.type.holds<parser::Pointer>()) {
+
+                parser::TypeExpression* ptrTarget = a.typed.type.get<parser::Pointer>().target.get();
+                ptrTarget->visit(
+                    [&](const parser::Pointer& p) {
+                        call.arguments.push_back({&a, {parser::Value{nullptr, parser::TypeExpression{*ptrTarget}}}});
+                    },
+                    [&](const parser::TypeInstance& i) {
+                        call.arguments.push_back({&a, {i.concrete->makeUninitialized({*ptrTarget})}});
+                    },
+                    [](const auto) {});
+            }
+        }
+    }
+
+    static auto getResultValue(Call& call) -> meta::Optional<parser::Value> {
+        auto result = meta::Optional<parser::Value>{};
+        for (auto& a : call.arguments) {
+            if (a.argument->side == instance::ArgumentSide::result //
+                && a.argument->typed.type.holds<parser::Pointer>()) {
+
+                if (result || a.values.size() != 1 || !a.values[0].holds<parser::Value>()) return {};
+
+                result = a.values[0].get<parser::Value>();
+            }
+        }
+        return result;
+    }
+
+    static auto extractResults(Call& call, const InstanceScope& globals) -> OptNode {
+        auto optResult = getResultValue(call);
+        if (optResult) {
+            auto& resultType = optResult.value().type();
+            if (resultType.holds<parser::TypeInstance>() &&
+                resultType.get<parser::TypeInstance>().concrete ==
+                    IntrinsicType{&globals}(meta::Type<parser::VariableInit>{})) {
+
+                return parser::Node{*reinterpret_cast<parser::VariableInit*>(optResult.value().data())};
+            }
+        }
+        // TODO(arBmind): create TypedTuple from results
+        return {};
+    }
+
     auto parserContext(InstanceScope& scope) {
         auto lookup = [&](const StringView& id) { return scope[id]; };
         auto runCall = [&](const Call& call) -> OptNode {
             // TODOs:
             // * check arguments - have to be available
-            // * create result arguments
-            //
+            auto callCopy = call;
+            assignResultStorage(callCopy);
 
-            // * create from caller context
-            // * assign local scope
-            execution::Machine::runCall(call, executionContext(scope));
-            return {};
+            execution::Machine::runCall(callCopy, executionContext(scope));
+
+            return extractResults(callCopy, globals);
         };
-        auto intrinsicType = IntrinsicType{globalScope};
-
-        return parser::Context{std::move(lookup), std::move(runCall), intrinsicType};
+        return parser::Context{std::move(lookup), std::move(runCall), IntrinsicType{&globals}};
     }
 
 public:
     Compiler(ParserConfig config, InstanceScope&& globals)
         : config(config)
-        , globalScope(std::move(globals)) {
+        , globals(std::move(globals))
+        , globalScope(&this->globals) {
         compiler.parseBlock = [this](const nesting::BlockLiteral& block, InstanceScope* scope) {
             parser::Parser::parse(block, parserContext(*scope));
         };
@@ -99,7 +147,7 @@ int main() {
     auto globals = instance::Scope{};
     globals.emplace(intrinsicAdapter::Adapter::moduleInstance<intrinsic::Rebuild>());
 
-    auto globalScope = instance::Scope{&globals};
+    // auto globalScope = instance::Scope{&globals};
 
     auto compiler = Compiler(config, std::move(globals));
 
@@ -108,6 +156,7 @@ int main() {
     auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
 
     auto file = text::File{strings::String{"TestFile"}, strings::String{R"(
+Rebuild.Context.declareVariable foo :Rebuild.basic.u64 = 23
 # Rebuild.say "Hello!"
 Rebuild.Context.declareModule test:
     Rebuild.say "parsing inside!"

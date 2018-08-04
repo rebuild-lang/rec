@@ -1,4 +1,6 @@
 #pragma once
+#include "parser/Value.h"
+
 #include "meta/Flags.h"
 #include "strings/View.h"
 
@@ -23,11 +25,16 @@ enum class Parser {
     OptionalIdTypeValueTuple,
 };
 
+using CloneFunc = void(uint8_t* dest, const uint8_t* source);
+using MakeUninitializedFunc = parser::Value(const parser::TypeExpression&);
+
 struct Type {
     uint64_t size{};
     TypeFlags flags{};
     Parser parser{};
     ModuleView module{};
+    CloneFunc* clone{};
+    MakeUninitializedFunc* makeUninitialized{};
 };
 using TypeView = const Type*;
 

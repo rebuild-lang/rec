@@ -2,6 +2,7 @@
 #include "Basic.h"
 #include "Instance.h"
 #include "Literal.h"
+#include "Parser.h"
 
 #include "instance/IntrinsicContext.h"
 
@@ -17,7 +18,7 @@
 namespace intrinsic {
 
 template<>
-struct TypeOf<Context> {
+struct TypeOf<Context*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".Context"};
@@ -32,7 +33,7 @@ struct TypeOf<Context> {
             auto info = ArgumentInfo{};
             info.name = Name{"label"};
             info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Reference;
+            // info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
@@ -42,7 +43,7 @@ struct TypeOf<Context> {
             auto info = ArgumentInfo{};
             info.name = Name{"block"};
             info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Reference;
+            // info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
@@ -62,12 +63,12 @@ struct TypeOf<Context> {
             auto info = ArgumentInfo{};
             info.name = Name{"context"};
             info.side = ArgumentSide::Implicit;
-            info.flags = ArgumentFlag::Assignable; // | ArgumentFlag::Optional;
+            // info.flags = ArgumentFlag::Assignable; // | ArgumentFlag::Optional;
             return info;
         }
     };
 
-    static void declareModule(const Label& label, const Block& block, ModuleResult res, ImplicitContext context) {
+    static void declareModule(Label label, Block block, ModuleResult& res, ImplicitContext context) {
         (void)res;
         auto name = label.v.range.text;
         auto optNode = context.v->parserScope->locals[name];
@@ -103,11 +104,24 @@ struct TypeOf<Context> {
             auto info = ArgumentInfo{};
             info.name = Name{};
             info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Reference;
+            // info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
-    static void declareVariable(const Typed& typed, ImplicitContext context) {
+    struct VariableInitResult {
+        parser::VariableInit v;
+        static constexpr auto info() {
+            auto info = ArgumentInfo{};
+            info.name = Name{"result"};
+            info.side = ArgumentSide::Result;
+            info.flags = ArgumentFlag::Assignable;
+            return info;
+        }
+    };
+
+    static void declareVariable(Typed typed, VariableInitResult& res, ImplicitContext context) {
+        new (&res.v) parser::VariableInit();
+
         if (!typed.v.name || !typed.v.type) {
             return; // error
         }
@@ -121,10 +135,12 @@ struct TypeOf<Context> {
             variable.typed.type = typed.v.type.value();
             return variable;
         }());
-        (void)optNode;
-
-        // assert(optNode);
-        // TODO(arBmind): emit variable init
+        if (!optNode) {
+            // error
+            return;
+        }
+        res.v.variable = &optNode.value()->get<instance::Variable>();
+        if (typed.v.value) res.v.nodes.push_back(typed.v.value.value());
     }
 
     template<class Module>
@@ -166,20 +182,23 @@ struct Rebuild {
             auto info = ArgumentInfo{};
             info.name = Name{"literal"};
             info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Reference;
+            // info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
-    static void debugSay(const SayLiteral& literal) {
+    static void debugSay(SayLiteral literal) {
         auto text = literal.v.value.text;
         std::cout << text << '\n';
     }
 
     template<class Module>
     static constexpr auto module(Module& mod) {
+        mod.template type<Context*>();
+
         mod.template module<Basic>();
         mod.template module<Literal>();
         mod.template module<Instance>();
+        mod.template module<ParserModule>();
 
         mod.template function<&debugSay, [] {
             auto info = FunctionInfo{};
@@ -188,7 +207,6 @@ struct Rebuild {
             return info;
         }>();
 
-        mod.template type<Context>();
         // mod.template type<compiler::Scope>();
         // mod.template type<compiler::LocalScope>();
 

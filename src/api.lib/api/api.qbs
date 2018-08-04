@@ -21,6 +21,8 @@ Project {
             "Instance.h",
             "Literal.cpp",
             "Literal.h",
+            "Parser.cpp",
+            "Parser.h",
             "basic/flags.h",
             "basic/list.h",
             "basic/str.h",
