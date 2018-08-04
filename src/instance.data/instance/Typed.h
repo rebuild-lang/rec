@@ -5,7 +5,8 @@
 
 namespace instance {
 
-using Name = strings::CompareView;
+using Name = strings::String;
+using NameView = strings::View;
 using TypeExpression = parser::TypeExpression;
 
 // common attributes for Argument & Variable
@@ -14,6 +15,6 @@ struct Typed {
     TypeExpression type{};
 };
 
-inline auto nameOf(const Typed& typed) -> const Name& { return typed.name; }
+inline auto nameOf(const Typed& typed) -> NameView { return typed.name; }
 
 } // namespace instance

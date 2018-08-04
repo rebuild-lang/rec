@@ -6,13 +6,13 @@ namespace instance {
 
 LocalScope::LocalScope() = default;
 
-auto LocalScope::operator[](const Name& name) const& -> OptConstNodeView {
+auto LocalScope::operator[](NameView name) const& -> OptConstNodeView {
     auto it = m.find(name);
     if (it == m.end()) return {};
     return &it->second;
 }
 
-auto LocalScope::operator[](const Name& name) & -> OptNodeView {
+auto LocalScope::operator[](NameView name) & -> OptNodeView {
     auto it = m.find(name);
     if (it == m.end()) return {};
     return &it->second;

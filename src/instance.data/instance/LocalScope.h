@@ -5,13 +5,15 @@
 
 namespace instance {
 
-using Name = strings::CompareView;
+using Name = strings::String;
+using NameView = strings::View;
+
 class Node;
 using NodeView = Node*;
 using OptNodeView = meta::Optional<NodeView>;
 using OptConstNodeView = meta::Optional<const Node*>;
 
-using NodeByName = std::map<Name, Node>;
+using NodeByName = std::map<NameView, Node>;
 
 struct LocalScope {
     using This = LocalScope;
@@ -27,8 +29,8 @@ struct LocalScope {
     LocalScope(This&&) = default;
     auto operator=(This &&) -> This& = default;
 
-    auto operator[](const Name& name) const& -> OptConstNodeView;
-    auto operator[](const Name& name) & -> OptNodeView;
+    auto operator[](NameView name) const& -> OptConstNodeView;
+    auto operator[](NameView name) & -> OptNodeView;
 
     auto emplace(Node&& node) & -> OptNodeView { return emplaceImpl(std::move(node)); }
 

@@ -4,7 +4,8 @@
 
 namespace instance {
 
-using Name = strings::CompareView;
+using Name = strings::String;
+using NameView = strings::View;
 struct Module;
 using ModuleView = const Module*;
 
@@ -23,7 +24,6 @@ enum class Parser {
 };
 
 struct Type {
-    Name name{}; // always "type"
     uint64_t size{};
     TypeFlags flags{};
     Parser parser{};
@@ -31,6 +31,6 @@ struct Type {
 };
 using TypeView = const Type*;
 
-inline auto nameOf(const Type& type) -> const Name& { return type.name; }
+inline auto nameOf(const Type& type) -> NameView { return NameView{"type"}; }
 
 } // namespace instance

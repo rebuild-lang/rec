@@ -19,7 +19,7 @@ public:
 };
 using NodeView = Node*;
 
-inline auto nameOf(const Node& v) -> const Name& {
+inline auto nameOf(const Node& v) -> NameView {
     return v.visit([](const auto& i) -> decltype(auto) { return nameOf(i); });
 }
 

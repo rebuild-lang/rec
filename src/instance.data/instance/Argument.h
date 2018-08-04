@@ -29,6 +29,6 @@ struct Argument {
 };
 using Arguments = std::vector<Argument>;
 
-inline auto nameOf(const Argument& arg) -> const Name& { return nameOf(arg.typed); }
+inline auto nameOf(const Argument& arg) -> NameView { return nameOf(arg.typed); }
 
 } // namespace instance

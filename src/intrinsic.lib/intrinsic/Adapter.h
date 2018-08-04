@@ -131,7 +131,6 @@ struct Adapter {
             a.instanceModule.locals.emplace([]() -> instance::Type {
                 constexpr auto info = TypeOf<T>::info();
                 auto r = instance::Type{};
-                r.name = instance::Name{"type"};
                 r.size = info.size;
                 r.flags = typeFlags(info.flags);
                 r.parser = typeParser(info.parser);
@@ -186,7 +185,7 @@ struct Adapter {
         // assert((GenericFunc)f2 == (GenericFunc)F);
         auto info = Info();
         auto r = instance::Function{};
-        r.name = info.name; // strings::to_string(info.name);
+        r.name = strings::to_string(info.name);
         // r.flags = functionFlags(info.flags); // TODO(arBmind)
         r.arguments = instance::Arguments{argument<ExternArgs>()...};
 
@@ -199,7 +198,7 @@ struct Adapter {
         instanceModule.locals.emplace(std::move(r));
     }
 
-    void moduleName(intrinsic::Name name) { instanceModule.name = name; } // strings::to_string(name); }
+    void moduleName(intrinsic::Name name) { instanceModule.name = strings::to_string(name); }
 
 private:
     struct ArgumentRef {
@@ -249,7 +248,7 @@ private:
         constexpr auto info = TypeOf<T>::info();
 
         auto r = instance::Function{};
-        r.name = info.name; // strings::to_string(info.name);
+        r.name = strings::to_string(info.name);
         // r.flags =;
         r.arguments = typeArguments(&TypeOf<T>::eval);
         // r.body =;
@@ -303,7 +302,7 @@ private:
         using namespace intrinsic;
         constexpr auto info = Argument<T>::info();
         auto r = instance::Argument{};
-        r.typed.name = info.name;
+        r.typed.name = strings::to_string(info.name);
         if (info.flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
             r.typed.type = parser::Pointer{};
         }

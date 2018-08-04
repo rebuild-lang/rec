@@ -20,6 +20,6 @@ struct Variable {
 };
 using Variables = std::vector<Variable>;
 
-inline auto nameOf(const Variable& var) -> const Name& { return nameOf(var.typed); }
+inline auto nameOf(const Variable& var) -> NameView { return nameOf(var.typed); }
 
 } // namespace instance

@@ -24,7 +24,7 @@ struct Scope {
     auto operator=(const This&) -> This& = delete;
 
 public:
-    auto operator[](const Name& name) const& -> const OptConstNodeView {
+    auto operator[](NameView name) const& -> const OptConstNodeView {
         auto optNode = locals[name];
         if (!optNode && parent) return (*parent)[name];
         return optNode;

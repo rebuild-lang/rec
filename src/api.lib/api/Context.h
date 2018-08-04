@@ -87,7 +87,7 @@ struct TypeOf<Context> {
         else {
             auto optNode = context.v->parserScope->emplace([&] {
                 auto module = instance::Module{};
-                module.name = name;
+                module.name = strings::to_string(name);
                 auto moduleScope = instance::Scope(context.v->parserScope);
                 context.v->parse(block.v, &moduleScope);
                 module.locals = std::move(moduleScope.locals);

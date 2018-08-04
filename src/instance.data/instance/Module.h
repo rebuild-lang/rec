@@ -7,7 +7,8 @@
 
 namespace instance {
 
-using Name = strings::CompareView;
+using Name = strings::String;
+using NameView = strings::View;
 
 enum class ModuleFlag {
     CompileTime = 1 << 0,
@@ -34,6 +35,6 @@ struct Module {
 };
 using ModuleView = const Module*;
 
-inline auto nameOf(const Module& m) -> const Name& { return m.name; }
+inline auto nameOf(const Module& m) -> NameView { return m.name; }
 
 } // namespace instance

@@ -9,7 +9,8 @@
 
 namespace instance {
 
-using Name = strings::CompareView;
+using Name = strings::String;
+using NameView = strings::View;
 
 enum class FunctionFlag {
     compile_time = 1 << 0,
@@ -25,8 +26,8 @@ struct Function {
     // PrecedenceLevel level;
     Body body;
 
-    auto lookupArgument(const Name& name) const -> decltype(auto) {
-        return meta::findIfOpt(arguments, [&](const auto& a) { return name.isContentEqual(a.typed.name); });
+    auto lookupArgument(NameView name) const -> decltype(auto) {
+        return meta::findIfOpt(arguments, [&](const auto& a) { return name == a.typed.name; });
     }
     auto leftArguments() const -> ArgumentsRange {
         auto b = arguments.begin();
@@ -43,7 +44,7 @@ struct Function {
     }
 };
 
-inline auto nameOf(const Function& fun) -> const Name& { return fun.name; }
+inline auto nameOf(const Function& fun) -> NameView { return fun.name; }
 
 } // namespace instance
 
