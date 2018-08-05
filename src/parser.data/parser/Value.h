@@ -34,7 +34,7 @@ struct Value {
     bool operator==(const This& o) const { return m == o.m || *m == *o.m; }
     bool operator!=(const This& o) const { return !(*this == o); }
 #ifdef VALUE_DEBUG_DATA
-    auto debugData(std::ostream& out) const -> std::ostream& { return m->operator<<(out); }
+    auto debugData(std::ostream& out) const -> std::ostream& { return m->debugData(out); }
 #endif
 
 private:
@@ -51,7 +51,7 @@ private:
         Equal* equal;
 
 #ifdef VALUE_DEBUG_DATA
-        using DebugData = auto(const Self, std::ostream&) const -> std::ostream&;
+        using DebugData = auto(const void*, std::ostream&) -> std::ostream&;
         DebugData* debugData;
 #endif
     };
@@ -74,7 +74,7 @@ private:
         auto data() -> void* { return vptr->data(this); }
         auto operator==(const Interface& o) const -> bool { return vptr->equal(this, &o); }
 #ifdef VALUE_DEBUG_DATA
-        auto debugData(std::ostream& out) const -> std::ostream& { return vptr->debugData(out); }
+        auto debugData(std::ostream& out) const -> std::ostream& { return vptr->debugData(this, out); }
 #endif
     };
 
@@ -123,7 +123,7 @@ private:
         auto data() -> void* { return &v; }
         auto operator==(const Interface& o) const -> bool { return v == static_cast<const Implementation&>(o).v; }
 #ifdef VALUE_DEBUG_DATA
-        auto operator<<(std::ostream& out) const -> std::ostream& { return out << v; }
+        auto debugData(std::ostream& out) const -> std::ostream& { return out << v; }
 #endif
     };
 
