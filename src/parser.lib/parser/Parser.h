@@ -603,9 +603,10 @@ private:
         }
     }
 
-    static bool isTyped(const TypeExpression& t) {
+    template<class Context>
+    static bool isTyped(const TypeExpression& t, Context& context) {
         return t.visit(
-            [](const TypeInstance& ti) { return strings::CompareView{".Typed"} == ti.concrete->module->name; },
+            [&](const TypeInstance& ti) { return ti.concrete == context.intrinsicType(meta::Type<parser::Typed>{}); },
             [](const auto&) { return false; });
     }
 
@@ -641,7 +642,7 @@ private:
                     Typed& typed = optTyped.value();
                     do {
                         if (typed.type || !typed.value) {
-                            if (isTyped(posArg.typed.type)) {
+                            if (isTyped(posArg.typed.type, context)) {
                                 auto as = ArgumentAssignment{};
                                 as.argument = &posArg;
                                 auto type = context.intrinsicType(meta::Type<Typed>{});
