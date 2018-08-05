@@ -103,4 +103,12 @@ INSTANTIATE_TEST_CASE_P(
                 instance::typeModT<nesting::NumberLiteral>("NumLit"),
                 instance::fun("print").runtime().args(instance::arg("v").right().type(type().instance("NumLit"))))
             .in(nesting::id("print"), nesting::num("1"))
-            .out(parser::call("print").right(arg("v", "NumLit", nesting::num("1"))))));
+            .out(parser::call("print").right(arg("v", "NumLit", nesting::num("1")))),
+        ExpressionParserData("Call VarDecl") //
+            .ctx( //
+                instance::typeModT<parser::Typed>("Typed"),
+                instance::typeModT<uint64_t>("u64"),
+                instance::fun("var").runtime().args(instance::arg("v").right().type(type().instance("Typed"))))
+            .in(nesting::id("var"), nesting::id("i"), nesting::colon(), nesting::id("u64"))
+            .out(parser::call("var").right(arg("v", "Typed", typed("i").type(type().instance("u64"))))) //
+        ));
