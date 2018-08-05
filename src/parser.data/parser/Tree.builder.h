@@ -100,8 +100,7 @@ public:
         return std::move(*this).visit(
             [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }, //
             [&](TypedBuilder&& typ) -> Node {
-                return Value{std::move(typ).build(scope),
-                             TypeExpression{}}; // TODO(arBmind): actually create typeExpression
+                return Value{std::move(typ).build(scope), TypeExpression{TypeInstance{&type}}};
             },
             [&](auto&& lit) -> Node {
                 return Value{std::move(lit), TypeExpression{TypeInstance{&type}}};
