@@ -19,11 +19,13 @@ struct ArgumentBuilder {
     using This = ArgumentBuilder;
 
     View name{};
+    View typeName{};
     ValueBuilders values{};
 
-    template<size_t N, class... Value>
-    ArgumentBuilder(const char (&name)[N], Value&&... value)
+    template<size_t N, size_t TN, class... Value>
+    ArgumentBuilder(const char (&name)[N], const char (&typeName)[TN], Value&&... value)
         : name(name)
+        , typeName(typeName)
         , values({std::forward<Value>(value)...}) {}
 
     auto build(const Scope& scope, const Function& fun) && -> ArgumentAssignment;
@@ -93,14 +95,16 @@ class ValueBuilder : public ValueVariant {
 public:
     META_VARIANT_CONSTRUCT(ValueBuilder, ValueVariant)
 
-    auto build(const Scope& scope) && -> Node {
+    auto build(const Scope& scope, View typeName) && -> Node {
+        auto& type = instance::lookupA<instance::Type>(scope, typeName);
         return std::move(*this).visit(
             [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }, //
             [&](TypedBuilder&& typ) -> Node {
-                return Value{std::move(typ).build(scope), TypeExpression{}};
+                return Value{std::move(typ).build(scope),
+                             TypeExpression{}}; // TODO(arBmind): actually create typeExpression
             },
-            [](auto&& lit) -> Node {
-                return Value{std::move(lit), TypeExpression{}};
+            [&](auto&& lit) -> Node {
+                return Value{std::move(lit), TypeExpression{TypeInstance{&type}}};
             });
     }
 };
@@ -122,7 +126,7 @@ inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -
     auto& v = arg.value();
     as.argument = &v;
     as.values.reserve(values.size());
-    for (auto&& val : std::move(values)) as.values.emplace_back(std::move(val).build(scope));
+    for (auto&& val : std::move(values)) as.values.emplace_back(std::move(val).build(scope, typeName));
     return as;
 }
 
@@ -138,9 +142,9 @@ auto typed(const char (&name)[N]) -> details::TypedBuilder {
     return {name};
 }
 
-template<size_t N, class... Value>
-auto arg(const char (&name)[N], Value&&... value) -> details::ArgumentBuilder {
-    return {name, std::forward<Value>(value)...};
+template<size_t N, size_t TN, class... Value>
+auto arg(const char (&name)[N], const char (&typeName)[TN], Value&&... value) -> details::ArgumentBuilder {
+    return {name, typeName, std::forward<Value>(value)...};
 }
 
 template<class Expr>

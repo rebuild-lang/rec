@@ -27,7 +27,7 @@ struct Function {
     Body body;
 
     auto lookupArgument(NameView name) const -> decltype(auto) {
-        return meta::findIfOpt(arguments, [&](const auto& a) { return name == a.typed.name; });
+        return meta::findIfOpt(arguments, [&](const auto& a) { return name.isContentEqual(a.typed.name); });
     }
     auto leftArguments() const -> ArgumentsRange {
         auto b = arguments.begin();

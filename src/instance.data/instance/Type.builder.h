@@ -13,11 +13,15 @@ struct TypeBuilder {
     template<size_t N>
     explicit TypeBuilder(const char (&name)[N]) {
         mod_.name = Name{name};
-        type_.name = Name{"type"};
     }
 
     auto size(size_t size) && -> TypeBuilder {
         type_.size = size;
+        return std::move(*this);
+    }
+
+    auto clone(CloneFunc* f) && -> TypeBuilder {
+        type_.clone = f;
         return std::move(*this);
     }
 
@@ -38,6 +42,12 @@ struct TypeBuilder {
 template<size_t N>
 auto typeMod(const char (&name)[N]) {
     return details::TypeBuilder{name};
+}
+
+template<class T, size_t N>
+auto typeModT(const char (&name)[N]) {
+    return details::TypeBuilder{name}.size(sizeof(T)).clone(
+        [](uint8_t* dest, const uint8_t* source) { new (dest) T(*reinterpret_cast<const T*>(source)); });
 }
 
 } // namespace instance

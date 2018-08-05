@@ -100,17 +100,7 @@ INSTANTIATE_TEST_CASE_P(
     ::testing::Values( //
         ExpressionParserData("Call Number Literal") //
             .ctx( //
-                instance::typeMod("NumLit").size(sizeof(void*)).parser(instance::Parser::SingleToken),
-                instance::fun("print").runtime().args(
-                    instance::arg("v").right().type(type().pointer().instance("NumLit"))))
+                instance::typeModT<nesting::NumberLiteral>("NumLit"),
+                instance::fun("print").runtime().args(instance::arg("v").right().type(type().instance("NumLit"))))
             .in(nesting::id("print"), nesting::num("1"))
-            .out(parser::call("print").right(arg("v", nesting::num("1")))), //
-        ExpressionParserData("Call VarDecl") //
-            .ctx( //
-                instance::typeMod("Typed").size(sizeof(void*)).parser(instance::Parser::IdTypeValue),
-                instance::typeMod("u64").size(sizeof(uint64_t)),
-                instance::fun("var").runtime().args(
-                    instance::arg("v").right().type(type().pointer().instance("Typed"))))
-            .in(nesting::id("var"), nesting::id("i"), nesting::colon(), nesting::id("u64"))
-            .out(parser::call("var").right(arg("v", typed("i").type(type().instance("u64"))))) //
-        ));
+            .out(parser::call("print").right(arg("v", "NumLit", nesting::num("1"))))));

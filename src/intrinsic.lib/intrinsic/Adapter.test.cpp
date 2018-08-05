@@ -7,6 +7,7 @@
 #include "instance/Scope.h"
 #include "instance/Type.h"
 #include "scanner/NumberLiteral.h"
+#include "scanner/Token.ostream.h"
 
 #include "strings/String.h"
 
@@ -74,11 +75,11 @@ struct TypeOf<uint64_t> {
             auto info = ArgumentInfo{};
             info.name = Name{"literal"};
             info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Reference;
+            // info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
-    static void implicitFrom(const Literal& literal, Result& res) {
+    static void implicitFrom(Literal literal, Result& res) {
         // TODO(arBmind)
         (void)literal;
         (void)res;
@@ -275,7 +276,7 @@ struct TypeOf<instance::TypeFlags> {
 };
 
 template<>
-struct TypeOf<instance::Type> {
+struct TypeOf<instance::Type*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"Type"};
@@ -285,12 +286,12 @@ struct TypeOf<instance::Type> {
     }
 
     struct ThisArgument {
-        instance::Type v;
+        instance::Type* v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"this"};
             info.side = ArgumentSide::Left;
-            info.flags = ArgumentFlag::Reference;
+            // info.flags = ArgumentFlag::Reference;
             return info;
         }
     };
@@ -304,8 +305,8 @@ struct TypeOf<instance::Type> {
             return info;
         }
     };
-    static void readFlags(const ThisArgument& self, Result& res) { //
-        res.v = self.v.flags;
+    static void readFlags(ThisArgument self, Result& res) { //
+        res.v = self.v->flags;
     }
 
     template<class Module>
@@ -352,7 +353,7 @@ struct Rebuild {
         mod.template type<uint64_t>();
         mod.template type<String>();
         mod.template type<scanner::NumberLiteral>();
-        mod.template type<instance::Type>();
+        mod.template type<instance::Type*>();
     }
 };
 

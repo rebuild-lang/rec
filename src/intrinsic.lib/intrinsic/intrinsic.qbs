@@ -35,6 +35,7 @@ Project {
 
         Depends { name: "intrinsic.lib" }
         Depends { name: "intrinsic.ostream" }
+        Depends { name: "parser.ostream" }
         Depends { name: "googletest.lib" }
         googletest.lib.useMain: true
 

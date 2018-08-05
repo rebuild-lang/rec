@@ -56,8 +56,8 @@ struct ExecutionMachineData {
     }
 
     static void literal(uint8_t* memory, intrinsic::Context*) {
-        auto& lit = reinterpret_cast<parser::NumberLiteral*&>(*memory);
-        instance->result = strings::String{lit->value.integerPart};
+        auto& lit = *reinterpret_cast<parser::NumberLiteral*>(memory);
+        instance->result = strings::String{lit.value.integerPart};
     }
 };
 
@@ -89,9 +89,9 @@ INSTANTIATE_TEST_CASE_P(
     ::testing::Values( //
         ExecutionMachineData("Example")
             .ctx(
-                instance::typeMod("Lit").size(sizeof(void*)),
+                instance::typeModT<nesting::NumberLiteral>("Lit"),
                 instance::fun("print")
                     .args(instance::arg("v").right().type(parser::type().instance("Lit")))
                     .rawIntrinsic(&ExecutionMachineData::literal))
-            .run(parser::call("print").right(parser::arg("v", nesting::num("42"))))
+            .run(parser::call("print").right(parser::arg("v", "Lit", nesting::num("42"))))
             .expect("42")));
