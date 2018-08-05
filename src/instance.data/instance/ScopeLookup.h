@@ -4,7 +4,7 @@
 
 namespace instance {
 
-inline auto lookup(const Scope& scope, const Name& name) -> const Node& {
+inline auto lookup(const Scope& scope, NameView name) -> const Node& {
     auto it = name.begin();
     auto end = name.end();
     auto it2 = std::find(it, end, '.');
@@ -26,7 +26,7 @@ inline auto lookup(const Scope& scope, const Name& name) -> const Node& {
 }
 
 template<class T>
-auto lookupA(const Scope& scope, const Name& name) -> const T& {
+auto lookupA(const Scope& scope, NameView name) -> const T& {
     const auto& c = lookup(scope, name);
     if (!c.holds<T>()) {
         if constexpr (std::is_same_v<T, Type>) {
