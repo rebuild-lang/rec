@@ -192,7 +192,7 @@ struct Adapter {
         auto info = Info();
         auto r = instance::Function{};
         r.name = strings::to_string(info.name);
-        // r.flags = functionFlags(info.flags); // TODO(arBmind)
+        r.flags = functionFlags(info.flags);
         r.arguments = instance::Arguments{argument<ExternArgs>()...};
 
         auto call = &details::Call<F, Args...>::call;
@@ -330,6 +330,15 @@ private:
         // r.typed.type = // this has to be delayed until all types are known
         r.side = argumentSide(info.side);
         r.flags = argumentFlags(info.flags);
+        return r;
+    }
+
+    constexpr static auto functionFlags(intrinsic::FunctionFlags flags) -> instance::FunctionFlags {
+        using namespace intrinsic;
+        auto r = instance::FunctionFlags{};
+        if (flags.any(FunctionFlag::CompileTimeOnly)) {
+            r |= instance::FunctionFlag::compile_time;
+        }
         return r;
     }
 
