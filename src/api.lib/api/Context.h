@@ -145,14 +145,6 @@ struct TypeOf<Context*> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        //        mod.template function<&declareVariable,
-        //            [] {
-        //                auto info = FunctionInfo{};
-        //                info.name = Name{".declareVariable"};
-        //                info.flags = FunctionFlag::CompileTimeOnly;
-        //                return info;
-        //            }>();
-
         mod.template function<&declareModule, [] {
             auto info = FunctionInfo{};
             info.name = Name{".declareModule"};
