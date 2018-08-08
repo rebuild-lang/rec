@@ -76,10 +76,15 @@ struct Machine {
         runFunction(*call.function, callContext);
     }
 
+    static void runBlock(const parser::Block& block, const Context& context) {
+        auto blockContext = context.createCall();
+        runFunctionBlock(block, blockContext);
+    }
+
 private:
     static void runNode(const parser::Node& node, Context& context) {
         node.visit(
-            [&](const parser::Block& block) { runBlock(block, context); },
+            [&](const parser::Block& block) { runFunctionBlock(block, context); },
             [&](const parser::Call& call) { runCall(call, context); },
             [&](const parser::IntrinsicCall& intrinsic) { runIntrinsic(intrinsic, context); },
             [&](const parser::ArgumentReference&) {},
@@ -99,7 +104,7 @@ private:
         }
     }
 
-    static void runBlock(const parser::Block& block, Context& context) {
+    static void runFunctionBlock(const parser::Block& block, Context& context) {
         auto frameSize = variablesInBlockSize(block.nodes);
         auto frameData = context.compiler->stack.allocate(frameSize);
 
@@ -119,7 +124,7 @@ private:
     }
 
     static void runFunction(const instance::Function& function, Context& context) {
-        runBlock(function.body.block, context);
+        runFunctionBlock(function.body.block, context);
     }
 
     static void runTyped(const parser::TypedTuple& typed, Context& context) {

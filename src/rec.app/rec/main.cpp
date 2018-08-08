@@ -130,15 +130,15 @@ public:
         };
     }
 
-    auto compile(const text::File& file) -> Block {
+    void compile(const text::File& file) {
         auto tokenize = [&](const auto& file) { return scanner::tokensFromFile(file, config); };
         auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
         auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
         auto parse = [&](const auto& file) {
             return parser::Parser::parse(blockify(file), parserContext(globalScope));
         };
-        return parse(file);
-        // TODO(arBmind): run phases
+        auto block = parse(file);
+        execution::Machine::runBlock(block, executionContext(globals));
     }
 };
 
@@ -156,8 +156,8 @@ int main() {
     auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
 
     auto file = text::File{strings::String{"TestFile"}, strings::String{R"(
-Rebuild.Context.declareVariable foo :Rebuild.basic.u64 = 23
-# Rebuild.say "Hello!"
+Rebuild.Context.declareVariable foo :Rebuild.literal.String = "Hello from Variable!"
+Rebuild.say foo
 Rebuild.Context.declareModule test:
     Rebuild.say "parsing inside!"
 end
