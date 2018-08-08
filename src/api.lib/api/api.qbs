@@ -38,4 +38,18 @@ Project {
         }
     }
 
+    Application {
+        name: "api.tests"
+        consoleApplication: true
+        type: ["application", "autotest"]
+
+        Depends { name: "api.lib" }
+        Depends { name: "instance.ostream" }
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
+
+        files: [
+            "api.test.cpp",
+        ]
+    }
 }

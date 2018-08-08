@@ -4,6 +4,8 @@
 
 #include "parser/Tree.h"
 
+#include <string>
+
 namespace api {
 
 using U64 = uint64_t;
@@ -43,9 +45,17 @@ struct TypeOf<api::U64> {
         }
     };
     static void implicitFrom(const Literal& literal, Result& res) {
-        // TODO(arBmind)
-        (void)literal;
-        (void)res;
+        auto str = static_cast<std::string>(strings::to_string(literal.v.value.integerPart));
+        auto base = static_cast<int>(literal.v.value.radix);
+        try {
+            res.v = std::stoull(str, 0, base);
+        }
+        catch (const std::invalid_argument&) {
+        }
+        catch (const std::out_of_range&) {
+            // TODO(arBmind): add error
+            res.v = 0;
+        }
     }
 
     struct Left {
