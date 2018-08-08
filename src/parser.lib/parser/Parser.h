@@ -434,9 +434,48 @@ private:
         return ParseOptions::continue_single;
     }
 
+    static bool isDirectlyExecutable(const TypeExpression& expr) {
+        return expr.visit(
+            [](const Auto&) { return false; }, //
+            [](const auto&) { return true; });
+    }
+
+    static bool isDirectlyExecutable(const Typed& typed) {
+        if (typed.value && !isDirectlyExecutable(typed.value.value())) return false;
+        if (typed.type && !isDirectlyExecutable(typed.type.value())) return false;
+        return true;
+    }
+
+    static bool isDirectlyExecutable(const Node& node) {
+        return node.visit(
+            [](const Block&) { return false; },
+            [](const Call& call) { return isDirectlyExecutable(call); },
+            [](const IntrinsicCall&) { return false; },
+            [](const ArgumentReference&) { return false; },
+            [](const VariableReference&) { return false; },
+            [](const VariableInit&) { return false; },
+            [](const ModuleReference&) { return false; },
+            [](const TypedTuple& tuple) {
+                for (auto& typed : tuple.tuple)
+                    if (!isDirectlyExecutable(typed)) return false;
+                return true;
+            },
+            [](const Value&) { return true; });
+    }
+
+    static bool isDirectlyExecutable(const Call& call) {
+        if (call.function->flags.none(instance::FunctionFlag::compile_time)) return false;
+        for (auto& arg : call.arguments) {
+            for (auto& node : arg.values) {
+                if (!isDirectlyExecutable(node)) return false;
+            }
+        }
+        return true;
+    }
+
     template<class Context>
     static auto buildCallNode(Call&& call, Context& context) -> OptNode {
-        if (call.function->flags.none(instance::FunctionFlag::run_time)) {
+        if (isDirectlyExecutable(call)) {
             return context.runCall(call);
         }
         return OptNode{{call}};
