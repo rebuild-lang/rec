@@ -156,6 +156,15 @@ int main() {
     auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
 
     auto file = text::File{strings::String{"TestFile"}, strings::String{R"(
+
+Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
+
+Rebuild.Context.declareFunction(() hi () ():
+    # Rebuild.say hif
+    Rebuild.say "Hello from Hi"
+end
+hi
+
 Rebuild.Context.declareVariable foo :Rebuild.literal.String = "Hello from Variable!"
 Rebuild.say foo
 Rebuild.Context.declareModule test:
