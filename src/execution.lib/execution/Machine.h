@@ -271,7 +271,7 @@ private:
             [&](const parser::VariableReference& var) { storeTypedValue(var.variable->typed, context, memory); },
             [&](const parser::VariableInit&) { assert(false); },
             [&](const parser::ModuleReference&) {},
-            [&](const parser::TypedTuple&) {},
+            [&](const parser::TypedTuple& tuple) { storeTupleCopy(tuple, memory); },
             [&](const parser::Value& value) { storeValueCopy(value, memory); });
     }
 
@@ -297,6 +297,10 @@ private:
     static void storeTypedValue(const instance::Typed& typed, const Context& context, Byte* memory) {
         auto* source = context[&typed];
         cloneTypeInto(typed.type, memory, source);
+    }
+
+    static void storeTupleCopy(const parser::TypedTuple& tuple, Byte* memory) {
+        new (memory) parser::TypedTuple(tuple);
     }
 
     static void storeValueCopy(const parser::Value& value, Byte* memory) {
