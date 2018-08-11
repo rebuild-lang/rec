@@ -14,7 +14,7 @@
 
 namespace execution {
 
-using ParseBlock = std::function<void(const nesting::BlockLiteral& block, instance::Scope* scope)>;
+using ParseBlock = std::function<parser::Block(const nesting::BlockLiteral& block, instance::Scope* scope)>;
 
 struct Compiler {
     Stack stack{}; // stack allocator
@@ -61,7 +61,9 @@ struct IntrinsicContext : intrinsic::Context {
         : parseBlock(context.compiler->parseBlock)
         , intrinsic::Context{context.parserScope, executionScope} {}
 
-    void parse(const parser::BlockLiteral& block, instance::Scope* scope) const override { parseBlock(block, scope); }
+    auto parse(const parser::BlockLiteral& block, instance::Scope* scope) const -> parser::Block override {
+        return parseBlock(block, scope);
+    }
 };
 
 struct Machine {

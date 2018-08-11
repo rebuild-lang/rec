@@ -12,7 +12,7 @@ struct Context {
         : parserScope(parserScope)
         , executionScope(executionScope) {}
 
-    virtual void parse(const parser::BlockLiteral& block, instance::Scope* scope) const = 0;
+    virtual auto parse(const parser::BlockLiteral& block, instance::Scope* scope) const -> parser::Block = 0;
 };
 
 } // namespace intrinsic

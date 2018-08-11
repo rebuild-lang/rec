@@ -125,8 +125,8 @@ public:
         : config(config)
         , globals(std::move(globals))
         , globalScope(&this->globals) {
-        compiler.parseBlock = [this](const nesting::BlockLiteral& block, InstanceScope* scope) {
-            parser::Parser::parse(block, parserContext(*scope));
+        compiler.parseBlock = [this](const nesting::BlockLiteral& block, InstanceScope* scope) -> parser::Block {
+            return parser::Parser::parse(block, parserContext(*scope));
         };
     }
 
