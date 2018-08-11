@@ -97,7 +97,7 @@ inline auto blockStart(Column c) -> filter::Token {
 }
 inline auto blockEnd(Column c) -> filter::Token {
     auto tok = filter::BlockEndIndentation{};
-    tok.range.end.column = c;
+    tok.range.begin.column = c;
     return tok;
 }
 inline auto newLine(Column c) -> filter::Token {
