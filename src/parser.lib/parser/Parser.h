@@ -120,7 +120,7 @@ private:
 
     static bool isAssignment(const BlockToken& t) {
         return t.visit(
-            [](const nesting::OperatorLiteral& o) { return o.range.text.isContentEqual(View{"="}); }, //
+            [](const nesting::OperatorLiteral& o) { return o.range.view.isContentEqual(View{"="}); }, //
             [](const auto&) { return false; });
     }
 
@@ -136,7 +136,7 @@ private:
     static auto parseSingleTypedCallback(BlockLineView& it, Context& context, Callback&& callback) -> OptTyped {
         auto result = Typed{};
         auto extractName = [&] {
-            result.name = to_string(it.current().get<nesting::IdentifierLiteral>().range.text);
+            result.name = to_string(it.current().get<nesting::IdentifierLiteral>().range.view);
             ++it; // skip name
         };
         auto parseType = [&] {
@@ -218,7 +218,7 @@ private:
                 return ParseOptions::continue_single;
             },
             [&](const nesting::IdentifierLiteral& id) {
-                auto optNode = lookupIdentifier(id.range.text, result, context);
+                auto optNode = lookupIdentifier(id.range.view, result, context);
                 if (!optNode) {
                     if (result) return ParseOptions::finish_single;
 
@@ -528,7 +528,7 @@ private:
     static auto parseTypeExpression(BlockLineView& it, Context& context) -> OptTypeExpression {
         return it.current().visit(
             [&](const nesting::IdentifierLiteral& id) -> OptTypeExpression {
-                auto name = id.range.text;
+                auto name = id.range.view;
                 auto node = context.lookup(name);
                 if (node) return parseTypeInstance(*node.value(), it, context);
                 return {};
@@ -561,7 +561,7 @@ private:
             [&](const instance::Module& mod) -> OptTypeExpression {
                 ++it;
                 if (it && it.current().holds<nesting::IdentifierLiteral>()) {
-                    auto subName = it.current().get<nesting::IdentifierLiteral>().range.text;
+                    auto subName = it.current().get<nesting::IdentifierLiteral>().range.view;
                     auto subNode = mod.locals[subName];
                     if (subNode) return parseTypeInstance(*subNode.value(), it, context);
                 }
@@ -579,7 +579,7 @@ private:
     static auto parseTyped(BlockLineView& it, Context& context) -> OptTyped {
         auto name = it.current().visit(
             [&](const nesting::IdentifierLiteral& id) {
-                auto result = id.range.text;
+                auto result = id.range.view;
                 ++it;
                 return result;
             },
@@ -591,7 +591,7 @@ private:
         }();
         auto value = [&]() -> OptNode {
             if (!it.current().visit(
-                    [&](const nesting::OperatorLiteral& op) { return op.range.text == View{"="}; },
+                    [&](const nesting::OperatorLiteral& op) { return op.range.view == View{"="}; },
                     [](const auto&) { return false; }))
                 return {};
             ++it;

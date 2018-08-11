@@ -70,7 +70,7 @@ struct TypeOf<Context*> {
 
     static void declareModule(Label label, Block block, ModuleResult& res, ImplicitContext context) {
         (void)res;
-        auto name = label.v.range.text;
+        auto name = label.v.range.view;
         auto optNode = context.v->parserScope->locals[name];
         if (optNode) {
             auto node = optNode.value();

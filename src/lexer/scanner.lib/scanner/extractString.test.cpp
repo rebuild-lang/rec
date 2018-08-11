@@ -33,7 +33,7 @@ TEST_P(StringScanners, all) {
 
     EXPECT_EQ(param.text, strings::to_string(lit.value.text));
 
-    EXPECT_EQ(param.content, strings::to_string(lit.range.text));
+    EXPECT_EQ(param.content, strings::to_string(lit.range.view));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
     EXPECT_EQ(beginPosition, lit.range.begin);
     EXPECT_EQ(param.end, lit.range.end);
@@ -159,7 +159,7 @@ TEST_P(StringErrorScanners, all) {
     EXPECT_EQ(param.text, strings::to_string(lit.value.text));
     EXPECT_EQ(param.errors, lit.value.errors);
 
-    EXPECT_EQ(param.content, strings::to_string(lit.range.text));
+    EXPECT_EQ(param.content, strings::to_string(lit.range.view));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
     EXPECT_EQ(beginPosition, lit.range.begin);
     EXPECT_EQ(param.end, lit.range.end);

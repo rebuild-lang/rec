@@ -29,7 +29,7 @@ TEST_P(CommentScanners, all) {
 
     const auto lit = scanner::extractComment(input, param.tabStops);
 
-    EXPECT_EQ(param.content, strings::to_string(lit.range.text));
+    EXPECT_EQ(param.content, strings::to_string(lit.range.view));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
     EXPECT_EQ(beginPosition, lit.range.begin);
     EXPECT_EQ(param.end, lit.range.end);

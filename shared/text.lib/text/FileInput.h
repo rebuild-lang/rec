@@ -1,6 +1,6 @@
 #pragma once
 #include "File.h"
-#include "TextRange.h"
+#include "Range.h"
 
 #include <deque>
 
@@ -24,7 +24,7 @@ struct FileInput {
     bool hasMoreBytes(strings::Counter bytes) const { return current_ + bytes.v <= end_(); }
 
     auto view() const { return View(begin_, current_); }
-    auto range() const { return TextRange{file, view(), beginPosition, currentPosition_}; }
+    auto range() const { return Range{file, view(), beginPosition, currentPosition_}; }
 
     void collapse() {
         begin_ = current_;

@@ -20,9 +20,9 @@ Project {
             "Position.cpp",
             "Position.h",
             "Position.ostream.h",
-            "TextRange.cpp",
-            "TextRange.h",
-            "TextRange.ostream.h",
+            "Range.cpp",
+            "Range.h",
+            "Range.ostream.h",
         ]
 
         Export {

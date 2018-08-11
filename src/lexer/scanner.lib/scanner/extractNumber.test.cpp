@@ -41,7 +41,7 @@ TEST_P(NumberScanners, all) {
     EXPECT_EQ(param.exponentSign, value.exponentSign);
     EXPECT_EQ(param.exponentPart, to_string(value.exponentPart));
 
-    EXPECT_EQ(param.content, strings::to_string(lit.range.text));
+    EXPECT_EQ(param.content, strings::to_string(lit.range.view));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
     EXPECT_EQ(beginPosition, lit.range.begin);
     const auto endPosition = Position{Line{1}, param.endColumn};

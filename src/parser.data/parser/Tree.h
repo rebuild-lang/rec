@@ -6,7 +6,7 @@
 
 #include "nesting/Token.h"
 
-#include "text/TextRange.h"
+#include "text/Range.h"
 
 #include "meta/Variant.h"
 
@@ -18,7 +18,7 @@ struct Context;
 
 namespace parser {
 
-using TextRange = text::TextRange;
+using TextRange = text::Range;
 using View = text::View;
 using OptView = strings::OptionalView;
 using Name = strings::String;

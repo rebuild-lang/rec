@@ -4,7 +4,7 @@
 
 #include "scanner/Token.h"
 
-#include "text/TextRange.ostream.h"
+#include "text/Range.ostream.h"
 
 namespace scanner {
 

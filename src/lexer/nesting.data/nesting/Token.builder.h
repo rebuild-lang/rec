@@ -39,7 +39,7 @@ struct IdentBuilder {
 
     template<size_t N>
     auto text(const char (&text)[N]) && -> This {
-        lit().range.text = View{text};
+        lit().range.view = View{text};
         return *this;
     }
 

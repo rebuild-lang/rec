@@ -155,11 +155,11 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
         }
         else if (current.holds<scanner::IdentifierLiteral>()) {
             const auto& id = current.get<scanner::IdentifierLiteral>();
-            if (previous.holds<NewLineIndentation>() && id.range.text.isContentEqual(View{"end"})) {
+            if (previous.holds<NewLineIndentation>() && id.range.view.isContentEqual(View{"end"})) {
                 previous = BlockEndIndentation{id.range};
                 continue; // ['\n' + "end"] => block end
             }
-            if (previous.holds<BlockStartIndentation>() && id.range.text.isContentEqual(View{"end"})) {
+            if (previous.holds<BlockStartIndentation>() && id.range.view.isContentEqual(View{"end"})) {
                 lastYieldType = previous.index();
                 co_yield previous;
                 previous = BlockEndIndentation{id.range};
