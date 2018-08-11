@@ -176,6 +176,7 @@ private:
         }
         // value
         callback(result);
+        if (!result.value) return {};
         return result;
     }
 
