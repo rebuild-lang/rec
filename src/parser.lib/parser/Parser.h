@@ -315,6 +315,7 @@ private:
             using This = Overload;
             bool active{true};
             bool complete{false};
+            bool hasBlocks{false};
             FunctionView function{};
             BlockLineView it{};
             ArgumentAssignments rightArgs{};
@@ -322,7 +323,9 @@ private:
 
             Overload() = default;
             explicit Overload(const Function& function)
-                : function(&function) {}
+                : function(&function)
+                , active(!function.arguments.empty())
+                , complete(function.arguments.empty()) {}
 
             void retireLeft(const TypedViewTuple& left) {
                 auto o = 0u, t = 0u;
@@ -415,21 +418,22 @@ private:
         os.retireLeft(left);
         if (!os.active().empty() && it) {
             parseArguments(os, it, context);
-            auto completed = os.finish();
-            if (completed.size() == 1) {
-                auto& o = completed.front();
-                it = o.it;
-                auto inv = [&] {
-                    auto r = Call{};
-                    r.function = o.function;
-                    // TODO(arBmind): assign left arguments
-                    r.arguments = o.rightArgs;
-                    return r;
-                };
-                left = buildCallNode(inv(), context);
-                return ParseOptions::continue_single;
-            }
         }
+        auto completed = os.finish();
+        if (completed.size() == 1) {
+            auto& o = completed.front();
+            it = o.it;
+            auto inv = [&] {
+                auto r = Call{};
+                r.function = o.function;
+                // TODO(arBmind): assign left arguments
+                r.arguments = o.rightArgs;
+                return r;
+            };
+            left = buildCallNode(inv(), context);
+            return o.hasBlocks ? ParseOptions::finish_single : ParseOptions::continue_single;
+        }
+
         if (left) return ParseOptions::finish_single;
         // left = OptNode{FunctionReference{fun}};
         return ParseOptions::continue_single;
@@ -649,6 +653,14 @@ private:
             [&](const TypeInstance& ti) { return ti.concrete == context.intrinsicType(meta::Type<parser::Typed>{}); },
             [](const auto&) { return false; });
     }
+    template<class Context>
+    static bool isBlockLiteral(const TypeExpression& t, Context& context) {
+        return t.visit(
+            [&](const TypeInstance& ti) {
+                return ti.concrete == context.intrinsicType(meta::Type<parser::BlockLiteral>{});
+            },
+            [](const auto&) { return false; });
+    }
 
     template<class Context>
     static void parseArgumentsWithout(OverloadSet& os, BlockLineView& it, Context& context) {
@@ -695,6 +707,14 @@ private:
                             // unexpected type / no value
                             break;
                         }
+                        auto isNodeBlockLiteral = [&](OptNode& node) {
+                            if (!node) return false;
+                            if (!node.value().holds<Value>()) return false;
+                            auto& value = node.value().get<Value>();
+                            return isBlockLiteral(value.type(), context);
+                        };
+                        if (isNodeBlockLiteral(typed.value)) o.hasBlocks = true;
+
                         if (typed.name) {
                             auto optNamedArg = o.function->lookupArgument(typed.name.value());
                             if (optNamedArg) {
