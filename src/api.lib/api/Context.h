@@ -69,7 +69,6 @@ struct TypeOf<Context*> {
     };
 
     static void declareModule(Label label, Block block, ModuleResult& res, ImplicitContext context) {
-        (void)res;
         auto name = label.v.range.view;
         auto optNode = context.v->parserScope->locals[name];
         if (optNode) {
@@ -143,6 +142,93 @@ struct TypeOf<Context*> {
         if (typed.v.value) res.v.nodes.push_back(typed.v.value.value());
     }
 
+    struct TypedTuple {
+        parser::TypedTuple v;
+        static constexpr auto info() {
+            auto info = ArgumentInfo{};
+            info.name = Name{};
+            info.side = ArgumentSide::Right;
+            // info.flags = ArgumentFlag::Reference;
+            return info;
+        }
+    };
+    struct FunctionResult {
+        instance::Function* v;
+        static constexpr auto info() {
+            auto info = ArgumentInfo{};
+            info.name = Name{"result"};
+            info.side = ArgumentSide::Result;
+            info.flags = ArgumentFlag::Assignable;
+            return info;
+        }
+    };
+
+    static void declareFunction(
+        TypedTuple left,
+        Label label,
+        TypedTuple right,
+        TypedTuple results,
+        Block block,
+        FunctionResult& res,
+        ImplicitContext context) {
+
+        // TODO(arBmind): implement
+        auto name = label.v.range.view;
+        auto optNode = context.v->parserScope->locals[name];
+        if (optNode) {
+            /*
+            auto node = optNode.value();
+            if (node->holds<instance::Function>()) {
+                auto& module = node->get<instance::Function>();
+                auto moduleScope = instance::Scope(context.v->parserScope);
+                moduleScope.locals = std::move(module.locals);
+                context.v->parse(block.v, &moduleScope);
+                module.locals = std::move(moduleScope.locals);
+                res.v = &module;
+            }
+            else
+                return; // error
+            */
+        }
+        else {
+            auto optNode = context.v->parserScope->emplace([&] {
+                auto function = instance::Function{};
+                function.name = strings::to_string(name);
+                auto addArgumentsFromTyped = [&](instance::ArgumentSide side, TypedTuple& tuple) {
+                    for (auto& typed : tuple.v.tuple) {
+                        function.arguments.push_back([&] {
+                            auto argument = instance::Argument{};
+                            if (typed.name) argument.typed.name = strings::to_string(typed.name.value());
+                            if (typed.type) argument.typed.type = typed.type.value();
+                            argument.side = side;
+                            if (typed.value) argument.init.push_back(typed.value.value());
+                            return argument;
+                        }());
+                    }
+                };
+
+                addArgumentsFromTyped(instance::ArgumentSide::left, left);
+                addArgumentsFromTyped(instance::ArgumentSide::right, right);
+                addArgumentsFromTyped(instance::ArgumentSide::result, results);
+                return function;
+            }());
+            auto& function = optNode.value()->get<instance::Function>();
+
+            auto argumentScope = instance::Scope(context.v->parserScope);
+            for (auto& funArg : function.arguments) {
+                argumentScope.emplace({funArg});
+            }
+
+            auto bodyScope = instance::Scope(&argumentScope);
+            function.body.block = context.v->parse(block.v, &bodyScope);
+            function.body.locals = std::move(bodyScope.locals);
+
+            function.argumentScope = std::move(argumentScope.locals);
+
+            res.v = &function;
+        }
+    }
+
     template<class Module>
     static constexpr auto module(Module& mod) {
         mod.template function<&declareModule, [] {
@@ -155,6 +241,13 @@ struct TypeOf<Context*> {
         mod.template function<&declareVariable, [] {
             auto info = FunctionInfo{};
             info.name = Name{".declareVariable"};
+            info.flags = FunctionFlag::CompileTimeOnly;
+            return info;
+        }>();
+
+        mod.template function<&declareFunction, [] {
+            auto info = FunctionInfo{};
+            info.name = Name{".declareFunction"};
             info.flags = FunctionFlag::CompileTimeOnly;
             return info;
         }>();

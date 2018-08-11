@@ -78,6 +78,20 @@ struct TypeOf<instance::Type*> {
     }
 };
 
+template<>
+struct TypeOf<instance::Function*> {
+    static constexpr auto info() {
+        auto info = TypeInfo{};
+        info.name = Name{"Function"};
+        info.size = sizeof(instance::Function*);
+        info.flags = TypeFlag::CompileTime;
+        return info;
+    }
+
+    template<class Module>
+    static constexpr auto module(Module&) {}
+};
+
 struct Instance {
     static constexpr auto info() {
         auto info = ModuleInfo{};
@@ -89,7 +103,7 @@ struct Instance {
     static constexpr auto module(Module& mod) {
         mod.template type<instance::Module*>();
         mod.template type<instance::Type*>();
-        // mod.template type<instance::Function>();
+        mod.template type<instance::Function*>();
         // mod.template type<instance::Variable>();
         // mod.template type<instance::Argument>();
     }

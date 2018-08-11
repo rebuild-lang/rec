@@ -23,6 +23,22 @@ struct TypeOf<parser::VariableInit> {
     }
 };
 
+template<>
+struct TypeOf<parser::TypedTuple> {
+    static constexpr auto info() {
+        auto info = TypeInfo{};
+        info.name = Name{".TypedTuple"};
+        info.size = sizeof(parser::TypedTuple);
+        info.flags = TypeFlag::CompileTime;
+        return info;
+    }
+
+    template<class Module>
+    static constexpr auto module(Module& mod) {
+        // TODO(arBmind): add API
+    }
+};
+
 struct ParserModule {
     static constexpr auto info() {
         auto info = ModuleInfo{};
@@ -33,6 +49,7 @@ struct ParserModule {
     template<class Module>
     static constexpr auto module(Module& mod) {
         mod.template type<parser::VariableInit>();
+        mod.template type<parser::TypedTuple>();
     }
 };
 

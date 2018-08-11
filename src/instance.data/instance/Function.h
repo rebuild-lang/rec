@@ -1,6 +1,7 @@
 #pragma once
 #include "Argument.h"
 #include "Body.h"
+#include "LocalScope.h"
 
 #include "meta/Flags.h"
 #include "meta/VectorRange.h"
@@ -21,10 +22,11 @@ using ArgumentsRange = meta::VectorRange<const Argument>;
 
 struct Function {
     Name name;
-    FunctionFlags flags;
+    FunctionFlags flags{};
     Arguments arguments;
     // PrecedenceLevel level;
     Body body;
+    LocalScope argumentScope;
 
     auto lookupArgument(NameView name) const -> decltype(auto) {
         return meta::findIfOpt(arguments, [&](const auto& a) { return name.isContentEqual(a.typed.name); });
