@@ -5,6 +5,8 @@
 
 namespace nesting {
 
+inline static auto indentIndex = std::ios_base::xalloc();
+
 auto operator<<(std::ostream& out, const Token& v) -> std::ostream&;
 
 inline auto operator<<(std::ostream& out, const TokenLine& l) -> std::ostream& {
@@ -15,26 +17,27 @@ inline auto operator<<(std::ostream& out, const TokenLine& l) -> std::ostream& {
 }
 
 inline auto operator<<(std::ostream& out, const BlockLiteralValue& b) -> std::ostream& {
+    auto parentIndent = out.iword(indentIndex);
+    auto indent = parentIndent + 1;
+    out.iword(indentIndex) = indent;
+
     for (const auto& line : b.lines) {
-        out << "  line: " << line << '\n';
+        for (auto i = 0; i <= indent; i++) out << "  ";
+        out << line << '\n';
     }
+    out.iword(indentIndex) = parentIndent;
     return out;
 }
 
-inline auto operator<<(std::ostream& out, const Token& v) -> std::ostream& {
-    v.visit(
-        [&](const BlockLiteral& block) { out << "{block: " << block.value; },
-        [&](const ColonSeparator&) { out << "<:>"; },
-        [&](const CommaSeparator&) { out << "<,>"; },
-        [&](const SquareBracketOpen&) { out << "<[>"; },
-        [&](const SquareBracketClose&) { out << "<]>"; },
-        [&](const BracketOpen&) { out << "<(>"; },
-        [&](const BracketClose&) { out << "<)>"; },
-        [&](const StringLiteral& str) { out << "<str: " << str.value << ">"; },
-        [&](const NumberLiteral& num) { out << "<num: " << num.value << ">"; },
-        [&](const IdentifierLiteral& ident) { out << "<id: " << ident << ">"; },
-        [&](const OperatorLiteral& op) { out << "<op: " << op << ">"; });
-    return out;
+inline auto operator<<(std::ostream& out, const BlockLiteral& b) -> std::ostream& {
+    out << "begin:\n" << b.value;
+    auto indent = out.iword(indentIndex);
+    for (auto i = 0; i <= indent; i++) out << "  ";
+    return out << "end\n";
+}
+
+inline auto operator<<(std::ostream& out, const Token& t) -> std::ostream& {
+    return t.visit([&](const auto& v) -> decltype(auto) { return out << v; });
 }
 
 } // namespace nesting
