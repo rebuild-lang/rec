@@ -3,7 +3,10 @@
 #include "Body.h"
 #include "LocalScope.h"
 
+#include "instance/Views.h"
+
 #include "meta/Flags.h"
+#include "meta/Optional.h"
 #include "meta/VectorRange.h"
 #include "meta/algorithm.h"
 #include "strings/View.h"
@@ -18,31 +21,35 @@ enum class FunctionFlag {
     run_time = 1 << 1,
 };
 using FunctionFlags = meta::Flags<FunctionFlag>;
-using ArgumentsRange = meta::VectorRange<const Argument>;
+
+using OptArgumentView = meta::Optional<meta::DefaultPacked<ArgumentView>>;
+
+using ArgumentViews = std::vector<ArgumentView>;
+using ArgumentsRange = meta::VectorRange<ArgumentView const>;
 
 struct Function {
     Name name;
     FunctionFlags flags{};
-    Arguments arguments;
     // PrecedenceLevel level;
     Body body;
     LocalScope argumentScope;
+    ArgumentViews arguments;
 
-    auto lookupArgument(NameView name) const -> decltype(auto) {
-        return meta::findIfOpt(arguments, [&](const auto& a) { return name.isContentEqual(a.typed.name); });
+    auto lookupArgument(NameView name) const -> OptArgumentView {
+        return argumentScope[name].map([](const auto node) -> OptArgumentView { return &node->get<Argument>(); });
     }
     auto leftArguments() const -> ArgumentsRange {
         auto b = arguments.begin();
-        auto e = meta::findIf(arguments, [](const auto& a) { return a.side != ArgumentSide::left; });
+        auto e = meta::findIf(arguments, [](const auto& a) { return a->side != ArgumentSide::left; });
         return {b, e};
     }
     auto rightArguments() const -> ArgumentsRange {
-        auto b = meta::findIf(arguments, [](const auto& a) { return a.side == ArgumentSide::right; });
-        auto e = std::find_if(b, arguments.end(), [](const auto& a) { return a.side != ArgumentSide::right; });
+        auto b = meta::findIf(arguments, [](const auto a) { return a->side == ArgumentSide::right; });
+        auto e = std::find_if(b, arguments.end(), [](const auto a) { return a->side != ArgumentSide::right; });
         return {b, e};
     }
     void orderArguments() {
-        meta::stableSort(arguments, [](const auto& a, const auto& b) { return a.side < b.side; });
+        meta::stableSort(arguments, [](const auto a, const auto b) { return a->side < b->side; });
     }
 };
 

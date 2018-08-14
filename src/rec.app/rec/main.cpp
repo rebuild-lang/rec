@@ -59,17 +59,17 @@ class Compiler final {
 
     static auto assignResultStorage(Call& call) {
         const auto* f = call.function;
-        for (auto& a : f->arguments) {
-            if (a.side == instance::ArgumentSide::result //
-                && a.typed.type.holds<parser::Pointer>()) {
+        for (auto* a : f->arguments) {
+            if (a->side == instance::ArgumentSide::result //
+                && a->typed.type.holds<parser::Pointer>()) {
 
-                parser::TypeExpression* ptrTarget = a.typed.type.get<parser::Pointer>().target.get();
+                parser::TypeExpression* ptrTarget = a->typed.type.get<parser::Pointer>().target.get();
                 ptrTarget->visit(
                     [&](const parser::Pointer& p) {
-                        call.arguments.push_back({&a, {parser::Value{nullptr, parser::TypeExpression{*ptrTarget}}}});
+                        call.arguments.push_back({a, {parser::Value{nullptr, parser::TypeExpression{*ptrTarget}}}});
                     },
                     [&](const parser::TypeInstance& i) {
-                        call.arguments.push_back({&a, {i.concrete->makeUninitialized({*ptrTarget})}});
+                        call.arguments.push_back({a, {i.concrete->makeUninitialized({*ptrTarget})}});
                     },
                     [](const auto) {});
             }
@@ -157,16 +157,19 @@ int main() {
 
     auto file = text::File{strings::String{"TestFile"}, strings::String{R"(
 
-Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
+# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
 
-Rebuild.Context.declareFunction(() hi () ():
-    # Rebuild.say hif
+Rebuild.Context.declareFunction(() hi (a :Rebuild.literal.String) ():
+    # Rebuild.say hif # TODO(arBmind): get globals working
     Rebuild.say "Hello from Hi"
+    Rebuild.say a
 end
-hi
+hi "Hello from calling"
 
 Rebuild.Context.declareVariable foo :Rebuild.literal.String = "Hello from Variable!"
 Rebuild.say foo
+hi foo
+
 Rebuild.Context.declareModule test:
     Rebuild.say "parsing inside!"
 end

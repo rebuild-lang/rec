@@ -193,7 +193,7 @@ struct Adapter {
         auto r = instance::Function{};
         r.name = strings::to_string(info.name);
         r.flags = functionFlags(info.flags);
-        r.arguments = instance::Arguments{argument<ExternArgs>()...};
+        r.arguments = instance::ArgumentViews{argument<ExternArgs>(r.argumentScope)...};
 
         auto call = &details::Call<F, Args...>::call;
         r.body.block.nodes.emplace_back(parser::IntrinsicCall{call});
@@ -264,7 +264,7 @@ private:
         auto r = instance::Function{};
         r.name = strings::to_string(info.name);
         // r.flags =;
-        r.arguments = typeArguments(&TypeOf<T>::eval);
+        // r.arguments = typeArguments(&TypeOf<T>::eval);
         // r.body =;
         // call T::eval(…)
         // return Type that stores result & all functions
@@ -306,31 +306,38 @@ private:
     }
 
     template<class... Args, size_t... I>
-    auto trackArguments(instance::Arguments& args, std::index_sequence<I...>) {
+    auto trackArguments(instance::ArgumentViews& args, std::index_sequence<I...>) {
         using namespace intrinsic;
-        (types.arguments.push_back(ArgumentRef{&args[I], Argument<Args>::typeInfo().name.data()}), ...);
+        (types.arguments.push_back(
+             ArgumentRef{const_cast<instance::Argument*>(args[I]), Argument<Args>::typeInfo().name.data()}),
+         ...);
     }
 
     template<class T>
-    auto argument() -> instance::Argument {
+    auto argument(instance::LocalScope& scope) -> instance::ArgumentView {
         using namespace intrinsic;
-        constexpr auto info = Argument<T>::info();
-        auto r = instance::Argument{};
-        r.typed.name = strings::to_string(info.name);
-        if (info.flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
-            if (Argument<T>::is_pointer) {
-                r.typed.type = parser::Pointer{std::make_shared<parser::TypeExpression>(parser::Pointer{})};
+
+        auto optNode = scope.emplace([] {
+            constexpr auto info = Argument<T>::info();
+            auto r = instance::Argument{};
+            r.typed.name = strings::to_string(info.name);
+            if (info.flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
+                if (Argument<T>::is_pointer) {
+                    r.typed.type = parser::Pointer{std::make_shared<parser::TypeExpression>(parser::Pointer{})};
+                }
+                else
+                    r.typed.type = parser::Pointer{};
             }
-            else
+            else if (Argument<T>::is_pointer) {
                 r.typed.type = parser::Pointer{};
-        }
-        else if (Argument<T>::is_pointer) {
-            r.typed.type = parser::Pointer{};
-        }
-        // r.typed.type = // this has to be delayed until all types are known
-        r.side = argumentSide(info.side);
-        r.flags = argumentFlags(info.flags);
-        return r;
+            }
+            // r.typed.type = // this has to be delayed until all types are known
+            r.side = argumentSide(info.side);
+            r.flags = argumentFlags(info.flags);
+            return r;
+        }());
+        assert(optNode);
+        return &optNode.value()->get<instance::Argument>();
     }
 
     constexpr static auto functionFlags(intrinsic::FunctionFlags flags) -> instance::FunctionFlags {

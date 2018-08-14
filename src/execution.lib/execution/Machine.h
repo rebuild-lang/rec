@@ -147,8 +147,8 @@ private:
 
     static auto argumentsSize(const instance::Function& fun) -> size_t {
         auto sum = 0u;
-        for (auto& a : fun.arguments) {
-            sum += argumentSize(a);
+        for (auto* a : fun.arguments) {
+            sum += argumentSize(*a);
         }
         return sum;
     }
@@ -176,10 +176,10 @@ private:
         Byte* memory = context.localBase;
         const auto& fun = *call.function;
         // assert(call.arguments sufficient & valid)
-        for (const auto& funArg : fun.arguments) {
-            context.localFrame.insert(&funArg.typed, memory);
-            assignArgument(call, funArg, context, memory);
-            memory += argumentSize(funArg);
+        for (auto* funArg : fun.arguments) {
+            context.localFrame.insert(&funArg->typed, memory);
+            assignArgument(call, *funArg, context, memory);
+            memory += argumentSize(*funArg);
         }
     }
 
@@ -202,15 +202,15 @@ private:
         Byte* memory = context.localBase;
         const auto& fun = *call.function;
         // assert(call.arguments sufficient & valid)
-        for (const auto& funArg : fun.arguments) {
-            context.localFrame.insert(&funArg.typed, memory);
-            if (funArg.side == instance::ArgumentSide::result) {
-                storeResultAt(memory, funArg, result);
+        for (auto* funArg : fun.arguments) {
+            context.localFrame.insert(&funArg->typed, memory);
+            if (funArg->side == instance::ArgumentSide::result) {
+                storeResultAt(memory, *funArg, result);
             }
             else {
-                assignArgument(call, funArg, context, memory);
+                assignArgument(call, *funArg, context, memory);
             }
-            memory += argumentSize(funArg);
+            memory += argumentSize(*funArg);
         }
     }
 
@@ -296,6 +296,7 @@ private:
 
     static void storeTypedValue(const instance::Typed& typed, const Context& context, Byte* memory) {
         auto* source = context[&typed];
+        assert(source);
         cloneTypeInto(typed.type, memory, source);
     }
 

@@ -5,6 +5,7 @@
 
 #include "instance/Function.h"
 #include "instance/Module.h"
+#include "instance/Node.h"
 #include "instance/Type.h"
 
 #include <type_traits>
@@ -337,9 +338,9 @@ private:
                     else if (typed.name) {
                         auto optArg = function->lookupArgument(typed.name.value());
                         if (optArg) {
-                            const instance::Argument& arg = optArg.value();
-                            if (arg.side == instance::ArgumentSide::left //
-                                && canImplicitConvertToType(typed.value.value(), arg.typed.type)) {
+                            instance::ArgumentView arg = optArg.value();
+                            if (arg->side == instance::ArgumentSide::left //
+                                && canImplicitConvertToType(typed.value.value(), arg->typed.type)) {
                                 t++;
                                 continue;
                             }
@@ -349,9 +350,9 @@ private:
                         // name not found
                     }
                     else if (o < la.size()) {
-                        const auto& arg = la[o];
-                        if (arg.side == instance::ArgumentSide::left //
-                            && canImplicitConvertToType(typed.value.value(), arg.typed.type)) {
+                        const auto* arg = la[o];
+                        if (arg->side == instance::ArgumentSide::left //
+                            && canImplicitConvertToType(typed.value.value(), arg->typed.type)) {
                             o++;
                             continue;
                         }
@@ -367,7 +368,7 @@ private:
                 active = false;
             }
 
-            auto arg() const -> const instance::Argument& { return function->rightArguments()[nextArg]; }
+            auto arg() const -> instance::ArgumentView { return function->rightArguments()[nextArg]; }
         };
         using Overloads = std::vector<Overload>;
 
@@ -669,13 +670,13 @@ private:
             // auto baseIt = it;
             // TODO(arBmind): optimize for no custom parser case!
             for (auto& o : os.active()) {
-                const auto& posArg = o.arg();
+                auto* posArg = o.arg();
                 auto parseValueArgument = [&](Typed& typed) {
                     if (typed.name && !typed.type) {
                         auto optNamedArg = o.function->lookupArgument(typed.name.value());
                         if (optNamedArg) {
-                            const instance::Argument& namedArg = optNamedArg.value();
-                            auto p = parserForType<Context>(namedArg.typed.type);
+                            instance::ArgumentView namedArg = optNamedArg.value();
+                            auto p = parserForType<Context>(namedArg->typed.type);
                             typed.value = p(o.it, context);
                             return;
                         }
@@ -683,7 +684,7 @@ private:
                             // error: name not found / unless a == Typed{}
                         }
                     }
-                    auto p = parserForType<Context>(posArg.typed.type);
+                    auto p = parserForType<Context>(posArg->typed.type);
                     typed.value = p(o.it, context);
                 };
 
@@ -694,9 +695,9 @@ private:
                     Typed& typed = optTyped.value();
                     do {
                         if (typed.type || !typed.value) {
-                            if (isTyped(posArg.typed.type, context)) {
+                            if (isTyped(posArg->typed.type, context)) {
                                 auto as = ArgumentAssignment{};
-                                as.argument = &posArg;
+                                as.argument = posArg;
                                 auto type = context.intrinsicType(meta::Type<Typed>{});
                                 auto value = Typed{typed};
                                 as.values = {Value{std::move(value), {TypeInstance{type}}}};
@@ -718,10 +719,10 @@ private:
                         if (typed.name) {
                             auto optNamedArg = o.function->lookupArgument(typed.name.value());
                             if (optNamedArg) {
-                                const instance::Argument& namedArg = optNamedArg.value();
-                                if (canImplicitConvertToType(&typed.value.value(), namedArg.typed.type)) {
+                                instance::ArgumentView namedArg = optNamedArg.value();
+                                if (canImplicitConvertToType(&typed.value.value(), namedArg->typed.type)) {
                                     auto as = ArgumentAssignment{};
-                                    as.argument = &namedArg;
+                                    as.argument = namedArg;
                                     as.values = {std::move(optTyped).value().value.value()};
                                     o.rightArgs.push_back(std::move(as));
                                     // TODO(arBmind): add to call completion
@@ -735,9 +736,9 @@ private:
                                 break;
                             }
                         }
-                        if (canImplicitConvertToType(&typed.value.value(), posArg.typed.type)) {
+                        if (canImplicitConvertToType(&typed.value.value(), posArg->typed.type)) {
                             auto as = ArgumentAssignment{};
-                            as.argument = &posArg;
+                            as.argument = posArg;
                             as.values = {std::move(optTyped).value().value.value()};
                             o.rightArgs.push_back(std::move(as));
                             o.nextArg++;

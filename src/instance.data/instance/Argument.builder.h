@@ -4,7 +4,8 @@
 #include "Scope.h"
 #include "ScopeLookup.h"
 
-#include "functional"
+#include <cassert>
+#include <functional>
 
 namespace instance {
 
@@ -45,11 +46,13 @@ struct ArgumentBuilder {
         return *this;
     }
 
-    auto build(const Scope& scope) && -> Argument {
+    auto build(const Scope& scope, LocalScope& funScope) && -> ArgumentView {
         if (typeExprBuilder) {
             arg.typed.type = typeExprBuilder(scope);
         }
-        return std::move(arg);
+        auto optNode = funScope.emplace(std::move(arg));
+        assert(optNode);
+        return &optNode.value()->get<Argument>();
     }
 };
 

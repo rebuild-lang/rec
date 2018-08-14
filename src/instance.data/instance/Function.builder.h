@@ -40,7 +40,7 @@ struct FunctionBuilder {
     }
 
     auto build(const Scope& scope) && -> Function {
-        for (auto&& a : args_) fun_.arguments.emplace_back(std::move(a).build(scope));
+        for (auto&& a : args_) fun_.arguments.emplace_back(std::move(a).build(scope, fun_.argumentScope));
         return std::move(fun_);
     }
 };

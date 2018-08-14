@@ -16,6 +16,13 @@ inline auto operator<<(std::ostream& out, const FunctionFlags& f) -> std::ostrea
     return out << ']';
 }
 
+inline auto operator<<(std::ostream& out, ArgumentView a) -> std::ostream& { return out << *a; }
+
+inline auto operator<<(std::ostream& out, const ArgumentViews& av) -> std::ostream& {
+    strings::join(out, av, ", ");
+    return out;
+}
+
 inline auto operator<<(std::ostream& out, const Function& f) -> std::ostream& {
     return out << "fn " << f.name << '(' << f.arguments << ") " << f.flags;
 }
