@@ -39,7 +39,7 @@ struct IdentBuilder {
 
     template<size_t N>
     auto text(const char (&text)[N]) && -> This {
-        lit().range.view = View{text};
+        // lit().range.view = View{text};
         return *this;
     }
 
@@ -92,17 +92,17 @@ auto num(const char (&intPart)[N]) -> NumberLiteral {
 
 inline auto blockStart(Column c) -> filter::Token {
     auto tok = filter::BlockStartIndentation{};
-    tok.range.end.column = c;
+    // tok.range.end.column = c;
     return tok;
 }
 inline auto blockEnd(Column c) -> filter::Token {
     auto tok = filter::BlockEndIndentation{};
-    tok.range.begin.column = c;
+    // tok.range.begin.column = c;
     return tok;
 }
 inline auto newLine(Column c) -> filter::Token {
     auto tok = filter::NewLineIndentation{};
-    tok.range.end.column = c;
+    // tok.range.end.column = c;
     return tok;
 }
 inline auto colon() -> Token { return ColonSeparator{}; }
@@ -110,7 +110,7 @@ inline auto colon() -> Token { return ColonSeparator{}; }
 template<class... Lines>
 auto blk(Column c, Lines&&... lines) -> Token {
     auto tok = BlockLiteral{{{std::forward<Lines>(lines)...}}, {}};
-    tok.range.end.column = c;
+    // tok.range.end.column = c;
     return tok;
 }
 

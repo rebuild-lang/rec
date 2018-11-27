@@ -182,7 +182,7 @@ struct Adapter {
 
     template<FunctionInfoFunc Info, auto* F, class... Args>
     void functionImpl(intrinsic::FunctionSignature<void, Args...>) {
-        auto externArgs = meta::TypeList<Args...>::filterPred<IsImplicit>();
+        auto externArgs = meta::TypeList<Args...>::template filterPred<IsImplicit>();
         functionImpl2<Info, F, Args...>(externArgs);
     }
 

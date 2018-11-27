@@ -4,12 +4,12 @@ namespace meta {
 
 namespace details {
 
-void reportUnreachable();
+[[noreturn]] void reportUnreachable();
 
 } // namespace details
 
 template<class Result = void>
-auto unreachable() -> Result {
+[[noreturn]] auto unreachable() -> Result {
     details::reportUnreachable();
     return {};
 }

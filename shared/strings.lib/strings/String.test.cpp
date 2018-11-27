@@ -21,7 +21,7 @@ TEST(string, basic) {
 
     ASSERT_LT(s3, s);
 
-    using Arr = std::array<strings::String::Data, 4>;
+    using Arr = std::array<strings::String::Char, 4>;
     auto d = Arr{0, 0, 0, 0};
     auto i = 0;
     for (auto c : s) d[i++] = c;

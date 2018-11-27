@@ -32,6 +32,10 @@ template<class A, class B>
 constexpr bool operator!=(Type<A> a, Type<B> b) noexcept {
     return !(a == b);
 }
+template<class A>
+constexpr auto sizeOf(Type<A>) noexcept -> size_t {
+    return sizeof(A);
+}
 
 template<class... T>
 struct TypeList {
@@ -59,8 +63,13 @@ struct TypeList {
     //    }
 
     template<class F>
+    constexpr static size_t countPred(F pred) {
+        return ((pred(Type<T>{}) ? 1 : 0) + ... + 0);
+    }
+
+    template<class F>
     constexpr static bool containsPred(F pred) {
-        return (pred(Type<T>{}) || ... || true);
+        return 0 < countPred(pred);
     }
 
     //    template<class... C>

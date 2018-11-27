@@ -34,7 +34,6 @@ struct PrintTypeNames<Out, VariantIndex<T...>, std::enable_if_t<isAllNamed<T...>
 };
 
 } // namespace details
-} // namespace meta
 
 template<typename Char, typename CharTraits, class... T>
 auto operator<<(::std::basic_ostream<Char, CharTraits>& out, meta::VariantIndex<T...> idx) //
@@ -53,3 +52,5 @@ auto operator<<(::std::basic_ostream<Char, CharTraits>& out, const meta::Variant
     meta::details::PrintTypeNames<decltype(out), meta::VariantIndex<T...>>{}(out, var.index());
     return var.visit([&](const auto& v) -> decltype(auto) { return out << v; });
 }
+
+} // namespace meta

@@ -13,6 +13,9 @@ Project {
         Depends { name: "strings.lib" }
 
         files: [
+            "DecodedPosition.cpp",
+            "DecodedPosition.h",
+            "DecodedPosition.ostream.h",
             "File.cpp",
             "File.h",
             "FileInput.cpp",
@@ -23,6 +26,8 @@ Project {
             "Range.cpp",
             "Range.h",
             "Range.ostream.h",
+            "decodePosition.cpp",
+            "decodePosition.h",
         ]
 
         Export {
@@ -33,16 +38,18 @@ Project {
         }
     }
 
-    //    Application {
-    //        name: "text.tests"
-    //        consoleApplication: true
-    //        type: ["application", "autotest"]
+    Application {
+        name: "text.tests"
+        consoleApplication: true
+        type: ["application", "autotest"]
 
-    //        Depends { name: "text.lib" }
-    //        Depends { name: "googletest.lib" }
-    //        googletest.lib.useMain: true
+        Depends { name: "text.lib" }
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
 
-    //        files: [
-    //        ]
-    //    }
+        files: [
+            "Position.test.cpp",
+            "decodePosition.test.cpp",
+        ]
+    }
 }

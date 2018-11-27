@@ -55,7 +55,7 @@ Project {
             }
             Properties {
                 condition: qbs.toolchain.contains('msvc')
-                cpp.cxxFlags: ["/experimental:external", "/external:W0", "/external:I", project.googletestPath]
+                cpp.cxxFlags: ["/experimental:external", "/external:W0", "/external:I", FileInfo.joinPaths(qbs.sourceDirectory, project.googletestPath)]
             }
         }
     }

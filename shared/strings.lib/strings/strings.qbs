@@ -19,6 +19,9 @@ Project {
             "Counter.cpp",
             "Counter.h",
             "Counter.ostream.h",
+            "Decoded.cpp",
+            "Decoded.h",
+            "Decoded.ostream.h",
             "Rope.cpp",
             "Rope.h",
             "Rope.ostream.h",
@@ -29,6 +32,9 @@ Project {
             "View.h",
             "View.ostream.h",
             "join.h",
+            "join.ostream.h",
+            "utf8Decode.cpp",
+            "utf8Decode.h",
         ]
 
         Export {
@@ -54,6 +60,8 @@ Project {
             "Rope.test.cpp",
             "String.test.cpp",
             "View.test.cpp",
+            "join.test.cpp",
+            "utf8Decode.test.cpp",
         ]
     }
 }

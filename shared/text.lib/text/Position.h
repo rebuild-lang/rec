@@ -4,22 +4,26 @@
 namespace text {
 
 struct Line {
+    using This = Line;
+
     uint32_t v{1}; // 1 is first line
 
     constexpr Line() = default;
     constexpr explicit Line(uint32_t x)
         : v(x) {}
 
-    constexpr Line& operator++() noexcept {
+    constexpr auto operator++() noexcept -> Line& {
         v++;
         return *this;
     }
 
-    constexpr bool operator==(const Line& o) const { return v == o.v; }
-    constexpr bool operator!=(const Line& o) const { return v != o.v; }
+    constexpr bool operator==(const This& o) const { return v == o.v; }
+    constexpr bool operator!=(const This& o) const { return v != o.v; }
 };
 
 struct Column {
+    using This = Column;
+
     uint32_t v{1}; // 1 is first column
 
     constexpr Column() = default;
@@ -31,16 +35,18 @@ struct Column {
         return *this;
     }
 
-    constexpr bool operator==(const Column& o) const { return v == o.v; }
-    constexpr bool operator!=(const Column& o) const { return v != o.v; }
+    constexpr bool operator==(const This& o) const { return v == o.v; }
+    constexpr bool operator!=(const This& o) const { return v != o.v; }
 
-    constexpr bool operator<(const Column& o) const { return v < o.v; }
-    constexpr bool operator>(const Column& o) const { return v > o.v; }
-    constexpr bool operator>=(const Column& o) const { return v >= o.v; }
-    constexpr bool operator<=(const Column& o) const { return v <= o.v; }
+    constexpr bool operator<(const This& o) const { return v < o.v; }
+    constexpr bool operator>(const This& o) const { return v > o.v; }
+    constexpr bool operator>=(const This& o) const { return v >= o.v; }
+    constexpr bool operator<=(const This& o) const { return v <= o.v; }
 };
 
 struct Position {
+    using This = Position;
+
     Line line{};
     Column column{};
 
@@ -53,8 +59,8 @@ struct Position {
         column = {};
     }
 
-    constexpr bool operator==(const Position& o) const { return line == o.line && column == o.column; }
-    constexpr bool operator!=(const Position& o) const { return !(*this == o); }
+    constexpr bool operator==(const This& o) const { return line == o.line && column == o.column; }
+    constexpr bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-}
+} // namespace text

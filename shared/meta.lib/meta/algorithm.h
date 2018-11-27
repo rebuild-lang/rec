@@ -72,7 +72,7 @@ auto append(O& o, const T& t) {
 }
 
 template<class T, class I>
-constexpr auto equals(const T& t, I i) {
+constexpr auto equals(T t, I i) {
     for (const auto& v : t) {
         if (!(v == *i)) return false;
         i++;

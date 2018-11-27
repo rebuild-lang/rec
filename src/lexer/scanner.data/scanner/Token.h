@@ -1,6 +1,6 @@
 #pragma once
-#include "NumberLiteral.h"
-#include "StringLiteral.h"
+#include "NumberLiteralValue.h"
+#include "StringLiteralValue.h"
 
 #include "text/Range.h"
 
@@ -8,10 +8,16 @@
 
 namespace scanner {
 
+using text::Position;
+using text::View;
+
 namespace details {
+
 template<class Tag>
 struct TagToken {
-    text::Range range{};
+    // text::Range range{};
+    View input;
+    Position position;
 
     using This = TagToken;
     bool operator==(const This& o) const { return true; }
@@ -20,7 +26,8 @@ struct TagToken {
 template<class Value>
 struct ValueToken {
     Value value{};
-    text::Range range{};
+    View input;
+    Position position;
 
     using This = ValueToken;
     bool operator==(const This& o) const { return value == o.value; }
@@ -40,7 +47,11 @@ using BracketOpen = details::TagToken<struct BracketOpenTag>;
 using BracketClose = details::TagToken<struct BracketCloseTag>;
 using IdentifierLiteral = details::TagToken<struct IdentifierLiteralTag>;
 using OperatorLiteral = details::TagToken<struct OperatorLiteralTag>;
+
+// UTF8-Decoder found a problem
 using InvalidEncoding = details::TagToken<struct InvalidEncodingTag>;
+
+// Valid Codepoint but not part of any valid Token
 using UnexpectedCharacter = details::TagToken<struct UnexpectedCharacterTag>;
 
 using StringLiteral = details::ValueToken<StringLiteralValue>;

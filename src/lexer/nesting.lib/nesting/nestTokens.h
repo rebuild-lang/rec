@@ -132,16 +132,16 @@ inline auto nestTokens(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
             if (nextColumn < parentBlockColumn) {
                 // TODO(arBmind): report missing end
                 // handling: add empty block and finish line
-                line.push_back(BlockLiteral{{}, range});
+                // line.push_back(BlockLiteral{{}, range});
                 return LineStep::Return;
             }
             if (nextColumn == parentBlockColumn) { // empty block
-                line.push_back(BlockLiteral{{}, range});
+                // line.push_back(BlockLiteral{{}, range});
                 if (!input++) return LineStep::Return;
                 return LineStep::Continue;
             }
             auto block = parseBlock(nextColumn, parseBlock, parseLine);
-            line.push_back(BlockLiteral{std::move(block), std::move(range)});
+            // line.push_back(BlockLiteral{std::move(block), std::move(range)});
             return LineStep::Continue;
         };
 
@@ -152,9 +152,11 @@ inline auto nestTokens(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
             while (true) {
                 auto step = input->visit(
                     [&](const SemicolonSeparator&) { return handleSemicolon(); },
-                    [&](const NewLineIndentation& newLine) { return handleNewLine(newLine.range); },
-                    [&](const BlockEndIndentation& blockEnd) { return handleBlockEnd(blockEnd.range); },
-                    [&](const BlockStartIndentation& blockStart) { return handleBlockStart(blockStart.range); },
+                    /*
+                        [&](const NewLineIndentation& newLine) { return handleNewLine(newLine.range); },
+                        [&](const BlockEndIndentation& blockEnd) { return handleBlockEnd(blockEnd.range); },
+                        [&](const BlockStartIndentation& blockStart) { return handleBlockStart(blockStart.range); },
+                        */
                     [](const auto& v) { return LineStep::Break; });
                 if (step == LineStep::Return) return line;
                 if (step == LineStep::Break) break;
@@ -196,14 +198,16 @@ inline auto nestTokens(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
 
         while (true) {
             while (true) {
-                auto step = input->visit(
+                /* auto step = input->visit(
                     [&](const SemicolonSeparator&) { return handleSemicolon(); },
                     [&](const BlockEndIndentation& blockEnd) { return handleBlockEnd(blockEnd.range); },
                     [&](const BlockStartIndentation& blockStart) { return handleNewLine(blockStart.range); },
                     [&](const NewLineIndentation& newLine) { return handleNewLine(newLine.range); },
                     [](const auto&) { return BlockStep::Break; });
+
                 if (step == BlockStep::Return) return block;
                 if (step == BlockStep::Break) break;
+                */
             }
             auto line = parseLine(blockColumn, parseBlock, parseLine);
             block.lines.emplace_back(std::move(line));
@@ -215,7 +219,7 @@ inline auto nestTokens(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
     if (!input++) return {};
     auto blockColumn = Column{};
     if (input->holds<filter::NewLineIndentation>()) {
-        blockColumn = state_.getIndentColumn(input->get<filter::NewLineIndentation>().range);
+        // blockColumn = state_.getIndentColumn(input->get<filter::NewLineIndentation>().range);
         if (!input++) return {};
     }
     auto block = parseBlock(blockColumn, parseBlock, parseLine);

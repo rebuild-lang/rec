@@ -10,9 +10,9 @@ using CodePoint = strings::CodePoint;
 using OptCodePoint = strings::OptionalCodePoint;
 
 struct FileInput {
-    using StringIterator = const String::Data*;
+    using StringIterator = const String::Char*;
 
-    FileInput(const File& file)
+    explicit FileInput(const File& file)
         : file(&file)
         , begin_(file.content.data())
         , current_(file.content.data())
@@ -21,7 +21,7 @@ struct FileInput {
         , currentPosition_({}) {}
 
     bool hasMore() const { return current_ != end_(); }
-    bool hasMoreBytes(strings::Counter bytes) const { return current_ + bytes.v <= end_(); }
+    bool hasMoreBytes(strings::Counter bytes) const { return end_() >= current_ && size_t(end_() - current_) <= bytes.v; }
 
     auto view() const { return View(begin_, current_); }
     auto range() const { return Range{file, view(), beginPosition, currentPosition_}; }
@@ -87,7 +87,7 @@ struct FileInput {
     void finish() { current_ = end_(); }
 
 private:
-    auto end_() const -> StringIterator { return file->content.data() + file->content.byteCount().v; }
+    auto end_() const -> StringIterator { return file->content.end(); }
     bool fillPeek(size_t count);
 
 private:

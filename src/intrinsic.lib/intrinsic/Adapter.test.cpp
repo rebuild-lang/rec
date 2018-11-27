@@ -6,7 +6,7 @@
 
 #include "instance/Scope.h"
 #include "instance/Type.h"
-#include "scanner/NumberLiteral.h"
+#include "scanner/NumberLiteralValue.h"
 #include "scanner/Token.ostream.h"
 
 #include "strings/String.h"

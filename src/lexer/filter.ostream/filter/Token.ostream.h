@@ -10,7 +10,7 @@ inline std::ostream& operator<<(std::ostream& out, const IdentifierLiteralValue&
 }
 
 inline std::ostream& operator<<(std::ostream& out, const IdentifierLiteral& ident) {
-    return out << "<id: " << (ident.value.leftSeparated ? "_" : "|") << ident.range
+    return out << "<id: " << (ident.value.leftSeparated ? "_" : "|") // << ident.range
                << (ident.value.rightSeparated ? "_" : "|") << '>';
 }
 

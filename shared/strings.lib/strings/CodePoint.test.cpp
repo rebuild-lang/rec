@@ -48,9 +48,8 @@ TEST(codepoint, default) {
 
 TEST(codepoint, ostream) {
     auto cp = strings::CodePoint{0x2713};
-    // EXPECT_EQ(cp, strings::CodePoint{'a'}); // Trigger failing assert output
 
     auto ss = std::stringstream{};
     ss << cp;
-    ASSERT_EQ(ss.str(), "\xE2\x9C\x93");
+    ASSERT_EQ(ss.str(), "0x2713");
 }

@@ -10,26 +10,15 @@
 namespace strings {
 
 template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, Decimal d) -> decltype(out << (int)d.v) {
-    return out << "digit:" << (int)d.v;
+auto operator<<(::std::basic_ostream<Char, CharTraits>& out, Decimal d) -> decltype(out) {
+    return out << "digit:" << static_cast<int>(d.v);
 }
 
 template<typename Char, typename CharTraits>
 auto operator<<(::std::basic_ostream<Char, CharTraits>& out, CodePoint cp)
     -> decltype(out << std::declval<std::basic_string_view<Char>>()) {
 
-    using StrView = std::basic_string_view<Char>;
-    class CodeStr {
-        std::array<uint8_t, 8> d{};
-        size_t s{};
-
-    public:
-        void push_back(uint8_t c) { d[s++] = c; }
-        auto view() { return StrView{reinterpret_cast<typename StrView::const_pointer>(d.data()), s}; }
-    } codeStr{};
-
-    cp.utf8_encode(codeStr);
-    return out << codeStr.view();
+    return out << std::hex << std::showbase << cp.v << std::dec << std::noshowbase;
 }
 
 } // namespace strings

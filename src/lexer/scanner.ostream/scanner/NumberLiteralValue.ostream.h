@@ -1,13 +1,13 @@
 #pragma once
-#include "scanner/NumberLiteral.h"
+#include <scanner/NumberLiteralValue.h>
 
-#include "strings/View.ostream.h"
+#include <strings/View.ostream.h>
 
 namespace scanner {
 
 inline auto operator<<(std::ostream& out, Sign sign) -> std::ostream& { return out << to_string(sign); }
-
 inline auto operator<<(std::ostream& out, Radix radix) -> std::ostream& { return out << to_string(radix); }
+inline auto operator<<(std::ostream& out, NumberLiteralError error) -> std::ostream& { return out << to_string(error); }
 
 auto operator<<(std::ostream& out, const NumberLiteralValue& lit) -> std::ostream&;
 

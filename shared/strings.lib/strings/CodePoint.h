@@ -9,11 +9,14 @@ namespace strings {
 /// naively strong typed decimal value
 struct Decimal {
     using This = Decimal;
-    uint8_t v{0xFF}; // valid 0..9, default is invalid for optional<packed>
+    uint8_t v{0xFF}; // default is invalid for optional<packed>
 
     constexpr Decimal() noexcept = default;
     constexpr explicit Decimal(uint8_t n) noexcept
         : v(n) {}
+
+    constexpr bool isValid() const { return /*0 <= v &&*/ v <= 9; }
+    constexpr explicit operator bool() const { return isValid(); }
 
     // these enable value packed optional
     constexpr bool operator==(This o) const noexcept { return v == o.v; }
@@ -24,11 +27,14 @@ using OptionalDecimal = meta::Optional<meta::DefaultPacked<Decimal>>;
 /// naively strong typed unicode code point
 struct CodePoint {
     using This = CodePoint;
-    uint32_t v{0xFFFFFFFEu}; // invalid for optional<packed>
+    uint32_t v{0xFFFF'FFFF}; // invalid for optional<packed>
 
     constexpr CodePoint() noexcept = default;
     constexpr explicit CodePoint(uint32_t n) noexcept
         : v(n) {}
+
+    constexpr bool isValid() const { return v < 0x11'0000; }
+    constexpr explicit operator bool() const { return isValid(); }
 
     // these enable value packed optional
     constexpr bool operator==(This o) const noexcept { return v == o.v; }
@@ -43,23 +49,20 @@ struct CodePoint {
     constexpr bool operator<(const CodePoint o) const { return v < o.v; }
     constexpr bool operator>(const CodePoint o) const { return v > o.v; }
 
+    constexpr bool isSurrogate() const { return (v >= 0xD800 && v <= 0xDFFF); }
+    constexpr bool isNonCharacter() const { return (v & 0xFFFEu) == 0xFFFE || (v >= 0xFDD0 && v <= 0xFDEF); }
+    constexpr bool isPrivateUse() const { return (v >= 0xE000 && v <= 0xF8FF) || (v >= 0xF'0000 && !isNonCharacter()); }
+    constexpr bool isCombiningMark() const {
+        return (v >= 0x300 && v <= 0x36F) // Combining Diacritical Marks
+            || (v >= 0x1AB0 && v <= 0x1AFF) // Combining Diacritical Marks Extended
+            || (v >= 0x1DC0 && v <= 0x1DFF) // Combining Diacritical Marks Supplement
+            || (v >= 0x20D0 && v <= 0x20FF) // Combining Diacritical Marks for Symbols
+            || (v >= 0xFE20 && v <= 0xFE2F); // Combining Half Marks
+    }
+
     constexpr bool isControl() const {
         // see https://www.compart.com/en/unicode/category/Cc
-        switch (v) {
-            /* clang-format off */
-        case 0x0: case 0x1: case 0x2: case 0x3: case 0x4: case 0x5: case 0x6: case 0x7:
-        case 0x8: case 0x9: case 0xA: case 0xB: case 0xC: case 0xD: case 0xE: case 0xF:
-        case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17:
-        case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
-        case 0x7F:
-        case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85: case 0x86: case 0x87:
-        case 0x88: case 0x89: case 0x8A: case 0x8B: case 0x8C: case 0x8D: case 0x8E: case 0x8F:
-        case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97:
-        case 0x98: case 0x99: case 0x9A: case 0x9B: case 0x9C: case 0x9D: case 0x9E: case 0x9F:
-            /* clang-format on */
-            return true;
-        }
-        return false;
+        return v <= 0x1F || (v >= 0x7F && v <= 0x9F);
     }
 
     constexpr bool isLineSeparator() const {
@@ -250,29 +253,29 @@ struct CodePoint {
 
     constexpr Counter utf8_byteCount() const {
         // see https://en.wikipedia.org/wiki/UTF-8
-        if (v < 0x80) return {1};
-        if (v < 0x800) return {2};
-        if (v < 0x10000) return {3};
-        if (v < 0x110000) return {4};
+        if (v <= 0x7F) return {1};
+        if (v <= 0x7FF) return {2};
+        if (v <= 0xFFFF) return {3};
+        if (v <= 0x10'FFFF) return {4};
         return {0};
     }
 
     template<class Out>
     void utf8_encode(Out& out) const {
         // see https://en.wikipedia.org/wiki/UTF-8
-        if (v < 0x80) {
+        if (v <= 0x7F) {
             out.push_back(v & 0x7F);
         }
-        else if (v < 0x800) {
+        else if (v <= 0x7FF) {
             out.push_back(0xC0 | ((v >> 6) & 0x1F));
             out.push_back(0x80 | ((v >> 0) & 0x3F));
         }
-        else if (v < 0x10000) {
+        else if (v < 0xFFFF) {
             out.push_back(0xE0 | ((v >> 12) & 0xF));
             out.push_back(0x80 | ((v >> 6) & 0x3F));
             out.push_back(0x80 | ((v >> 0) & 0x3F));
         }
-        else if (v < 0x110000) {
+        else if (v < 0x10'FFFF) {
             out.push_back(0xF0 | ((v >> 18) & 0x7));
             out.push_back(0x80 | ((v >> 12) & 0x3F));
             out.push_back(0x80 | ((v >> 6) & 0x3F));

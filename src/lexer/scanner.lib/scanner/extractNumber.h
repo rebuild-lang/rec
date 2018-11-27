@@ -1,113 +1,177 @@
 #pragma once
-#include "scanner/Token.h"
+#include <scanner/Token.h>
 
-#include "text/FileInput.h"
+#include <meta/CoEnumerator.h>
+#include <text/DecodedPosition.h>
 
 namespace scanner {
 
-using CodePoint = strings::CodePoint;
+using text::CodePoint;
+using text::CodePointPosition;
+using text::DecodedPosition;
+using OptCodePointPosition = meta::Optional<CodePointPosition>;
 
-inline auto extractNumber(CodePoint chr, text::FileInput& input) -> NumberLiteral {
-    auto extendWhile = [&](auto pred) -> text::OptCodePoint {
+/** \brief parse a number literal from an enumerator
+ * key features:
+ * * 0xA.BpF - hex float number with hex exponent
+ * * 0o3.4p7 - octal float number with octal exponent
+ * * 0b0.1p1 - binary float number with binary exponent
+ * * 0.5e-99 - decimal float number
+ * * decodeErrors are eaten
+ * * one error is tracked
+ */
+inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> NumberLiteral {
+    auto number = NumberLiteralValue{};
+    auto isConsumed = true;
+    auto end = firstCpp.input.end();
+    auto inputView = [&, begin = firstCpp.input.begin()] { return View{begin, end}; };
+
+    auto peekCpp = [&]() -> OptCodePointPosition {
         while (true) {
-            input.extend();
-            auto chr = input.peek();
-            if (chr && pred(chr.value())) continue;
-            return chr;
+            if (!decoded) return {};
+            auto dp = *decoded;
+            if (dp.holds<text::CodePointPosition>()) {
+                return dp.get<CodePointPosition>();
+            }
+            if (dp.holds<text::DecodedErrorPosition>()) {
+                auto dep = dp.get<text::DecodedErrorPosition>();
+                number.decodeErrors.push_back(dep);
+                end = dep.input.end();
+                decoded++;
+                continue;
+            }
+            return {};
         }
     };
-
-    auto isP = [](CodePoint cp) { return cp.v == 'p' || cp.v == 'P'; };
-    auto isE = [](CodePoint cp) { return cp.v == 'e' || cp.v == 'E'; };
-    auto isPlus = [](CodePoint cp) { return cp.v == '+'; };
-    auto isMinus = [](CodePoint cp) { return cp.v == '-'; };
-    auto isDot = [](CodePoint cp) { return cp.v == '.'; };
-    auto isZero = [](CodePoint cp) { return cp.v == '0'; };
-    auto isDecimalZero = [](CodePoint cp) {
-        return cp.decimalNumber() && [](auto decimal) { return decimal == strings::Decimal{0}; };
+    auto nextCpp = [&]() -> OptCodePointPosition {
+        if (!isConsumed) {
+            end = (*decoded).get<text::CodePointPosition>().input.end();
+            decoded++;
+        }
+        isConsumed = false;
+        return peekCpp();
     };
-    auto isIgnored = [](CodePoint cp) { return cp.v == '\''; };
-    auto isZeroOrIgnored = [=](CodePoint cp) { return isZero(cp) || isIgnored(cp); };
+    auto nextCppWhile = [&](auto pred) -> OptCodePointPosition {
+        auto optCpp = nextCpp();
+        while (optCpp.map([&](auto cpp) { return pred(cpp.codePoint); })) {
+            optCpp = nextCpp();
+        }
+        return optCpp;
+    };
 
-    auto isDecimalDigit = [](CodePoint cp) { return cp.isDecimalNumber(); };
-    auto isBinaryDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '1'); };
-    auto isOctalDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '7'); };
-    auto isHexDigit = [](CodePoint cp) {
+    static auto isP = [](CodePoint cp) { return cp.v == 'p' || cp.v == 'P'; };
+    static auto isE = [](CodePoint cp) { return cp.v == 'e' || cp.v == 'E'; };
+    static auto isPlus = [](CodePoint cp) { return cp.v == '+'; };
+    static auto isMinus = [](CodePoint cp) { return cp.v == '-'; };
+    static auto isDot = [](CodePoint cp) { return cp.v == '.'; };
+    static auto isZero = [](CodePoint cp) { return cp.v == '0'; };
+    //    static auto isDecimalZero = [](CodePoint cp) {
+    //        return cp.decimalNumber() && [](auto decimal) { return decimal == strings::Decimal{0}; };
+    //    };
+    static auto isIgnored = [](CodePoint cp) { return cp.v == '\''; };
+    static auto isZeroOrIgnored = [=](CodePoint cp) { return isZero(cp) || isIgnored(cp); };
+
+    static auto isDecimalDigit = [](CodePoint cp) { return cp.isDecimalNumber(); };
+    static auto isBinaryDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '1'); };
+    static auto isOctalDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '7'); };
+    static auto isHexDigit = [](CodePoint cp) {
         auto chr = cp.v;
         return (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
     };
-    auto isNoBoundary = [](CodePoint cp) { return cp.isDecimalNumber() || cp.isLetter(); };
+    static auto isNoBoundary = [](CodePoint cp) { return cp.isDecimalNumber() || cp.isLetter(); };
 
-    auto withRadix = [&](Radix radix, auto isDigit, auto isExponent) -> NumberLiteral {
-        auto number = NumberLiteralValue{};
-        number.radix = radix;
-
-        auto optCp = input.peek();
-        auto extendInto = [&](Rope& into) {
-            auto it = input.current();
-            while (optCp.map(isDigit)) {
-                input.extend();
-                optCp = input.peek();
-                if (optCp.map(isIgnored)) {
-                    into += View{it, input.current()};
-                    optCp = extendWhile(isIgnored);
-                    it = input.current();
-                }
-            }
-            into += View{it, input.current()};
+    auto withRadix = [&](OptCodePointPosition optCpp, auto env) -> NumberLiteral {
+        number.radix = env.radix();
+        auto mapCp = [&](auto pred) -> bool {
+            return optCpp.map([&](auto cpp) -> bool { return pred(cpp.codePoint); });
         };
-        auto startZero = optCp.map(isZero);
-        if (startZero) optCp = extendWhile(isZeroOrIgnored);
+
+        auto extendInto = [&](Rope& into) {
+            while (mapCp(env.isDigit())) {
+                into += optCpp.value().input;
+                // optCpp nextCppWhile(isIgnored); // vs2017 15.9.2 crashes on this
+                // workaround:
+                optCpp = nextCpp();
+                while (optCpp && optCpp.value().codePoint.v == '\'') optCpp = nextCpp();
+            }
+        };
+
+        auto isIntegerStartZero = mapCp(isZero);
+        if (isIntegerStartZero) optCpp = nextCppWhile(isZeroOrIgnored);
         extendInto(number.integerPart);
-        if (optCp.map(isDot)) {
-            input.extend();
-            optCp = input.peek();
+        if (mapCp(isDot)) {
+            optCpp = nextCpp();
             extendInto(number.fractionalPart);
         }
-        if (optCp.map(isExponent)) {
-            input.extend();
-            optCp = input.peek();
-            if (optCp.map(isPlus)) {
+        if (mapCp(env.isExponent())) {
+            optCpp = nextCpp();
+            if (mapCp(isPlus)) {
                 number.exponentSign = Sign::positive;
-                input.extend();
-                optCp = input.peek();
+                optCpp = nextCpp();
             }
-            else if (optCp.map(isMinus)) {
+            else if (mapCp(isMinus)) {
                 number.exponentSign = Sign::negative;
-                input.extend();
-                optCp = input.peek();
+                optCpp = nextCpp();
             }
-            auto expZero = optCp.map(isZero);
-            if (expZero) optCp = extendWhile(isZeroOrIgnored);
+            auto isExponentStartZero = mapCp(isZero);
+            if (isExponentStartZero) optCpp = nextCppWhile(isZeroOrIgnored);
 
             extendInto(number.exponentPart);
-            if (!expZero && number.exponentPart.isEmpty()) {
-                number.radix = Radix::invalid; // 1e- is invalid exponent
+            if (!isExponentStartZero && number.exponentPart.isEmpty()) {
+                number.error = NumberLiteralError::MissingExponent;
             }
         }
-        if (!startZero && number.integerPart.isEmpty() && number.fractionalPart.isEmpty()) {
-            number.radix = Radix::invalid; // 0x or 0x. is not valid
+        if (!isIntegerStartZero && number.integerPart.isEmpty() && number.fractionalPart.isEmpty()) {
+            number.error = NumberLiteralError::MissingValue;
         }
-        else if (optCp.map(isNoBoundary)) {
-            number.radix = Radix::invalid; // wrong end
+        else if (mapCp(isNoBoundary)) {
+            number.error = NumberLiteralError::MissingBoundary;
         }
-        return {number, input.range()};
+
+        return {number, inputView(), firstCpp.position};
     };
 
-    if (chr == '0') {
-        auto optNext = input.peek<1>();
-        if (optNext) {
-            switch (optNext.value().v) {
-            case 'x':
-            case 'X': input.extend(2); return withRadix(Radix::hex, isHexDigit, isP);
-            case 'o':
-            case 'O': input.extend(2); return withRadix(Radix::octal, isOctalDigit, isP);
-            case 'b':
-            case 'B': input.extend(2); return withRadix(Radix::binary, isBinaryDigit, isP);
-            }
+    auto secondCpp = peekCpp();
+    if (firstCpp.codePoint == '0' && secondCpp) {
+        auto skipPrefix = [&]() -> OptCodePointPosition {
+            isConsumed = false; // go to third!
+            return nextCpp();
+        };
+        switch (secondCpp.value().codePoint.v) {
+        case 'x':
+        case 'X':
+            struct Hex {
+                static constexpr auto radix() { return Radix::hex; }
+                static constexpr auto isDigit() { return isHexDigit; }
+                static constexpr auto isExponent() { return isP; }
+            };
+            return withRadix(skipPrefix(), Hex{});
+
+        case 'o':
+        case 'O':
+            struct Octal {
+                static constexpr auto radix() { return Radix::octal; }
+                static constexpr auto isDigit() { return isOctalDigit; }
+                static constexpr auto isExponent() { return isP; }
+            };
+            return withRadix(skipPrefix(), Octal{});
+
+        case 'b':
+        case 'B':
+            struct Binary {
+                static constexpr auto radix() { return Radix::binary; }
+                static constexpr auto isDigit() { return isBinaryDigit; }
+                static constexpr auto isExponent() { return isP; }
+            };
+            return withRadix(skipPrefix(), Binary{});
         }
     }
-    return withRadix(Radix::decimal, isDecimalDigit, isE);
+    struct Decimal {
+        static constexpr auto radix() { return Radix::decimal; }
+        static constexpr auto isDigit() { return isDecimalDigit; }
+        static constexpr auto isExponent() { return isE; }
+    };
+    return withRadix(firstCpp, Decimal{});
 }
 
 } // namespace scanner

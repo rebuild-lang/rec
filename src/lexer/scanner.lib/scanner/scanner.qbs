@@ -22,6 +22,8 @@ Project {
             "extractOperator.h",
             "extractString.cpp",
             "extractString.h",
+            "tokenize.cpp",
+            "tokenize.h",
             "tokensFromFile.cpp",
             "tokensFromFile.h",
         ]

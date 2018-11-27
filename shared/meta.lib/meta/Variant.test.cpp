@@ -2,6 +2,14 @@
 
 #include "gtest/gtest.h"
 
+namespace meta {
+
+constexpr auto nameOf(Type<void>) { return "void"; }
+constexpr auto nameOf(Type<int>) { return "int"; }
+constexpr auto nameOf(Type<double>) { return "double"; }
+
+} // namespace meta
+
 TEST(variant, normal) {
     using TestVariant = meta::Variant<int, float>;
 
@@ -36,9 +44,6 @@ TEST(variant, ostream_simple) {
     ss << TestVariant{3.14f};
     ASSERT_EQ(ss.str(), "3.14");
 }
-
-constexpr auto nameOf(meta::Type<int>) { return "int"; }
-constexpr auto nameOf(meta::Type<double>) { return "double"; }
 
 TEST(variant, ostream_annotated) {
     using TestVariant = meta::Variant<int, double>;

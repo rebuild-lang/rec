@@ -1,8 +1,9 @@
 #include "scanner/extractNumber.h"
 
-#include "scanner/Token.ostream.h"
+#include <scanner/Token.ostream.h>
+#include <text/DecodedPosition.ostream.h>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace scanner;
 using String = strings::String;
@@ -29,23 +30,32 @@ class NumberScanners : public testing::TestWithParam<NumberData> {};
 
 TEST_P(NumberScanners, all) {
     NumberData param = GetParam();
-    auto f = File{String{"testfile"}, param.input};
-    auto input = FileInput{f};
-
-    const auto lit = extractNumber(input.peek().value(), input);
+    auto decoder = [&]() -> meta::CoEnumerator<DecodedPosition> {
+        auto column = Column{};
+        for (auto& chr : param.input) {
+            auto cp = CodePoint{static_cast<uint32_t>(chr)};
+            auto cpp = CodePointPosition{View{&chr, &chr + 1}, cp, Position{Line{1}, column}};
+            co_yield cpp;
+            ++column;
+        }
+    }();
+    decoder++;
+    auto cpp = (*decoder).get<CodePointPosition>();
+    decoder++;
+    const NumberLiteral lit = extractNumber(cpp, decoder);
 
     const auto& value = lit.value;
+    EXPECT_EQ(NumberLiteralError::None, value.error);
+    EXPECT_TRUE(value.decodeErrors.empty());
     EXPECT_EQ(param.radix, value.radix);
     EXPECT_EQ(param.integerPart, to_string(value.integerPart));
     EXPECT_EQ(param.fractionalPart, to_string(value.fractionalPart));
     EXPECT_EQ(param.exponentSign, value.exponentSign);
     EXPECT_EQ(param.exponentPart, to_string(value.exponentPart));
 
-    EXPECT_EQ(param.content, strings::to_string(lit.range.view));
+    EXPECT_EQ(param.content, strings::to_string(lit.input));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
-    EXPECT_EQ(beginPosition, lit.range.begin);
-    const auto endPosition = Position{Line{1}, param.endColumn};
-    EXPECT_EQ(endPosition, lit.range.end);
+    EXPECT_EQ(beginPosition, lit.position);
 }
 
 INSTANTIATE_TEST_CASE_P( //
@@ -181,6 +191,7 @@ INSTANTIATE_TEST_CASE_P( //
 struct NumberFailureData {
     std::string name;
     String input;
+    NumberLiteralError error;
 };
 static auto operator<<(std::ostream& o, const NumberFailureData& nd) -> std::ostream& { return o << nd.input; }
 
@@ -189,26 +200,133 @@ class NumberFailures : public testing::TestWithParam<NumberFailureData> {};
 TEST_P(NumberFailures, all) {
     NumberFailureData param = GetParam();
 
-    auto f = File{String{"testfile"}, param.input};
-    auto input = FileInput{f};
-    const auto lit = extractNumber(input.peek().value(), input);
-
+    auto decoder = [&]() -> meta::CoEnumerator<DecodedPosition> {
+        auto column = Column{};
+        for (auto& chr : param.input) {
+            auto cp = CodePoint{static_cast<uint32_t>(chr)};
+            auto cpp = CodePointPosition{View{&chr, &chr + 1}, cp, Position{Line{1}, column}};
+            co_yield cpp;
+            ++column;
+        }
+    }();
+    decoder++;
+    auto cpp = (*decoder).get<CodePointPosition>();
+    decoder++;
+    const NumberLiteral lit = extractNumber(cpp, decoder);
     const auto& value = lit.value;
     EXPECT_FALSE(value);
+
+    EXPECT_EQ(param.error, value.error);
+    EXPECT_TRUE(value.decodeErrors.empty());
 }
 
 INSTANTIATE_TEST_CASE_P( //
     all,
     NumberFailures,
     ::testing::Values( //
-        NumberFailureData{"hexNothing", String{"0x"}}, //
-        NumberFailureData{"octalNothing", String{"0o"}}, //
-        NumberFailureData{"octalOutOfBounds", String{"0o9"}}, //
-        NumberFailureData{"octalSecondOutOfBounds", String{"0o19"}}, //
-        NumberFailureData{"binaryNothing", String{"0b"}}, //
-        NumberFailureData{"binaryOutOfBounds", String{"0b2"}}, //
-        NumberFailureData{"fractionNothing", String{"0.e"}},
-        NumberFailureData{"positiveFractionNothing", String{"1e+"}},
-        NumberFailureData{"negativeFractionNothing", String{"1.e-"}},
-        NumberFailureData{"notTerminated", String{"0z"}}),
+        NumberFailureData{"hexNothing", String{"0x"}, NumberLiteralError::MissingValue}, //
+        NumberFailureData{"octalNothing", String{"0o"}, NumberLiteralError::MissingValue}, //
+        NumberFailureData{"octalOutOfBounds", String{"0o9"}, NumberLiteralError::MissingValue}, //
+        NumberFailureData{"octalSecondOutOfBounds", String{"0o19"}, NumberLiteralError::MissingBoundary}, //
+        NumberFailureData{"binaryNothing", String{"0b"}, NumberLiteralError::MissingValue}, //
+        NumberFailureData{"binaryOutOfBounds", String{"0b2"}, NumberLiteralError::MissingValue}, //
+        NumberFailureData{"fractionNothing", String{"0.e"}, NumberLiteralError::MissingExponent},
+        NumberFailureData{"positiveFractionNothing", String{"1e+"}, NumberLiteralError::MissingExponent},
+        NumberFailureData{"negativeFractionNothing", String{"1.e-"}, NumberLiteralError::MissingExponent},
+        NumberFailureData{"notTerminated", String{"0z"}, NumberLiteralError::MissingBoundary}),
     [](const ::testing::TestParamInfo<NumberFailureData>& inf) { return inf.param.name; });
+
+using DecodedPositions = std::vector<DecodedPosition>;
+
+struct NumberDecodeErrorData {
+    std::string name;
+    DecodedPositions decoded;
+    NumberLiteralError error;
+    DecodedErrorPositions decodeErrors;
+    Radix radix;
+    String integerPart;
+};
+static auto operator<<(std::ostream& o, const NumberDecodeErrorData& nd) -> std::ostream& {
+    return o << strings::joinEach(nd.decoded, " ");
+}
+
+class NumberDecodeErrors : public testing::TestWithParam<NumberDecodeErrorData> {};
+
+TEST_P(NumberDecodeErrors, all) {
+    NumberDecodeErrorData param = GetParam();
+
+    auto decoder = [&]() -> meta::CoEnumerator<DecodedPosition> {
+        for (auto decoded : param.decoded) {
+            co_yield decoded;
+        }
+    }();
+    decoder++;
+    auto cpp = (*decoder).get<CodePointPosition>();
+    decoder++;
+    const NumberLiteral lit = extractNumber(cpp, decoder);
+
+    const auto& value = lit.value;
+    EXPECT_EQ(param.error, value.error);
+    EXPECT_EQ(param.decodeErrors, value.decodeErrors);
+
+    EXPECT_EQ(param.radix, value.radix);
+    EXPECT_EQ(param.integerPart, to_string(value.integerPart));
+}
+
+INSTANTIATE_TEST_CASE_P( //
+    all,
+    NumberDecodeErrors,
+    ::testing::Values( //
+        [] {
+            auto decodeError = DecodedErrorPosition{View{"xx"}, Position{}};
+            return NumberDecodeErrorData{
+                "ignorable",
+                DecodedPositions{
+                    CodePointPosition{View{"1"}, CodePoint{'1'}, Position{}},
+                    decodeError,
+                    CodePointPosition{View{"2"}, CodePoint{'2'}, Position{Line{1}, Column{2}}},
+                },
+                NumberLiteralError::None,
+                DecodedErrorPositions{
+                    decodeError,
+                },
+                Radix::decimal,
+                String("12") //
+            };
+        }(),
+        [] {
+            auto decodeError = DecodedErrorPosition{View{"xx"}, Position{}};
+            return NumberDecodeErrorData{
+                "beforeRadix",
+                DecodedPositions{
+                    CodePointPosition{View{"0"}, CodePoint{'0'}, Position{}},
+                    decodeError,
+                    CodePointPosition{View{"x"}, CodePoint{'x'}, Position{Line{1}, Column{2}}},
+                    CodePointPosition{View{"F"}, CodePoint{'F'}, Position{Line{1}, Column{3}}},
+                },
+                NumberLiteralError::None,
+                DecodedErrorPositions{
+                    decodeError,
+                },
+                Radix::hex,
+                String("F") //
+            };
+        }(),
+        [] {
+            auto decodeError = DecodedErrorPosition{View{"xx"}, Position{}};
+            return NumberDecodeErrorData{
+                "beforeEnd",
+                DecodedPositions{
+                    CodePointPosition{View{"1"}, CodePoint{'1'}, Position{}},
+                    CodePointPosition{View{"3"}, CodePoint{'3'}, Position{}},
+                    decodeError,
+                },
+                NumberLiteralError::None,
+                DecodedErrorPositions{
+                    decodeError,
+                },
+                Radix::decimal,
+                String("13") //
+            };
+        }()),
+    [](const ::testing::TestParamInfo<NumberDecodeErrorData>& inf) { return inf.param.name; });

@@ -108,7 +108,8 @@ inline auto extractOperator(text::FileInput& input) -> OptToken {
         input.restoreCurrent(stack.front().it, stack.front().itPosition);
         if (input.view().isEmpty()) return {};
     }
-    return Token{OperatorLiteral{input.range()}};
+    // return Token{OperatorLiteral{input.range()}};
+    return Token{};
 }
 
 } // namespace scanner

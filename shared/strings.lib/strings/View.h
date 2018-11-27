@@ -5,6 +5,7 @@
 #include "meta/Optional.h"
 #include "meta/algorithm.h"
 
+#include <limits>
 #include <string>
 
 namespace strings {
@@ -15,11 +16,10 @@ using OptionalView = meta::Optional<meta::DefaultPacked<View>>;
 /// non owning read only view to a utf8 encoded string
 struct View {
     using This = View;
-    using Byte = uint8_t;
     using Char = char;
+    using Byte = uint8_t;
     static_assert(sizeof(Char) == sizeof(Byte), "char is not a byte");
     using It = const Char*;
-    using ByteIt = const Byte*;
 
 private:
     It start_m{};
@@ -30,22 +30,17 @@ public:
 
     template<size_t N>
     constexpr explicit View(const Char (&str)[N]) noexcept // view a constant string literal
-        : View(
-              It(str), //
-              It(&str[N - 1])) {}
+        : View(It(str), It(&str[N - 1])) {}
 
     constexpr View(It start, It end) noexcept // from iterator range
         : start_m(start)
         , end_m(end) {}
 
-    constexpr View(ByteIt start, ByteIt end) noexcept // from iterator range
-        : View(It(start), It(end)) {}
-
     View(const String& s) noexcept // view existing owning string
-        : View(s.data(), s.data() + s.byteCount().v) {}
+        : View(s.begin(), s.end()) {}
 
     explicit View(const std::string& s) noexcept // view owning std::string
-        : View(s.data(), s.data() + s.length()) {}
+        : View(s.data(), s.data() + s.size()) {}
 
     // enable fast optional
     // equal if view on the same range
@@ -53,72 +48,84 @@ public:
     constexpr bool operator==(const This& o) const { return start_m == o.start_m && end_m == o.end_m; }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
 
-    // codepoint ordering
-    bool operator<(const This& o) const {
+    // byte ordering
+    constexpr bool operator<(const This& o) const {
         auto l = *this;
         auto r = o;
-        while (true) {
-            auto lcp = l.pullCodePoint().orValue(CodePoint{0});
-            auto rcp = r.pullCodePoint().orValue(CodePoint{0});
-            if (lcp != 0 && lcp == rcp) continue;
-            return (lcp < rcp);
+        auto lcp = l.pop().orValue(0);
+        auto rcp = r.pop().orValue(0);
+        while (lcp != 0 && lcp == rcp) {
+            lcp = l.pop().orValue(0);
+            rcp = r.pop().orValue(0);
         }
+        return (lcp < rcp);
     }
 
     constexpr bool isContentEqual(const This& o) const {
-        return byteCount().v == o.byteCount().v && meta::equals(*this, o.begin());
+        return byteCount() == o.byteCount() && meta::equals(*this, o.begin());
     }
 
     constexpr auto byteCount() const -> Counter { return {static_cast<uint32_t>(end_m - start_m)}; }
     constexpr bool isEmpty() const { return start_m == end_m; }
+    constexpr auto size() const -> size_t { return static_cast<size_t>(end_m - start_m); }
 
-    /// view of the first N bytes
     template<size_t N>
-    constexpr auto front() const -> OptionalView {
-        if (byteCount().v >= N) {
-            return View(start_m, start_m + N);
-        }
-        return {};
+    constexpr auto skipBytes() const -> View {
+        if (byteCount().v > N) return View{start_m + N, end_m};
+        return View{end_m, end_m};
+    }
+    constexpr auto skipBytes(Counter n) const -> View {
+        if (byteCount().v > n.v) return View{start_m + n.v, end_m};
+        return View{end_m, end_m};
     }
 
-    bool pullBom() & {
-        return front<3>().map([=](This v) {
-            if (v.isContentEqual(This("\xEF\xBB\xBF"))) {
-                pop<3>();
-                return true;
-            }
-            return false;
-        });
+    template<size_t N>
+    constexpr auto firstBytes() const -> View {
+        if (byteCount().v >= N) return View{start_m, start_m + N};
+        return *this;
+    }
+    constexpr auto firstBytes(Counter n) const -> View {
+        if (byteCount().v > n.v) return View{start_m, start_m + n.v};
+        return *this;
     }
 
-    auto pullCodePoint() -> OptionalCodePoint {
+    constexpr bool hasBom() const {
+        constexpr auto BOM = This{"\xEF\xBB\xBF"};
+        return firstBytes<3>().isContentEqual(BOM);
+    }
+    constexpr auto skipBom() const -> View {
+        if (hasBom()) return skipBytes<3>();
+        return *this;
+    }
+
+    constexpr auto pullCodePoint() -> OptionalCodePoint {
         // see https://en.wikipedia.org/wiki/UTF-8
         return pop().map([=](Byte c0) -> OptionalCodePoint {
-            if ((c0 & 0x80) != 0x80) return CodePoint{c0};
-            if ((c0 & 0xE0) == 0xC0) {
+            if ((c0 & 0x80u) != 0x80) return CodePoint{c0};
+            if ((c0 & 0xE0u) == 0xC0) {
                 return pop().map([=](Byte c1) -> OptionalCodePoint {
-                    if ((c1 & 0xC0) != 0x80) return {};
-                    return CodePoint{((c0 & 0x1Fu) << 6) | ((c1 & 0x3Fu) << 0)};
+                    if ((c1 & 0xC0u) != 0x80) return {};
+                    return CodePoint{((c0 & 0x1Fu) << 6u) | ((c1 & 0x3Fu) << 0u)};
                 });
             }
-            if ((c0 & 0xF0) == 0xE0) {
+            if ((c0 & 0xF0u) == 0xE0) {
                 return pop().map([=](Byte c1) -> OptionalCodePoint {
-                    if ((c1 & 0xC0) != 0x80) return {};
+                    if ((c1 & 0xC0u) != 0x80u) return {};
                     return pop().map([=](Byte c2) -> OptionalCodePoint {
-                        if ((c2 & 0xC0) != 0x80) return {};
-                        return CodePoint{((c0 & 0x0Fu) << 12) | ((c1 & 0x3Fu) << 6) | ((c2 & 0x3Fu) << 0)};
+                        if ((c2 & 0xC0u) != 0x80u) return {};
+                        return CodePoint{((c0 & 0x0Fu) << 12u) | ((c1 & 0x3Fu) << 6u) | ((c2 & 0x3Fu) << 0u)};
                     });
                 });
             }
-            if ((c0 & 0xF8) == 0xF0) {
+            if ((c0 & 0xF8u) == 0xF0) {
                 return pop().map([=](Byte c1) -> OptionalCodePoint {
-                    if ((c1 & 0xC0) != 0x80) return {};
+                    if ((c1 & 0xC0u) != 0x80) return {};
                     return pop().map([=](Byte c2) -> OptionalCodePoint {
-                        if ((c2 & 0xC0) != 0x80) return {};
+                        if ((c2 & 0xC0u) != 0x80) return {};
                         return pop().map([=](Byte c3) -> OptionalCodePoint {
-                            if ((c3 & 0xC0) != 0x80) return {};
-                            return CodePoint{((c0 & 0x07u) << 18) | ((c1 & 0x3Fu) << 12) | ((c2 & 0x3Fu) << 6) |
-                                             ((c3 & 0x3Fu) << 0)};
+                            if ((c3 & 0xC0u) != 0x80) return {};
+                            return CodePoint{((c0 & 0x07u) << 18u) | ((c1 & 0x3Fu) << 12u) | ((c2 & 0x3Fu) << 6u) |
+                                             ((c3 & 0x3Fu) << 0u)};
                         });
                     });
                 });
@@ -129,24 +136,24 @@ public:
 
     constexpr auto data() const -> It { return start_m; }
 
-    constexpr auto begin() const -> ByteIt { return ByteIt(start_m); }
-    constexpr auto end() const -> ByteIt { return ByteIt(end_m); }
+    constexpr auto begin() const -> It { return start_m; }
+    constexpr auto end() const -> It { return end_m; }
 
-    constexpr auto front() const -> Byte { return *begin(); }
+    constexpr auto front() const -> Byte { return static_cast<Byte>(*begin()); }
 
 private:
-    auto peek() -> meta::Optional<Byte> {
+    constexpr auto peek() -> meta::Optional<Byte> {
         if (0 == byteCount().v) return {};
         return front();
     }
-    auto pop() -> meta::Optional<Byte> {
+    constexpr auto pop() -> meta::Optional<Byte> {
         if (0 == byteCount().v) return {};
         auto r = front();
         start_m++;
         return r;
     }
     template<size_t N>
-    bool pop() {
+    constexpr bool pop() {
         if (N > byteCount().v) {
             start_m = end_m;
             return false;
@@ -165,9 +172,6 @@ struct CompareView : View {
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-inline auto to_string(const View& v) -> String {
-    using It = View::ByteIt;
-    return {It{v.begin()}, It{v.end()}};
-}
+inline auto to_string(const View& v) -> String { return {v.begin(), v.end()}; }
 
 } // namespace strings

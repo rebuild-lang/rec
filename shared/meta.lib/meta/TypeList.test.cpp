@@ -21,10 +21,9 @@ TEST(typelist, indexOfMultpiple) {
 TEST(typelist, contains) {
     using TestList = meta::TypeList<int, float, double>;
 
-    static_assert(TestList::containsPred(
-        [](auto v) { return std::is_same_v<decltype(v), float> || std::is_same_v<decltype(v), char>; }));
+    static_assert(TestList::containsPred([](auto v) { return v == meta::Type<float>{} || v == meta::Type<char>{}; }));
 
-    static_assert(TestList::containsPred([](auto v) { return sizeof(v) >= sizeof(double); }));
+    static_assert(TestList::containsPred([](auto v) { return sizeOf(v) >= sizeof(double); }));
 }
 
 TEST(typelist, join) {

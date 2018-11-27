@@ -12,10 +12,10 @@ Project {
         Depends { name: "text.lib" }
 
         files: [
-            "NumberLiteral.cpp",
-            "NumberLiteral.h",
-            "StringLiteral.cpp",
-            "StringLiteral.h",
+            "NumberLiteralValue.cpp",
+            "NumberLiteralValue.h",
+            "StringLiteralValue.cpp",
+            "StringLiteralValue.h",
             "Token.cpp",
             "Token.h",
             "Token.builder.h",

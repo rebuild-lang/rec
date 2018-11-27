@@ -15,7 +15,9 @@ namespace scanner {
  */
 inline auto extractComment(text::FileInput& input, text::Column tabStops) -> CommentLiteral {
     size_t markerExtends = 1;
-    auto makeToken = [&]() -> CommentLiteral { return {input.range()}; };
+    auto makeToken = [&]() -> CommentLiteral {
+        return {}; //  {input.range()};
+    };
     auto scanLine = [&] {
         while (true) {
             input.extend(tabStops);

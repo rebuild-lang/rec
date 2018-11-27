@@ -12,12 +12,11 @@ struct StringData {
     String input;
     // expected:
     String content;
-    Position end;
     // string
     String text;
 };
 static auto operator<<(std::ostream& o, const StringData& sd) -> std::ostream& {
-    return o << sd.input << " => " << sd.content << " @" << sd.end << "\n"
+    return o << sd.input << " => " << sd.content << "\n"
              << "StringLiteral: " << sd.text;
 }
 
@@ -25,81 +24,86 @@ class StringScanners : public testing::TestWithParam<StringData> {};
 
 TEST_P(StringScanners, all) {
     StringData param = GetParam();
-    auto f = File{String{"testfile"}, param.input};
-    auto input = FileInput{f};
-    input.peek();
+    auto decoder = [&]() -> meta::CoEnumerator<DecodedPosition> {
+        auto column = Column{};
+        for (auto& chr : param.input) {
+            auto view = View{&chr, &chr + 1};
+            auto position = Position{Line{1}, column};
+            if (chr == '\n') {
+                auto nlp = NewlinePosition{view, position};
+                co_yield nlp;
+            }
+            else {
+                auto cp = CodePoint{static_cast<uint32_t>(chr)};
+                auto cpp = CodePointPosition{view, cp, position};
+                co_yield cpp;
+            }
+            ++column;
+        }
+    }();
+    decoder++;
+    auto cpp = (*decoder).get<CodePointPosition>();
+    decoder++;
+    const StringLiteral lit = extractString(cpp, decoder);
 
-    const auto lit = extractString(input);
+    const auto& value = lit.value;
+    EXPECT_TRUE(value.errors.empty());
+    EXPECT_EQ(param.text, strings::to_string(value.text));
 
-    EXPECT_EQ(param.text, strings::to_string(lit.value.text));
-
-    EXPECT_EQ(param.content, strings::to_string(lit.range.view));
+    EXPECT_EQ(param.content, strings::to_string(lit.input));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
-    EXPECT_EQ(beginPosition, lit.range.begin);
-    EXPECT_EQ(param.end, lit.range.end);
+    EXPECT_EQ(beginPosition, lit.position);
 }
 
 INSTANTIATE_TEST_CASE_P( //
     examples,
     StringScanners,
     ::testing::Values( //
-        StringData{"empty", String{R"("")"}, String{R"("")"}, {Line{1}, Column{3}}, String{}},
-        StringData{"letters", String{R"("hello")"}, String{R"("hello")"}, {Line{1}, Column{8}}, String{R"(hello)"}},
-        StringData{"whitespace", String{R"("he lo")"}, String{R"("he lo")"}, {Line{1}, Column{8}}, String{R"(he lo)"}},
-        StringData{"newline", String{"\"h \nlo\""}, String{"\"h \nlo\""}, {Line{2}, Column{4}}, String{"hlo"}},
-        StringData{"emptyNewline", String{"\"\n\""}, String{"\"\n\""}, {Line{2}, Column{2}}, String{""}},
+        StringData{"empty", String{R"("")"}, String{R"("")"}, String{}},
+        StringData{"letters", String{R"("hello")"}, String{R"("hello")"}, String{R"(hello)"}},
+        StringData{"whitespace", String{R"("he lo")"}, String{R"("he lo")"}, String{R"(he lo)"}},
+        StringData{"newline", String{"\"h \nlo\""}, String{"\"h \nlo\""}, String{"hlo"}},
+        StringData{"emptyNewline", String{"\"\n\""}, String{"\"\n\""}, String{""}},
         StringData{"escapedNewline", //
                    String{R"("he\nlo")"},
                    String{R"("he\nlo")"},
-                   {Line{1}, Column{9}},
                    String{"he\nlo"}},
-        StringData{"escapedQuote", String{R"("\"")"}, String{R"("\"")"}, {Line{1}, Column{5}}, String{"\""}},
-        StringData{"rawEmpty", String{R"("""""")"}, String{R"("""""")"}, {Line{1}, Column{7}}, String{}},
+        StringData{"escapedQuote", String{R"("\"")"}, String{R"("\"")"}, String{"\""}},
+        StringData{"rawEmpty", String{R"("""""")"}, String{R"("""""")"}, String{}},
         StringData{"rawLetters", //
                    String{R"("""hello""")"},
                    String{R"("""hello""")"},
-                   {Line{1}, Column{12}},
                    String{"hello"}},
         StringData{"rawWithNewline",
                    String{"\"\"\"line1  \n  line2\"\"\""},
                    String{"\"\"\"line1  \n  line2\"\"\""},
-                   {Line{2}, Column{11}},
                    String{"line1\n  line2"}},
         StringData{"rawWithQuotes",
                    String{R"("""hello "world"""")"},
                    String{R"("""hello "world"""")"},
-                   {Line{1}, Column{20}},
                    String{"hello \"world\""}},
         StringData{"rawWithDoubleQuotes",
                    String{R"("""hello ""unit""""")"},
                    String{R"("""hello ""unit""""")"},
-                   {Line{1}, Column{21}},
                    String{"hello \"\"unit\"\""}},
         StringData{"rawWithTripleQuotes",
-                   String{R"("""hello """"""unit"""""")"},
-                   String{R"("""hello """"""unit"""""")"},
-                   {Line{1}, Column{26}},
+                   String{R"("""hello """"""unit""""""""")"},
+                   String{R"("""hello """"""unit""""""""")"},
+
                    String{"hello \"\"\"unit\"\"\""}},
-        StringData{"missingTerminator", //
-                   String{R"("tailing)"},
-                   String{R"("tailing)"},
-                   {Line{1}, Column{9}},
-                   String{"tailing"}},
         StringData{"hexUnicode", //
                    String{R"("\x10abCD")"},
                    String{R"("\x10abCD")"},
-                   {Line{1}, Column{11}},
                    String{[] {
-                       auto vec = std::vector<String::Data>{};
+                       auto vec = std::vector<String::Char>{};
                        strings::CodePoint{0x10abCD}.utf8_encode(vec);
                        return vec;
                    }()}},
         StringData{"decimalUnicode", //
                    String{R"("\u1114111")"},
                    String{R"("\u1114111")"},
-                   {Line{1}, Column{12}},
                    String{[] {
-                       auto vec = std::vector<String::Data>{};
+                       auto vec = std::vector<String::Char>{};
                        strings::CodePoint{0x10FFFF}.utf8_encode(vec);
                        return vec;
                    }()}}),
@@ -136,12 +140,11 @@ struct StringErrorData {
     // expected:
     String content;
     std::vector<StringCompareError> errors;
-    Position end;
     // string
     String text;
 };
 static auto operator<<(std::ostream& o, const StringErrorData& sd) -> std::ostream& {
-    return o << sd.input << " => " << sd.content << " @" << sd.end << "\n"
+    return o << sd.input << " => " << sd.content << "\n"
              << "StringLiteral: " << sd.text << "\n"
              << "Errors: " << sd.errors;
 }
@@ -150,19 +153,29 @@ class StringErrorScanners : public testing::TestWithParam<StringErrorData> {};
 
 TEST_P(StringErrorScanners, all) {
     StringErrorData param = GetParam();
-    auto f = File{String{"testfile"}, param.input};
-    auto input = FileInput{f};
-    input.peek();
+    auto decoder = [&]() -> meta::CoEnumerator<DecodedPosition> {
+        auto column = Column{};
+        for (auto& chr : param.input) {
+            auto view = View{&chr, &chr + 1};
+            auto position = Position{Line{1}, column};
+            auto cp = CodePoint{static_cast<uint32_t>(chr)};
+            auto cpp = CodePointPosition{view, cp, position};
+            co_yield cpp;
+            ++column;
+        }
+    }();
+    decoder++;
+    auto cpp = (*decoder).get<CodePointPosition>();
+    decoder++;
+    const StringLiteral lit = extractString(cpp, decoder);
 
-    const auto lit = extractString(input);
+    const auto& value = lit.value;
+    EXPECT_EQ(param.errors, value.errors);
+    EXPECT_EQ(param.text, strings::to_string(value.text));
 
-    EXPECT_EQ(param.text, strings::to_string(lit.value.text));
-    EXPECT_EQ(param.errors, lit.value.errors);
-
-    EXPECT_EQ(param.content, strings::to_string(lit.range.view));
+    EXPECT_EQ(param.content, strings::to_string(lit.input));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
-    EXPECT_EQ(beginPosition, lit.range.begin);
-    EXPECT_EQ(param.end, lit.range.end);
+    EXPECT_EQ(beginPosition, lit.position);
 }
 
 INSTANTIATE_TEST_CASE_P( //
@@ -174,8 +187,7 @@ INSTANTIATE_TEST_CASE_P( //
                         String{"\"ab"},
                         {StringCompareError{StringError::Kind::EndOfInput, //
                                             View{""},
-                                            Position{Line{1}, Column{4}}}},
-                        {Line{1}, Column{4}},
+                                            Position{Line{1}, Column{3}}}},
                         String{"ab"}},
         StringErrorData{"invalidCodePoint",
                         String{"\"\0\""},
@@ -183,7 +195,6 @@ INSTANTIATE_TEST_CASE_P( //
                         {StringCompareError{StringError::Kind::InvalidControl, //
                                             View{"\0"},
                                             Position{Line{1}, Column{2}}}},
-                        {Line{1}, Column{4}},
                         String{}},
         StringErrorData{"invalidEscape",
                         String{"\"\\?\""},
@@ -191,7 +202,6 @@ INSTANTIATE_TEST_CASE_P( //
                         {StringCompareError{StringError::Kind::InvalidEscape, //
                                             View{"\\?"},
                                             Position{Line{1}, Column{2}}}},
-                        {Line{1}, Column{5}},
                         String{}},
         StringErrorData{"noHexUnicode",
                         String{"\"\\x\""},
@@ -199,7 +209,6 @@ INSTANTIATE_TEST_CASE_P( //
                         {StringCompareError{StringError::Kind::InvalidHexUnicode, //
                                             View{"\\x"},
                                             Position{Line{1}, Column{2}}}},
-                        {Line{1}, Column{5}},
                         String{}},
         StringErrorData{"toobigHexUnicode",
                         String{"\"\\x110000\""},
@@ -207,7 +216,6 @@ INSTANTIATE_TEST_CASE_P( //
                         {StringCompareError{StringError::Kind::InvalidHexUnicode, //
                                             View{"\\x110000"},
                                             Position{Line{1}, Column{2}}}},
-                        {Line{1}, Column{11}},
                         String{}},
         StringErrorData{"noDecimalUnicode",
                         String{"\"\\uA\""},
@@ -215,6 +223,5 @@ INSTANTIATE_TEST_CASE_P( //
                         {StringCompareError{StringError::Kind::InvalidDecimalUnicode, //
                                             View{"\\u"},
                                             Position{Line{1}, Column{2}}}},
-                        {Line{1}, Column{6}},
                         String{"A"}}),
     [](const ::testing::TestParamInfo<StringErrorData>& inf) { return inf.param.name; });

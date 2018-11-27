@@ -40,7 +40,7 @@ class Compiler final {
 
         template<class T>
         auto operator()(meta::Type<T>) const -> instance::TypeView {
-            return intrinsic::ResolveType<T>::moduleInstance<intrinsic::Rebuild>(globals);
+            return intrinsic::ResolveType<T>::template moduleInstance<intrinsic::Rebuild>(globals);
         }
     };
 
@@ -176,7 +176,7 @@ end
 )"}};
 
     std::cout << "\nTokens:\n";
-    for (auto t : tokenize(file)) std::cout << t << '\n';
+    // for (auto t : tokenize(file)) std::cout << t << '\n';
 
     std::cout << "\nBlocks:\n";
     std::cout << blockify(file);

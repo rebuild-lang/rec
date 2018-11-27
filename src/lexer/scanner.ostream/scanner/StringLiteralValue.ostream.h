@@ -1,7 +1,8 @@
 #pragma once
-#include "scanner/StringLiteral.h"
+#include <scanner/StringLiteralValue.h>
 
-#include "text/Position.ostream.h"
+#include <strings/View.ostream.h>
+#include <text/Position.ostream.h>
 
 #include <ostream>
 
@@ -15,8 +16,8 @@ inline auto operator<<(std::ostream& out, const StringError::Kind& errorKind) ->
     case StringError::Kind::InvalidControl: return out << "InvalidControl";
     case StringError::Kind::InvalidDecimalUnicode: return out << "InvalidDecimalUnicode";
     case StringError::Kind::InvalidHexUnicode: return out << "InvalidHexUnicode";
-    default: return out << "???";
     }
+    return out << "???";
 }
 
 inline auto operator<<(std::ostream& out, const StringError& error) -> std::ostream& {

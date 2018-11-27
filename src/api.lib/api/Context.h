@@ -69,7 +69,7 @@ struct TypeOf<Context*> {
     };
 
     static void declareModule(Label label, Block block, ModuleResult& res, ImplicitContext context) {
-        auto name = label.v.range.view;
+        auto name = Name{}; // label.v.range.view;
         auto optNode = context.v->parserScope->locals[name];
         if (optNode) {
             auto node = optNode.value();
@@ -193,7 +193,7 @@ struct TypeOf<Context*> {
         ImplicitContext context) {
 
         // TODO(arBmind): implement
-        auto name = label.v.range.view;
+        auto name = Name{}; // label.v.range.view;
         auto optNode = context.v->parserScope->locals[name];
         if (optNode) {
             /*
@@ -215,7 +215,7 @@ struct TypeOf<Context*> {
             auto optNode = context.v->parserScope->emplace([&] {
                 auto function = instance::Function{};
                 function.name = strings::to_string(name);
-                function.flags |= instance::FunctionFlag::compile_time;
+                function.flags |= instance::FunctionFlag::compile_time; // TODO(arBmind): allow custom flags
 
                 auto addArgumentsFromTyped = [&](instance::ArgumentSide side, parser::TypedTuple& tuple) {
                     for (auto& typed : tuple.tuple) {
@@ -224,6 +224,9 @@ struct TypeOf<Context*> {
                             if (typed.name) argument.typed.name = strings::to_string(typed.name.value());
                             if (typed.type) argument.typed.type = typed.type.value();
                             argument.side = side;
+                            if (side == instance::ArgumentSide::result)
+                                argument.flags |= instance::ArgumentFlag::assignable;
+
                             if (typed.value) argument.init.push_back(typed.value.value());
                             return argument;
                         }());

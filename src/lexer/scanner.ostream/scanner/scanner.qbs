@@ -13,10 +13,10 @@ Project {
         //Depends { name: "text.ostream" }
 
         files: [
-            "NumberLiteral.ostream.cpp",
-            "NumberLiteral.ostream.h",
-            "StringLiteral.ostream.cpp",
-            "StringLiteral.ostream.h",
+            "NumberLiteralValue.ostream.cpp",
+            "NumberLiteralValue.ostream.h",
+            "StringLiteralValue.ostream.cpp",
+            "StringLiteralValue.ostream.h",
             "Token.ostream.cpp",
             "Token.ostream.h",
         ]

@@ -22,10 +22,10 @@ struct Flags {
     constexpr Flags(const This&) noexcept = default;
     constexpr Flags(This&&) noexcept = default;
     ~Flags() = default;
-    constexpr auto operator=(const This&) noexcept -> This& = default;
-    constexpr auto operator=(This&&) noexcept -> This& = default;
+    constexpr auto operator=(const This&) noexcept -> Flags& = default;
+    constexpr auto operator=(This&&) noexcept -> Flags& = default;
 
-    constexpr auto operator=(Enum e) noexcept -> This& {
+    constexpr auto operator=(Enum e) noexcept -> Flags& {
         v = static_cast<Value>(e);
         return *this;
     }

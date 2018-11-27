@@ -59,10 +59,9 @@ public:
 
     template<class F>
     constexpr auto operator&&(F&& f) const& //
-        -> std::enable_if_t<std::is_same_v<decltype(std::declval<F>()(std::declval<Value>())), bool>, bool> {
+        -> std::enable_if_t<std::is_same_v<decltype(std::declval<F>()(value())), bool>, bool> {
 
-        if (*this) return f(value());
-        return false;
+        return (*this) && f(value());
     }
 
     constexpr bool operator==(const This& o) const { return m == o.m; }
@@ -174,7 +173,7 @@ public:
         : m{&t.get()} {}
     // constexpr auto operator=(T& t) { m = &t; }
 
-    constexpr explicit operator bool() const { return m ? true : false; }
+    constexpr explicit operator bool() const { return static_cast<bool>(m); }
     constexpr auto value() const& -> const Value& { return *m.value(); }
     constexpr auto value() && -> Value { return *std::move(m).value(); }
     constexpr auto value() & -> Value& { return *m.value(); }

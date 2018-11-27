@@ -15,6 +15,7 @@ namespace strings {
 // use this to efficiently build large strings
 struct Rope {
     using This = Rope;
+    using Char = char;
     using Data = meta::Variant<CodePoint, String, View>;
 
 private:
@@ -35,7 +36,19 @@ public:
         return *this;
     }
     This& operator+=(View v) {
-        if (!v.isEmpty()) m.emplace_back(v);
+        if (v.isEmpty()) return *this;
+        if (!m.empty() && m.back().holds<View>()) {
+            auto& mv = m.back().get<View>();
+            if (mv.end() == v.begin()) {
+                mv = View(mv.begin(), v.end());
+                return *this;
+            }
+        }
+        m.emplace_back(v);
+        return *this;
+    }
+    This& operator+=(Rope& r) {
+        m.insert(m.end(), r.m.begin(), r.m.end());
         return *this;
     }
 
@@ -50,7 +63,7 @@ public:
     bool isEmpty() const { return m.empty(); }
 
     explicit operator String() const {
-        auto result = std::vector<uint8_t>();
+        auto result = std::vector<Char>();
         result.reserve(byteCount().v);
         for (const auto& e : m) {
             e.visit(

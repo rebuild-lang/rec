@@ -1,145 +1,164 @@
 #pragma once
-#include "scanner/Token.h"
+#include <scanner/Token.h>
 
-#include "text/FileInput.h"
+#include <meta/CoEnumerator.h>
 
-#include "strings/Rope.h"
+#include <strings/Rope.h>
 
 namespace scanner {
 
-using CodePoint = strings::CodePoint;
+using strings::CodePoint;
+using text::CodePointPosition;
+using text::DecodedPosition;
+using OptDecodedPosition = meta::Optional<DecodedPosition>;
+using OptCodePointPosition = meta::Optional<CodePointPosition>;
 
-/**
- * features:
+/** \brief parse a string literal from an enumerator
+ * key features:
  * * "" => empty string
  * * """raw""" => raw string
  * * whitespaces before newlines are skipped
+ * * backslash escapes are handled
+ * * decodeErrors are eaten
+ * * errors are tracked
  */
-inline auto extractString(text::FileInput& input) -> StringLiteral {
-    auto text = Rope{};
-    auto errors = StringErrors{};
+inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> StringLiteral {
+    auto string = StringLiteralValue{};
 
-    auto endOfInput = [&] { errors.push_back({StringError::Kind::EndOfInput, View{}, input.currentPosition()}); };
-    auto invalidCodePoint = [&] {
-        auto position = input.currentPosition();
-        auto start = input.current();
-        input.extend();
-        errors.push_back({StringError::Kind::InvalidEncoding, View{start, input.current()}, position});
+    auto end = firstCpp.input.end();
+    auto endPosition = firstCpp.position;
+    auto updateEnd = [&](auto ip) {
+        end = ip.input.end();
+        endPosition = ip.position;
     };
-    auto invalidControl = [&] {
-        auto position = input.currentPosition();
-        auto start = input.current();
-        input.extend();
-        errors.push_back({StringError::Kind::InvalidControl, View{start, input.current()}, position});
-    };
+    auto inputView = [&, begin = firstCpp.input.begin()] { return View{begin, end}; };
 
-    auto isDoubleQuote = [](CodePoint cp) { return cp.v == '"'; };
-    auto isBackslash = [](CodePoint cp) { return cp.v == '\\'; };
-    auto isTab = [](CodePoint cp) { return cp.v == '\t'; };
-
-    auto newLine = [&](CodePoint cp) {
-        input.extend();
-        // skip 2nd char of newline pair
-        if (cp == '\n' || cp == '\r') {
-            input.peek().map([&](auto cp2) {
-                if (cp2 != cp && (cp2 == '\n' || cp2 == '\r')) input.extend();
-            });
+    auto peekCpp = [&]() -> OptCodePointPosition {
+        while (true) {
+            if (!decoded) return {};
+            auto dp = *decoded;
+            if (dp.holds<text::CodePointPosition>()) {
+                return dp.get<CodePointPosition>();
+            }
+            if (dp.holds<text::DecodedErrorPosition>()) {
+                auto dep = dp.get<text::DecodedErrorPosition>();
+                string.errors.push_back({StringError::Kind::InvalidEncoding, dep.input, dep.position});
+                updateEnd(dep);
+                decoded++;
+                continue;
+            }
+            return {};
         }
-        input.nextLine();
     };
+    auto nextCpp = [&]() -> OptCodePointPosition {
+        updateEnd((*decoded).get<text::CodePointPosition>());
+        decoded++;
+        return peekCpp();
+    };
+
+    auto addDecodeError = [&](text::DecodedErrorPosition& dep) {
+        string.errors.push_back({StringError::Kind::InvalidEncoding, dep.input, dep.position});
+    };
+    auto addEndOfInputError = [&] { string.errors.push_back({StringError::Kind::EndOfInput, View{}, endPosition}); };
+    auto addInvalidControl = [&](const CodePointPosition& cpp) {
+        string.errors.push_back({StringError::Kind::InvalidControl, cpp.input, cpp.position});
+    };
+
+    static auto isDoubleQuote = [](CodePoint cp) { return cp.v == '"'; };
+    static auto isBackslash = [](CodePoint cp) { return cp.v == '\\'; };
+    static auto isTab = [](CodePoint cp) { return cp.v == '\t'; };
 
     auto raw = [&] {
-        input.extend(); // skip 3rd doublequote
-        auto start = input.current();
-        auto lineStart = start;
-        auto spaceStart = start;
+        auto spaces = Rope{};
 
-        auto reset = [&] { spaceStart = lineStart = start = input.current(); };
-        auto nonSpace = [&] { lineStart = spaceStart = input.current(); };
+        auto handleQuotes = [&](const CodePointPosition& firstQuoteCpp) {
+            auto optSecondQuoteCpp = peekCpp(); // peek after "
+            auto mapCp = [&](auto opt, auto pred) {
+                return opt.map([&](auto cpp) -> bool { return pred(cpp.codePoint); });
+            };
+            if (!mapCp(optSecondQuoteCpp, isDoubleQuote)) {
+                string.text += firstQuoteCpp.input;
+                return true; // "
+            }
+            auto optThirdQuoteCpp = nextCpp(); // peek after ""
+            if (!mapCp(optThirdQuoteCpp, isDoubleQuote)) {
+                string.text += firstQuoteCpp.input;
+                string.text += optSecondQuoteCpp.value().input;
+                return true; // ""
+            }
+            auto optForthQuoteCpp = nextCpp(); // peek after """
+            if (!mapCp(optForthQuoteCpp, isDoubleQuote)) {
+                return false; // end of raw string
+            }
+            auto optFifthQuoteCpp = nextCpp();
+            if (!mapCp(optFifthQuoteCpp, isDoubleQuote)) {
+                string.text += firstQuoteCpp.input;
+                return false; // " + end of raw string
+            }
+            auto optSixtQuoteCpp = nextCpp();
+            if (!mapCp(optSixtQuoteCpp, isDoubleQuote)) {
+                string.text += firstQuoteCpp.input;
+                string.text += optSecondQuoteCpp.value().input;
+                return false; // "" + end of raw string
+            }
+            decoded++;
+            updateEnd(optSixtQuoteCpp.value());
+            string.text += firstQuoteCpp.input;
+            string.text += optSecondQuoteCpp.value().input;
+            string.text += optThirdQuoteCpp.value().input;
+            return true; // """
+        };
 
-        auto flushToLine = [&]() { text += View{start, lineStart}; };
-        auto flushToCurrent = [&](size_t offset = 0) { text += View{start, input.current() - offset}; };
-        auto flushToSpace = [&] { text += View{start, spaceStart}; };
-
-        while (true) {
-            if (!input.hasMore()) {
-                flushToCurrent();
-                endOfInput();
-                return;
-            }
-            auto optCp = input.peek();
-            if (!optCp) {
-                flushToCurrent();
-                invalidCodePoint();
-                reset();
-                continue;
-            }
-            auto cp = optCp.value();
-            if (isDoubleQuote(cp)) {
-                input.extend(); // "
-                if (!input.peek().map(isDoubleQuote)) {
-                    nonSpace();
-                    continue; // => "
-                }
-                input.extend(); // ""
-                if (!input.peek().map(isDoubleQuote)) {
-                    nonSpace();
-                    continue; // => ""
-                }
-                input.extend(); // """
-                if (!input.peek().map(isDoubleQuote)) {
-                    flushToLine();
-                    return; // string end
-                }
-                input.extend(); // " """
-                if (!input.peek().map(isDoubleQuote)) {
-                    flushToCurrent(3);
-                    return; // " + string end
-                }
-                input.extend(); // "" """
-                if (!input.peek().map(isDoubleQuote)) {
-                    flushToCurrent(3);
-                    return; // "" + string end
-                }
-                input.extend(); // """ """
-                flushToCurrent(3); // skip """
-                reset();
-                continue;
-            }
-            if (cp.isLineSeparator()) {
-                lineStart = input.current();
-                if (spaceStart != input.current()) {
-                    flushToSpace();
-                    start = lineStart;
-                }
-                newLine(cp);
-                spaceStart = input.current();
-                continue;
-            }
-            input.extend();
-            if (!cp.isWhiteSpace()) nonSpace();
+        decoded++;
+        while (decoded) {
+            auto dp = *decoded;
+            decoded++;
+            auto next = dp.visit(
+                [&](DecodedErrorPosition& dep) {
+                    updateEnd(dep);
+                    addDecodeError(dep);
+                    return true;
+                },
+                [&](text::NewlinePosition& nlp) {
+                    updateEnd(nlp);
+                    string.text += nlp.input;
+                    spaces = {};
+                    return true;
+                },
+                [&](CodePointPosition& cpp) {
+                    updateEnd(cpp);
+                    auto cp = cpp.codePoint;
+                    if (cp.isWhiteSpace() || isTab(cp)) {
+                        spaces += cpp.input;
+                        return true;
+                    }
+                    string.text += spaces;
+                    spaces = {};
+                    if (isDoubleQuote(cp)) {
+                        return handleQuotes(cpp);
+                    }
+                    string.text += cpp.input;
+                    return true;
+                });
+            if (!next) return;
         }
+        addEndOfInputError(); // out of input
     };
 
-    auto handleEscape = [&] {
-        auto start = input.current();
-        auto position = input.currentPosition();
-
-        auto escapeError = [&](StringError::Kind kind) {
-            errors.push_back({kind, View{start, input.current()}, position});
+    auto handleEscape = [&](CodePointPosition& cpp) {
+        auto addEscapeError = [&](StringError::Kind kind) {
+            string.errors.push_back({kind, View{cpp.input.begin(), end}, cpp.position});
         };
         auto hexUnicode = [&] {
-            input.extend(); // skip x
             auto unicode = CodePoint{0};
 
-            for (int i = 0; i < 6; i++) {
-                auto optCp = input.peek();
-                if (!optCp) {
-                    if (unicode.v != 0) text += unicode;
-                    if (input.hasMore()) invalidCodePoint();
+            auto optCpp = peekCpp();
+            for (int i = 0; i < 6; i++) { // 0x10FFFF
+                if (!optCpp) {
+                    if (unicode.v != 0) string.text += unicode;
                     return;
                 }
-                auto cp = optCp.value();
+                auto cp = optCpp.value().codePoint;
                 if (cp.v >= '0' && cp.v <= '9') {
                     unicode.v = (unicode.v << 4) + (cp.v - '0');
                 }
@@ -152,120 +171,116 @@ inline auto extractString(text::FileInput& input) -> StringLiteral {
                 else {
                     break;
                 }
-                input.extend();
+                optCpp = nextCpp();
             }
             if (unicode.v > 0 && unicode.v <= 0x10FFFF) {
-                text += unicode;
+                string.text += unicode;
             }
             else {
-                escapeError(StringError::Kind::InvalidHexUnicode);
+                addEscapeError(StringError::Kind::InvalidHexUnicode);
             }
         };
         auto decimalUnicode = [&] {
-            input.extend(); // skip u
             auto unicode = CodePoint{0};
 
+            auto optCpp = peekCpp();
             for (int i = 0; i < 7; i++) { // 0 .. 1114111
-                auto optCp = input.peek();
-                if (!optCp) {
-                    if (unicode.v != 0) text += unicode;
-                    if (input.hasMore()) invalidCodePoint();
+                if (!optCpp) {
+                    if (unicode.v != 0) string.text += unicode;
                     return;
                 }
-                auto cp = optCp.value();
+                auto cp = optCpp.value().codePoint;
                 if (cp.v >= '0' && cp.v <= '9') {
                     unicode.v = (unicode.v * 10) + (cp.v - '0');
                 }
                 else {
                     break;
                 }
-                input.extend();
+                optCpp = nextCpp();
             }
             if (unicode.v > 0 && unicode.v <= 0x10FFFF) {
-                text += unicode;
+                string.text += unicode;
             }
             else {
-                escapeError(StringError::Kind::InvalidDecimalUnicode);
+                addEscapeError(StringError::Kind::InvalidDecimalUnicode);
             }
         };
 
-        input.extend(); // skip escape sign
-        auto optCp = input.peek();
-        if (!optCp) return invalidCodePoint();
+        auto optCpp = peekCpp();
+        if (!optCpp) return;
+        decoded++;
+        updateEnd(optCpp.value());
 
-        auto cp = optCp.value();
+        auto cp = optCpp.value().codePoint;
         switch (cp.v) {
-        case '0': text += CodePoint{0}; break;
+        case '0': string.text += CodePoint{0}; break;
         case '"':
-        case '\\': text += cp; break;
-        case 't': text += CodePoint{'\t'}; break;
-        case 'r': text += CodePoint{'\r'}; break;
-        case 'n': text += CodePoint{'\n'}; break;
+        case '\\': string.text += cp; break;
+        case 't': string.text += CodePoint{'\t'}; break;
+        case 'r': string.text += CodePoint{'\r'}; break;
+        case 'n': string.text += CodePoint{'\n'}; break;
         case 'x': return hexUnicode();
         case 'u': return decimalUnicode();
-        default: input.extend(); return escapeError(StringError::Kind::InvalidEscape);
+        default: return addEscapeError(StringError::Kind::InvalidEscape);
         }
-        input.extend();
     };
 
     auto regular = [&] {
-        auto start = input.current();
-        auto spaceStart = start;
+        auto spaces = Rope{};
 
-        auto reset = [&] { spaceStart = start = input.current(); };
-        auto flushTerminal = [&](auto handler) {
-            text += View{start, input.current()};
-            handler();
-        };
-        auto flushToCurrent = [&](auto handler) {
-            flushTerminal(handler);
-            reset();
-        };
-        auto flushToSpace = [&](auto handler) {
-            text += View{start, spaceStart};
-            handler();
-            reset();
-        };
-
-        while (input.hasMore()) {
-            auto optCp = input.peek();
-            if (!optCp) {
-                flushToCurrent(invalidCodePoint);
-                continue;
-            }
-            auto cp = optCp.value();
-            if (isDoubleQuote(cp)) {
-                flushToCurrent([&] { input.extend(); }); // skip final doublequote
-                return; // done
-            }
-            if (cp.isLineSeparator()) {
-                flushToSpace([=] { newLine(cp); });
-                continue;
-            }
-            if (isBackslash(cp)) {
-                flushToCurrent(handleEscape);
-                continue;
-            }
-            if (!isTab(cp) && cp.isControl()) {
-                flushToCurrent(invalidControl);
-                continue;
-            }
-            input.extend();
-            if (!cp.isWhiteSpace()) spaceStart = input.current();
+        while (decoded) {
+            auto dp = *decoded;
+            decoded++;
+            auto next = dp.visit(
+                [&](DecodedErrorPosition& dep) {
+                    updateEnd(dep);
+                    addDecodeError(dep);
+                    return true;
+                },
+                [&](text::NewlinePosition& nlp) {
+                    updateEnd(nlp);
+                    spaces = {};
+                    return true;
+                },
+                [&](CodePointPosition& cpp) {
+                    updateEnd(cpp);
+                    auto cp = cpp.codePoint;
+                    if (cp.isWhiteSpace() || isTab(cp)) {
+                        spaces += cpp.input;
+                        return true;
+                    }
+                    string.text += spaces;
+                    spaces = {};
+                    if (isDoubleQuote(cp)) {
+                        return false; // done
+                    }
+                    if (isBackslash(cp)) {
+                        handleEscape(cpp);
+                        return true;
+                    }
+                    if (cp.isControl()) {
+                        addInvalidControl(cpp);
+                        return true;
+                    }
+                    string.text += cpp.input;
+                    return true;
+                });
+            if (!next) return;
         }
-        flushTerminal(endOfInput); // out of input
+        addEndOfInputError(); // out of input
     };
 
-    input.extend(); // skip 1st doublequote
-    if (input.peek().map(isDoubleQuote)) {
-        input.extend(); // skip 2nd doublequote
-        if (input.peek().map(isDoubleQuote)) raw(); // three quotes => raw string
+    auto optCpp = peekCpp(); // look for 2nd double quote
+    auto mapCp = [&](auto pred) { return optCpp.map([&](auto cpp) -> bool { return pred(cpp.codePoint); }); };
+    if (mapCp(isDoubleQuote)) {
+        optCpp = nextCpp(); // look for 3rd double quote
+        if (mapCp(isDoubleQuote)) raw(); // three quotes => raw string
         // two quotes => empty string
     }
     else {
         regular();
     }
-    return StringLiteral{{std::move(text), std::move(errors)}, input.range()};
+    return {string, inputView(), firstCpp.position};
 }
 
 } // namespace scanner

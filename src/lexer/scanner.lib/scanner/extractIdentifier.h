@@ -29,7 +29,8 @@ inline auto extractIdentifier(text::FileInput& input) -> OptToken {
     do {
         input.extend();
     } while (input.peek().map(isContinuation));
-    return Token{IdentifierLiteral{input.range()}};
+    // return Token{IdentifierLiteral{input.range()}};
+    return Token{};
 }
 
 } // namespace scanner

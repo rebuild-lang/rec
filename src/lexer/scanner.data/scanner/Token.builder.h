@@ -23,18 +23,20 @@ template<>
 struct TokenBuilder<View> {
     static auto build(const View& b) -> Token {
         auto tok = scanner::IdentifierLiteral{};
-        tok.range.view = b;
+        // tok.range.view = b;
         return tok;
     }
 };
 
 } // namespace details
 
+// Helper to ease create a single token for unit tests
 template<class Tok>
 auto buildToken(Tok&& t) -> Token {
     return details::TokenBuilder<Tok>::build(std::forward<Tok>(t));
 }
 
+// Helper to build a vector of Tokens at once
 template<class... Tok>
 auto buildTokens(Tok&&... t) -> Tokens {
     return Tokens{scanner::buildToken(std::forward<Tok>(t))...};
