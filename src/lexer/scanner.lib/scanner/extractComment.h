@@ -1,9 +1,12 @@
 #pragma once
-#include "scanner/Token.h"
+#include <scanner/Token.h>
 
-#include "text/FileInput.h"
+#include <meta/CoEnumerator.h>
 
 namespace scanner {
+
+using text::CodePointPosition;
+using text::DecodedPosition;
 
 /**
  * precondition: input is on the valid start character
@@ -13,51 +16,85 @@ namespace scanner {
  * b) (marker=#{Non-Whitespace}*#){Any}*{marker} => block comment
  *
  */
-inline auto extractComment(text::FileInput& input, text::Column tabStops) -> CommentLiteral {
+inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> CommentLiteral {
+    using strings::CompareView;
+    auto comment = CommentLiteralValue{};
+
+    const auto begin = firstCpp.input.begin();
+    auto end = firstCpp.input.end();
+    auto updateEnd = [&](auto ip) { end = ip.input.end(); };
+
     size_t markerExtends = 1;
-    auto makeToken = [&]() -> CommentLiteral {
-        return {}; //  {input.range()};
+    auto makeToken = [&, begin = firstCpp.input.begin()]() -> CommentLiteral {
+        return {comment, View{begin, end}, firstCpp.position};
     };
     auto scanLine = [&] {
-        while (true) {
-            input.extend(tabStops);
-            if (!input.hasMore()) return makeToken();
-            auto optCp = input.peek();
-            if (!optCp) return makeToken(); // force faulty code point to be visible
-            auto cp = optCp.value();
-            if (cp.isLineSeparator()) return makeToken();
+        while (decoded) {
+            auto dp = *decoded;
+            decoded++;
+            auto next = dp.visit(
+                [&](DecodedErrorPosition& dep) {
+                    updateEnd(dep);
+                    comment.decodeErrors.push_back(dep);
+                    return true;
+                },
+                [&](text::NewlinePosition& nlp) { return false; },
+                [&](CodePointPosition& cpp) {
+                    updateEnd(cpp);
+                    return true;
+                });
+            if (!next) break;
         }
+        return false;
     };
     auto scanBlock = [&] {
-        input.extend();
-        auto marker = input.view();
-        auto markerBytes = marker.byteCount();
-        while (input.hasMoreBytes(markerBytes)) {
-            if (input.currentView(markerBytes).isContentEqual(marker)) {
-                input.extend(markerExtends);
-                return makeToken();
-            }
-            auto optCp = input.peek();
-            if (!optCp) return makeToken(); // force faulty code point to be visible
-            auto cp = optCp.value();
-            input.extend(tabStops);
-            if (cp.isLineSeparator()) input.nextLine();
+        auto marker = CompareView{begin, end};
+        while (decoded) {
+            auto dp = *decoded;
+            decoded++;
+            auto next = dp.visit(
+                [&](DecodedErrorPosition& dep) {
+                    updateEnd(dep);
+                    comment.decodeErrors.push_back(dep);
+                    return true;
+                },
+                [&](text::NewlinePosition& nlp) {
+                    updateEnd(nlp);
+                    return true;
+                },
+                [&](CodePointPosition& cpp) {
+                    updateEnd(cpp);
+                    auto b = cpp.input.end() - marker.size();
+                    return !(
+                        cpp.codePoint.v == '#' //
+                        && marker.end() < b //
+                        && marker == CompareView{b, cpp.input.end()});
+                });
+            if (!next) break;
         }
-        input.finish();
-        return makeToken();
+        return false;
     };
 
-    while (true) {
-        input.extend(); // no whitespace allowed
-        markerExtends++;
-        if (!input.hasMore()) return makeToken();
-        auto optCp = input.peek();
-        if (!optCp) return makeToken(); // force faulty code point error to be visible
-        auto cp = optCp.value();
-        if (cp == '\t' || cp.isWhiteSpace()) return scanLine();
-        if (cp == '#') return scanBlock();
-        if (cp.isLineSeparator()) return makeToken();
+    while (decoded) {
+        auto dp = *decoded;
+        decoded++;
+        auto next = dp.visit(
+            [&](DecodedErrorPosition& dep) {
+                updateEnd(dep);
+                comment.decodeErrors.push_back(dep);
+                return true;
+            },
+            [&](text::NewlinePosition& nlp) { return false; },
+            [&](CodePointPosition& cpp) {
+                updateEnd(cpp);
+                auto cp = cpp.codePoint;
+                if (cp == '\t' || cp.isWhiteSpace()) return scanLine();
+                if (cp == '#') return scanBlock();
+                return true;
+            });
+        if (!next) break;
     }
+    return makeToken();
 }
 
 } // namespace scanner

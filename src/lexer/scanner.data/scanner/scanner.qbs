@@ -12,6 +12,8 @@ Project {
         Depends { name: "text.lib" }
 
         files: [
+            "CommentLiteralValue.cpp",
+            "CommentLiteralValue.h",
             "NumberLiteralValue.cpp",
             "NumberLiteralValue.h",
             "StringLiteralValue.cpp",

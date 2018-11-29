@@ -1,4 +1,5 @@
 #pragma once
+#include "CommentLiteralValue.h"
 #include "NumberLiteralValue.h"
 #include "StringLiteralValue.h"
 
@@ -15,9 +16,8 @@ namespace details {
 
 template<class Tag>
 struct TagToken {
-    // text::Range range{};
-    View input;
-    Position position;
+    View input{};
+    Position position{};
 
     using This = TagToken;
     bool operator==(const This& o) const { return true; }
@@ -26,8 +26,8 @@ struct TagToken {
 template<class Value>
 struct ValueToken {
     Value value{};
-    View input;
-    Position position;
+    View input{};
+    Position position{};
 
     using This = ValueToken;
     bool operator==(const This& o) const { return value == o.value; }
@@ -37,7 +37,6 @@ struct ValueToken {
 
 using WhiteSpaceSeparator = details::TagToken<struct WhiteSpaceSeparatorTag>;
 using NewLineIndentation = details::TagToken<struct NewLineIndentationTag>;
-using CommentLiteral = details::TagToken<struct CommentLiteralTag>;
 using ColonSeparator = details::TagToken<struct ColonSeparatorTag>;
 using CommaSeparator = details::TagToken<struct CommaSeparatorTag>;
 using SemicolonSeparator = details::TagToken<struct SemicolonSeparatorTag>;
@@ -54,6 +53,7 @@ using InvalidEncoding = details::TagToken<struct InvalidEncodingTag>;
 // Valid Codepoint but not part of any valid Token
 using UnexpectedCharacter = details::TagToken<struct UnexpectedCharacterTag>;
 
+using CommentLiteral = details::ValueToken<CommentLiteralValue>;
 using StringLiteral = details::ValueToken<StringLiteralValue>;
 using NumberLiteral = details::ValueToken<NumberLiteralValue>;
 
