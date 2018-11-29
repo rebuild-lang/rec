@@ -1,5 +1,7 @@
 #pragma once
+#include "extractComment.h"
 #include "extractNumber.h"
+#include "extractString.h"
 
 #include <scanner/Token.h>
 
@@ -35,8 +37,9 @@ inline auto tokenize(meta::CoEnumerator<DecodedPosition> decoded) -> meta::CoEnu
         auto end = scanWhitespaces(cpp.input);
         return WhiteSpaceSeparator{View{cpp.input.begin(), end}, cpp.position};
     };
+    auto commentLiteral = [&](CodePointPosition cpp) { return extractComment(cpp, decoded); };
     auto numberLiteral = [&](CodePointPosition cpp) { return extractNumber(cpp, decoded); };
-    // auto stringLiteral = [&](CodePointPosition) { return extractString(cpp, decoded); };
+    auto stringLiteral = [&](CodePointPosition cpp) { return extractString(cpp, decoded); };
     auto newLineIndentation = [&](NewlinePosition nlp) {
         auto end = scanWhitespaces(nlp.input);
         return NewLineIndentation{View{nlp.input.begin(), end}, nlp.position};
@@ -53,11 +56,10 @@ inline auto tokenize(meta::CoEnumerator<DecodedPosition> decoded) -> meta::CoEnu
                 if (chr.isWhiteSpace()) return whitespace(cpp);
                 if (chr.isDecimalNumber()) return numberLiteral(cpp);
 
-                /*switch (chr.v) {
-                case '"':
-                    // return stringLiteral(cpp);
-                    // …
-                }*/
+                switch (chr.v) {
+                case '"': return stringLiteral(cpp);
+                case '#': return commentLiteral(cpp);
+                } // …
                 return unexpected(cpp);
             },
             [&](NewlinePosition nlp) -> Token { return newLineIndentation(nlp); },

@@ -7,22 +7,22 @@
 
 namespace scanner {
 
-using strings::CodePoint;
 using text::CodePointPosition;
 using text::DecodedPosition;
-using OptDecodedPosition = meta::Optional<DecodedPosition>;
-using OptCodePointPosition = meta::Optional<CodePointPosition>;
 
 /** \brief parse a string literal from an enumerator
  * key features:
  * * "" => empty string
  * * """raw""" => raw string
- * * whitespaces before newlines are skipped
+ * * white spaces before newlines are skipped
  * * backslash escapes are handled
  * * decodeErrors are eaten
  * * errors are tracked
  */
 inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> StringLiteral {
+    using strings::CodePoint;
+    using text::NewlinePosition;
+    using OptCodePointPosition = meta::Optional<CodePointPosition>;
     auto string = StringLiteralValue{};
 
     auto end = firstCpp.input.end();
@@ -37,11 +37,11 @@ inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
         while (true) {
             if (!decoded) return {};
             auto dp = *decoded;
-            if (dp.holds<text::CodePointPosition>()) {
+            if (dp.holds<CodePointPosition>()) {
                 return dp.get<CodePointPosition>();
             }
-            if (dp.holds<text::DecodedErrorPosition>()) {
-                auto dep = dp.get<text::DecodedErrorPosition>();
+            if (dp.holds<DecodedErrorPosition>()) {
+                auto dep = dp.get<DecodedErrorPosition>();
                 string.errors.push_back({StringError::Kind::InvalidEncoding, dep.input, dep.position});
                 updateEnd(dep);
                 decoded++;
@@ -56,7 +56,7 @@ inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
         return peekCpp();
     };
 
-    auto addDecodeError = [&](text::DecodedErrorPosition& dep) {
+    auto addDecodeError = [&](DecodedErrorPosition& dep) {
         string.errors.push_back({StringError::Kind::InvalidEncoding, dep.input, dep.position});
     };
     auto addEndOfInputError = [&] { string.errors.push_back({StringError::Kind::EndOfInput, View{}, endPosition}); };
@@ -119,7 +119,7 @@ inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
                     addDecodeError(dep);
                     return true;
                 },
-                [&](text::NewlinePosition& nlp) {
+                [&](NewlinePosition& nlp) {
                     updateEnd(nlp);
                     string.text += nlp.input;
                     spaces = {};
@@ -237,7 +237,7 @@ inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
                     addDecodeError(dep);
                     return true;
                 },
-                [&](text::NewlinePosition& nlp) {
+                [&](NewlinePosition& nlp) {
                     updateEnd(nlp);
                     spaces = {};
                     return true;

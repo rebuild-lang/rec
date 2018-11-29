@@ -6,12 +6,11 @@
 
 namespace scanner {
 
-using text::CodePoint;
 using text::CodePointPosition;
 using text::DecodedPosition;
-using OptCodePointPosition = meta::Optional<CodePointPosition>;
 
 /** \brief parse a number literal from an enumerator
+ *
  * key features:
  * * 0xA.BpF - hex float number with hex exponent
  * * 0o3.4p7 - octal float number with octal exponent
@@ -21,7 +20,10 @@ using OptCodePointPosition = meta::Optional<CodePointPosition>;
  * * one error is tracked
  */
 inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> NumberLiteral {
+    using text::CodePoint;
+    using OptCodePointPosition = meta::Optional<CodePointPosition>;
     auto number = NumberLiteralValue{};
+
     auto isConsumed = true;
     auto end = firstCpp.input.end();
     auto inputView = [&, begin = firstCpp.input.begin()] { return View{begin, end}; };
@@ -30,11 +32,11 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
         while (true) {
             if (!decoded) return {};
             auto dp = *decoded;
-            if (dp.holds<text::CodePointPosition>()) {
+            if (dp.holds<CodePointPosition>()) {
                 return dp.get<CodePointPosition>();
             }
-            if (dp.holds<text::DecodedErrorPosition>()) {
-                auto dep = dp.get<text::DecodedErrorPosition>();
+            if (dp.holds<DecodedErrorPosition>()) {
+                auto dep = dp.get<DecodedErrorPosition>();
                 number.decodeErrors.push_back(dep);
                 end = dep.input.end();
                 decoded++;
@@ -45,7 +47,7 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
     };
     auto nextCpp = [&]() -> OptCodePointPosition {
         if (!isConsumed) {
-            end = (*decoded).get<text::CodePointPosition>().input.end();
+            end = (*decoded).get<CodePointPosition>().input.end();
             decoded++;
         }
         isConsumed = false;

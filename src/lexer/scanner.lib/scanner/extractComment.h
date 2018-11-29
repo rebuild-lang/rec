@@ -18,6 +18,7 @@ using text::DecodedPosition;
  */
 inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> CommentLiteral {
     using strings::CompareView;
+    using text::NewlinePosition;
     auto comment = CommentLiteralValue{};
 
     const auto begin = firstCpp.input.begin();
@@ -38,7 +39,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
                     comment.decodeErrors.push_back(dep);
                     return true;
                 },
-                [&](text::NewlinePosition& nlp) { return false; },
+                [&](NewlinePosition& nlp) { return false; },
                 [&](CodePointPosition& cpp) {
                     updateEnd(cpp);
                     return true;
@@ -58,7 +59,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
                     comment.decodeErrors.push_back(dep);
                     return true;
                 },
-                [&](text::NewlinePosition& nlp) {
+                [&](NewlinePosition& nlp) {
                     updateEnd(nlp);
                     return true;
                 },
@@ -84,7 +85,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
                 comment.decodeErrors.push_back(dep);
                 return true;
             },
-            [&](text::NewlinePosition& nlp) { return false; },
+            [&](NewlinePosition& nlp) { return false; },
             [&](CodePointPosition& cpp) {
                 updateEnd(cpp);
                 auto cp = cpp.codePoint;
