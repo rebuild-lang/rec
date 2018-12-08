@@ -81,7 +81,7 @@ struct IntrinsicType {
 
 TEST_P(ExpressionParser, calls) {
     const ExpressionParserData& data = GetParam();
-    const auto input = nesting::BlockLiteral{{{data.input}}, {}};
+    const auto input = nesting::BlockLiteral{{}, {}, {{data.input}}};
     const auto scope = data.scope;
     const auto& expected = data.expected;
 

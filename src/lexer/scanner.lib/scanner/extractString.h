@@ -280,7 +280,7 @@ inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
     else {
         regular();
     }
-    return {string, inputView(), firstCpp.position};
+    return {inputView(), firstCpp.position, string};
 }
 
 } // namespace scanner

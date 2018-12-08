@@ -27,7 +27,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
 
     size_t markerExtends = 1;
     auto makeToken = [&, begin = firstCpp.input.begin()]() -> CommentLiteral {
-        return {comment, View{begin, end}, firstCpp.position};
+        return {View{begin, end}, firstCpp.position, comment};
     };
     auto scanLine = [&] {
         while (decoded) {

@@ -226,7 +226,7 @@ inline auto nestTokens(meta::CoEnumerator<FilterToken> input) -> BlockLiteral {
     if (input) {
         // TODO(arBmind): report extra input
     }
-    return {block, {}};
+    return {{}, {}, block};
 }
 
 } // namespace nesting

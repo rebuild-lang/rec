@@ -25,9 +25,9 @@ struct TagToken {
 };
 template<class Value>
 struct ValueToken {
-    Value value{};
     View input{};
     Position position{};
+    Value value{};
 
     using This = ValueToken;
     bool operator==(const This& o) const { return value == o.value; }

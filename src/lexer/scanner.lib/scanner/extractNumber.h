@@ -130,7 +130,7 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
             number.error = NumberLiteralError::MissingBoundary;
         }
 
-        return {number, inputView(), firstCpp.position};
+        return {inputView(), firstCpp.position, number};
     };
 
     auto secondCpp = peekCpp();

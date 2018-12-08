@@ -109,7 +109,7 @@ inline auto colon() -> Token { return ColonSeparator{}; }
 
 template<class... Lines>
 auto blk(Column c, Lines&&... lines) -> Token {
-    auto tok = BlockLiteral{{{std::forward<Lines>(lines)...}}, {}};
+    auto tok = BlockLiteral{{}, {}, {{std::forward<Lines>(lines)...}}};
     // tok.range.end.column = c;
     return tok;
 }
