@@ -1,8 +1,8 @@
 #include "scanner/extractComment.h"
 
-#include "scanner/Token.ostream.h"
+#include <scanner/Token.ostream.h>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace scanner;
 using namespace text;

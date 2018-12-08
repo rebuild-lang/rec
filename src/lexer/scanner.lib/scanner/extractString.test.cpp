@@ -1,6 +1,6 @@
 #include "scanner/extractString.h"
 
-#include "scanner/Token.ostream.h"
+#include <scanner/Token.ostream.h>
 
 #include <gtest/gtest.h>
 

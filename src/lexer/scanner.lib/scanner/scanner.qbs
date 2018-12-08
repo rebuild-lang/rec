@@ -52,7 +52,7 @@ Project {
             "extractNumber.test.cpp",
             "extractOperator.test.cpp",
             "extractString.test.cpp",
-            "tokensFromFile.test.cpp",
+            "tokenize.test.cpp",
         ]
     }
 }

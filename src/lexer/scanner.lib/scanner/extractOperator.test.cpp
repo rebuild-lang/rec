@@ -1,10 +1,10 @@
 #include "scanner/extractOperator.h"
 
-#include "scanner/Token.ostream.h"
+#include <scanner/Token.ostream.h>
 
 #include <strings/utf8Decode.h>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace scanner;
 using namespace text;

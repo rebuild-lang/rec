@@ -1,6 +1,8 @@
 #pragma once
 #include "extractComment.h"
+#include "extractIdentifier.h"
 #include "extractNumber.h"
+#include "extractOperator.h"
 #include "extractString.h"
 
 #include <scanner/Token.h>
@@ -12,14 +14,19 @@ namespace scanner {
 
 using text::DecodedPosition;
 
+template<class Token>
+auto extractChar(CodePointPosition cpp) -> Token {
+    return {cpp.input, cpp.position};
+}
+
 inline auto tokenize(meta::CoEnumerator<DecodedPosition> decoded) -> meta::CoEnumerator<Token> {
     using text::CodePointPosition;
     using text::DecodedErrorPosition;
     using text::NewlinePosition;
     using text::View;
 
-    auto scanWhitespaces = [&](View p) {
-        auto end = p.end();
+    auto extractWhitespaces = [&](auto first) {
+        auto end = first.input.end();
         while (decoded) {
             if (decoded->holds<CodePointPosition>()) {
                 auto cpp = decoded->get<CodePointPosition>();
@@ -31,20 +38,8 @@ inline auto tokenize(meta::CoEnumerator<DecodedPosition> decoded) -> meta::CoEnu
             }
             break;
         }
-        return end;
+        return WhiteSpaceSeparator{View{first.input.begin(), end}, first.position};
     };
-    auto whitespace = [&](CodePointPosition cpp) {
-        auto end = scanWhitespaces(cpp.input);
-        return WhiteSpaceSeparator{View{cpp.input.begin(), end}, cpp.position};
-    };
-    auto commentLiteral = [&](CodePointPosition cpp) { return extractComment(cpp, decoded); };
-    auto numberLiteral = [&](CodePointPosition cpp) { return extractNumber(cpp, decoded); };
-    auto stringLiteral = [&](CodePointPosition cpp) { return extractString(cpp, decoded); };
-    auto newLineIndentation = [&](NewlinePosition nlp) {
-        auto end = scanWhitespaces(nlp.input);
-        return NewLineIndentation{View{nlp.input.begin(), end}, nlp.position};
-    };
-    auto unexpected = [&](auto dep) { return UnexpectedCharacter{dep.input, dep.position}; };
 
     decoded++;
     while (decoded) {
@@ -53,17 +48,32 @@ inline auto tokenize(meta::CoEnumerator<DecodedPosition> decoded) -> meta::CoEnu
         co_yield current.visit(
             [&](CodePointPosition cpp) -> Token {
                 auto chr = cpp.codePoint;
-                if (chr.isWhiteSpace()) return whitespace(cpp);
-                if (chr.isDecimalNumber()) return numberLiteral(cpp);
+                if (chr.isWhiteSpace()) return extractWhitespaces(cpp);
+                if (chr.isDecimalNumber()) return extractNumber(cpp, decoded);
 
                 switch (chr.v) {
-                case '"': return stringLiteral(cpp);
-                case '#': return commentLiteral(cpp);
-                } // …
-                return unexpected(cpp);
+                case '"': return extractString(cpp, decoded);
+                case '#': return extractComment(cpp, decoded);
+                case ':': return extractChar<ColonSeparator>(cpp);
+                case ',': return extractChar<CommaSeparator>(cpp);
+                case ';': return extractChar<SemicolonSeparator>(cpp);
+                case '[': return extractChar<SquareBracketOpen>(cpp);
+                case ']': return extractChar<SquareBracketClose>(cpp);
+                case '(': return extractChar<BracketOpen>(cpp);
+                case ')': return extractChar<BracketClose>(cpp);
+                }
+
+                if (auto opt = extractIdentifier(cpp, decoded); opt) return opt.value();
+                if (auto opt = extractOperator(cpp, decoded); opt) return opt.value();
+                return UnexpectedCharacter{cpp.input, cpp.position};
             },
-            [&](NewlinePosition nlp) -> Token { return newLineIndentation(nlp); },
-            [&](DecodedErrorPosition dep) -> Token { return unexpected(dep); });
+            [&](NewlinePosition nlp) -> Token {
+                auto ws = extractWhitespaces(nlp);
+                return NewLineIndentation{ws.input, ws.position};
+            },
+            [&](DecodedErrorPosition dep) -> Token {
+                return InvalidEncoding{dep.input, dep.position};
+            });
     }
 }
 
