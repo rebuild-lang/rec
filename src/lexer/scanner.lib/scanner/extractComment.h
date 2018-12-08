@@ -19,7 +19,7 @@ using text::DecodedPosition;
 inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> CommentLiteral {
     using strings::CompareView;
     using text::NewlinePosition;
-    auto comment = CommentLiteralValue{};
+    auto decodeErrors = DecodedErrorPositions{};
 
     const auto begin = firstCpp.input.begin();
     auto end = firstCpp.input.end();
@@ -27,7 +27,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
 
     size_t markerExtends = 1;
     auto makeToken = [&, begin = firstCpp.input.begin()]() -> CommentLiteral {
-        return {View{begin, end}, firstCpp.position, comment};
+        return {View{begin, end}, firstCpp.position, decodeErrors};
     };
     auto scanLine = [&] {
         while (decoded) {
@@ -36,7 +36,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
             auto next = dp.visit(
                 [&](DecodedErrorPosition& dep) {
                     updateEnd(dep);
-                    comment.decodeErrors.push_back(dep);
+                    decodeErrors.push_back(dep);
                     return true;
                 },
                 [&](NewlinePosition& nlp) { return false; },
@@ -56,7 +56,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
             auto next = dp.visit(
                 [&](DecodedErrorPosition& dep) {
                     updateEnd(dep);
-                    comment.decodeErrors.push_back(dep);
+                    decodeErrors.push_back(dep);
                     return true;
                 },
                 [&](NewlinePosition& nlp) {
@@ -82,10 +82,10 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
         auto next = dp.visit(
             [&](DecodedErrorPosition& dep) {
                 updateEnd(dep);
-                comment.decodeErrors.push_back(dep);
+                decodeErrors.push_back(dep);
                 return true;
             },
-            [&](NewlinePosition& nlp) { return false; },
+            [&](NewlinePosition&) { return false; },
             [&](CodePointPosition& cpp) {
                 updateEnd(cpp);
                 auto cp = cpp.codePoint;

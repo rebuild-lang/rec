@@ -1,24 +1,65 @@
 #pragma once
-#include "scanner/Token.h"
+#include <scanner/Token.h>
 
-#include "text/FileInput.h"
+#include <meta/CoEnumerator.h>
 
 #include <stack>
 
 namespace scanner {
 
-using CodePoint = strings::CodePoint;
+using text::CodePointPosition;
+using text::DecodedPosition;
+using StringIterator = strings::View::It;
 
-inline auto extractOperator(text::FileInput& input) -> OptToken {
+inline auto extractOperator(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> OptToken {
+    using OptCodePointPosition = meta::Optional<CodePointPosition>;
+    using strings::CodePoint;
+    using strings::OptionalCodePoint;
+    using text::Position;
     struct Entry {
         CodePoint closeCp;
-        text::FileInput::StringIterator it{};
-        text::Position itPosition;
+        StringIterator begin{};
+        Position beginPosition;
     };
     using Stack = std::vector<Entry>;
     auto stack = Stack{};
+    auto decodeErrors = DecodedErrorPositions{};
 
-    auto closePunctuation = [](CodePoint cp) -> text::OptCodePoint {
+    auto isConsumed = true;
+    auto end = firstCpp.input.end();
+    auto inputView = [&, begin = firstCpp.input.begin()] { return View{begin, end}; };
+
+    auto peekCpp = [&]() -> OptCodePointPosition {
+        while (true) {
+            if (!decoded) return {};
+            auto dp = *decoded;
+            if (dp.holds<CodePointPosition>()) {
+                return dp.get<CodePointPosition>();
+            }
+            if (dp.holds<DecodedErrorPosition>()) {
+                auto dep = dp.get<DecodedErrorPosition>();
+                decodeErrors.push_back(dep);
+                end = dep.input.end();
+                decoded++;
+                continue;
+            }
+            return {};
+        }
+    };
+    auto nextCpp = [&]() -> OptCodePointPosition {
+        if (!isConsumed) {
+            end = (*decoded).get<CodePointPosition>().input.end();
+            decoded++;
+        }
+        isConsumed = false;
+        return peekCpp();
+    };
+    auto nextCppWhile = [&](auto pred) {
+        auto optCpp = nextCpp();
+        while (optCpp.map(pred)) optCpp = nextCpp();
+    };
+
+    auto closePunctuation = [](CodePoint cp) -> OptionalCodePoint {
         // https://www.unicode.org/charts/script/chart_Punctuation-Open.html
         // <-> https://www.unicode.org/charts/script/chart_Punctuation-Close.html
         switch (cp.v) {
@@ -60,56 +101,41 @@ inline auto extractOperator(text::FileInput& input) -> OptToken {
         return {};
     };
 
-    auto isEnclosedPart = [&](CodePoint cp) -> bool {
-        if (cp.isWhiteSpace() || cp.isLineSeparator()) return false;
+    auto isEnclosedPart = [&](CodePointPosition cpp) -> bool {
+        auto cp = cpp.codePoint;
+        if (cp.isWhiteSpace()) return false;
         if (stack.back().closeCp == cp) {
             stack.pop_back();
             return !stack.empty();
         }
         auto cpu = closePunctuation(cp);
         if (cpu) {
-            stack.push_back({cpu.value(), input.current(), input.currentPosition()});
+            stack.push_back(Entry{cpu.value(), cpp.input.begin(), cpp.position});
             return true;
         }
         return true;
     };
 
-    auto scanEnclosed = [&] {
-        auto isValid = [&] { //
-            return input.peek().map([&](CodePoint cp) { return isEnclosedPart(cp); });
-        };
-        do {
-            input.extend();
-        } while (isValid());
-    };
-
-    auto isPart = [&](CodePoint cp) -> bool {
+    auto isPart = [&](CodePointPosition cpp) -> bool {
+        auto cp = cpp.codePoint;
         if (cp == '-' || cp.isSymbolMath() || cp.isSymbolOther() || cp.isNumberOther()) return true;
         if (cp.isSymbolCurrency() && cp.v != '$') return true;
         if (cp.isPunctuationOther() && cp.v != '.') return true; // others are handled before
         auto cpu = closePunctuation(cp);
         if (cpu) {
-            stack.push_back({cpu.value(), input.current(), input.currentPosition()});
-            scanEnclosed();
-            return true;
+            stack.push_back(Entry{cpu.value(), cpp.input.begin(), cpp.position});
+            nextCppWhile(isEnclosedPart);
+            return stack.empty();
         }
         return false;
     };
 
-    auto isValid = [&] { //
-        return input.peek().map([&](CodePoint cp) { return isPart(cp); });
-    };
-
-    if (!isValid()) return {};
-    do {
-        input.extend();
-    } while (isValid());
+    if (!isPart(firstCpp)) return {};
+    nextCppWhile(isPart);
     if (!stack.empty()) {
-        input.restoreCurrent(stack.front().it, stack.front().itPosition);
-        if (input.view().isEmpty()) return {};
+        // error!
     }
-    // return Token{OperatorLiteral{input.range()}};
-    return Token{};
+    return Token{OperatorLiteral{inputView(), firstCpp.position, decodeErrors}};
 }
 
 } // namespace scanner

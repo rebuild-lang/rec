@@ -44,8 +44,7 @@ TEST_P(CommentScanners, all) {
     decoder++;
     const CommentLiteral lit = extractComment(cpp, decoder);
 
-    const auto& value = lit.value;
-    EXPECT_TRUE(value.decodeErrors.empty());
+    EXPECT_TRUE(lit.decodeErrors.empty());
     EXPECT_EQ(param.content, strings::to_string(lit.input));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
     EXPECT_EQ(beginPosition, lit.position);
