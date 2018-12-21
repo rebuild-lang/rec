@@ -1,4 +1,6 @@
-#include "scanner/tokensFromFile.h"
+#include "scanner/tokenize.h"
+#include "strings/utf8Decode.h"
+#include "text/decodePosition.h"
 
 #include "filter/filterTokens.h"
 #include "nesting/nestTokens.h"
@@ -17,7 +19,7 @@
 
 #include <iostream>
 
-using ParserConfig = scanner::Config;
+using ParserConfig = text::Config;
 using InstanceScope = instance::Scope;
 using InstanceNode = instance::Node;
 using ExecutionContext = execution::Context;
@@ -108,7 +110,7 @@ class Compiler final {
     auto parserContext(InstanceScope& scope) {
         auto lookup = [&](const StringView& id) { return scope[id]; };
         auto runCall = [&](const Call& call) -> OptNode {
-            // TODOs:
+            // TODO(arBmind):
             // * check arguments - have to be available
             auto callCopy = call;
             assignResultStorage(callCopy);
@@ -131,7 +133,9 @@ public:
     }
 
     void compile(const text::File& file) {
-        auto tokenize = [&](const auto& file) { return scanner::tokensFromFile(file, config); };
+        auto decode = [&](const auto& file) { return strings::utf8Decode(file.content); };
+        auto positions = [&](const auto& file) { return text::decodePosition(decode(file), config); };
+        auto tokenize = [&](const auto& file) { return scanner::tokenize(positions(file)); };
         auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
         auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
         auto parse = [&](const auto& file) {
@@ -143,7 +147,7 @@ public:
 };
 
 int main() {
-    auto config = scanner::Config{text::Column{8}};
+    auto config = ParserConfig{text::Column{8}};
     auto globals = instance::Scope{};
     globals.emplace(intrinsicAdapter::Adapter::moduleInstance<intrinsic::Rebuild>());
 
@@ -151,7 +155,9 @@ int main() {
 
     auto compiler = Compiler(config, std::move(globals));
 
-    auto tokenize = [&](const auto& file) { return scanner::tokensFromFile(file, config); };
+    auto decode = [&](const auto& file) { return strings::utf8Decode(file.content); };
+    auto positions = [&](const auto& file) { return text::decodePosition(decode(file), config); };
+    auto tokenize = [&](const auto& file) { return scanner::tokenize(positions(file)); };
     auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
     auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
 
