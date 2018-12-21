@@ -40,7 +40,7 @@ inline auto decodePosition( //
                     position.nextLine();
                     return r;
                 }
-                auto r = CodePointPosition{dcp.input, dcp.cp, position};
+                auto r = CodePointPosition{dcp.input, position, dcp.cp};
                 if (cp.v == '\t') {
                     position.nextTabstop(config.tabStops);
                     return r;

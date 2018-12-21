@@ -1,5 +1,4 @@
 #pragma once
-
 #include "DecodedPosition.h"
 
 #include "Position.ostream.h"
@@ -7,7 +6,6 @@
 #include <meta/Variant.ostream.h>
 #include <strings/CodePoint.ostream.h>
 #include <strings/View.ostream.h>
-#include <strings/join.h>
 
 namespace meta {
 
@@ -25,16 +23,9 @@ auto operator<<(::std::basic_ostream<Char, CharTraits>& out, CodePointPosition c
                << " = cp: " << cpp.codePoint << cpp.position;
 }
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, NewlinePosition nlp) -> decltype(out) {
-    return out << ": " << std::hex << nlp.input //
-               << nlp.position;
-}
-
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, DecodedErrorPosition dep) -> decltype(out) {
-    return out << ": " << std::hex << dep.input //
-               << dep.position;
+template<typename Char, typename CharTraits, class... Tags>
+auto operator<<(::std::basic_ostream<Char, CharTraits>& out, InputPosition<Tags...> ip) -> decltype(out) {
+    return out << ": " << std::hex << ip.input << ip.position;
 }
 
 } // namespace text

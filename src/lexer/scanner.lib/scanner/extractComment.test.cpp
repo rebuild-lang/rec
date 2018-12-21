@@ -33,7 +33,7 @@ TEST_P(CommentScanners, all) {
             }
             else {
                 auto cp = CodePoint{static_cast<uint32_t>(chr)};
-                auto cpp = CodePointPosition{view, cp, position};
+                auto cpp = CodePointPosition{view, position, cp};
                 co_yield cpp;
             }
             ++column;

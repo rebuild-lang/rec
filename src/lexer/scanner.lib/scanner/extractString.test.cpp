@@ -35,7 +35,7 @@ TEST_P(StringScanners, all) {
             }
             else {
                 auto cp = CodePoint{static_cast<uint32_t>(chr)};
-                auto cpp = CodePointPosition{view, cp, position};
+                auto cpp = CodePointPosition{view, position, cp};
                 co_yield cpp;
             }
             ++column;
@@ -159,7 +159,7 @@ TEST_P(StringErrorScanners, all) {
             auto view = View{&chr, &chr + 1};
             auto position = Position{Line{1}, column};
             auto cp = CodePoint{static_cast<uint32_t>(chr)};
-            auto cpp = CodePointPosition{view, cp, position};
+            auto cpp = CodePointPosition{view, position, cp};
             co_yield cpp;
             ++column;
         }

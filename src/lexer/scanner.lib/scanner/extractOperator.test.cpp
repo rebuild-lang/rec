@@ -29,7 +29,7 @@ TEST_P(OperatorScanners, all) {
         for (auto decoded : strings::utf8Decode(param.input)) {
             co_yield decoded.visit(
                 [&](strings::DecodedCodePoint& dcp) -> DecodedPosition {
-                    auto cpp = CodePointPosition{dcp.input, dcp.cp, Position{Line{1}, column}};
+                    auto cpp = CodePointPosition{dcp.input, Position{Line{1}, column}, dcp.cp};
                     ++column;
                     return cpp;
                 },

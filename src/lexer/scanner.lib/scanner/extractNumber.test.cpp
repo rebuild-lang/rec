@@ -34,7 +34,7 @@ TEST_P(NumberScanners, all) {
         auto column = Column{};
         for (auto& chr : param.input) {
             auto cp = CodePoint{static_cast<uint32_t>(chr)};
-            auto cpp = CodePointPosition{View{&chr, &chr + 1}, cp, Position{Line{1}, column}};
+            auto cpp = CodePointPosition{View{&chr, &chr + 1}, Position{Line{1}, column}, cp};
             co_yield cpp;
             ++column;
         }
@@ -204,7 +204,7 @@ TEST_P(NumberFailures, all) {
         auto column = Column{};
         for (auto& chr : param.input) {
             auto cp = CodePoint{static_cast<uint32_t>(chr)};
-            auto cpp = CodePointPosition{View{&chr, &chr + 1}, cp, Position{Line{1}, column}};
+            auto cpp = CodePointPosition{View{&chr, &chr + 1}, Position{Line{1}, column}, cp};
             co_yield cpp;
             ++column;
         }
@@ -282,9 +282,9 @@ INSTANTIATE_TEST_CASE_P( //
             return NumberDecodeErrorData{
                 "ignorable",
                 DecodedPositions{
-                    CodePointPosition{View{"1"}, CodePoint{'1'}, Position{}},
+                    CodePointPosition{View{"1"}, Position{}, CodePoint{'1'}},
                     decodeError,
-                    CodePointPosition{View{"2"}, CodePoint{'2'}, Position{Line{1}, Column{2}}},
+                    CodePointPosition{View{"2"}, Position{Line{1}, Column{2}}, CodePoint{'2'}},
                 },
                 NumberLiteralError::None,
                 DecodedErrorPositions{
@@ -299,10 +299,10 @@ INSTANTIATE_TEST_CASE_P( //
             return NumberDecodeErrorData{
                 "beforeRadix",
                 DecodedPositions{
-                    CodePointPosition{View{"0"}, CodePoint{'0'}, Position{}},
+                    CodePointPosition{View{"0"}, Position{}, CodePoint{'0'}},
                     decodeError,
-                    CodePointPosition{View{"x"}, CodePoint{'x'}, Position{Line{1}, Column{2}}},
-                    CodePointPosition{View{"F"}, CodePoint{'F'}, Position{Line{1}, Column{3}}},
+                    CodePointPosition{View{"x"}, Position{Line{1}, Column{2}}, CodePoint{'x'}},
+                    CodePointPosition{View{"F"}, Position{Line{1}, Column{3}}, CodePoint{'F'}},
                 },
                 NumberLiteralError::None,
                 DecodedErrorPositions{
@@ -317,8 +317,8 @@ INSTANTIATE_TEST_CASE_P( //
             return NumberDecodeErrorData{
                 "beforeEnd",
                 DecodedPositions{
-                    CodePointPosition{View{"1"}, CodePoint{'1'}, Position{}},
-                    CodePointPosition{View{"3"}, CodePoint{'3'}, Position{}},
+                    CodePointPosition{View{"1"}, Position{}, CodePoint{'1'}},
+                    CodePointPosition{View{"3"}, Position{}, CodePoint{'3'}},
                     decodeError,
                 },
                 NumberLiteralError::None,

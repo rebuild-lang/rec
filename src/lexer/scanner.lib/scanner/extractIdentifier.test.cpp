@@ -26,7 +26,7 @@ TEST_P(IdentifierScanners, all) {
         auto column = Column{};
         for (auto& chr : param.input) {
             auto cp = CodePoint{static_cast<uint32_t>(chr)};
-            auto cpp = CodePointPosition{View{&chr, &chr + 1}, cp, Position{Line{1}, column}};
+            auto cpp = CodePointPosition{View{&chr, &chr + 1}, Position{Line{1}, column}, cp};
             co_yield cpp;
             ++column;
         }
