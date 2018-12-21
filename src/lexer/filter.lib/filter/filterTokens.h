@@ -60,11 +60,6 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
             >();
     };
 
-    auto beforeRange = [](const ScannerToken& tok) -> TextRange {
-        // return tok.visit([](auto& t) -> TextRange { return {t.range.file, {}, {}, t.range.begin}; });
-        return {};
-    };
-
     auto markRightSeparator = [](Token& tok) {
         tok.visitSome(
             [](IdentifierLiteral& l) { l.value.rightSeparated = true; }, //

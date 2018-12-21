@@ -20,10 +20,6 @@ TEST(view, basic) {
     auto s = strings::String{"foobar"};
     ASSERT_TRUE(vr.isContentEqual(s));
 
-    auto cp = vr.pullCodePoint();
-    ASSERT_EQ(cp, strings::CodePoint{'f'});
-    ASSERT_EQ(vr.byteCount().v, 5);
-
     static_assert(sizeof(strings::OptionalView) == sizeof(strings::View));
 }
 
@@ -34,20 +30,4 @@ TEST(view, compare_view) {
     ASSERT_EQ(cv, s);
 
     // EXPECT_EQ(cv, (strings::String{"fowl"})); // trigger assert failure output
-}
-
-TEST(view, pull_bom) {
-    constexpr auto ccv = strings::View{
-        "\xEF\xBB\xBF"
-        "foo"};
-    static_assert(ccv.hasBom());
-
-    auto cv = strings::View{
-        "\xEF\xBB\xBF"
-        "foo"};
-    ASSERT_EQ(cv.byteCount().v, 6);
-    ASSERT_TRUE(cv.hasBom());
-    auto pv = cv.skipBom();
-    ASSERT_EQ(pv.byteCount().v, 3);
-    ASSERT_EQ(pv, (strings::View{cv.begin() + 3, cv.end()}));
 }

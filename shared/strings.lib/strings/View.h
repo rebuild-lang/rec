@@ -89,51 +89,6 @@ public:
         return *this;
     }
 
-    constexpr bool hasBom() const {
-        constexpr auto BOM = This{"\xEF\xBB\xBF"};
-        return firstBytes<3>().isContentEqual(BOM);
-    }
-    constexpr auto skipBom() const -> View {
-        if (hasBom()) return skipBytes<3>();
-        return *this;
-    }
-
-    constexpr auto pullCodePoint() -> OptionalCodePoint {
-        // see https://en.wikipedia.org/wiki/UTF-8
-        return pop().map([=](Byte c0) -> OptionalCodePoint {
-            if ((c0 & 0x80u) != 0x80) return CodePoint{c0};
-            if ((c0 & 0xE0u) == 0xC0) {
-                return pop().map([=](Byte c1) -> OptionalCodePoint {
-                    if ((c1 & 0xC0u) != 0x80) return {};
-                    return CodePoint{((c0 & 0x1Fu) << 6u) | ((c1 & 0x3Fu) << 0u)};
-                });
-            }
-            if ((c0 & 0xF0u) == 0xE0) {
-                return pop().map([=](Byte c1) -> OptionalCodePoint {
-                    if ((c1 & 0xC0u) != 0x80u) return {};
-                    return pop().map([=](Byte c2) -> OptionalCodePoint {
-                        if ((c2 & 0xC0u) != 0x80u) return {};
-                        return CodePoint{((c0 & 0x0Fu) << 12u) | ((c1 & 0x3Fu) << 6u) | ((c2 & 0x3Fu) << 0u)};
-                    });
-                });
-            }
-            if ((c0 & 0xF8u) == 0xF0) {
-                return pop().map([=](Byte c1) -> OptionalCodePoint {
-                    if ((c1 & 0xC0u) != 0x80) return {};
-                    return pop().map([=](Byte c2) -> OptionalCodePoint {
-                        if ((c2 & 0xC0u) != 0x80) return {};
-                        return pop().map([=](Byte c3) -> OptionalCodePoint {
-                            if ((c3 & 0xC0u) != 0x80) return {};
-                            return CodePoint{((c0 & 0x07u) << 18u) | ((c1 & 0x3Fu) << 12u) | ((c2 & 0x3Fu) << 6u) |
-                                             ((c3 & 0x3Fu) << 0u)};
-                        });
-                    });
-                });
-            }
-            return {};
-        });
-    }
-
     constexpr auto data() const -> It { return start_m; }
 
     constexpr auto begin() const -> It { return start_m; }

@@ -24,8 +24,6 @@ Project {
             "extractString.h",
             "tokenize.cpp",
             "tokenize.h",
-            "tokensFromFile.cpp",
-            "tokensFromFile.h",
         ]
 
         Export {

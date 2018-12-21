@@ -18,8 +18,6 @@ Project {
             "DecodedPosition.ostream.h",
             "File.cpp",
             "File.h",
-            "FileInput.cpp",
-            "FileInput.h",
             "Position.cpp",
             "Position.h",
             "Position.ostream.h",
