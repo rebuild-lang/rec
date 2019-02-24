@@ -19,6 +19,7 @@ Project {
             "Overloaded.h",
             "Type.h",
             "TypeList.h",
+            "TypePack.h",
             "Unreachable.cpp",
             "Unreachable.h",
             "ValueList.h",
