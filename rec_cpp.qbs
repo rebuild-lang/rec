@@ -33,7 +33,7 @@ Project {
     }
 
     Product {
-        name: "Extra Files"
+        name: "[Extra Files]"
         files: [
             ".clang-format",
             ".clang-tidy",
