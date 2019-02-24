@@ -4,6 +4,7 @@
 
 #include "parser/Tree.h"
 
+#include <stdexcept>
 #include <string>
 
 namespace api {
@@ -48,7 +49,7 @@ struct TypeOf<api::U64> {
         auto str = static_cast<std::string>(strings::to_string(literal.v.value.integerPart));
         auto base = static_cast<int>(literal.v.value.radix);
         try {
-            res.v = std::stoull(str, 0, base);
+            res.v = std::stoull(str, nullptr, base);
         }
         catch (const std::invalid_argument&) {
         }
