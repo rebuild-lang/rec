@@ -11,9 +11,8 @@ namespace text {
 using strings::CodePoint;
 using strings::View;
 
-template<class...>
-struct InputPosition {
-    using This = InputPosition;
+struct InputPositionData {
+    using This = InputPositionData;
     View input;
     Position position;
 
@@ -21,14 +20,15 @@ struct InputPosition {
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-struct CodePointPosition {
+template<class...>
+struct InputPosition : InputPositionData {};
+
+struct CodePointPosition : InputPositionData {
     using This = CodePointPosition;
-    View input;
-    Position position;
     CodePoint codePoint;
 
     constexpr bool operator==(const This& o) const {
-        return input == o.input && codePoint == o.codePoint && position == o.position;
+        return input == o.input && position == o.position && codePoint == o.codePoint;
     }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
 };
