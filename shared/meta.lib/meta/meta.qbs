@@ -17,6 +17,7 @@ Project {
             "Optional.h",
             "Optional.ostream.h",
             "Overloaded.h",
+            "Type.h",
             "TypeList.h",
             "Unreachable.cpp",
             "Unreachable.h",

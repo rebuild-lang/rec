@@ -1,41 +1,9 @@
 #pragma once
+#include "Type.h"
 
-#include <type_traits>
 #include <utility>
 
 namespace meta {
-
-template<class T>
-struct Type {};
-
-namespace details {
-
-template<class T>
-struct UnwrapType {
-    using type = T;
-};
-template<class T>
-struct UnwrapType<Type<T>> {
-    using type = T;
-};
-
-} // namespace details
-
-template<class T>
-using unwrapType = typename details::UnwrapType<T>::type;
-
-template<class A, class B>
-constexpr bool operator==(Type<A>, Type<B>) noexcept {
-    return std::is_same_v<A, B>;
-}
-template<class A, class B>
-constexpr bool operator!=(Type<A> a, Type<B> b) noexcept {
-    return !(a == b);
-}
-template<class A>
-constexpr auto sizeOf(Type<A>) noexcept -> size_t {
-    return sizeof(A);
-}
 
 template<class... T>
 struct TypeList {
