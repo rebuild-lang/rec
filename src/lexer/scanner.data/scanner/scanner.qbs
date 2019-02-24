@@ -14,6 +14,8 @@ Project {
         files: [
             "NumberLiteralValue.cpp",
             "NumberLiteralValue.h",
+            "OperatorLiteralValue.cpp",
+            "OperatorLiteralValue.h",
             "StringLiteralValue.cpp",
             "StringLiteralValue.h",
             "Token.cpp",

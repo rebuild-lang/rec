@@ -37,7 +37,7 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
             }
             if (dp.holds<DecodedErrorPosition>()) {
                 auto dep = dp.get<DecodedErrorPosition>();
-                number.decodeErrors.push_back(dep);
+                number.errors.push_back(dep);
                 end = dep.input.end();
                 decoded++;
                 continue;
@@ -87,6 +87,9 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
         auto mapCp = [&](auto pred) -> bool {
             return optCpp.map([&](auto cpp) -> bool { return pred(cpp.codePoint); });
         };
+        auto mapIp = [&]() -> text::InputPositionData {
+            return optCpp.map([&](auto cpp) -> text::InputPositionData { return cpp; });
+        };
 
         auto extendInto = [&](Rope& into) {
             while (mapCp(env.isDigit())) {
@@ -105,6 +108,9 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
             optCpp = nextCpp();
             extendInto(number.fractionalPart);
         }
+        if (!isIntegerStartZero && number.integerPart.isEmpty() && number.fractionalPart.isEmpty()) {
+            number.errors.emplace_back(NumberMissingValue{mapIp()});
+        }
         if (mapCp(env.isExponent())) {
             optCpp = nextCpp();
             if (mapCp(isPlus)) {
@@ -120,17 +126,14 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
 
             extendInto(number.exponentPart);
             if (!isExponentStartZero && number.exponentPart.isEmpty()) {
-                number.error = NumberLiteralError::MissingExponent;
+                number.errors.emplace_back(NumberMissingExponent{mapIp()});
             }
         }
-        if (!isIntegerStartZero && number.integerPart.isEmpty() && number.fractionalPart.isEmpty()) {
-            number.error = NumberLiteralError::MissingValue;
-        }
         else if (mapCp(isNoBoundary)) {
-            number.error = NumberLiteralError::MissingBoundary;
+            number.errors.push_back(NumberMissingBoundary{mapIp()});
         }
 
-        return {inputView(), firstCpp.position, number};
+        return {{inputView(), firstCpp.position}, number};
     };
 
     auto secondCpp = peekCpp();

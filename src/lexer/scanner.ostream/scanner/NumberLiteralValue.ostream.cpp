@@ -11,8 +11,7 @@ auto operator<<(std::ostream& out, const NumberLiteralValue& lit) -> std::ostrea
     if (!lit.fractionalPart.isEmpty()) out << '.' << lit.fractionalPart;
     if (!lit.exponentPart.isEmpty()) out << 'e' << (lit.exponentSign == Sign::positive ? '+' : '-') << lit.exponentPart;
     out << "]";
-    if (lit.error != NumberLiteralError::None) out << " error: " << lit.error;
-    if (!lit.decodeErrors.empty()) out << " decodeErrors: " << strings::joinEach(lit.decodeErrors, ", ");
+    if (!lit.errors.empty()) out << " errors: " << strings::joinEach(lit.errors, ", ");
     return out;
 }
 

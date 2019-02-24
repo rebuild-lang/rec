@@ -1,10 +1,15 @@
 #include <scanner/tokenize.h>
 
+#include <strings/String.h>
+#include <strings/String.ostream.h>
+#include <strings/View.h>
+
 #include <gtest/gtest.h>
 
 TEST(tokenize, basic) {
     using namespace scanner;
     using namespace text;
+    using namespace strings;
 
     auto input = String{"\n "};
     auto inputColon = String{":"};

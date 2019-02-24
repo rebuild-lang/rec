@@ -9,7 +9,6 @@ namespace scanner {
 using strings::Rope;
 using strings::View;
 using text::DecodedErrorPosition;
-using DecodedErrorPositions = std::vector<DecodedErrorPosition>;
 
 enum class Sign : bool { positive = false, negative = true };
 constexpr auto to_string(Sign sign) -> View {
@@ -38,21 +37,17 @@ constexpr auto to_string(Radix radix) -> View {
     return View{"[corrupted-radix]"};
 }
 
-enum class NumberLiteralError {
-    None,
-    MissingExponent, // "1e", "1e-", "1e+"
-    MissingValue, // "0x", "0x."
-    MissingBoundary, // "0z", "0_", … (suffixes are not handled but reserved!)
-};
-constexpr auto to_string(NumberLiteralError error) -> View {
-    switch (error) {
-    case NumberLiteralError::None: return View{"none"};
-    case NumberLiteralError::MissingExponent: return View{"MissingExponent"};
-    case NumberLiteralError::MissingValue: return View{"MissingValue"};
-    case NumberLiteralError::MissingBoundary: return View{"MissingBoundary"};
-    }
-    return View{"[corrupted-error]"};
-}
+using NumberMissingExponent = text::InputPosition<struct NumberMissingExponentTag>;
+using NumberMissingValue = text::InputPosition<struct NumberMissingValueTag>;
+using NumberMissingBoundary = text::InputPosition<struct NumberMissingBoundaryTag>;
+
+using NumberLiteralError = meta::Variant< //
+    DecodedErrorPosition,
+    NumberMissingExponent, // "1e", "1e-", "1e+" (after "e" a value is expected)
+    NumberMissingValue, // "0x", "0x." (after radix sign a value is expected)
+    NumberMissingBoundary // "0z", "0_", … (suffixes are not handled but reserved!)
+    >;
+using NumberLiteralErrors = std::vector<NumberLiteralError>;
 
 struct NumberLiteralValue {
     using This = NumberLiteralValue;
@@ -61,24 +56,20 @@ struct NumberLiteralValue {
     Rope fractionalPart{};
     Sign exponentSign{Sign::positive};
     Rope exponentPart{};
-    NumberLiteralError error{NumberLiteralError::None};
-    DecodedErrorPositions decodeErrors{};
+    NumberLiteralErrors errors{};
 
-    explicit operator bool() const {
-        return radix != Radix::invalid && error == NumberLiteralError::None && decodeErrors.empty();
-    }
+    constexpr auto hasErrors() const { return radix == Radix::invalid || !errors.empty(); }
 
-    constexpr bool operator==(const This& o) const noexcept {
+    bool operator==(const This& o) const noexcept {
         if (radix == Radix::invalid || o.radix == Radix::invalid) return radix == o.radix; // fast optional invalid
         return radix == o.radix //
             && integerPart == o.integerPart //
             && fractionalPart == o.fractionalPart //
             && (exponentPart.isEmpty() ? true : exponentSign == o.exponentSign) //
             && exponentPart == o.exponentPart //
-            && error == o.error //
-            && decodeErrors == o.decodeErrors;
+            && errors == o.errors;
     }
-    constexpr bool operator!=(const This& o) const noexcept { return !(*this == o); }
+    bool operator!=(const This& o) const noexcept { return !(*this == o); }
 };
 
 } // namespace scanner

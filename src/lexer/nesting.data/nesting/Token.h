@@ -9,8 +9,6 @@ namespace details {
 using filter::details::ValueToken;
 }
 
-using TextRange = text::Range;
-
 struct Token;
 using TokenLine = std::vector<Token>;
 struct BlockLiteralValue {

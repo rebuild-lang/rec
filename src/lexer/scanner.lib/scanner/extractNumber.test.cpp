@@ -45,8 +45,7 @@ TEST_P(NumberScanners, all) {
     const NumberLiteral lit = extractNumber(cpp, decoder);
 
     const auto& value = lit.value;
-    EXPECT_EQ(NumberLiteralError::None, value.error);
-    EXPECT_TRUE(value.decodeErrors.empty());
+    EXPECT_TRUE(value.errors.empty());
     EXPECT_EQ(param.radix, value.radix);
     EXPECT_EQ(param.integerPart, to_string(value.integerPart));
     EXPECT_EQ(param.fractionalPart, to_string(value.fractionalPart));
@@ -191,7 +190,7 @@ INSTANTIATE_TEST_CASE_P( //
 struct NumberFailureData {
     std::string name;
     String input;
-    NumberLiteralError error;
+    NumberLiteralErrors errors;
 };
 static auto operator<<(std::ostream& o, const NumberFailureData& nd) -> std::ostream& { return o << nd.input; }
 
@@ -214,26 +213,25 @@ TEST_P(NumberFailures, all) {
     decoder++;
     const NumberLiteral lit = extractNumber(cpp, decoder);
     const auto& value = lit.value;
-    EXPECT_FALSE(value);
+    EXPECT_TRUE(value.hasErrors());
 
-    EXPECT_EQ(param.error, value.error);
-    EXPECT_TRUE(value.decodeErrors.empty());
+    EXPECT_EQ(param.errors, value.errors);
 }
 
 INSTANTIATE_TEST_CASE_P( //
     all,
     NumberFailures,
     ::testing::Values( //
-        NumberFailureData{"hexNothing", String{"0x"}, NumberLiteralError::MissingValue}, //
-        NumberFailureData{"octalNothing", String{"0o"}, NumberLiteralError::MissingValue}, //
-        NumberFailureData{"octalOutOfBounds", String{"0o9"}, NumberLiteralError::MissingValue}, //
-        NumberFailureData{"octalSecondOutOfBounds", String{"0o19"}, NumberLiteralError::MissingBoundary}, //
-        NumberFailureData{"binaryNothing", String{"0b"}, NumberLiteralError::MissingValue}, //
-        NumberFailureData{"binaryOutOfBounds", String{"0b2"}, NumberLiteralError::MissingValue}, //
-        NumberFailureData{"fractionNothing", String{"0.e"}, NumberLiteralError::MissingExponent},
-        NumberFailureData{"positiveFractionNothing", String{"1e+"}, NumberLiteralError::MissingExponent},
-        NumberFailureData{"negativeFractionNothing", String{"1.e-"}, NumberLiteralError::MissingExponent},
-        NumberFailureData{"notTerminated", String{"0z"}, NumberLiteralError::MissingBoundary}),
+        NumberFailureData{"hexNothing", String{"0x"}, {NumberMissingValue{}}}, //
+        NumberFailureData{"octalNothing", String{"0o"}, {NumberMissingValue{}}}, //
+        NumberFailureData{"octalOutOfBounds", String{"0o9"}, {NumberMissingValue{}}}, //
+        NumberFailureData{"octalSecondOutOfBounds", String{"0o19"}, {NumberMissingBoundary{}}}, //
+        NumberFailureData{"binaryNothing", String{"0b"}, {NumberMissingValue{}}}, //
+        NumberFailureData{"binaryOutOfBounds", String{"0b2"}, {NumberMissingValue{}}}, //
+        NumberFailureData{"fractionNothing", String{"0.e"}, {NumberMissingExponent{}}},
+        NumberFailureData{"positiveFractionNothing", String{"1e+"}, {NumberMissingExponent{}}},
+        NumberFailureData{"negativeFractionNothing", String{"1.e-"}, {NumberMissingExponent{}}},
+        NumberFailureData{"notTerminated", String{"0z"}, {NumberMissingBoundary{}}}),
     [](const ::testing::TestParamInfo<NumberFailureData>& inf) { return inf.param.name; });
 
 using DecodedPositions = std::vector<DecodedPosition>;
@@ -241,8 +239,7 @@ using DecodedPositions = std::vector<DecodedPosition>;
 struct NumberDecodeErrorData {
     std::string name;
     DecodedPositions decoded;
-    NumberLiteralError error;
-    DecodedErrorPositions decodeErrors;
+    NumberLiteralErrors errors;
     Radix radix;
     String integerPart;
 };
@@ -266,8 +263,7 @@ TEST_P(NumberDecodeErrors, all) {
     const NumberLiteral lit = extractNumber(cpp, decoder);
 
     const auto& value = lit.value;
-    EXPECT_EQ(param.error, value.error);
-    EXPECT_EQ(param.decodeErrors, value.decodeErrors);
+    EXPECT_EQ(param.errors, value.errors);
 
     EXPECT_EQ(param.radix, value.radix);
     EXPECT_EQ(param.integerPart, to_string(value.integerPart));
@@ -286,8 +282,7 @@ INSTANTIATE_TEST_CASE_P( //
                     decodeError,
                     CodePointPosition{View{"2"}, Position{Line{1}, Column{2}}, CodePoint{'2'}},
                 },
-                NumberLiteralError::None,
-                DecodedErrorPositions{
+                NumberLiteralErrors{
                     decodeError,
                 },
                 Radix::decimal,
@@ -304,8 +299,7 @@ INSTANTIATE_TEST_CASE_P( //
                     CodePointPosition{View{"x"}, Position{Line{1}, Column{2}}, CodePoint{'x'}},
                     CodePointPosition{View{"F"}, Position{Line{1}, Column{3}}, CodePoint{'F'}},
                 },
-                NumberLiteralError::None,
-                DecodedErrorPositions{
+                NumberLiteralErrors{
                     decodeError,
                 },
                 Radix::hex,
@@ -321,8 +315,7 @@ INSTANTIATE_TEST_CASE_P( //
                     CodePointPosition{View{"3"}, Position{}, CodePoint{'3'}},
                     decodeError,
                 },
-                NumberLiteralError::None,
-                DecodedErrorPositions{
+                NumberLiteralErrors{
                     decodeError,
                 },
                 Radix::decimal,

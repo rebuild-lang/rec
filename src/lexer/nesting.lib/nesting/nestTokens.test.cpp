@@ -27,7 +27,7 @@ struct NestTokensData {
     }
     template<class... Lines>
     auto out(Lines&&... lines) && -> NestTokensData {
-        expected = BlockLiteral{{}, {}, {{std::forward<Lines>(lines)...}}};
+        // expected = BlockLiteral{{}, {}, {{std::forward<Lines>(lines)...}}};
         return *this;
     }
 };

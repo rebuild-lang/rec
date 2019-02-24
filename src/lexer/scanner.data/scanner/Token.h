@@ -1,8 +1,8 @@
 #pragma once
 #include "NumberLiteralValue.h"
+#include "OperatorLiteralValue.h"
 #include "StringLiteralValue.h"
 
-#include "text/Range.h"
 #include <text/DecodedPosition.h>
 
 #include "meta/Optional.h"
@@ -10,58 +10,57 @@
 namespace scanner {
 
 using text::DecodedErrorPosition;
+using text::InputPosition;
 using text::Position;
 using text::View;
 using DecodedErrorPositions = std::vector<DecodedErrorPosition>;
 
 namespace details {
 
-template<class Tag>
-struct TagToken {
-    View input{};
-    Position position{};
+template<class... Tags>
+using TagToken = InputPosition<struct TagTokenTag, Tags...>;
 
-    explicit operator bool() const { return true; }
+template<class... Tags>
+constexpr auto hasTokenError(const TagToken<Tags...>&) {
+    return false;
+}
 
-    using This = TagToken;
-    bool operator==(const This& o) const { return true; }
-    bool operator!=(const This& o) const { return !(*this == o); }
-};
-template<class Tag>
-struct TagErrorToken {
-    View input{};
-    Position position{};
+template<class... Tags>
+using TagErrorToken = InputPosition<struct TagErrorTokenTag, Tags...>;
 
-    explicit operator bool() const { return false; }
+template<class... Tags>
+constexpr auto hasTokenError(const TagErrorToken<Tags...>&) {
+    return true;
+}
 
-    using This = TagErrorToken;
-    bool operator==(const This& o) const { return true; }
-    bool operator!=(const This& o) const { return !(*this == o); }
-};
-template<class Tag>
-struct TagTokenWithDecodeErrors {
-    View input{};
-    Position position{};
+template<class... Tags>
+struct TagTokenWithDecodeErrors : text::InputPositionData {
     DecodedErrorPositions decodeErrors{};
 
-    explicit operator bool() const { return decodeErrors.empty(); }
+    friend constexpr auto hasTokenError(const TagTokenWithDecodeErrors& t) { //
+        return !t.decodeErrors.empty();
+    }
 
     using This = TagTokenWithDecodeErrors;
-    bool operator==(const This& o) const noexcept { return decodeErrors == o.decodeErrors; }
+    bool operator==(const This& o) const noexcept {
+        return input == o.input && position == o.position && decodeErrors == o.decodeErrors;
+    }
     bool operator!=(const This& o) const noexcept { return !(*this == o); }
 };
+
 template<class Value>
-struct ValueToken {
-    View input{};
-    Position position{};
+struct ValueToken : text::InputPositionData {
     Value value{};
 
-    explicit operator bool() const { return value; }
+    friend constexpr auto hasTokenError(const ValueToken& t) { //
+        return t.value.hasErrors();
+    }
 
     using This = ValueToken;
     bool operator==(const This& o) const { return value == o.value; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+
 } // namespace details
 
 using WhiteSpaceSeparator = details::TagToken<struct WhiteSpaceSeparatorTag>;
@@ -75,7 +74,7 @@ using SquareBracketClose = details::TagToken<struct SquareBracketCloseTag>;
 using BracketOpen = details::TagToken<struct BracketOpenTag>;
 using BracketClose = details::TagToken<struct BracketCloseTag>;
 using IdentifierLiteral = details::TagToken<struct IdentifierLiteralTag>;
-using OperatorLiteral = details::TagTokenWithDecodeErrors<struct OperatorLiteralTag>;
+using OperatorLiteral = details::ValueToken<OperatorLiteralValue>;
 
 // UTF8-Decoder found a problem
 using InvalidEncoding = details::TagErrorToken<struct InvalidEncodingTag>;

@@ -35,9 +35,7 @@ struct Function {
     LocalScope argumentScope;
     ArgumentViews arguments;
 
-    auto lookupArgument(NameView name) const -> OptArgumentView {
-        return argumentScope[name].map([](const auto node) -> OptArgumentView { return &node->get<Argument>(); });
-    }
+    auto lookupArgument(NameView name) const -> OptArgumentView;
     auto leftArguments() const -> ArgumentsRange {
         auto b = arguments.begin();
         auto e = meta::findIf(arguments, [](const auto& a) { return a->side != ArgumentSide::left; });

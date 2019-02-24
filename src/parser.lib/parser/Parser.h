@@ -572,9 +572,9 @@ private:
             [&](const instance::Module& mod) -> OptTypeExpression {
                 ++it;
                 if (it && it.current().holds<nesting::IdentifierLiteral>()) {
-                    auto subName = it.current().get<nesting::IdentifierLiteral>().range.view;
-                    auto subNode = mod.locals[subName];
-                    if (subNode) return parseTypeInstance(*subNode.value(), it, context);
+                    // auto subName = it.current().get<nesting::IdentifierLiteral>().range.view;
+                    // auto subNode = mod.locals[subName];
+                    // if (subNode) return parseTypeInstance(*subNode.value(), it, context);
                 }
                 auto typeNode = mod.locals[View{"type"}];
                 if (typeNode) {
@@ -589,11 +589,11 @@ private:
     template<class Context>
     static auto parseTyped(BlockLineView& it, Context& context) -> OptTyped {
         auto name = it.current().visit(
-            [&](const nesting::IdentifierLiteral& id) {
-                auto result = id.range.view;
-                ++it;
-                return result;
-            },
+            //            [&](const nesting::IdentifierLiteral& id) {
+            //                auto result = id.range.view;
+            //                ++it;
+            //                return result;
+            //            },
             [](const auto&) { return View{}; });
         auto type = [&]() -> OptTypeExpression {
             if (!it.current().holds<nesting::ColonSeparator>()) return {};
@@ -602,7 +602,8 @@ private:
         }();
         auto value = [&]() -> OptNode {
             if (!it.current().visit(
-                    [&](const nesting::OperatorLiteral& op) { return op.range.view == View{"="}; },
+                    //                    [&](const nesting::OperatorLiteral& op) { return op.range.view == View{"="};
+                    //                    },
                     [](const auto&) { return false; }))
                 return {};
             ++it;
