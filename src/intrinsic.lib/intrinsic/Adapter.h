@@ -151,7 +151,7 @@ struct Adapter {
 
             auto modNode = instanceModule.locals[info.name];
             assert(modNode != nullptr);
-            optNode.value()->get<instance::Type>().module = &modNode.value()->get<instance::Module>();
+            optNode.value()->get<instance::Type>().module = &modNode.value()->template get<instance::Module>();
         }
     }
 
@@ -337,7 +337,7 @@ private:
             return r;
         }());
         assert(optNode);
-        return &optNode.value()->get<instance::Argument>();
+        return &optNode.value()->template get<instance::Argument>();
     }
 
     constexpr static auto functionFlags(intrinsic::FunctionFlags flags) -> instance::FunctionFlags {

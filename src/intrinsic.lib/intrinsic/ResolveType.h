@@ -16,7 +16,7 @@ struct ResolveType {
     template<class T>
     static auto moduleInstance(const instance::Scope* scope) -> instance::TypeView {
         auto r = This{&scope->locals};
-        r.module<T>();
+        r.template module<T>();
         return r.result;
     }
 
@@ -24,8 +24,8 @@ struct ResolveType {
     void type() {
         if constexpr (std::is_same_v<T, Type>) {
             constexpr auto info = TypeOf<T>::info();
-            auto& mod = (*scope)[info.name].value()->get<instance::Module>();
-            result = &mod.locals[strings::View{"type"}].value()->get<instance::Type>();
+            auto& mod = (*scope)[info.name].value()->template get<instance::Module>();
+            result = &mod.locals[strings::View{"type"}].value()->template get<instance::Type>();
         }
     }
 
@@ -33,7 +33,7 @@ struct ResolveType {
     void module() {
         auto info = T::info();
         auto optMod = (*scope)[info.name];
-        auto inner = This{&optMod.value()->get<instance::Module>().locals};
+        auto inner = This{&optMod.value()->template get<instance::Module>().locals};
         T::module(inner);
         if (inner.result) result = inner.result;
     }
