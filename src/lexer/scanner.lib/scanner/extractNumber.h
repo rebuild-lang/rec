@@ -67,11 +67,8 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
     static auto isMinus = [](CodePoint cp) { return cp.v == '-'; };
     static auto isDot = [](CodePoint cp) { return cp.v == '.'; };
     static auto isZero = [](CodePoint cp) { return cp.v == '0'; };
-    //    static auto isDecimalZero = [](CodePoint cp) {
-    //        return cp.decimalNumber() && [](auto decimal) { return decimal == strings::Decimal{0}; };
-    //    };
     static auto isIgnored = [](CodePoint cp) { return cp.v == '\''; };
-    static auto isZeroOrIgnored = [=](CodePoint cp) { return isZero(cp) || isIgnored(cp); };
+    static auto isZeroOrIgnored = [&](CodePoint cp) { return isZero(cp) || isIgnored(cp); };
 
     static auto isDecimalDigit = [](CodePoint cp) { return cp.isDecimalNumber(); };
     static auto isBinaryDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '1'); };
@@ -83,6 +80,7 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
     static auto isNoBoundary = [](CodePoint cp) { return cp.isDecimalNumber() || cp.isLetter(); };
 
     auto withRadix = [&](OptCodePointPosition optCpp, auto env) -> NumberLiteral {
+        isIgnored(CodePoint{}); // Workaround for VS2017/2019 - internal compiler error
         number.radix = env.radix();
         auto mapCp = [&](auto pred) -> bool {
             return optCpp.map([&](auto cpp) -> bool { return pred(cpp.codePoint); });
@@ -94,10 +92,7 @@ inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
         auto extendInto = [&](Rope& into) {
             while (mapCp(env.isDigit())) {
                 into += optCpp.value().input;
-                // optCpp nextCppWhile(isIgnored); // vs2017 15.9.2 crashes on this
-                // workaround:
-                optCpp = nextCpp();
-                while (optCpp && optCpp.value().codePoint.v == '\'') optCpp = nextCpp();
+                optCpp = nextCppWhile(isIgnored);
             }
         };
 

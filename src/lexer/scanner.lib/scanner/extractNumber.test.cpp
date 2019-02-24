@@ -189,7 +189,7 @@ INSTANTIATE_TEST_CASE_P( //
 
 struct NumberFailureData {
     std::string name;
-    String input;
+    View input;
     NumberLiteralErrors errors;
 };
 static auto operator<<(std::ostream& o, const NumberFailureData& nd) -> std::ostream& { return o << nd.input; }
@@ -222,16 +222,34 @@ INSTANTIATE_TEST_CASE_P( //
     all,
     NumberFailures,
     ::testing::Values( //
-        NumberFailureData{"hexNothing", String{"0x"}, {NumberMissingValue{}}}, //
-        NumberFailureData{"octalNothing", String{"0o"}, {NumberMissingValue{}}}, //
-        NumberFailureData{"octalOutOfBounds", String{"0o9"}, {NumberMissingValue{}}}, //
-        NumberFailureData{"octalSecondOutOfBounds", String{"0o19"}, {NumberMissingBoundary{}}}, //
-        NumberFailureData{"binaryNothing", String{"0b"}, {NumberMissingValue{}}}, //
-        NumberFailureData{"binaryOutOfBounds", String{"0b2"}, {NumberMissingValue{}}}, //
-        NumberFailureData{"fractionNothing", String{"0.e"}, {NumberMissingExponent{}}},
-        NumberFailureData{"positiveFractionNothing", String{"1e+"}, {NumberMissingExponent{}}},
-        NumberFailureData{"negativeFractionNothing", String{"1.e-"}, {NumberMissingExponent{}}},
-        NumberFailureData{"notTerminated", String{"0z"}, {NumberMissingBoundary{}}}),
+        NumberFailureData{"hexNothing", View{"0x"}, {NumberMissingValue{}}}, //
+        NumberFailureData{"octalNothing", View{"0o"}, {NumberMissingValue{}}}, //
+        [] {
+            auto input = View{"0o9"};
+            auto missingValue = NumberMissingValue{input.skipBytes<2>(), {Line{1}, Column{3}}};
+            auto missingBoundary = NumberMissingBoundary{input.skipBytes<2>(), {Line{1}, Column{3}}};
+            return NumberFailureData{"octalOutOfBounds", input, {missingValue, missingBoundary}};
+        }(),
+        [] {
+            auto input = View{"0o19"};
+            auto missingBoundary = NumberMissingBoundary{input.skipBytes<3>(), {Line{1}, Column{4}}};
+            return NumberFailureData{"octalSecondOutOfBounds", input, {missingBoundary}};
+        }(),
+        NumberFailureData{"binaryNothing", View{"0b"}, {NumberMissingValue{}}}, //
+        [] {
+            auto input = View{"0b2"};
+            auto missingValue = NumberMissingValue{input.skipBytes<2>(), {Line{1}, Column{3}}};
+            auto missingBoundary = NumberMissingBoundary{input.skipBytes<2>(), {Line{1}, Column{3}}};
+            return NumberFailureData{"binaryOutOfBounds", input, {missingValue, missingBoundary}};
+        }(),
+        NumberFailureData{"fractionNothing", View{"0.e"}, {NumberMissingExponent{}}},
+        NumberFailureData{"positiveFractionNothing", View{"1e+"}, {NumberMissingExponent{}}},
+        NumberFailureData{"negativeFractionNothing", View{"1.e-"}, {NumberMissingExponent{}}},
+        [] {
+            auto input = View{"0z"};
+            auto missingBoundary = NumberMissingBoundary{input.skipBytes<1>(), {Line{1}, Column{2}}};
+            return NumberFailureData{"notTerminated", input, {missingBoundary}};
+        }()),
     [](const ::testing::TestParamInfo<NumberFailureData>& inf) { return inf.param.name; });
 
 using DecodedPositions = std::vector<DecodedPosition>;
