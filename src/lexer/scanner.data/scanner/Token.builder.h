@@ -23,7 +23,7 @@ template<>
 struct TokenBuilder<View> {
     static auto build(const View& b) -> Token {
         auto tok = scanner::IdentifierLiteral{};
-        // tok.range.view = b;
+        tok.input = b;
         return tok;
     }
 };

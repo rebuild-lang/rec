@@ -79,28 +79,26 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
             [](scanner::InvalidEncoding&&) { return meta::unreachable<Token>(); },
             [](scanner::UnexpectedCharacter&&) { return meta::unreachable<Token>(); },
             [](scanner::IdentifierLiteral&& id) -> Token {
-                return {}; // IdentifierLiteral{{}, id.range};
+                return IdentifierLiteral{id.input, id.position, {}};
             },
             [](scanner::OperatorLiteral&& op) -> Token {
-                return {}; // OperatorLiteral{{{}, op.range}};
+                return OperatorLiteral{op.input, op.position, {}};
             },
             [](auto&& d) { return Token{std::move(d)}; });
     };
 
-    while (true) {
+    if (!input++) co_return;
+    while (input->holds<
+           scanner::CommentLiteral,
+           scanner::WhiteSpaceSeparator,
+           scanner::InvalidEncoding,
+           scanner::UnexpectedCharacter>()) {
         if (!input++) co_return;
-        if (input->holds<
-                scanner::CommentLiteral,
-                scanner::WhiteSpaceSeparator,
-                scanner::InvalidEncoding,
-                scanner::UnexpectedCharacter>())
-            continue; // skip initial values;
-        break;
     }
     auto current = input.move();
     if (!current.holds<scanner::NewLineIndentation>()) {
         // ensure we always start with a new line
-        // co_yield NewLineIndentation{beforeRange(current)};
+        co_yield NewLineIndentation{};
     }
     auto lastYieldType = Token::indexOf<NewLineIndentation>();
     auto previous = translate(std::move(current));
@@ -138,7 +136,8 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
                 // TODO(arBmind): report error (not allowed)
                 // }
                 // we do not merge the range here, because there might be skipped comments between
-                // previous = BlockStartIndentation{std::move(current.get<scanner::NewLineIndentation>().range)};
+                auto newLine = current.get<scanner::NewLineIndentation>();
+                previous = BlockStartIndentation{newLine.input, newLine.position};
                 continue; // [':' + '\n'] => block start
             }
             if (previous.holds<NewLineIndentation>()) {
@@ -151,16 +150,16 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
         }
         else if (current.holds<scanner::IdentifierLiteral>()) {
             const auto& id = current.get<scanner::IdentifierLiteral>();
-            /*if (previous.holds<NewLineIndentation>() && id.range.view.isContentEqual(View{"end"})) {
-                previous = BlockEndIndentation{id.range};
+            if (previous.holds<NewLineIndentation>() && id.input.isContentEqual(View{"end"})) {
+                previous = BlockEndIndentation{id.input, id.position};
                 continue; // ['\n' + "end"] => block end
             }
-            if (previous.holds<BlockStartIndentation>() && id.range.view.isContentEqual(View{"end"})) {
+            if (previous.holds<BlockStartIndentation>() && id.input.isContentEqual(View{"end"})) {
                 lastYieldType = previous.index();
                 co_yield previous;
-                previous = BlockEndIndentation{id.range};
+                previous = BlockEndIndentation{id.input, id.position};
                 continue; // [':\n' + "end"] => block begin + block end
-            }*/
+            }
             if (isLeftSeparator(previousOrSkippedType)) leftSeparated = true;
         }
         lastYieldType = previous.index();

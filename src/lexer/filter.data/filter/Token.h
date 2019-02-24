@@ -10,21 +10,21 @@ using scanner::details::ValueToken;
 
 } // namespace details
 
-using View = text::View;
+using text::View;
 
-using NewLineIndentation = scanner::NewLineIndentation;
+using scanner::NewLineIndentation;
 
 using BlockStartIndentation = details::TagToken<struct BlockStartIndentationTag>;
 using BlockEndIndentation = details::TagToken<struct BlockEndIndentationTag>;
-using ColonSeparator = scanner::ColonSeparator;
-using CommaSeparator = scanner::CommaSeparator;
-using SemicolonSeparator = scanner::SemicolonSeparator;
-using SquareBracketOpen = scanner::SquareBracketOpen;
-using SquareBracketClose = scanner::SquareBracketClose;
-using BracketOpen = scanner::BracketOpen;
-using BracketClose = scanner::BracketClose;
-using StringLiteral = scanner::StringLiteral;
-using NumberLiteral = scanner::NumberLiteral;
+using scanner::BracketClose;
+using scanner::BracketOpen;
+using scanner::ColonSeparator;
+using scanner::CommaSeparator;
+using scanner::NumberLiteral;
+using scanner::SemicolonSeparator;
+using scanner::SquareBracketClose;
+using scanner::SquareBracketOpen;
+using scanner::StringLiteral;
 struct IdentifierLiteralValue {
     using This = IdentifierLiteralValue;
     bool leftSeparated{false};

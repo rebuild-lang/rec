@@ -6,7 +6,7 @@
 
 namespace text {
 
-using View = strings::View;
+using strings::View;
 
 struct Range {
     using This = Range;
