@@ -1,6 +1,7 @@
 #pragma once
 #include "extractComment.h"
 #include "extractIdentifier.h"
+#include "extractNewLineIndentation.h"
 #include "extractNumber.h"
 #include "extractOperator.h"
 #include "extractString.h"
@@ -8,22 +9,23 @@
 #include <scanner/Token.h>
 
 #include <meta/CoEnumerator.h>
+#include <meta/Type.h>
 #include <text/DecodedPosition.h>
 
 namespace scanner {
 
+using meta::type;
 using text::DecodedPosition;
-
-template<class Token>
-auto extractChar(CodePointPosition cpp) -> Token {
-    return {cpp.input, cpp.position};
-}
 
 inline auto tokenize(meta::CoEnumerator<DecodedPosition> decoded) -> meta::CoEnumerator<Token> {
     using text::CodePointPosition;
     using text::DecodedErrorPosition;
     using text::NewlinePosition;
     using text::View;
+
+    auto extractChar = [](auto token, CodePointPosition cpp) -> meta::ToBareType<decltype(token)> {
+        return {cpp.input, cpp.position};
+    };
 
     auto extractWhitespaces = [&](auto first) {
         auto end = first.input.end();
@@ -41,6 +43,8 @@ inline auto tokenize(meta::CoEnumerator<DecodedPosition> decoded) -> meta::CoEnu
         return WhiteSpaceSeparator{View{first.input.begin(), end}, first.position};
     };
 
+    auto newLineState = ExtractNewLineState{};
+
     decoded++;
     while (decoded) {
         auto current = *decoded;
@@ -54,23 +58,20 @@ inline auto tokenize(meta::CoEnumerator<DecodedPosition> decoded) -> meta::CoEnu
                 switch (chr.v) {
                 case '"': return extractString(cpp, decoded);
                 case '#': return extractComment(cpp, decoded);
-                case ':': return extractChar<ColonSeparator>(cpp);
-                case ',': return extractChar<CommaSeparator>(cpp);
-                case ';': return extractChar<SemicolonSeparator>(cpp);
-                case '[': return extractChar<SquareBracketOpen>(cpp);
-                case ']': return extractChar<SquareBracketClose>(cpp);
-                case '(': return extractChar<BracketOpen>(cpp);
-                case ')': return extractChar<BracketClose>(cpp);
+                case ':': return extractChar(type<ColonSeparator>, cpp);
+                case ',': return extractChar(type<CommaSeparator>, cpp);
+                case ';': return extractChar(type<SemicolonSeparator>, cpp);
+                case '[': return extractChar(type<SquareBracketOpen>, cpp);
+                case ']': return extractChar(type<SquareBracketClose>, cpp);
+                case '(': return extractChar(type<BracketOpen>, cpp);
+                case ')': return extractChar(type<BracketClose>, cpp);
                 }
 
                 if (auto opt = extractIdentifier(cpp, decoded); opt) return opt.value();
                 if (auto opt = extractOperator(cpp, decoded); opt) return opt.value();
                 return UnexpectedCharacter{cpp.input, cpp.position};
             },
-            [&](NewlinePosition nlp) -> Token {
-                auto ws = extractWhitespaces(nlp);
-                return NewLineIndentation{ws.input, ws.position};
-            },
+            [&](NewlinePosition nlp) -> Token { return extractNewLineIndentation(nlp, decoded, newLineState); },
             [&](DecodedErrorPosition dep) -> Token {
                 return InvalidEncoding{dep.input, dep.position};
             });

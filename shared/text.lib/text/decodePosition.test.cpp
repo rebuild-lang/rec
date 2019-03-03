@@ -29,19 +29,19 @@ TEST(decodePosition, simple) {
 
     ASSERT_TRUE(e);
     ASSERT_TRUE(++e);
-    ASSERT_EQ(*e, (DP{NP{source.firstBytes<2>(), P{Line{1}, Col{1}}}}));
+    EXPECT_EQ(*e, (DP{NP{source.firstBytes<2>(), P{Line{1}, Col{1}}}}));
 
     ASSERT_TRUE(++e);
-    ASSERT_EQ(*e, (DP{CPP{source.skipBytes<2>().firstBytes<1>(), P{Line{2}, Col{1}}, CP{' '}}}));
+    EXPECT_EQ(*e, (DP{CPP{source.skipBytes<2>().firstBytes<1>(), P{Line{2}, Col{1}}, CP{' '}, P{Line{2}, Col{2}}}}));
 
     ASSERT_TRUE(++e);
-    ASSERT_EQ(*e, (DP{CPP{source.skipBytes<3>().firstBytes<1>(), P{Line{2}, Col{2}}, CP{'\t'}}}));
+    EXPECT_EQ(*e, (DP{CPP{source.skipBytes<3>().firstBytes<1>(), P{Line{2}, Col{2}}, CP{'\t'}, P{Line{2}, Col{5}}}}));
 
     ASSERT_TRUE(++e);
-    ASSERT_EQ(*e, (DP{CPP{source.skipBytes<4>().firstBytes<1>(), P{Line{2}, Col{5}}, CP{'a'}}}));
+    EXPECT_EQ(*e, (DP{CPP{source.skipBytes<4>().firstBytes<1>(), P{Line{2}, Col{5}}, CP{'a'}, P{Line{2}, Col{6}}}}));
 
     ASSERT_TRUE(++e);
-    ASSERT_EQ(*e, (DP{DEP{source.skipBytes<5>().firstBytes<1>(), P{Line{2}, Col{6}}}}));
+    EXPECT_EQ(*e, (DP{DEP{source.skipBytes<5>().firstBytes<1>(), P{Line{2}, Col{6}}}}));
 
     ASSERT_FALSE(++e);
 }

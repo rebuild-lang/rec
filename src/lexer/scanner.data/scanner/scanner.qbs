@@ -12,6 +12,8 @@ Project {
         Depends { name: "text.lib" }
 
         files: [
+            "NewLineIndentationValue.cpp",
+            "NewLineIndentationValue.h",
             "NumberLiteralValue.cpp",
             "NumberLiteralValue.h",
             "OperatorLiteralValue.cpp",

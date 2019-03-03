@@ -16,6 +16,8 @@ Project {
             "extractComment.h",
             "extractIdentifier.cpp",
             "extractIdentifier.h",
+            "extractNewLineIndentation.cpp",
+            "extractNewLineIndentation.h",
             "extractNumber.cpp",
             "extractNumber.h",
             "extractOperator.cpp",
@@ -47,6 +49,7 @@ Project {
         files: [
             "extractComment.test.cpp",
             "extractIdentifier.test.cpp",
+            "extractNewLineIndentation.test.cpp",
             "extractNumber.test.cpp",
             "extractOperator.test.cpp",
             "extractString.test.cpp",

@@ -81,6 +81,10 @@ struct CodePoint {
         return false;
     }
 
+    constexpr bool isTab() const {
+        return v == 0x9; // https://www.compart.com/en/unicode/U+0009
+    }
+
     constexpr bool isWhiteSpace() const {
         // see https://www.compart.com/en/unicode/bidiclass/WS
         switch (v) {

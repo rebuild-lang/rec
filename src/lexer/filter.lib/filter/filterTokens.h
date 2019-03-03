@@ -26,6 +26,7 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
             [](scanner::InvalidEncoding&&) { return meta::unreachable<Token>(); },
             [](scanner::UnexpectedCharacter&&) { return meta::unreachable<Token>(); },
             [](scanner::NewLineIndentation&&) { return meta::unreachable<Token>(); },
+            [](scanner::SemicolonSeparator&&) { return meta::unreachable<Token>(); },
             [](auto&& d) { return Token{std::forward<decltype(d)>(d)}; });
     };
     auto line = TokenLine{};
@@ -35,6 +36,7 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
             [](scanner::WhiteSpaceSeparator&& c) { return Insignificant{c}; },
             [](scanner::InvalidEncoding&& c) { return Insignificant{c}; },
             [](scanner::UnexpectedCharacter&& c) { return Insignificant{c}; },
+            [](scanner::SemicolonSeparator&& c) { return Insignificant{c}; },
             [&](scanner::NewLineIndentation&& c) {
                 line.newLineIndex = line.insignificants.size();
                 return Insignificant{c};
@@ -49,19 +51,39 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
             },
             [](auto&& d) { return meta::unreachable<Insignificant>(); }));
     };
+    auto insertBlockStartColon = [&](size_t index, Insignificant colon) {
+        if (colon.holds<ColonSeparator>()) line.blockStartColonIndex = index;
+        line.insignificants.insert(line.insignificants.begin() + index, colon);
+    };
     auto addToken = [&](Token&& tok) { line.tokens.emplace_back(std::move(tok)); };
 
     while (input++) {
+        if (input->holds<scanner::NewLineIndentation, scanner::SemicolonSeparator>()) {
+            if (line.isBlockEnd()) {
+                co_yield std::move(line);
+                line = TokenLine{};
+            }
+            addInsignificant(input.move());
+            continue;
+        }
         if (input->holds<
                 scanner::CommentLiteral,
                 scanner::WhiteSpaceSeparator,
                 scanner::InvalidEncoding,
-                scanner::UnexpectedCharacter,
-                scanner::NewLineIndentation>()) {
+                scanner::UnexpectedCharacter>()) {
             addInsignificant(input.move());
             continue;
         }
+        if (input->holds<scanner::IdentifierLiteral>()) {
+            const auto& id = input->get<scanner::IdentifierLiteral>().input;
+            if (line.startsOnNewLine() && id.isContentEqual(View{"end"})) {
+                addInsignificant(input.move());
+                continue; // ['\n' + "end"] => block end
+            }
+        }
         auto previous = translate(input.move());
+        auto blockStartIndex = size_t{};
+        if (previous.holds<ColonSeparator>()) blockStartIndex = line.insignificants.size();
         while (true) {
             if (!input++) {
                 addToken(std::move(previous));
@@ -81,15 +103,15 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
                 if (previous.holds<ColonSeparator>()) {
                     if (line.tokens.empty()) {
                         auto colon = previous.get<ColonSeparator>();
-                        line.insignificants.emplace_back(UnexpectedColon{colon});
+                        insertBlockStartColon(blockStartIndex, UnexpectedColon{colon});
                         co_yield std::move(line);
                         line = TokenLine{};
                         addInsignificant(input.move());
                         break; // error - ['\n' + ':' + '\n]
                     }
+                    insertBlockStartColon(blockStartIndex, previous.get<ColonSeparator>());
                     co_yield std::move(line);
                     line = TokenLine{};
-                    addInsignificant(previous.get<ColonSeparator>());
                     addInsignificant(input.move());
                     break; // [':' + '\n'] => block start
                 }
@@ -99,15 +121,16 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
                 addInsignificant(input.move());
                 break; // regular line end
             }
-            if (current.holds<scanner::IdentifierLiteral>()) {
-                const auto& id = current.get<scanner::IdentifierLiteral>().input;
-                if (line.tokens.empty() && id.isContentEqual(View{"end"})) {
-                    addInsignificant(input.move());
-                    continue; // ['\n' + "end"] => block end
-                }
+            if (current.holds<scanner::SemicolonSeparator>()) {
+                addToken(std::move(previous));
+                co_yield std::move(line);
+                line = TokenLine{};
+                addInsignificant(input.move());
+                break; // line broken by semicolon
             }
             addToken(std::move(previous));
             previous = translate(input.move());
+            if (previous.holds<ColonSeparator>()) blockStartIndex = line.insignificants.size();
         }
     }
     if (!line.tokens.empty() || !line.insignificants.empty()) co_yield line;

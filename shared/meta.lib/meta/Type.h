@@ -6,6 +6,9 @@ namespace meta {
 template<class T>
 struct Type {};
 
+template<class T>
+constexpr auto type = Type<T>{};
+
 /// Equality
 template<class A, class B>
 constexpr bool operator==(Type<A>, Type<B>) {

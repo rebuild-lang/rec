@@ -1,4 +1,5 @@
 #pragma once
+#include "NewLineIndentationValue.ostream.h"
 #include "NumberLiteralValue.ostream.h"
 #include "StringLiteralValue.ostream.h"
 
@@ -9,7 +10,9 @@
 namespace scanner {
 
 inline auto operator<<(std::ostream& out, const WhiteSpaceSeparator&) -> std::ostream& { return out << "<space>"; }
-inline auto operator<<(std::ostream& out, const NewLineIndentation&) -> std::ostream& { return out << "<\\n>"; }
+inline auto operator<<(std::ostream& out, const NewLineIndentation& nli) -> std::ostream& {
+    return out << "<\\n" << nli.value << ">";
+}
 
 inline auto operator<<(std::ostream& out, const CommentLiteral& c) -> std::ostream& {
     return out << "<##: " << c.input << ">";

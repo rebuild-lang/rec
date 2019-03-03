@@ -41,11 +41,13 @@ inline auto decodePosition( //
                     return r;
                 }
                 auto r = CodePointPosition{dcp.input, position, dcp.cp};
-                if (cp.v == '\t') {
+                if (cp.isTab()) {
                     position.nextTabstop(config.tabStops);
+                    r.endPosition = position;
                     return r;
                 }
                 if (cp.isControl() || cp.isSurrogate() || cp.isNonCharacter() || cp.isPrivateUse()) {
+                    r.endPosition = position;
                     return r; // keep position
                 }
                 // ignore all Combiningmarks
@@ -57,6 +59,7 @@ inline auto decodePosition( //
                     r.input = View{r.input.begin(), dc2.input.end()};
                 }
                 position.nextColumn();
+                r.endPosition = position;
                 return r;
             },
             [&](strings::DecodedError ie) -> DecodedPosition {

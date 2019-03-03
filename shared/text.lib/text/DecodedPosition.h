@@ -13,8 +13,8 @@ using strings::View;
 
 struct InputPositionData {
     using This = InputPositionData;
-    View input;
-    Position position;
+    View input{};
+    Position position{};
 
     constexpr bool operator==(const This& o) const { return input == o.input && position == o.position; }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
@@ -25,10 +25,11 @@ struct InputPosition : InputPositionData {};
 
 struct CodePointPosition : InputPositionData {
     using This = CodePointPosition;
-    CodePoint codePoint;
+    CodePoint codePoint{};
+    Position endPosition{};
 
     constexpr bool operator==(const This& o) const {
-        return input == o.input && position == o.position && codePoint == o.codePoint;
+        return input == o.input && position == o.position && codePoint == o.codePoint && endPosition == o.endPosition;
     }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
 };

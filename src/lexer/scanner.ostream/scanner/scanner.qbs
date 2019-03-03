@@ -13,6 +13,8 @@ Project {
         //Depends { name: "text.ostream" }
 
         files: [
+            "NewLineIndentationValue.ostream.cpp",
+            "NewLineIndentationValue.ostream.h",
             "NumberLiteralValue.ostream.cpp",
             "NumberLiteralValue.ostream.h",
             "StringLiteralValue.ostream.cpp",

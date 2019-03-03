@@ -1,4 +1,5 @@
 #pragma once
+#include "NewLineIndentationValue.h"
 #include "NumberLiteralValue.h"
 #include "OperatorLiteralValue.h"
 #include "StringLiteralValue.h"
@@ -62,7 +63,7 @@ struct ValueToken : text::InputPositionData {
 } // namespace details
 
 using WhiteSpaceSeparator = details::TagToken<struct WhiteSpaceSeparatorTag>;
-using NewLineIndentation = details::TagToken<struct NewLineIndentationTag>;
+using NewLineIndentation = details::ValueToken<NewLineIndentationValue>;
 using CommentLiteral = details::TagTokenWithDecodeErrors<struct CommentLiteralTag>;
 using ColonSeparator = details::TagToken<struct ColonSeparatorTag>;
 using CommaSeparator = details::TagToken<struct CommaSeparatorTag>;

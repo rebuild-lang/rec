@@ -69,9 +69,11 @@ INSTANTIATE_TEST_CASE_P(
         TokensFilterData("FilterOutStartingComment")
             .in(CommentLiteral{}, NewLineIndentation{}, id())
             .out(line().insignificants(CommentLiteral{}, NewLineIndentation{}).tokens(id())),
+
         TokensFilterData("FilterOutStartingIndentedComment")
             .in(NewLineIndentation{}, CommentLiteral{}, NewLineIndentation{}, View{})
             .out(line().insignificants(NewLineIndentation{}, CommentLiteral{}, NewLineIndentation{}).tokens(id())),
+
         TokensFilterData("FilterOutStartingCommentWhitespaceComment")
             .in(NewLineIndentation{},
                 CommentLiteral{},
@@ -87,9 +89,11 @@ INSTANTIATE_TEST_CASE_P(
                          CommentLiteral{},
                          NewLineIndentation{})
                      .tokens(id())),
+
         TokensFilterData("FilterMultipleNewlines")
             .in(NewLineIndentation{}, NewLineIndentation{}, View{})
             .out(line().insignificants(NewLineIndentation{}, NewLineIndentation{}).tokens(id())),
+
         TokensFilterData("FilterEvenMoreNewlines")
             .in(NewLineIndentation{}, NewLineIndentation{}, NewLineIndentation{}, View{})
             .out(
@@ -104,14 +108,38 @@ INSTANTIATE_TEST_CASE_P(
         TokensFilterData("FilterOutFinalComment")
             .in(NewLineIndentation{}, View{}, CommentLiteral{})
             .out(line().insignificants(NewLineIndentation{}, CommentLiteral{}).tokens(id())),
+
         TokensFilterData("FilterOutFinalWhitespace")
             .in(NewLineIndentation{}, View{}, WhiteSpaceSeparator{})
             .out(line().insignificants(NewLineIndentation{}, WhiteSpaceSeparator{}).tokens(id())),
+
         TokensFilterData("FilterOutFinalNewline")
             .in(NewLineIndentation{}, View{}, NewLineIndentation{})
             .out(
                 line().insignificants(NewLineIndentation{}).tokens(id()),
                 line().insignificants(NewLineIndentation{})) //
+        ),
+    [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
+
+INSTANTIATE_TEST_CASE_P(
+    semicolons,
+    TokenFilters,
+    ::testing::Values(
+        TokensFilterData("FilterOutStartSemicolon")
+            .in(NewLineIndentation{}, SemicolonSeparator{}, View{}, CommentLiteral{})
+            .out(line().insignificants(NewLineIndentation{}, SemicolonSeparator{}, CommentLiteral{}).tokens(id())),
+
+        TokensFilterData("SplitLineOnSemicolon")
+            .in(View{}, SemicolonSeparator{}, View{}, CommentLiteral{})
+            .out(
+                line().tokens(id()), //
+                line().insignificants(SemicolonSeparator{}, CommentLiteral{}).tokens(id())),
+
+        TokensFilterData("FilterOutSemicolonLineEnd")
+            .in(View{}, SemicolonSeparator{}, NewLineIndentation{}, View{})
+            .out(
+                line().tokens(id()), //
+                line().insignificants(SemicolonSeparator{}, NewLineIndentation{}).tokens(id())) //
         ),
     [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
 
@@ -124,8 +152,8 @@ INSTANTIATE_TEST_CASE_P(
             return TokensFilterData("MutateIdentifierBlockStart")
                 .in(NewLineIndentation{}, View{begin}, ColonSeparator{}, NewLineIndentation{})
                 .out(
-                    line().insignificants(NewLineIndentation{}).tokens(id(begin)),
-                    line().insignificants(ColonSeparator{}, NewLineIndentation{}));
+                    line().insignificants(NewLineIndentation{}, ColonSeparator{}).tokens(id(begin)),
+                    line().insignificants(NewLineIndentation{}));
         }(),
         [] {
             auto begin = View{"begin"};
@@ -136,8 +164,8 @@ INSTANTIATE_TEST_CASE_P(
                     scanner::CommentLiteral{},
                     NewLineIndentation{})
                 .out(
-                    line().tokens(id(begin)).insignificants(WhiteSpaceSeparator{}, CommentLiteral{}),
-                    line().insignificants(ColonSeparator{}, NewLineIndentation{}));
+                    line().tokens(id(begin)).insignificants(ColonSeparator{}, WhiteSpaceSeparator{}, CommentLiteral{}),
+                    line().insignificants(NewLineIndentation{}));
         }(),
         [] {
             auto end = View{"end"};
@@ -149,8 +177,17 @@ INSTANTIATE_TEST_CASE_P(
                     View{end},
                     NewLineIndentation{})
                 .out(
-                    line().insignificants(NewLineIndentation{}).tokens(id()),
-                    line().insignificants(ColonSeparator{}, NewLineIndentation{}).tokens(id(end)),
+                    line().insignificants(NewLineIndentation{}, ColonSeparator{}).tokens(id()),
+                    line().insignificants(NewLineIndentation{}, id(end)),
+                    line().insignificants(NewLineIndentation{}));
+        }(),
+        [] {
+            auto end = View{"end"};
+            return TokensFilterData("UnexpectedColon")
+                .in(NewLineIndentation{}, ColonSeparator{}, NewLineIndentation{}, View{end}, NewLineIndentation{})
+                .out(
+                    line().insignificants(NewLineIndentation{}, UnexpectedColon{}),
+                    line().insignificants(NewLineIndentation{}, id(end)),
                     line().insignificants(NewLineIndentation{}));
         }() //
         ),

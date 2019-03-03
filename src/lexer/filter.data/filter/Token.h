@@ -24,7 +24,6 @@ using UnexpectedColon = scanner::details::TagErrorToken<struct UnexpectedColonTa
 using Token = meta::Variant<
     ColonSeparator,
     CommaSeparator,
-    SemicolonSeparator,
     SquareBracketOpen,
     SquareBracketClose,
     BracketOpen,
@@ -39,6 +38,7 @@ using Insignificant = meta::Variant<
     WhiteSpaceSeparator,
     InvalidEncoding,
     UnexpectedCharacter,
+    SemicolonSeparator,
     NewLineIndentation,
     ColonSeparator, // block start colon
     IdentifierLiteral, // block "end" identifier
@@ -55,10 +55,21 @@ struct TokenLine {
 
     bool isBlockStart() const { return blockStartColonIndex != -1; }
     bool isBlockEnd() const { return blockEndIdentifierIndex != -1; }
+    bool startsOnNewLine() const { return newLineIndex != -1; }
     bool hasErrors() const {
         auto l = [](const auto& t) { return t.visit([](const auto& v) { return hasTokenError(v); }); };
         return std::any_of(tokens.begin(), tokens.end(), l) //
             || std::any_of(insignificants.begin(), insignificants.end(), l);
+    }
+
+    auto newLine() const -> const NewLineIndentation& { //
+        return insignificants[newLineIndex].get<NewLineIndentation>();
+    }
+    auto blockStartColon() const -> const ColonSeparator& {
+        return insignificants[blockStartColonIndex].get<ColonSeparator>();
+    }
+    auto blockEndIdentifier() const -> const IdentifierLiteral& {
+        return insignificants[blockEndIdentifierIndex].get<IdentifierLiteral>();
     }
 
     template<class F>
