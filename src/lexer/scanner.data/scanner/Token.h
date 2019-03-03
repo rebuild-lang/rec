@@ -11,8 +11,6 @@ namespace scanner {
 
 using text::DecodedErrorPosition;
 using text::InputPosition;
-using text::Position;
-using text::View;
 using DecodedErrorPositions = std::vector<DecodedErrorPosition>;
 
 namespace details {
@@ -37,7 +35,7 @@ template<class... Tags>
 struct TagTokenWithDecodeErrors : text::InputPositionData {
     DecodedErrorPositions decodeErrors{};
 
-    friend constexpr auto hasTokenError(const TagTokenWithDecodeErrors& t) { //
+    friend auto hasTokenError(const TagTokenWithDecodeErrors& t) { //
         return !t.decodeErrors.empty();
     }
 
@@ -52,7 +50,7 @@ template<class Value>
 struct ValueToken : text::InputPositionData {
     Value value{};
 
-    friend constexpr auto hasTokenError(const ValueToken& t) { //
+    friend auto hasTokenError(const ValueToken& t) { //
         return t.value.hasErrors();
     }
 

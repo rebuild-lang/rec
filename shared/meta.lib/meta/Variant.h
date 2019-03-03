@@ -95,6 +95,10 @@ public:
     auto get(Type<R> = {}) & -> decltype(auto) {
         return std::get<R>(m);
     }
+    template<class R>
+    auto get(Type<R> = {}) && -> decltype(auto) {
+        return std::get<R>(std::move(m));
+    }
 
     // allows to check for multiple types
     template<class... C>

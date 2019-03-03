@@ -3,6 +3,7 @@ import qbs
 Project {
     name: "nesting.data"
     minimumQbsVersion: "1.7.1"
+    condition: false
 
     StaticLibrary {
         name: "nesting.data"

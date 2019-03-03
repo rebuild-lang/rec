@@ -39,7 +39,7 @@ struct StringLiteralValue {
     Rope text{};
     StringErrors errors{};
 
-    explicit operator bool() const { return errors.empty(); }
+    auto hasErrors() const -> bool { return errors.empty(); }
 
     bool operator==(const This& o) const { return o.text == text && o.errors == errors; }
     bool operator!=(const This& o) const { return !(*this == o); }

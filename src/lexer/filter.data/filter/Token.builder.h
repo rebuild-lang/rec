@@ -1,46 +1,40 @@
 #pragma once
 #include "Token.h"
 
+#include "strings/View.h"
+
 namespace filter {
 
 using Tokens = std::vector<Token>;
+using TokenLines = std::vector<TokenLine>;
+using strings::View;
 
 namespace details {
 
-struct IdentBuilder {
-    using This = IdentBuilder;
-    Token tok{};
+struct TokenLineBuilder {
+    using This = TokenLineBuilder;
+    TokenLine line{};
 
-    IdentBuilder() = delete;
-    IdentBuilder(IdentifierLiteral) { tok = IdentifierLiteral{}; }
-    IdentBuilder(OperatorLiteral) { tok = OperatorLiteral{}; }
-
-    auto lit() & -> IdentifierLiteral& {
-        if (tok.holds<OperatorLiteral>()) return tok.get<OperatorLiteral>();
-        return tok.get<IdentifierLiteral>();
-    }
-
-    auto leftSeparated() && -> This {
-        lit().value.leftSeparated = true;
-        return *this;
-    }
-    auto rightSeparated() && -> This {
-        lit().value.rightSeparated = true;
-        return *this;
-    }
-    auto bothSeparated() && -> This {
-        lit().value.leftSeparated = true;
-        lit().value.rightSeparated = true;
+    template<class... Tok>
+    auto tokens(Tok&&... t) && -> This {
+        (line.tokens.push_back(std::forward<Tok>(t)), ...);
         return *this;
     }
 
-    template<size_t N>
-    auto text(const char (&text)[N]) && -> This {
-        lit().input = View{text};
+    template<class... Tok>
+    auto insignificants(Tok&&... t) && -> This {
+        auto add = [this](auto&& t) {
+            using T = std::remove_const_t<std::remove_reference_t<decltype(t)>>;
+            if (std::is_same_v<T, NewLineIndentation>) line.newLineIndex = line.insignificants.size();
+            if (std::is_same_v<T, ColonSeparator>) line.blockStartColonIndex = line.insignificants.size();
+            if (std::is_same_v<T, IdentifierLiteral>) line.blockEndIdentifierIndex = line.insignificants.size();
+            line.insignificants.emplace_back(std::forward<decltype(t)>(t));
+        };
+        (add(std::forward<Tok>(t)), ...);
         return *this;
     }
 
-    auto id() && -> Token&& { return std::move(tok); }
+    auto build() && -> TokenLine { return std::move(line); }
 };
 
 template<class Tok>
@@ -51,23 +45,21 @@ template<>
 struct TokenBuilder<Token> {
     static auto build(Token&& t) -> Token { return std::move(t); }
 };
-template<>
-struct TokenBuilder<IdentBuilder> {
-    static auto build(IdentBuilder&& b) -> Token { return std::move(b).id(); }
-};
 
 } // namespace details
 
-inline auto id() -> details::IdentBuilder { return {IdentifierLiteral{}}; }
+inline auto id() -> IdentifierLiteral { return IdentifierLiteral{}; }
+
+inline auto id(View v) -> IdentifierLiteral { return IdentifierLiteral{{v}}; }
 
 template<size_t N>
-auto id(const char (&text)[N]) -> details::IdentBuilder {
-    return details::IdentBuilder(IdentifierLiteral{}).text(text);
+auto id(const char (&text)[N]) -> IdentifierLiteral {
+    return IdentifierLiteral{View{text}};
 }
 
 template<size_t N>
-auto op(const char (&text)[N]) -> details::IdentBuilder {
-    return details::IdentBuilder(OperatorLiteral{}).text(text);
+auto op(const char (&text)[N]) -> OperatorLiteral {
+    return OperatorLiteral{View{text}};
 }
 
 template<class Tok>
@@ -78,6 +70,13 @@ auto buildToken(Tok&& t) -> Token {
 template<class... Tok>
 auto buildTokens(Tok&&... t) -> Tokens {
     return Tokens{::filter::buildToken(std::forward<Tok>(t))...};
+}
+
+inline auto line() -> details::TokenLineBuilder { return {}; }
+
+template<class... Lines>
+auto buildTokenLines(Lines&&... l) -> TokenLines {
+    return TokenLines{std::forward<Lines>(l).build()...};
 }
 
 } // namespace filter

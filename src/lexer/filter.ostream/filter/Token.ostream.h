@@ -1,24 +1,24 @@
 #pragma once
-#include "scanner/Token.h"
+#include "filter/Token.h"
 
 #include "scanner/Token.ostream.h"
 
+#include "strings/join.ostream.h"
+
 namespace filter {
 
-inline std::ostream& operator<<(std::ostream& out, const IdentifierLiteralValue& ident) {
-    return out << (ident.leftSeparated ? "_" : "|") << "id" << (ident.rightSeparated ? "_" : "|");
-}
-
-inline std::ostream& operator<<(std::ostream& out, const IdentifierLiteral& ident) {
-    return out << "<id: " << (ident.value.leftSeparated ? "_" : "|") // << ident.range
-               << (ident.value.rightSeparated ? "_" : "|") << '>';
-}
-
-inline std::ostream& operator<<(std::ostream& out, const BlockStartIndentation&) { return out << "<blockStart>"; }
-inline std::ostream& operator<<(std::ostream& out, const BlockEndIndentation&) { return out << "<blockEnd>"; }
+inline auto operator<<(std::ostream& out, const UnexpectedColon&) -> std::ostream& { return out << "<X:>"; }
 
 inline std::ostream& operator<<(std::ostream& out, const Token& t) {
     return t.visit([&](const auto& v) -> decltype(auto) { return out << v; });
+}
+inline std::ostream& operator<<(std::ostream& out, const Insignificant& t) {
+    return t.visit([&](const auto& v) -> decltype(auto) { return out << v; });
+}
+
+inline std::ostream& operator<<(std::ostream& out, const TokenLine& l) {
+    l.forEach([&](const auto& t) { out << t; });
+    return out;
 }
 
 } // namespace filter

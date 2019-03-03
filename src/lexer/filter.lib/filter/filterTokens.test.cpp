@@ -13,12 +13,12 @@
 using namespace filter;
 
 using ScannerTokens = std::vector<ScannerToken>;
-using FilterTokens = std::vector<Token>;
+using TokenLines = std::vector<TokenLine>;
 
 struct TokensFilterData {
     const char* name{};
     ScannerTokens input{};
-    FilterTokens expected{};
+    TokenLines expected{};
 
     TokensFilterData(const char* name)
         : name{name} {}
@@ -28,9 +28,9 @@ struct TokensFilterData {
         input = scanner::buildTokens(std::forward<Tok>(tok)...);
         return *this;
     }
-    template<class... Tok>
-    auto out(Tok&&... tok) && -> TokensFilterData {
-        expected = filter::buildTokens(std::forward<Tok>(tok)...);
+    template<class... Lines>
+    auto out(Lines&&... lines) && -> TokensFilterData {
+        expected = filter::buildTokenLines(std::forward<Lines>(lines)...);
         return *this;
     }
 };
@@ -52,13 +52,13 @@ TEST_P(TokenFilters, FilterParser) {
             co_yield t;
         }
     }();
-    auto tokGen = filterTokens(std::move(input));
+    auto tokLineGen = filterTokens(std::move(input));
 
-    for (const auto& et : data.expected) {
-        tokGen++;
-        ASSERT_TRUE(static_cast<bool>(tokGen));
-        const auto& tok = *tokGen;
-        ASSERT_EQ(tok, et);
+    for (const auto& expectedLine : data.expected) {
+        tokLineGen++;
+        ASSERT_TRUE(static_cast<bool>(tokLineGen));
+        const auto& tokenLine = *tokLineGen;
+        ASSERT_EQ(tokenLine, expectedLine);
     }
 }
 
@@ -67,25 +67,33 @@ INSTANTIATE_TEST_CASE_P(
     TokenFilters,
     ::testing::Values(
         TokensFilterData("FilterOutStartingComment")
-            .in(scanner::CommentLiteral{}, NewLineIndentation{}, View{})
-            .out(NewLineIndentation{}, id().bothSeparated()),
+            .in(CommentLiteral{}, NewLineIndentation{}, id())
+            .out(line().insignificants(CommentLiteral{}, NewLineIndentation{}).tokens(id())),
         TokensFilterData("FilterOutStartingIndentedComment")
-            .in(NewLineIndentation{}, scanner::CommentLiteral{}, NewLineIndentation{}, View{})
-            .out(NewLineIndentation{}, id().bothSeparated()),
+            .in(NewLineIndentation{}, CommentLiteral{}, NewLineIndentation{}, View{})
+            .out(line().insignificants(NewLineIndentation{}, CommentLiteral{}, NewLineIndentation{}).tokens(id())),
         TokensFilterData("FilterOutStartingCommentWhitespaceComment")
             .in(NewLineIndentation{},
-                scanner::CommentLiteral{},
-                scanner::WhiteSpaceSeparator{},
-                scanner::CommentLiteral{},
+                CommentLiteral{},
+                WhiteSpaceSeparator{},
+                CommentLiteral{},
                 NewLineIndentation{},
                 View{})
-            .out(NewLineIndentation{}, id().bothSeparated()),
+            .out(line()
+                     .insignificants(
+                         NewLineIndentation{},
+                         CommentLiteral{},
+                         WhiteSpaceSeparator{},
+                         CommentLiteral{},
+                         NewLineIndentation{})
+                     .tokens(id())),
         TokensFilterData("FilterMultipleNewlines")
             .in(NewLineIndentation{}, NewLineIndentation{}, View{})
-            .out(NewLineIndentation{}, id().bothSeparated()),
+            .out(line().insignificants(NewLineIndentation{}, NewLineIndentation{}).tokens(id())),
         TokensFilterData("FilterEvenMoreNewlines")
             .in(NewLineIndentation{}, NewLineIndentation{}, NewLineIndentation{}, View{})
-            .out(NewLineIndentation{}, id().bothSeparated()) //
+            .out(
+                line().insignificants(NewLineIndentation{}, NewLineIndentation{}, NewLineIndentation{}).tokens(id())) //
         ),
     [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
 
@@ -94,14 +102,16 @@ INSTANTIATE_TEST_CASE_P(
     TokenFilters,
     ::testing::Values(
         TokensFilterData("FilterOutFinalComment")
-            .in(NewLineIndentation{}, View{}, scanner::CommentLiteral{})
-            .out(NewLineIndentation{}, id().bothSeparated()),
+            .in(NewLineIndentation{}, View{}, CommentLiteral{})
+            .out(line().insignificants(NewLineIndentation{}, CommentLiteral{}).tokens(id())),
         TokensFilterData("FilterOutFinalWhitespace")
-            .in(NewLineIndentation{}, View{}, scanner::WhiteSpaceSeparator{})
-            .out(NewLineIndentation{}, id().bothSeparated()),
+            .in(NewLineIndentation{}, View{}, WhiteSpaceSeparator{})
+            .out(line().insignificants(NewLineIndentation{}, WhiteSpaceSeparator{}).tokens(id())),
         TokensFilterData("FilterOutFinalNewline")
             .in(NewLineIndentation{}, View{}, NewLineIndentation{})
-            .out(NewLineIndentation{}, id().bothSeparated()) //
+            .out(
+                line().insignificants(NewLineIndentation{}).tokens(id()),
+                line().insignificants(NewLineIndentation{})) //
         ),
     [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
 
@@ -109,70 +119,39 @@ INSTANTIATE_TEST_CASE_P(
     blocks,
     TokenFilters,
     ::testing::Values(
-        TokensFilterData("MutateIdentifierBlockStart")
-            .in(NewLineIndentation{}, View{"begin"}, ColonSeparator{}, NewLineIndentation{})
-            .out(NewLineIndentation{}, id("begin").bothSeparated(), BlockStartIndentation{}),
-
-        TokensFilterData("MutateIdentifierBlockStartWithComment")
-            .in(View{"begin"},
-                ColonSeparator{},
-                scanner::WhiteSpaceSeparator{},
-                scanner::CommentLiteral{},
-                NewLineIndentation{})
-            .out(NewLineIndentation{}, id("begin").bothSeparated(), BlockStartIndentation{}),
-
+        [] {
+            auto begin = View{"begin"};
+            return TokensFilterData("MutateIdentifierBlockStart")
+                .in(NewLineIndentation{}, View{begin}, ColonSeparator{}, NewLineIndentation{})
+                .out(
+                    line().insignificants(NewLineIndentation{}).tokens(id(begin)),
+                    line().insignificants(ColonSeparator{}, NewLineIndentation{}));
+        }(),
+        [] {
+            auto begin = View{"begin"};
+            return TokensFilterData("MutateIdentifierBlockStartWithComment")
+                .in(View{begin},
+                    ColonSeparator{},
+                    scanner::WhiteSpaceSeparator{},
+                    scanner::CommentLiteral{},
+                    NewLineIndentation{})
+                .out(
+                    line().tokens(id(begin)).insignificants(WhiteSpaceSeparator{}, CommentLiteral{}),
+                    line().insignificants(ColonSeparator{}, NewLineIndentation{}));
+        }(),
         [] {
             auto end = View{"end"};
             return TokensFilterData("MutateBlockEnd")
-                .in(NewLineIndentation{}, ColonSeparator{}, NewLineIndentation{}, View{end}, NewLineIndentation{})
-                .out(NewLineIndentation{}, BlockStartIndentation{}, BlockEndIndentation{end});
-        }()),
-    [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
-
-INSTANTIATE_TEST_CASE_P(
-    neighbors,
-    TokenFilters,
-    ::testing::Values(
-        TokensFilterData("WithWhiteSpaces")
-            .in(scanner::WhiteSpaceSeparator{},
-                View{"left"},
-                View{"middle"},
-                View{"right"},
-                scanner::WhiteSpaceSeparator{},
-                View{"free"},
-                scanner::WhiteSpaceSeparator{})
-            .out(
-                NewLineIndentation{},
-                id("left").leftSeparated(),
-                id("middle"),
-                id("right").rightSeparated(),
-                id("free").bothSeparated()),
-
-        TokensFilterData("BorderCases")
-            .in(View{"left"}, View{"right"})
-            .out(NewLineIndentation{}, id("left").leftSeparated(), id("right").rightSeparated()),
-
-        TokensFilterData("Brackets")
-            .in(BracketOpen{}, View{"left"}, View{"right"}, BracketClose{}, View{"stuck"}, BracketOpen{})
-            .out(
-                NewLineIndentation{},
-                BracketOpen{},
-                id("left").leftSeparated(),
-                id("right").rightSeparated(),
-                BracketClose{},
-                id("stuck"),
-                BracketOpen{}),
-
-        TokensFilterData("Comma")
-            .in(scanner::WhiteSpaceSeparator{}, View{"left"}, CommaSeparator{}, View{"right"})
-            .out(NewLineIndentation{}, id("left").bothSeparated(), CommaSeparator{}, id("right").bothSeparated()),
-
-        TokensFilterData("Semicolon")
-            .in(scanner::WhiteSpaceSeparator{}, View{"left"}, SemicolonSeparator{}, View{"right"})
-            .out(
-                NewLineIndentation{},
-                id("left").bothSeparated(),
-                SemicolonSeparator{},
-                id("right").bothSeparated()) //
+                .in(NewLineIndentation{},
+                    View{},
+                    ColonSeparator{},
+                    NewLineIndentation{},
+                    View{end},
+                    NewLineIndentation{})
+                .out(
+                    line().insignificants(NewLineIndentation{}).tokens(id()),
+                    line().insignificants(ColonSeparator{}, NewLineIndentation{}).tokens(id(end)),
+                    line().insignificants(NewLineIndentation{}));
+        }() //
         ),
     [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
