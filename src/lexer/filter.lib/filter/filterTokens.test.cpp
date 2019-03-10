@@ -152,7 +152,7 @@ INSTANTIATE_TEST_CASE_P(
             return TokensFilterData("MutateIdentifierBlockStart")
                 .in(NewLineIndentation{}, View{begin}, ColonSeparator{}, NewLineIndentation{})
                 .out(
-                    line().insignificants(NewLineIndentation{}, ColonSeparator{}).tokens(id(begin)),
+                    line().insignificants(NewLineIndentation{}, BlockStartColon{}).tokens(id(begin)),
                     line().insignificants(NewLineIndentation{}));
         }(),
         [] {
@@ -164,7 +164,7 @@ INSTANTIATE_TEST_CASE_P(
                     scanner::CommentLiteral{},
                     NewLineIndentation{})
                 .out(
-                    line().tokens(id(begin)).insignificants(ColonSeparator{}, WhiteSpaceSeparator{}, CommentLiteral{}),
+                    line().tokens(id(begin)).insignificants(BlockStartColon{}, WhiteSpaceSeparator{}, CommentLiteral{}),
                     line().insignificants(NewLineIndentation{}));
         }(),
         [] {
@@ -177,8 +177,8 @@ INSTANTIATE_TEST_CASE_P(
                     View{end},
                     NewLineIndentation{})
                 .out(
-                    line().insignificants(NewLineIndentation{}, ColonSeparator{}).tokens(id()),
-                    line().insignificants(NewLineIndentation{}, id(end)),
+                    line().insignificants(NewLineIndentation{}, BlockStartColon{}).tokens(id()),
+                    line().insignificants(NewLineIndentation{}, blockEnd(end)),
                     line().insignificants(NewLineIndentation{}));
         }(),
         [] {
@@ -187,7 +187,7 @@ INSTANTIATE_TEST_CASE_P(
                 .in(NewLineIndentation{}, ColonSeparator{}, NewLineIndentation{}, View{end}, NewLineIndentation{})
                 .out(
                     line().insignificants(NewLineIndentation{}, UnexpectedColon{}),
-                    line().insignificants(NewLineIndentation{}, id(end)),
+                    line().insignificants(NewLineIndentation{}, blockEnd(end)),
                     line().insignificants(NewLineIndentation{}));
         }() //
         ),

@@ -4,21 +4,80 @@
 
 namespace nesting {
 
-namespace details {
+using filter::BlockEndIdentifier;
+using filter::BlockStartColon;
+using filter::CommentLiteral;
+using filter::InvalidEncoding;
+using filter::NewLineIndentation;
+using filter::SemicolonSeparator;
+using filter::UnexpectedCharacter;
+using filter::UnexpectedColon;
+using filter::WhiteSpaceSeparator;
+using UnexpectedIndent = scanner::details::TagErrorToken<struct UnexpectedIndentTag>;
+using UnexpectedTokensAfterEnd = scanner::details::TagErrorToken<struct UnexpectedTokensAfterEndTag>;
+using UnexpectedBlockEnd = scanner::details::TagErrorToken<struct UnexpectedBlockEndTag>;
+using MissingBlockEnd = scanner::details::TagErrorToken<struct MissingBlockEndTag>;
+using MisIndentedBlockEnd = scanner::details::TagErrorToken<struct MisIndentedBlockEndTag>;
 
-using filter::details::ValueToken;
-}
+using Insignificant = meta::Variant<
+    CommentLiteral,
+    WhiteSpaceSeparator,
+    InvalidEncoding,
+    UnexpectedCharacter,
+    SemicolonSeparator,
+    NewLineIndentation,
+    BlockStartColon,
+    BlockEndIdentifier,
+    UnexpectedColon,
+    UnexpectedIndent,
+    UnexpectedTokensAfterEnd,
+    UnexpectedBlockEnd,
+    MissingBlockEnd,
+    MisIndentedBlockEnd>;
 
 struct Token;
-using TokenLine = std::vector<Token>;
+
+struct BlockLine {
+    using This = BlockLine;
+    std::vector<Token> tokens{};
+    std::vector<Insignificant> insignificants{};
+
+    bool operator==(const This& o) const {
+        return tokens == o.tokens //
+            && insignificants == o.insignificants;
+    }
+    bool operator!=(const This& o) const { return !(*this == o); }
+
+    template<class F>
+    void forEach(F&& f) const {
+        auto ti = tokens.begin();
+        auto te = tokens.end();
+        auto ii = insignificants.begin();
+        auto ie = insignificants.end();
+        while (ti != te && ii != ie) {
+            auto tv = ti->visit([](auto& x) { return x.input; });
+            auto iv = ii->visit([](auto& x) { return x.input; });
+            if (tv.begin() < iv.begin())
+                f(*ti++);
+            else
+                f(*ii++);
+        }
+        while (ti != te) f(*ti++);
+        while (ii != ie) f(*ii++);
+    }
+};
+using BlockLines = std::vector<BlockLine>;
+
 struct BlockLiteralValue {
     using This = BlockLiteralValue;
-    std::vector<TokenLine> lines{};
+    BlockLines lines{};
 
     bool operator!=(const This& o) const { return lines != o.lines; }
     bool operator==(const This& o) const { return lines == o.lines; }
 };
-using BlockLiteral = details::ValueToken<BlockLiteralValue>;
+
+using BlockLiteral = scanner::details::ValueToken<BlockLiteralValue>;
+
 using ColonSeparator = filter::ColonSeparator;
 using CommaSeparator = filter::CommaSeparator;
 using SquareBracketOpen = filter::SquareBracketOpen;

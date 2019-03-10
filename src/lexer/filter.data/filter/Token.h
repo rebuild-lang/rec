@@ -5,20 +5,23 @@ namespace filter {
 
 using scanner::BracketClose;
 using scanner::BracketOpen;
-using scanner::ColonSeparator;
 using scanner::CommaSeparator;
-using scanner::CommentLiteral;
 using scanner::IdentifierLiteral;
-using scanner::InvalidEncoding;
-using scanner::NewLineIndentation;
 using scanner::NumberLiteral;
 using scanner::OperatorLiteral;
-using scanner::SemicolonSeparator;
 using scanner::SquareBracketClose;
 using scanner::SquareBracketOpen;
 using scanner::StringLiteral;
+
+using scanner::ColonSeparator;
+using scanner::CommentLiteral;
+using scanner::InvalidEncoding;
+using scanner::NewLineIndentation;
+using scanner::SemicolonSeparator;
 using scanner::UnexpectedCharacter;
 using scanner::WhiteSpaceSeparator;
+using BlockStartColon = scanner::details::TagToken<struct BlockStartColonTag>;
+using BlockEndIdentifier = scanner::details::TagToken<struct BlockEndIdentifierTag>;
 using UnexpectedColon = scanner::details::TagErrorToken<struct UnexpectedColonTag>;
 
 using Token = meta::Variant<
@@ -40,8 +43,8 @@ using Insignificant = meta::Variant<
     UnexpectedCharacter,
     SemicolonSeparator,
     NewLineIndentation,
-    ColonSeparator, // block start colon
-    IdentifierLiteral, // block "end" identifier
+    BlockStartColon,
+    BlockEndIdentifier,
     UnexpectedColon>;
 
 struct TokenLine {
@@ -65,11 +68,11 @@ struct TokenLine {
     auto newLine() const -> const NewLineIndentation& { //
         return insignificants[newLineIndex].get<NewLineIndentation>();
     }
-    auto blockStartColon() const -> const ColonSeparator& {
-        return insignificants[blockStartColonIndex].get<ColonSeparator>();
+    auto blockStartColon() const -> const BlockStartColon& {
+        return insignificants[blockStartColonIndex].get<BlockStartColon>();
     }
-    auto blockEndIdentifier() const -> const IdentifierLiteral& {
-        return insignificants[blockEndIdentifierIndex].get<IdentifierLiteral>();
+    auto blockEndIdentifier() const -> const BlockEndIdentifier& {
+        return insignificants[blockEndIdentifierIndex].get<BlockEndIdentifier>();
     }
 
     template<class F>

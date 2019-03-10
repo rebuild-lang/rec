@@ -32,27 +32,27 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
     auto line = TokenLine{};
     auto addInsignificant = [&](ScannerToken&& tok) {
         line.insignificants.push_back(std::move(tok).visit(
-            [](scanner::CommentLiteral&& c) { return Insignificant{std::move(c)}; },
-            [](scanner::WhiteSpaceSeparator&& c) { return Insignificant{c}; },
-            [](scanner::InvalidEncoding&& c) { return Insignificant{c}; },
-            [](scanner::UnexpectedCharacter&& c) { return Insignificant{c}; },
-            [](scanner::SemicolonSeparator&& c) { return Insignificant{c}; },
-            [&](scanner::NewLineIndentation&& c) {
+            [](scanner::CommentLiteral&& c) -> Insignificant { return {std::move(c)}; },
+            [](scanner::WhiteSpaceSeparator&& c) -> Insignificant { return {c}; },
+            [](scanner::InvalidEncoding&& c) -> Insignificant { return {c}; },
+            [](scanner::UnexpectedCharacter&& c) -> Insignificant { return {c}; },
+            [](scanner::SemicolonSeparator&& c) -> Insignificant { return {c}; },
+            [&](scanner::NewLineIndentation&& c) -> Insignificant {
                 line.newLineIndex = line.insignificants.size();
-                return Insignificant{c};
+                return {c};
             },
-            [&](scanner::ColonSeparator&& c) {
+            [&](scanner::ColonSeparator&& c) -> Insignificant {
                 line.blockStartColonIndex = line.insignificants.size();
-                return Insignificant{c};
+                return BlockStartColon{c};
             },
-            [&](scanner::IdentifierLiteral&& c) {
+            [&](scanner::IdentifierLiteral&& c) -> Insignificant {
                 line.blockEndIdentifierIndex = line.insignificants.size();
-                return Insignificant{c};
+                return BlockEndIdentifier{c};
             },
             [](auto&& d) { return meta::unreachable<Insignificant>(); }));
     };
     auto insertBlockStartColon = [&](size_t index, Insignificant colon) {
-        if (colon.holds<ColonSeparator>()) line.blockStartColonIndex = index;
+        if (colon.holds<BlockStartColon>()) line.blockStartColonIndex = index;
         line.insignificants.insert(line.insignificants.begin() + index, colon);
     };
     auto addToken = [&](Token&& tok) { line.tokens.emplace_back(std::move(tok)); };
@@ -109,7 +109,7 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
                         addInsignificant(input.move());
                         break; // error - ['\n' + ':' + '\n]
                     }
-                    insertBlockStartColon(blockStartIndex, previous.get<ColonSeparator>());
+                    insertBlockStartColon(blockStartIndex, BlockStartColon{previous.get<ColonSeparator>()});
                     co_yield std::move(line);
                     line = TokenLine{};
                     addInsignificant(input.move());

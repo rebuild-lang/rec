@@ -26,8 +26,8 @@ struct TokenLineBuilder {
         auto add = [this](auto&& t) {
             using T = std::remove_const_t<std::remove_reference_t<decltype(t)>>;
             if (std::is_same_v<T, NewLineIndentation>) line.newLineIndex = line.insignificants.size();
-            if (std::is_same_v<T, ColonSeparator>) line.blockStartColonIndex = line.insignificants.size();
-            if (std::is_same_v<T, IdentifierLiteral>) line.blockEndIdentifierIndex = line.insignificants.size();
+            if (std::is_same_v<T, BlockStartColon>) line.blockStartColonIndex = line.insignificants.size();
+            if (std::is_same_v<T, BlockEndIdentifier>) line.blockEndIdentifierIndex = line.insignificants.size();
             line.insignificants.emplace_back(std::forward<decltype(t)>(t));
         };
         (add(std::forward<Tok>(t)), ...);
@@ -71,6 +71,12 @@ template<class... Tok>
 auto buildTokens(Tok&&... t) -> Tokens {
     return Tokens{::filter::buildToken(std::forward<Tok>(t))...};
 }
+
+inline auto newLine(uint32_t column = 1) -> NewLineIndentation {
+    return NewLineIndentation{{}, {{}, scanner::Column{column}}};
+}
+
+inline auto blockEnd(View v) -> BlockEndIdentifier { return BlockEndIdentifier{{v}}; }
 
 inline auto line() -> details::TokenLineBuilder { return {}; }
 

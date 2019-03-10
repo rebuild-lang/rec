@@ -7,12 +7,29 @@ namespace nesting {
 
 inline static auto indentIndex = std::ios_base::xalloc();
 
+inline auto operator<<(std::ostream& out, const UnexpectedIndent&) -> std::ostream& {
+    return out << "<error: UnexpectedIndent>";
+}
+inline auto operator<<(std::ostream& out, const UnexpectedTokensAfterEnd&) -> std::ostream& {
+    return out << "<error: UnexpectedTokensAfterEnd>";
+}
+inline auto operator<<(std::ostream& out, const UnexpectedBlockEnd&) -> std::ostream& {
+    return out << "<error: UnexpectedBlockEnd>";
+}
+inline auto operator<<(std::ostream& out, const MissingBlockEnd&) -> std::ostream& {
+    return out << "<error: MissingBlockEnd>";
+}
+inline auto operator<<(std::ostream& out, const MisIndentedBlockEnd&) -> std::ostream& {
+    return out << "<error: MisIndentedBlockEnd>";
+}
+
+inline std::ostream& operator<<(std::ostream& out, const Insignificant& t) {
+    return t.visit([&](const auto& v) -> decltype(auto) { return out << v; });
+}
 auto operator<<(std::ostream& out, const Token& v) -> std::ostream&;
 
-inline auto operator<<(std::ostream& out, const TokenLine& l) -> std::ostream& {
-    for (const auto& tok : l) {
-        out << tok;
-    }
+inline auto operator<<(std::ostream& out, const BlockLine& l) -> std::ostream& {
+    l.forEach([&](const auto& t) { out << t; });
     return out;
 }
 

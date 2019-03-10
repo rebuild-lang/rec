@@ -5,45 +5,28 @@
 namespace nesting {
 
 using Tokens = std::vector<Token>;
-using Column = text::Column;
-using View = scanner::View;
+using scanner::View;
+using text::Column;
 
 namespace details {
 
-struct IdentBuilder {
-    using This = IdentBuilder;
-    Token tok{};
+struct TokenLineBuilder {
+    using This = TokenLineBuilder;
+    BlockLine line{};
 
-    IdentBuilder() = delete;
-    IdentBuilder(IdentifierLiteral) { tok = IdentifierLiteral{}; }
-    IdentBuilder(OperatorLiteral) { tok = OperatorLiteral{}; }
-
-    auto lit() & -> IdentifierLiteral& {
-        if (tok.holds<OperatorLiteral>()) return tok.get<OperatorLiteral>();
-        return tok.get<IdentifierLiteral>();
-    }
-
-    auto leftSeparated() && -> This {
-        lit().value.leftSeparated = true;
-        return *this;
-    }
-    auto rightSeparated() && -> This {
-        lit().value.rightSeparated = true;
-        return *this;
-    }
-    auto bothSeparated() && -> This {
-        lit().value.leftSeparated = true;
-        lit().value.rightSeparated = true;
+    template<class... Tok>
+    auto tokens(Tok&&... t) && -> This {
+        (line.tokens.push_back(std::forward<Tok>(t)), ...);
         return *this;
     }
 
-    template<size_t N>
-    auto text(const char (&text)[N]) && -> This {
-        // lit().range.view = View{text};
+    template<class... Tok>
+    auto insignificants(Tok&&... t) && -> This {
+        (line.insignificants.emplace_back(std::forward<Tok>(t)), ...);
         return *this;
     }
 
-    auto id() && -> Token { return std::move(tok); }
+    auto build() && -> BlockLine { return std::move(line); }
 };
 
 template<class Tok>
@@ -53,11 +36,6 @@ struct TokenBuilder {
 template<>
 struct TokenBuilder<Token> {
     static auto build(Token&& t) -> Token { return std::move(t); }
-};
-
-template<>
-struct TokenBuilder<IdentBuilder> {
-    static auto build(IdentBuilder&& b) -> Token { return std::move(b).id(); }
 };
 
 } // namespace details
@@ -72,14 +50,11 @@ auto buildTokens(Tok&&... t) -> Tokens {
     return Tokens{::nesting::buildToken(std::forward<Tok>(t))...};
 }
 
-template<size_t N>
-auto id(const char (&text)[N]) -> details::IdentBuilder {
-    return details::IdentBuilder(IdentifierLiteral{}).text(text);
-}
+auto id(View view) -> IdentifierLiteral { return IdentifierLiteral{view}; }
 
 template<size_t N>
-auto op(const char (&text)[N]) -> details::IdentBuilder {
-    return details::IdentBuilder(OperatorLiteral{}).text(text);
+auto op(const char (&text)[N]) -> OperatorLiteral {
+    return OperatorLiteral{View{text}};
 }
 
 template<size_t N>
@@ -90,29 +65,18 @@ auto num(const char (&intPart)[N]) -> NumberLiteral {
     return lit;
 }
 
-inline auto blockStart(Column c) -> filter::Token {
-    auto tok = filter::BlockStartIndentation{};
-    // tok.range.end.column = c;
-    return tok;
-}
-inline auto blockEnd(Column c) -> filter::Token {
-    auto tok = filter::BlockEndIndentation{};
-    // tok.range.begin.column = c;
-    return tok;
-}
-inline auto newLine(Column c) -> filter::Token {
-    auto tok = filter::NewLineIndentation{};
-    // tok.range.end.column = c;
-    return tok;
-}
 inline auto colon() -> Token { return ColonSeparator{}; }
 
+inline auto line() -> details::TokenLineBuilder { return {}; }
+
 template<class... Lines>
-auto blk(Column c, Lines&&... lines) -> Token {
-    // auto tok = BlockLiteral{{}, {}, {{std::forward<Lines>(lines)...}}};
-    // tok.range.end.column = c;
-    // return tok;
-    return {};
+auto buildBlockLines(Lines&&... lines) -> BlockLines {
+    return BlockLines{std::forward<Lines>(lines).build()...};
+}
+
+template<class... Lines>
+auto blk(Lines&&... lines) -> Token {
+    return BlockLiteral{{}, {buildBlockLines(std::forward<Lines>(lines)...)}};
 }
 
 } // namespace nesting
