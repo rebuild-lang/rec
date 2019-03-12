@@ -149,17 +149,27 @@ inline auto nestTokens(meta::CoEnumerator<FilterTokenLine> input) -> BlockLitera
 
             extractLineTokens(line, input.move());
             input++;
-            if (!input) return {LineType::LeaveBlock, std::move(line), {}}; // no further lines
-            if (!input->startsOnNewLine())
-                return {LineType::Standalone, std::move(line), {}}; // second line on same line
 
-            auto nextIndent = input->newLine().value.indentColumn;
-            if (nextIndent < continueIndent) {
-                if (nextIndent <= baseColumn) {
-                    return {LineType::LeaveBlock, std::move(line), {}}; // leave block
+            while (true) {
+                if (!input) return {LineType::LeaveBlock, std::move(line), {}}; // no further lines
+                if (!input->startsOnNewLine())
+                    return {LineType::Standalone, std::move(line), {}}; // second line on same line
+
+                auto nextIndent = input->newLine().value.indentColumn;
+                if (nextIndent >= continueIndent) break; // continue line
+
+                if (nextIndent <= baseColumn) return {LineType::LeaveBlock, std::move(line), {}}; // leave block
+
+                // handle mixed indent
+                auto err = input->newLine();
+                BlockLiteralValue block = parseBlock(parentBlockColumn, nextIndent, parseBlock, parseLine);
+                {
+                    auto& v = block.lines.front().insignificants;
+                    v.insert(v.begin(), UnexpectedIndent{err});
                 }
-                // TODO: handle mixed indentation
-                return {LineType::Standalone, std::move(line), {}}; // no further continuation
+                line.tokens.push_back(BlockLiteral{{}, std::move(block)});
+
+                // process line after block
             }
         }
     };

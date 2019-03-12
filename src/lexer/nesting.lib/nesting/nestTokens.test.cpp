@@ -46,9 +46,7 @@ class NestTransformation : public testing::TestWithParam<NestTokensData> {};
 TEST_P(NestTransformation, BlockParser) {
     NestTokensData data = GetParam();
     auto input = [&]() -> meta::CoEnumerator<FilterTokenLine> {
-        for (const auto& t : data.input) {
-            co_yield t;
-        }
+        for (const auto& t : data.input) co_yield t;
     }();
 
     auto blk = nesting::nestTokens(std::move(input));
@@ -257,5 +255,36 @@ INSTANTIATE_TEST_CASE_P(
                                     UnexpectedIndent{}, filter::newLine(3), UnexpectedBlockEnd{View{"end"}, {}})))
                         .insignificants(MissingBlockEnd{}),
                     line().insignificants(filter::newLine()).tokens(id(View{"code"})));
+        }()),
+    [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });
+
+INSTANTIATE_TEST_CASE_P(
+    wrongLineIndentation,
+    NestTransformation,
+    ::testing::Values(
+        [] {
+            return NestTokensData("OutdentedLine")
+                .in(filter::line().tokens(filter::id(View{"code"})),
+                    filter::line().insignificants(filter::newLine(5)).tokens(filter::id(View{"linecode"})),
+                    filter::line().insignificants(filter::newLine(3)).tokens(filter::id(View{"morecode"})))
+                .out(line()
+                         .tokens(id(View{"code"}))
+                         .insignificants(filter::newLine(5))
+                         .tokens(id(View{"linecode"}))
+                         .tokens(blk(line()
+                                         .insignificants(UnexpectedIndent{}, filter::newLine(3))
+                                         .tokens(id(View{"morecode"})))));
+        }(),
+        [] {
+            return NestTokensData("OutdentedEnd")
+                .in(filter::line().tokens(filter::id(View{"code"})),
+                    filter::line().insignificants(filter::newLine(5)).tokens(filter::id(View{"linecode"})),
+                    filter::line().insignificants(filter::newLine(3), filter::blockEnd(View{"end"})))
+                .out(line()
+                         .tokens(id(View{"code"}))
+                         .insignificants(filter::newLine(5))
+                         .tokens(id(View{"linecode"}))
+                         .tokens(blk(line().insignificants(
+                             UnexpectedIndent{}, filter::newLine(3), UnexpectedBlockEnd{View{"end"}, {}}))));
         }()),
     [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });
