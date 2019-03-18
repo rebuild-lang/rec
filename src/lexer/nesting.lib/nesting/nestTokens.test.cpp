@@ -81,6 +81,16 @@ INSTANTIATE_TEST_CASE_P(
                 .out(line().tokens(id(View{"print_a"}), id(View{"print_b"})).insignificants(filter::newLine(4)));
         }(),
         [] {
+            return NestTokensData("EmptyBlock")
+                .in(filter::line().tokens(filter::id(View{"begin"})).insignificants(filter::BlockStartColon{}),
+                    filter::line().insignificants(filter::newLine(), filter::blockEnd(View{"end"})))
+                .out(line()
+                         .tokens(id(View{"begin"}))
+                         .insignificants(BlockStartColon{})
+                         .tokens(blk())
+                         .insignificants(filter::newLine(), filter::blockEnd(View{"end"})));
+        }(),
+        [] {
             return NestTokensData("SimpleBlock")
                 .in(filter::line().tokens(filter::id(View{"print_a"})).insignificants(filter::BlockStartColon{}),
                     //
@@ -286,5 +296,55 @@ INSTANTIATE_TEST_CASE_P(
                          .tokens(id(View{"linecode"}))
                          .tokens(blk(line().insignificants(
                              UnexpectedIndent{}, filter::newLine(3), UnexpectedBlockEnd{View{"end"}, {}}))));
+        }()),
+    [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });
+
+INSTANTIATE_TEST_CASE_P(
+    extraTokens,
+    NestTransformation,
+    ::testing::Values(
+        [] {
+            return NestTokensData("TokensAfterEmptyBlock")
+                .in(filter::line().tokens(filter::id(View{"begin"})).insignificants(filter::BlockStartColon{}),
+                    filter::line()
+                        .insignificants(filter::newLine(), filter::blockEnd(View{"end"}))
+                        .tokens(filter::id(View{"code"})))
+                .out(line()
+                         .tokens(id(View{"begin"}))
+                         .insignificants(filter::BlockStartColon{})
+                         .tokens(blk())
+                         .insignificants(filter::newLine(), filter::blockEnd(View{"end"}), UnexpectedTokensAfterEnd{})
+                         .tokens(id(View{"code"})));
+        }(),
+        [] {
+            return NestTokensData("TokensAfterBlock")
+                .in(filter::line().tokens(filter::id(View{"begin"})).insignificants(filter::BlockStartColon{}),
+                    filter::line().insignificants(filter::newLine(5)).tokens(filter::id(View{"linecode"})),
+                    filter::line()
+                        .insignificants(filter::newLine(), filter::blockEnd(View{"end"}))
+                        .tokens(filter::id(View{"code"})))
+                .out(line()
+                         .tokens(id(View{"begin"}))
+                         .insignificants(filter::BlockStartColon{})
+                         .tokens(blk(line().insignificants(filter::newLine(5)).tokens(filter::id(View{"linecode"}))))
+                         .insignificants(filter::newLine(), filter::blockEnd(View{"end"}), UnexpectedTokensAfterEnd{})
+                         .tokens(id(View{"code"})));
+        }(),
+        [] {
+            return NestTokensData("BlockAfterEnd")
+                .in(filter::line().tokens(filter::id(View{"begin"})).insignificants(filter::BlockStartColon{}),
+                    filter::line()
+                        .insignificants(filter::newLine(), filter::blockEnd(View{"end"}))
+                        .tokens(filter::id(View{"more"}))
+                        .insignificants(filter::BlockStartColon{}))
+                .out(line()
+                         .tokens(id(View{"begin"}))
+                         .insignificants(filter::BlockStartColon{})
+                         .tokens(blk())
+                         .insignificants(filter::newLine(), filter::blockEnd(View{"end"}), UnexpectedTokensAfterEnd{})
+                         .tokens(id(View{"more"}))
+                         .insignificants(filter::BlockStartColon{})
+                         .tokens(blk())
+                         .insignificants(MissingBlockEnd{}));
         }()),
     [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });

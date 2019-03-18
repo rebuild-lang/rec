@@ -45,6 +45,22 @@ inline auto nestTokens(meta::CoEnumerator<FilterTokenLine> input) -> BlockLitera
                 std::move(ins).visit([](auto&& d) -> Insignificant { return std::move(d); }));
         }
     };
+    auto extractLineEndExtraTokens = [&](BlockLine& blockLine, FilterTokenLine&& line) {
+        using namespace filter;
+        for (auto& tok : line.tokens) {
+            blockLine.tokens.push_back( //
+                std::move(tok).visit([](auto&& d) -> BlockToken { return std::move(d); }));
+        }
+        for (auto& ins : line.insignificants) {
+            blockLine.insignificants.push_back(std::move(ins).visit(
+                [&](BlockEndIdentifier&& b) -> Insignificant {
+                    auto position = b.position;
+                    blockLine.insignificants.emplace_back(b);
+                    return UnexpectedTokensAfterEnd{{{}, position}};
+                },
+                [](auto&& d) -> Insignificant { return std::move(d); }));
+        }
+    };
 
     enum class LineType { WithEnd, BlockStart, BlockStartLeave, Standalone, LeaveBlock };
     struct ParseLineResult {
@@ -62,59 +78,72 @@ inline auto nestTokens(meta::CoEnumerator<FilterTokenLine> input) -> BlockLitera
         auto startColonPosition = input->blockStartColon().position;
 
         extractLineTokens(line, input.move());
-        input++;
-        if (!input) {
-            line.tokens.push_back(BlockLiteral{{{}, startColonPosition}, {}});
-            line.insignificants.push_back(MissingBlockEnd{{{}, startColonPosition}});
-            return {LineType::LeaveBlock, std::move(line), {}}; // no more lines
-        }
-        if (!input->startsOnNewLine()) {
-            line.tokens.push_back(BlockLiteral{{{}, startColonPosition}, {}});
-            line.insignificants.push_back(MissingBlockEnd{{{}, startColonPosition}});
-            return {LineType::Standalone, std::move(line), {}}; // second line on same line
-        }
-
-        auto blockNewLine = input->newLine();
-        auto blockIndent = input->newLine().value.indentColumn;
-        if (blockIndent <= lineIndent) {
-            auto position = text::Position{blockNewLine.position.line, blockIndent};
-            line.tokens.push_back(BlockLiteral{{{}, position}, {}});
-            if (blockIndent <= parentBaseColumn) {
-                return {LineType::BlockStartLeave, std::move(line), position}; // errornous empty block
+        while (true) {
+            input++;
+            if (!input) {
+                line.tokens.push_back(BlockLiteral{{{}, startColonPosition}, {}});
+                line.insignificants.push_back(MissingBlockEnd{{{}, startColonPosition}});
+                return {LineType::LeaveBlock, std::move(line), {}}; // no more lines
             }
-            return {LineType::BlockStart, std::move(line), position};
-        }
+            if (!input->startsOnNewLine()) {
+                line.tokens.push_back(BlockLiteral{{{}, startColonPosition}, {}});
+                line.insignificants.push_back(MissingBlockEnd{{{}, startColonPosition}});
+                return {LineType::Standalone, std::move(line), {}}; // second line on same line
+            }
 
-        auto block = parseBlock(parentBlockColumn, blockIndent, parseBlock, parseLine);
-        line.tokens.push_back(BlockLiteral{{}, std::move(block)});
+            auto blockNewLine = input->newLine();
+            auto blockIndent = input->newLine().value.indentColumn;
+            if (blockIndent <= lineIndent) {
+                auto position = text::Position{blockNewLine.position.line, blockIndent};
+                line.tokens.push_back(BlockLiteral{{{}, position}, {}});
+                if (blockIndent <= parentBaseColumn) {
+                    return {LineType::BlockStartLeave, std::move(line), position}; // errornous empty block
+                }
+                if (blockIndent == lineIndent && input->isBlockEnd()) {
+                    if (!input->tokens.empty() || input->isBlockStart())
+                        extractLineEndExtraTokens(line, input.move());
+                    else
+                        extractLineEndTokens(line, input.move());
+                    if (input->isBlockStart()) continue;
+                    input++;
+                    return {LineType::WithEnd, std::move(line), {}}; // regular block end
+                }
+                return {LineType::BlockStart, std::move(line), position};
+            }
 
-        // process line after block
-        if (!input) return {LineType::LeaveBlock, std::move(line), {}}; // no more input - TODO: handle error?
-        if (!input->startsOnNewLine())
-            return {LineType::WithEnd, std::move(line), {}}; // end not on new line - seems impossible
+            auto block = parseBlock(parentBlockColumn, blockIndent, parseBlock, parseLine);
+            line.tokens.push_back(BlockLiteral{{}, std::move(block)});
 
-        auto endNewLine = input->newLine();
-        auto endIndent = endNewLine.value.indentColumn;
-        if (endIndent <= parentBaseColumn) {
-            auto data = text::InputPositionData{{}, text::Position{endNewLine.position.line, endIndent}};
-            line.insignificants.push_back(MissingBlockEnd{data});
-            return {LineType::LeaveBlock, std::move(line), {}}; // missing end
-        }
-        if (endIndent > lineIndent) {
-            // TODO: handle wrong indentation
-        }
-        // assert(endIndent == parentBlockColumn);
-        // line is part of current line
-        if (input->isBlockEnd()) {
-            if (input->tokens.empty() && !input->isBlockStart()) {
-                extractLineEndTokens(line, input.move());
+            // process line after block
+            if (!input) return {LineType::LeaveBlock, std::move(line), {}}; // no more input - TODO: handle error?
+            if (!input->startsOnNewLine())
+                return {LineType::WithEnd, std::move(line), {}}; // end not on new line - seems impossible
+
+            auto endNewLine = input->newLine();
+            auto endIndent = endNewLine.value.indentColumn;
+            if (endIndent <= parentBaseColumn) {
+                auto data = text::InputPositionData{{}, text::Position{endNewLine.position.line, endIndent}};
+                line.insignificants.push_back(MissingBlockEnd{data});
+                return {LineType::LeaveBlock, std::move(line), {}}; // missing end
+            }
+            if (endIndent > lineIndent) {
+                // TODO: handle wrong indentation
+            }
+            // assert(endIndent == parentBlockColumn);
+            // line is part of current line
+            if (input->isBlockEnd()) {
+                if (!input->tokens.empty() || input->isBlockStart())
+                    extractLineEndExtraTokens(line, input.move());
+                else
+                    extractLineEndTokens(line, input.move());
+                if (input->isBlockStart()) continue;
+
                 input++;
                 return {LineType::WithEnd, std::move(line), {}}; // regular block end
             }
-            // TODO: add UnexpectedTokens error
-        }
 
-        return {LineType::BlockStart, std::move(line), startColonPosition};
+            return {LineType::BlockStart, std::move(line), startColonPosition};
+        }
     };
 
     auto parseLine =
