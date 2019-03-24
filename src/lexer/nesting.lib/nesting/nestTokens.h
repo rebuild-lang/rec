@@ -17,7 +17,6 @@ using FilterTokenLine = filter::TokenLine;
  *
  */
 inline auto nestTokens(meta::CoEnumerator<FilterTokenLine> input) -> BlockLiteral {
-    // using OptionalChar = meta::Optional<meta::DefaultPacked<char>>;
     using Input = meta::CoEnumerator<FilterTokenLine>;
     using BlockToken = nesting::Token;
     using BlockLine = nesting::BlockLine;
@@ -268,6 +267,6 @@ inline auto nestTokens(meta::CoEnumerator<FilterTokenLine> input) -> BlockLitera
     //        // TODO(arBmind): report extra input
     //    }
     return {{}, block};
-} // namespace nesting
+}
 
 } // namespace nesting

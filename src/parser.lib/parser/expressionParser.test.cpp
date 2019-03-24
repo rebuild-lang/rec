@@ -18,8 +18,8 @@
 
 using namespace parser;
 
-using Scope = instance::Scope;
-using BlockLine = nesting::TokenLine;
+using instance::Scope;
+using nesting::BlockLine;
 
 struct ExpressionParserData {
     const char* name{};
@@ -39,7 +39,7 @@ struct ExpressionParserData {
 
     template<class... Token>
     auto in(Token&&... token) && -> ExpressionParserData {
-        input = BlockLine{nesting::buildToken(std::forward<Token>(token))...};
+        input = BlockLine{{nesting::buildToken(std::forward<Token>(token))...}, {}};
         return std::move(*this);
     }
 
@@ -81,34 +81,37 @@ struct IntrinsicType {
 
 TEST_P(ExpressionParser, calls) {
     const ExpressionParserData& data = GetParam();
-    //    const auto input = nesting::BlockLiteral{{}, {}, {{data.input}}};
-    //    const auto scope = data.scope;
-    //    const auto& expected = data.expected;
+    const auto input = nesting::BlockLiteral{{}, {{data.input}}};
+    const auto scope = data.scope;
+    const auto& expected = data.expected;
 
-    //    auto context = Context{[scope](const strings::View& id) { return (*scope)[id]; },
-    //                           [=](const parser::Call&) -> OptNode { return {}; },
-    //                           IntrinsicType{scope}};
+    auto context = Context{[scope](const strings::View& id) { return (*scope)[id]; },
+                           [=](const parser::Call&) -> OptNode { return {}; },
+                           IntrinsicType{scope}};
 
-    //    auto parsed = parser::Parser::parse(input, context);
+    auto parsed = parser::Parser::parse(input, context);
 
-    //    ASSERT_EQ(parsed, expected);
+    ASSERT_EQ(parsed, expected);
 }
 
 INSTANTIATE_TEST_CASE_P(
     simple,
     ExpressionParser,
     ::testing::Values( //
-        ExpressionParserData("Call Number Literal") //
-            .ctx( //
-                instance::typeModT<nesting::NumberLiteral>("NumLit"),
-                instance::fun("print").runtime().args(instance::arg("v").right().type(type().instance("NumLit"))))
-            .in(nesting::id("print"), nesting::num("1"))
-            .out(parser::call("print").right(arg("v", "NumLit", nesting::num("1")))),
-        ExpressionParserData("Call VarDecl") //
-            .ctx( //
-                instance::typeModT<parser::Typed>("Typed"),
-                instance::typeModT<uint64_t>("u64"),
-                instance::fun("var").runtime().args(instance::arg("v").right().type(type().instance("Typed"))))
-            .in(nesting::id("var"), nesting::id("i"), nesting::colon(), nesting::id("u64"))
-            .out(parser::call("var").right(arg("v", "Typed", typed("i").type(type().instance("u64"))))) //
-        ));
+        [] {
+            return ExpressionParserData("Call Number Literal") //
+                .ctx( //
+                    instance::typeModT<nesting::NumberLiteral>("NumLit"),
+                    instance::fun("print").runtime().args(instance::arg("v").right().type(type().instance("NumLit"))))
+                .in(nesting::id(View{"print"}), nesting::num("1"))
+                .out(parser::call("print").right(arg("v", "NumLit", nesting::num("1"))));
+        }(),
+        [] {
+            return ExpressionParserData("Call VarDecl") //
+                .ctx( //
+                    instance::typeModT<parser::Typed>("Typed"),
+                    instance::typeModT<uint64_t>("u64"),
+                    instance::fun("var").runtime().args(instance::arg("v").right().type(type().instance("Typed"))))
+                .in(nesting::id(View{"var"}), nesting::id(View{"i"}), nesting::colon(), nesting::id(View{"u64"}))
+                .out(parser::call("var").right(arg("v", "Typed", typed("i").type(type().instance("u64")))));
+        }()));

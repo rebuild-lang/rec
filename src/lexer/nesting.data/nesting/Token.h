@@ -78,16 +78,16 @@ struct BlockLiteralValue {
 
 using BlockLiteral = scanner::details::ValueToken<BlockLiteralValue>;
 
-using ColonSeparator = filter::ColonSeparator;
-using CommaSeparator = filter::CommaSeparator;
-using SquareBracketOpen = filter::SquareBracketOpen;
-using SquareBracketClose = filter::SquareBracketClose;
-using BracketOpen = filter::BracketOpen;
-using BracketClose = filter::BracketClose;
-using StringLiteral = filter::StringLiteral;
-using NumberLiteral = filter::NumberLiteral;
-using IdentifierLiteral = filter::IdentifierLiteral;
-using OperatorLiteral = filter::OperatorLiteral;
+using filter::ColonSeparator;
+using filter::CommaSeparator;
+using filter::SquareBracketOpen;
+using filter::SquareBracketClose;
+using filter::BracketOpen;
+using filter::BracketClose;
+using filter::StringLiteral;
+using filter::NumberLiteral;
+using filter::IdentifierLiteral;
+using filter::OperatorLiteral;
 
 using TokenVariant = meta::Variant<
     BlockLiteral,
