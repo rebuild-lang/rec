@@ -9,8 +9,11 @@ Project {
         targetName: "parser"
 
         Depends { name: "instance.data" }
+        Depends { name: "diagnostic.data" }
 
         files: [
+            "Context.cpp",
+            "Context.h",
             "LineView.h",
             "Parser.cpp",
             "Parser.h",
@@ -21,6 +24,7 @@ Project {
             cpp.includePaths: [".."]
 
             Depends { name: "instance.data" }
+            Depends { name: "diagnostic.data" }
         }
     }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "Context.h"
 #include "LineView.h"
 
 #include "parser/Tree.h"
@@ -18,41 +19,15 @@ using instance::FunctionView;
 using strings::CompareView;
 using InputBlockLiteral = nesting::BlockLiteral;
 
-template<class Lookup, class RunCall, class IntrinsicType>
-struct Context {
-    Lookup lookup;
-    RunCall runCall;
-    IntrinsicType intrinsicType;
-};
-
-// template deduction guide
-template<class Lookup, class RunCall, class IntrinsicType>
-Context(Lookup&&, RunCall&&, IntrinsicType &&)->Context<Lookup, RunCall, IntrinsicType>;
-
-template<class Context>
-constexpr void checkContext() noexcept {
-    static_assert(
-        std::is_same_v<instance::OptConstNodeView, std::invoke_result_t<decltype(Context::lookup), strings::View>>,
-        "no lookup");
-    static_assert(
-        std::is_same_v<OptNode, std::invoke_result_t<decltype(Context::runCall), Call>>, //
-        "no runCall");
-    static_assert(
-        std::is_same_v<
-            instance::TypeView,
-            std::invoke_result_t<decltype(Context::intrinsicType), meta::Type<StringLiteral>>>,
-        "no intrinsicType");
-}
-
 struct Parser {
     template<class Context>
     static auto parse(const InputBlockLiteral& blockLiteral, Context context) -> Block {
-        checkContext<Context>();
+        auto api = ContextApi<Context>{std::move(context)};
         auto block = Block{};
         for (const auto& line : blockLiteral.value.lines) {
             auto it = BlockLineView(&line);
             if (it) {
-                auto expr = parseTuple(it, context);
+                auto expr = parseTuple(it, api);
                 if (!expr.tuple.empty()) {
                     if (1 == expr.tuple.size() && expr.tuple.front().onlyValue()) {
                         // no reason to keep the tuple around, unwrap it
@@ -203,7 +178,7 @@ private:
     }
 
     template<class ValueType, class Context, class Token>
-    static auto makeTokenValue(BlockLineView& it, const Token& token, Context& context) -> Value {
+    static auto makeTokenValue(BlockLineView& it, const Token& token, ContextApi<Context>& context) -> Value {
         auto type = context.intrinsicType(meta::Type<ValueType>{});
         auto value = ValueType{token};
         return {std::move(value), {TypeInstance{type}}};
@@ -253,7 +228,7 @@ private:
     }
 
     template<class Context>
-    static auto lookupIdentifier(const strings::View& id, OptNode& result, Context& context)
+    static auto lookupIdentifier(const strings::View& id, OptNode& result, ContextApi<Context>& context)
         -> instance::OptConstNodeView {
         if (result.map([](const Node& n) { return n.holds<ModuleReference>(); })) {
             auto ref = result.value().get<ModuleReference>();
@@ -481,7 +456,7 @@ private:
     }
 
     template<class Context>
-    static auto buildCallNode(Call&& call, Context& context) -> OptNode {
+    static auto buildCallNode(Call&& call, ContextApi<Context>& context) -> OptNode {
         if (isDirectlyExecutable(call)) {
             return context.runCall(call);
         }
@@ -532,7 +507,7 @@ private:
     }
 
     template<class Context>
-    static auto parseTypeExpression(BlockLineView& it, Context& context) -> OptTypeExpression {
+    static auto parseTypeExpression(BlockLineView& it, ContextApi<Context>& context) -> OptTypeExpression {
         return it.current().visit(
             [&](const nesting::IdentifierLiteral& id) -> OptTypeExpression {
                 auto name = id.input;
@@ -650,13 +625,13 @@ private:
     }
 
     template<class Context>
-    static bool isTyped(const TypeExpression& t, Context& context) {
+    static bool isTyped(const TypeExpression& t, ContextApi<Context>& context) {
         return t.visit(
             [&](const TypeInstance& ti) { return ti.concrete == context.intrinsicType(meta::Type<parser::Typed>{}); },
             [](const auto&) { return false; });
     }
     template<class Context>
-    static bool isBlockLiteral(const TypeExpression& t, Context& context) {
+    static bool isBlockLiteral(const TypeExpression& t, ContextApi<Context>& context) {
         return t.visit(
             [&](const TypeInstance& ti) {
                 return ti.concrete == context.intrinsicType(meta::Type<parser::BlockLiteral>{});
@@ -665,7 +640,7 @@ private:
     }
 
     template<class Context>
-    static void parseArgumentsWithout(OverloadSet& os, BlockLineView& it, Context& context) {
+    static void parseArgumentsWithout(OverloadSet& os, BlockLineView& it, ContextApi<Context>& context) {
         os.setupIt(it);
         while (!os.active().empty()) {
             // auto baseIt = it;
@@ -677,7 +652,7 @@ private:
                         auto optNamedArg = o.function->lookupArgument(typed.name.value());
                         if (optNamedArg) {
                             instance::ArgumentView namedArg = optNamedArg.value();
-                            auto p = parserForType<Context>(namedArg->typed.type);
+                            auto p = parserForType<ContextApi<Context>>(namedArg->typed.type);
                             typed.value = p(o.it, context);
                             return;
                         }
@@ -685,7 +660,7 @@ private:
                             // error: name not found / unless a == Typed{}
                         }
                     }
-                    auto p = parserForType<Context>(posArg->typed.type);
+                    auto p = parserForType<ContextApi<Context>>(posArg->typed.type);
                     typed.value = p(o.it, context);
                 };
 
