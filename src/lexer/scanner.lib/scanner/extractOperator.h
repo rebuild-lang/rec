@@ -176,7 +176,7 @@ inline auto extractOperator(CodePointPosition firstCpp, meta::CoEnumerator<Decod
     if (!stack.empty()) {
         errors.emplace_back(OperatorNotClosed{{View{stack.back().begin, end}, stack.back().beginPosition}});
     }
-    return Token{OperatorLiteral{{inputView(), firstCpp.position}, {errors}}};
+    return Token{OperatorLiteral{{inputView(), firstCpp.position}, {std::move(errors)}}};
 } // namespace scanner
 
 } // namespace scanner

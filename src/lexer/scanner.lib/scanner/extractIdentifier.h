@@ -14,6 +14,7 @@ inline auto extractIdentifier(CodePointPosition firstCpp, meta::CoEnumerator<Dec
 
     auto end = firstCpp.input.end();
     auto inputView = [&, begin = firstCpp.input.begin()] { return View{begin, end}; };
+    auto errors = DecodedErrorPositions{};
 
     auto peekCpp = [&]() -> OptCodePointPosition {
         while (true) {
@@ -21,6 +22,13 @@ inline auto extractIdentifier(CodePointPosition firstCpp, meta::CoEnumerator<Dec
             auto dp = *decoded;
             if (dp.holds<CodePointPosition>()) {
                 return dp.get<CodePointPosition>();
+            }
+            if (dp.holds<DecodedErrorPosition>()) {
+                auto dep = dp.get<DecodedErrorPosition>();
+                errors.emplace_back(dep);
+                end = dep.input.end();
+                decoded++;
+                continue;
             }
             return {};
         }
@@ -51,10 +59,8 @@ inline auto extractIdentifier(CodePointPosition firstCpp, meta::CoEnumerator<Dec
 
     if (!isStart()) return {};
     auto optCpp = peekCpp();
-    while (optCpp.map(isContinuation)) {
-        optCpp = nextCpp();
-    }
-    return Token{IdentifierLiteral{inputView(), firstCpp.position}};
+    while (optCpp.map(isContinuation)) optCpp = nextCpp();
+    return Token{IdentifierLiteral{{inputView(), firstCpp.position}, std::move(errors)}};
 }
 
 } // namespace scanner

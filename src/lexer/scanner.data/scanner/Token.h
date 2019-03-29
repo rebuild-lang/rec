@@ -11,36 +11,32 @@
 namespace scanner {
 
 using text::DecodedErrorPosition;
-using text::InputPosition;
 using DecodedErrorPositions = std::vector<DecodedErrorPosition>;
 
 namespace details {
 
 template<class... Tags>
-using TagToken = InputPosition<struct TagTokenTag, Tags...>;
+struct TagToken : text::InputPositionData {
+    bool isTainted{};
+
+    friend constexpr auto hasTokenError(const TagToken&) { return false; }
+};
 
 template<class... Tags>
-constexpr auto hasTokenError(const TagToken<Tags...>&) {
-    return false;
-}
+struct TagErrorToken : text::InputPositionData {
+    bool isTainted{}; // if an error is tainted it means the error is already reported
 
-template<class... Tags>
-using TagErrorToken = InputPosition<struct TagErrorTokenTag, Tags...>;
-
-template<class... Tags>
-constexpr auto hasTokenError(const TagErrorToken<Tags...>&) {
-    return true;
-}
+    friend constexpr auto hasTokenError(const TagErrorToken&) { return true; }
+};
 
 template<class... Tags>
 struct TagTokenWithDecodeErrors : text::InputPositionData {
-    DecodedErrorPositions decodeErrors{};
-
-    friend auto hasTokenError(const TagTokenWithDecodeErrors& t) { //
-        return !t.decodeErrors.empty();
-    }
-
     using This = TagTokenWithDecodeErrors;
+
+    DecodedErrorPositions decodeErrors{};
+    bool isTainted{};
+
+    friend auto hasTokenError(const This& t) { return !t.decodeErrors.empty(); }
     bool operator==(const This& o) const noexcept {
         return input == o.input && position == o.position && decodeErrors == o.decodeErrors;
     }
@@ -49,14 +45,13 @@ struct TagTokenWithDecodeErrors : text::InputPositionData {
 
 template<class Value>
 struct ValueToken : text::InputPositionData {
-    Value value{};
-
-    friend auto hasTokenError(const ValueToken& t) { //
-        return t.value.hasErrors();
-    }
-
     using This = ValueToken;
-    bool operator==(const This& o) const { return value == o.value; }
+
+    Value value{};
+    bool isTainted{};
+
+    friend auto hasTokenError(const This& t) { return t.value.hasErrors(); }
+    bool operator==(const This& o) const { return input == o.input && position == o.position && value == o.value; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
@@ -72,7 +67,7 @@ using SquareBracketOpen = details::TagToken<struct SquareBracketOpenTag>;
 using SquareBracketClose = details::TagToken<struct SquareBracketCloseTag>;
 using BracketOpen = details::TagToken<struct BracketOpenTag>;
 using BracketClose = details::TagToken<struct BracketCloseTag>;
-using IdentifierLiteral = details::TagToken<struct IdentifierLiteralTag>;
+using IdentifierLiteral = details::TagTokenWithDecodeErrors<struct IdentifierLiteralTag>;
 using OperatorLiteral = details::ValueToken<OperatorLiteralValue>;
 
 // UTF8-Decoder found a problem

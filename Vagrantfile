@@ -8,6 +8,8 @@ Vagrant.configure("2") do |config|
   config.vm.box_check_update = false
   config.ssh.insert_key = false
 
+  config.vm.synced_folder ".", "/vagrant", type: "smb", smb_username: 'vmguest', smb_password: 'x3WgbIm8Q9jL9tu'
+
   config.vm.provider "virtualbox" do |vb|
     vb.default_nic_type = "virtio"
     vb.cpus = 4
