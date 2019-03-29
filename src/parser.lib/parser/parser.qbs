@@ -14,6 +14,8 @@ Project {
         files: [
             "Context.cpp",
             "Context.h",
+            "LineErrorReporter.cpp",
+            "LineErrorReporter.h",
             "LineView.h",
             "Parser.cpp",
             "Parser.h",

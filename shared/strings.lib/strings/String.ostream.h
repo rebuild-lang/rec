@@ -10,9 +10,9 @@ namespace strings {
 
 template<typename Char, typename CharTraits>
 auto operator<<(::std::basic_ostream<Char, CharTraits>& out, const String& s) -> decltype(auto) {
-
     using StrView = std::basic_string_view<Char>;
-    return out << StrView{reinterpret_cast<typename StrView::const_pointer>(s.begin()), s.byteCount().v};
+    auto ptr = reinterpret_cast<typename StrView::const_pointer>(s.begin());
+    return out << StrView{ptr, s.byteCount().v};
 }
 
 } // namespace strings

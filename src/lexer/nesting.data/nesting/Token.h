@@ -65,6 +65,14 @@ struct BlockLine {
         while (ti != te) f(*ti++);
         while (ii != ie) f(*ii++);
     }
+
+    bool hasErrors() const {
+        constexpr static auto hasError = [](const auto& t) {
+            return t.visit([](auto& e) { return hasTokenError(e); });
+        };
+        auto contains = [](const auto& c) { return c.end() != std::find_if(c.begin(), c.end(), hasError); };
+        return contains(tokens) || contains(insignificants);
+    }
 };
 using BlockLines = std::vector<BlockLine>;
 
@@ -72,22 +80,24 @@ struct BlockLiteralValue {
     using This = BlockLiteralValue;
     BlockLines lines{};
 
+    auto hasErrors() const -> bool { return false; }
+
     bool operator!=(const This& o) const { return lines != o.lines; }
     bool operator==(const This& o) const { return lines == o.lines; }
 };
 
 using BlockLiteral = scanner::details::ValueToken<BlockLiteralValue>;
 
+using filter::BracketClose;
+using filter::BracketOpen;
 using filter::ColonSeparator;
 using filter::CommaSeparator;
-using filter::SquareBracketOpen;
-using filter::SquareBracketClose;
-using filter::BracketOpen;
-using filter::BracketClose;
-using filter::StringLiteral;
-using filter::NumberLiteral;
 using filter::IdentifierLiteral;
+using filter::NumberLiteral;
 using filter::OperatorLiteral;
+using filter::SquareBracketClose;
+using filter::SquareBracketOpen;
+using filter::StringLiteral;
 
 using TokenVariant = meta::Variant<
     BlockLiteral,

@@ -19,6 +19,7 @@ Project {
 
         Depends { name: "nesting.ostream" }
         Depends { name: "scanner.ostream" }
+        Depends { name: "diagnostic.ostream" }
         files: [
             "main.cpp",
         ]

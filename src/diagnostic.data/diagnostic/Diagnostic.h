@@ -2,6 +2,7 @@
 #include "meta/Variant.h"
 #include "strings/String.h"
 #include "strings/View.h"
+#include "text/Position.h"
 
 #include <vector>
 
@@ -27,6 +28,7 @@ struct TextSpan {
     int start{}; // byte index where span starts
     int length{}; // byte count that are part of span
 };
+using TextSpans = std::vector<TextSpan>;
 
 struct NumberLiteral {
     TextSpan span;
@@ -62,7 +64,7 @@ struct CodeBlock {
 struct SourceCodeBlock : CodeBlock {
     String fileName; // - full path according to the platform
                      // - might be empty if input was given from console or string
-    int sourceLine{}; // note: valid line numbers start with 1
+    text::Line sourceLine{0}; // note: valid line numbers start with 1
 };
 
 struct Important {
@@ -114,7 +116,7 @@ using LineDiffs = std::vector<LineDiff>;
 struct DiffSection {
     String fileName; // - full path according to the platform
                      // - might be empty if input was given from console or string
-    int sourceLine{}; // note: valid line numbers start with 1
+    text::Line sourceLine{0}; // note: valid line numbers start with 1
     LineDiffs lineDiffs;
 };
 using DiffSections = std::vector<DiffSection>;
@@ -139,5 +141,6 @@ struct Diagnostic {
     Code code;
     Parts parts;
 };
+using Diagnostics = std::vector<Diagnostic>;
 
 } // namespace diagnostic

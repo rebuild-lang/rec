@@ -1,5 +1,6 @@
 #pragma once
 #include "Context.h"
+#include "LineErrorReporter.h"
 #include "LineView.h"
 
 #include "parser/Tree.h"
@@ -25,6 +26,7 @@ struct Parser {
         auto api = ContextApi<Context>{std::move(context)};
         auto block = Block{};
         for (const auto& line : blockLiteral.value.lines) {
+            if (!blockLiteral.isTainted && line.hasErrors()) reportLineErrors(line, api);
             auto it = BlockLineView(&line);
             if (it) {
                 auto expr = parseTuple(it, api);

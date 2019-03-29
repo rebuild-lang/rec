@@ -1,27 +1,27 @@
 import qbs
 
 Project {
-    name: "diagnostic.data"
+    name: "diagnostic.ostream"
     minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
-        name: "diagnostic.data"
+        name: "diagnostic.ostream"
         Depends { name: "cpp" }
-        // cpp.combineCxxSources: true
+        cpp.combineCxxSources: true
         cpp.includePaths: [".."]
 
-        Depends { name: "text.lib" }
+        Depends { name: "diagnostic.data" }
 
         files: [
-            "Diagnostic.cpp",
-            "Diagnostic.h",
+            "Diagnostic.ostream.cpp",
+            "Diagnostic.ostream.h",
         ]
 
         Export {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
 
-            Depends { name: "text.lib" }
+            Depends { name: "diagnostic.data" }
         }
     }
 }

@@ -14,6 +14,7 @@
 #include "intrinsic/Adapter.h"
 #include "intrinsic/ResolveType.h"
 
+#include "diagnostic/Diagnostic.ostream.h"
 #include "nesting/Token.ostream.h"
 #include "scanner/Token.ostream.h"
 
@@ -25,15 +26,18 @@ using InstanceNode = instance::Node;
 using ExecutionContext = execution::Context;
 
 using StringView = strings::View;
-using Call = parser::Call;
-using BlockLiteral = nesting::BlockLiteral;
-using Block = parser::Block;
-using OptNode = parser::OptNode;
+using diagnostic::Diagnostic;
+using diagnostic::Diagnostics;
+using nesting::BlockLiteral;
+using parser::Block;
+using parser::Call;
+using parser::OptNode;
 
 class Compiler final {
     ParserConfig config;
     InstanceScope globals;
     InstanceScope globalScope;
+    Diagnostics diagnostics;
 
     execution::Compiler compiler;
 
@@ -119,7 +123,17 @@ class Compiler final {
 
             return extractResults(callCopy, globals);
         };
-        return parser::Context{std::move(lookup), std::move(runCall), IntrinsicType{&globals}};
+        auto reportDiagnostic = [this](Diagnostic diagnostic) {
+            // TODO(arBmind): somehow add fileName
+            diagnostics.emplace_back(std::move(diagnostic));
+        };
+        return parser::Context{
+            std::move(lookup), std::move(runCall), IntrinsicType{&globals}, std::move(reportDiagnostic)};
+    }
+
+    void printDiagnostics() {
+        std::cout << diagnostics.size() << " diagnostics created\n";
+        for (auto& d : diagnostics) std::cout << d;
     }
 
 public:
@@ -131,6 +145,10 @@ public:
             return parser::Parser::parse(block, parserContext(*scope));
         };
     }
+    Compiler(const Compiler&) = delete;
+    Compiler(Compiler&&) = delete;
+    Compiler& operator=(const Compiler&) = delete;
+    Compiler& operator=(Compiler&&) = delete;
 
     void compile(const text::File& file) {
         auto decode = [&](const auto& file) { return strings::utf8Decode(file.content); };
@@ -142,7 +160,10 @@ public:
             return parser::Parser::parse(blockify(file), parserContext(globalScope));
         };
         auto block = parse(file);
-        execution::Machine::runBlock(block, executionContext(globals));
+        if (!diagnostics.empty())
+            printDiagnostics();
+        else
+            execution::Machine::runBlock(block, executionContext(globals));
     }
 };
 
@@ -153,17 +174,18 @@ int main() {
 
     // auto globalScope = instance::Scope{&globals};
 
-    auto compiler = Compiler(config, std::move(globals));
+    auto compiler = Compiler{config, std::move(globals)};
 
-    auto decode = [&](const auto& file) { return strings::utf8Decode(file.content); };
-    auto positions = [&](const auto& file) { return text::decodePosition(decode(file), config); };
-    auto tokenize = [&](const auto& file) { return scanner::tokenize(positions(file)); };
-    auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
-    auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
+    // auto decode = [&](const auto& file) { return strings::utf8Decode(file.content); };
+    // auto positions = [&](const auto& file) { return text::decodePosition(decode(file), config); };
+    // auto tokenize = [&](const auto& file) { return scanner::tokenize(positions(file)); };
+    // auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
+    // auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
 
-    auto file = text::File{strings::String{"TestFile"}, strings::String{R"(
-
-# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
+    auto file = text::File{
+        strings::String{"TestFile"},
+        strings::String{"#\x80 \xC2\xC0"
+                        R"(# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
 
 Rebuild.Context.declareFunction(() hi (a :Rebuild.literal.String) ():
     # Rebuild.say hif # TODO(arBmind): get globals working
@@ -181,13 +203,13 @@ Rebuild.Context.declareModule test:
 end
 )"}};
 
-    std::cout << "\nTokens:\n";
-    // for (auto t : tokenize(file)) std::cout << t << '\n';
+    // std::cout << "\nTokens:\n";
+    //// for (auto t : tokenize(file)) std::cout << t << '\n';
 
-    std::cout << "\nBlocks:\n";
-    std::cout << blockify(file);
+    // std::cout << "\nBlocks:\n";
+    // std::cout << blockify(file);
 
-    std::cout << "\nParse:\n";
+    std::cout << "\nCompile:\n";
     compiler.compile(file);
 
     // std::cout << "Example = " << d.example() << '\n';

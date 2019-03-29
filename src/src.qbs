@@ -6,6 +6,7 @@ Project {
     references: [
         "api.lib/api",
         "diagnostic.data/diagnostic",
+        "diagnostic.ostream/diagnostic",
         "execution.lib/execution",
         "instance.view/instance",
         "instance.data/instance",
