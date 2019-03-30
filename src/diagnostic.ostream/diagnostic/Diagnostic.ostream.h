@@ -3,6 +3,7 @@
 #include "meta/Variant.ostream.h"
 #include "strings/String.ostream.h"
 
+#include <algorithm>
 #include <ostream>
 
 namespace diagnostic {
@@ -23,6 +24,7 @@ inline auto operator<<(std::ostream& out, const SourceCodeBlock& code) -> std::o
                 for (auto i = 0; i < m.span.length; i++) markerLine[i + m.span.start] = '~';
             }
         }
+        markerLine.erase(std::find(markerLine.rbegin(), markerLine.rend(), '~').base(), markerLine.end());
         out << '\n' << markerLine;
     }
     return out;

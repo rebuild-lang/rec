@@ -40,4 +40,18 @@ Project {
             Depends { name: "diagnostic.ostream" }
         }
     }
+
+    Application {
+        name: "rec.tests"
+        consoleApplication: true
+        type: base.concat("autotest")
+
+        Depends { name: "rec.lib" }
+        Depends { name: "googletest.lib" }
+        googletest.lib.useMain: true
+
+        files: [
+            "LexerErrors.test.cpp",
+        ]
+    }
 }
