@@ -1,6 +1,32 @@
 #include "Compiler.h"
 
+#include "filter/filterTokens.h"
+#include "nesting/nestTokens.h"
+#include "parser/Parser.h"
+#include "scanner/tokenize.h"
+#include "strings/utf8Decode.h"
+
+#include "api/Context.h"
+#include "intrinsic/Adapter.h"
+#include "intrinsic/ResolveType.h"
+
+#include "diagnostic/Diagnostic.ostream.h"
+#include "nesting/Token.ostream.h"
+#include "scanner/Token.ostream.h"
+
+#include <iostream>
+
 namespace rec {
+
+using InstanceNode = instance::Node;
+using ExecutionContext = execution::Context;
+using StringView = strings::View;
+
+using diagnostic::Diagnostic;
+using nesting::BlockLiteral;
+using parser::Block;
+using parser::Call;
+using parser::OptNode;
 
 namespace {
 
@@ -95,30 +121,44 @@ auto Compiler::parserContext(InstanceScope& scope) {
     return parser::Context{std::move(lookup), std::move(runCall), IntrinsicType{&globals}, std::move(reportDiagnostic)};
 }
 
-void Compiler::printDiagnostics() const {
-    std::cout << diagnostics.size() << " diagnostics created\n";
-    for (auto& d : diagnostics) std::cout << d;
-}
-
-Compiler::Compiler(ParserConfig config, InstanceScope&& globals)
+Compiler::Compiler(Config config, InstanceScope _globals)
     : config(config)
-    , globals(std::move(globals))
-    , globalScope(&this->globals) {
+    , globals(std::move(_globals))
+    , globalScope(&globals) {
+
+    globals.emplace(intrinsicAdapter::Adapter::moduleInstance<intrinsic::Rebuild>());
+
     compilerCallback.parseBlock = [this](const BlockLiteral& block, InstanceScope* scope) -> parser::Block {
         return parser::Parser::parse(block, parserContext(*scope));
     };
 }
 
-void Compiler::compile(const text::File& file) {
+void Compiler::compile(const TextFile& file) {
     auto decode = [&](const auto& file) { return strings::utf8Decode(file.content); };
     auto positions = [&](const auto& file) { return text::decodePosition(decode(file), config); };
     auto tokenize = [&](const auto& file) { return scanner::tokenize(positions(file)); };
     auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
     auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
     auto parse = [&](const auto& file) { return parser::Parser::parse(blockify(file), parserContext(globalScope)); };
+
+    if (config.tokenOutput) {
+        auto& out = *config.tokenOutput;
+        out << "\nTokens:\n";
+        for (auto t : tokenize(file)) out << t << '\n';
+    }
+    if (config.blockOutput) {
+        auto& out = *config.blockOutput;
+        out << "\nBlocks:\n" << blockify(file);
+    }
+
     auto block = parse(file);
-    if (!diagnostics.empty())
-        printDiagnostics();
+    if (!diagnostics.empty()) {
+        if (config.diagnosticsOutput) {
+            auto& out = *config.diagnosticsOutput;
+            out << diagnostics.size() << " diagnostics:\n";
+            for (auto& d : diagnostics) out << d;
+        }
+    }
     else
         execution::Machine::runBlock(block, executionContext(globals));
 }

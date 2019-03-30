@@ -1,23 +1,16 @@
-﻿#include "rec/Compiler.h"
+#include "rec/Compiler.h"
 
 #include <iostream>
 
 int main() {
     using namespace rec;
 
-    auto config = ParserConfig{text::Column{8}};
-    auto globals = instance::Scope{};
-    globals.emplace(intrinsicAdapter::Adapter::moduleInstance<intrinsic::Rebuild>());
+    auto config = Config{text::Column{8}};
+    config.tokenOutput = &std::cout;
+    config.blockOutput = &std::cout;
+    config.diagnosticsOutput = &std::cout;
 
-    // auto globalScope = instance::Scope{&globals};
-
-    auto compiler = Compiler{config, std::move(globals)};
-
-    // auto decode = [&](const auto& file) { return strings::utf8Decode(file.content); };
-    // auto positions = [&](const auto& file) { return text::decodePosition(decode(file), config); };
-    // auto tokenize = [&](const auto& file) { return scanner::tokenize(positions(file)); };
-    // auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
-    // auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
+    auto compiler = Compiler{config};
 
     auto file = text::File{
         strings::String{"TestFile"},
@@ -40,14 +33,5 @@ Rebuild.Context.declareModule test:
 end
 )"}};
 
-    // std::cout << "\nTokens:\n";
-    //// for (auto t : tokenize(file)) std::cout << t << '\n';
-
-    // std::cout << "\nBlocks:\n";
-    // std::cout << blockify(file);
-
-    std::cout << "\nCompile:\n";
     compiler.compile(file);
-
-    // std::cout << "Example = " << d.example() << '\n';
 }

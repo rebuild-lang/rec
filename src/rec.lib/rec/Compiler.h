@@ -1,63 +1,49 @@
 #pragma once
-#include "scanner/tokenize.h"
-#include "strings/utf8Decode.h"
+#include "diagnostic/Diagnostic.h"
+#include "execution/Machine.h"
+#include "instance/Scope.h"
+#include "text/File.h"
 #include "text/decodePosition.h"
 
-#include "filter/filterTokens.h"
-#include "nesting/nestTokens.h"
-#include "parser/Parser.h"
-
-#include "instance/Scope.h"
-
-#include "execution/Machine.h"
-
-#include "api/Context.h"
-#include "intrinsic/Adapter.h"
-#include "intrinsic/ResolveType.h"
-
-#include "diagnostic/Diagnostic.ostream.h"
-#include "nesting/Token.ostream.h"
-#include "scanner/Token.ostream.h"
-
-#include <iostream>
+#include <ostream>
 
 namespace rec {
 
-using ParserConfig = text::Config;
+using TextFile = text::File;
+using TextConfig = text::Config;
 using InstanceScope = instance::Scope;
-using InstanceNode = instance::Node;
-using ExecutionContext = execution::Context;
 using CompilerCallback = execution::Compiler;
-
-using StringView = strings::View;
-using diagnostic::Diagnostic;
 using diagnostic::Diagnostics;
-using nesting::BlockLiteral;
-using parser::Block;
-using parser::Call;
-using parser::OptNode;
+
+struct Config : TextConfig {
+    std::ostream* tokenOutput{};
+    std::ostream* blockOutput{};
+    std::ostream* diagnosticsOutput{};
+    // std::ostream* rebuildOutput{}; // TODO(arBmind): allow to configure stdout used by builtin stdout
+};
 
 class Compiler final {
-    ParserConfig config;
+    Config config;
     InstanceScope globals;
     InstanceScope globalScope;
-    Diagnostics diagnostics;
-
     CompilerCallback compilerCallback;
+    Diagnostics diagnostics;
 
     auto executionContext(InstanceScope& parserScope);
     auto parserContext(InstanceScope& scope);
-    void printDiagnostics() const;
 
 public:
-    Compiler(ParserConfig config, InstanceScope&& globals);
+    Compiler(Config config, InstanceScope globals = {});
     ~Compiler() = default;
+
+    // the compiler captures this in lambdas, therefore no copy or move allowed
     Compiler(const Compiler&) = delete;
     Compiler(Compiler&&) = delete;
     Compiler& operator=(const Compiler&) = delete;
     Compiler& operator=(Compiler&&) = delete;
 
-    void compile(const text::File& file);
+    // run the compiler
+    void compile(const TextFile& file);
 };
 
 } // namespace rec

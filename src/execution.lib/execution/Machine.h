@@ -58,8 +58,8 @@ struct IntrinsicContext : intrinsic::Context {
     ParseBlock parseBlock{};
 
     IntrinsicContext(execution::Context& context, const instance::Scope* executionScope)
-        : parseBlock(context.compiler->parseBlock)
-        , intrinsic::Context{context.parserScope, executionScope} {}
+        : intrinsic::Context{context.parserScope, executionScope}
+        , parseBlock(context.compiler->parseBlock) {}
 
     auto parse(const parser::BlockLiteral& block, instance::Scope* scope) const -> parser::Block override {
         return parseBlock(block, scope);
