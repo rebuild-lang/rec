@@ -19,5 +19,6 @@ Project {
         "parser.ostream/parser",
         "parser.lib/parser",
         "rec.app/rec",
+        "rec.lib/rec",
     ]
 }

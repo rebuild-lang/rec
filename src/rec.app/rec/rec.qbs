@@ -9,17 +9,7 @@ Project {
         targetName: "rec"
 
         consoleApplication: true
-        Depends { name: "scanner.lib" }
-        Depends { name: "filter.lib" }
-        Depends { name: "nesting.lib" }
-        Depends { name: "parser.lib" }
-        Depends { name: "intrinsic.lib" }
-        Depends { name: "execution.lib" }
-        Depends { name: "api.lib" }
-
-        Depends { name: "nesting.ostream" }
-        Depends { name: "scanner.ostream" }
-        Depends { name: "diagnostic.ostream" }
+        Depends { name: "rec.lib" }
         files: [
             "main.cpp",
         ]
