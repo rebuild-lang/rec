@@ -25,7 +25,7 @@ Project {
     Application {
         name: "nesting.tests"
         consoleApplication: true
-        type: ["application", "autotest"]
+        type: base.concat("autotest")
 
         Depends { name: "nesting.lib" }
         Depends { name: "nesting.ostream" }

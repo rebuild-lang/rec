@@ -48,7 +48,7 @@ Project {
     Application {
         name: "strings.tests"
         consoleApplication: true
-        type: ["application", "autotest"]
+        type: base.concat("autotest")
 
         Depends { name: "strings.lib" }
         Depends { name: "googletest.lib" }

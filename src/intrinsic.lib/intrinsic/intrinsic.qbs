@@ -31,7 +31,7 @@ Project {
     Application {
         name: "intrinsic.tests"
         consoleApplication: true
-        type: ["application", "autotest"]
+        type: base.concat("autotest")
 
         Depends { name: "intrinsic.lib" }
         Depends { name: "intrinsic.ostream" }

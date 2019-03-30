@@ -39,7 +39,7 @@ Project {
     Application {
         name: "scanner.tests"
         consoleApplication: true
-        type: ["application", "autotest"]
+        type: base.concat("autotest")
 
         Depends { name: "scanner.lib" }
         Depends { name: "scanner.ostream" }

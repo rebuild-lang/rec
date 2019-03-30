@@ -27,7 +27,7 @@ Project {
     Application {
         name: "filter.tests"
         consoleApplication: true
-        type: ["application", "autotest"]
+        type: base.concat("autotest")
 
         Depends { name: "filter.lib" }
         Depends { name: "filter.ostream" }

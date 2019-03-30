@@ -41,7 +41,7 @@ Project {
     Application {
         name: "api.tests"
         consoleApplication: true
-        type: ["application", "autotest"]
+        type: base.concat("autotest")
 
         Depends { name: "api.lib" }
         Depends { name: "instance.ostream" }

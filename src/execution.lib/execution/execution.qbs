@@ -32,7 +32,7 @@ Project {
     Application {
         name: "execution.tests"
         consoleApplication: true
-        type: ["application", "autotest"]
+        type: base.concat("autotest")
 
         Depends { name: "execution.lib" }
         Depends { name: "instance.ostream" }
