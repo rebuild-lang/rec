@@ -1,4 +1,4 @@
-#include "scanner/tokenize.h"
+﻿#include "scanner/tokenize.h"
 #include "strings/utf8Decode.h"
 #include "text/decodePosition.h"
 
@@ -184,7 +184,7 @@ int main() {
 
     auto file = text::File{
         strings::String{"TestFile"},
-        strings::String{"#\x80 \xC2\xC0"
+        strings::String{"\x07 \x00"
                         R"(# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
 
 Rebuild.Context.declareFunction(() hi (a :Rebuild.literal.String) ():

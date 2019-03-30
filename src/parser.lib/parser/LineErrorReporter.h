@@ -16,9 +16,8 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
         t.visitSome(
             [&](const nesting::InvalidEncoding& ie) { reportInvalidEncoding(line, ie, context); },
             [&](const nesting::CommentLiteral& cl) { reportTokenWithDecodeErrors(line, cl, context); },
-            [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); }
-            //[&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); }
-        );
+            [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
+            [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); });
     });
 }
 
@@ -67,13 +66,29 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
             i++;
         }
     };
-    auto hasErrors = false;
+    auto requiresEscapes = false;
+    auto addEscaped = [&](strings::View input) {
+        requiresEscapes = true;
+        output += strings::View{begin, input.begin()};
+        auto escaped = std::stringstream{};
+        escaped << R"(\[)" << std::hex;
+        for (auto x : input) escaped << ((int)x & 255);
+        escaped << "]" << std::dec;
+        auto str = escaped.str();
+        output += strings::String{str.data(), str.data() + str.size()};
+        begin = input.end();
+        offset += str.length();
+    };
 
     for (auto d : strings::utf8Decode(view)) {
         d.visit(
             [&](strings::DecodedCodePoint dcp) {
                 updateMarkers(dcp.input.begin());
-                if (dcp.cp.v == '\\') {
+                if (dcp.cp.isCombiningMark() || dcp.cp.isControl() || dcp.cp.isNonCharacter() || dcp.cp.isSurrogate()) {
+                    addEscaped(dcp.input);
+                    return;
+                }
+                else if (dcp.cp.v == '\\') {
                     output += strings::View{begin, dcp.input.end()};
                     output += dcp.cp;
                     begin = dcp.input.end();
@@ -82,23 +97,14 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
                 offset += 1;
             },
             [&](strings::DecodedError de) {
-                hasErrors = true;
                 updateMarkers(de.input.begin());
-                output += strings::View{begin, de.input.begin()};
-                auto escaped = std::stringstream{};
-                escaped << "\\[" << std::hex;
-                for (auto x : de.input) escaped << ((int)x & 255);
-                escaped << "]" << std::dec;
-                auto str = escaped.str();
-                output += strings::String{str.data(), str.data() + str.size()};
-                begin = de.input.end();
-                offset += str.length();
+                addEscaped(de.input);
             });
     }
     output += strings::View{begin, view.end()};
     updateMarkers(view.end());
 
-    if (!hasErrors) { // do not escape if not necessary
+    if (!requiresEscapes) { // do not escape if not necessary
         auto i = 0;
         for (const auto& vm : viewMarkers) {
             auto& m = markers[i];
@@ -115,32 +121,32 @@ template<class Token, class Context>
 void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, ContextApi<Context>& context) {
     using namespace diagnostic;
 
-    auto line = extractViewLines(blockLine, tok.input);
+    auto tokenLine = extractViewLines(blockLine, tok.input);
 
     auto viewMarkers = ViewMarkers{};
     for (auto& t : blockLine.insignificants) {
         t.visitSome(
             [&](const nesting::InvalidEncoding& ie) {
-                if (ie.input.begin() >= line.begin() && ie.input.end() <= line.end()) {
+                if (ie.input.begin() >= tokenLine.begin() && ie.input.end() <= tokenLine.end()) {
                     viewMarkers.emplace_back(ie.input);
                     if (&ie != (void*)&tok) const_cast<nesting::InvalidEncoding&>(ie).isTainted = true;
                 }
             },
             [&](const nesting::CommentLiteral& cl) {
-                if (cl.input.begin() >= line.begin() && cl.input.end() <= line.end()) {
+                if (cl.input.begin() >= tokenLine.begin() && cl.input.end() <= tokenLine.end()) {
                     for (auto& p : cl.decodeErrors) viewMarkers.emplace_back(p.input);
                     if (&cl != (void*)&tok) const_cast<nesting::CommentLiteral&>(cl).isTainted = true;
                 }
             },
             [&](const nesting::IdentifierLiteral& il) {
-                if (il.input.begin() >= line.begin() && il.input.end() <= line.end()) {
+                if (il.input.begin() >= tokenLine.begin() && il.input.end() <= tokenLine.end()) {
                     for (auto& p : il.decodeErrors) viewMarkers.emplace_back(p.input);
                     if (&il != (void*)&tok) const_cast<nesting::IdentifierLiteral&>(il).isTainted = true;
                 }
             });
     }
 
-    auto [escaped, escapedMarkers] = escapeSourceLine(line, viewMarkers);
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLine, viewMarkers);
 
     auto highlights = Highlights{};
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
@@ -149,7 +155,7 @@ void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, C
         {Paragraph{(viewMarkers.size() == 1) ? String{"The UTF8-decoder encountered an invalid encoding"}
                                              : String{"The UTF8-decoder encountered multiple invalid encodings"},
                    {}},
-         SourceCodeBlock{escaped, highlights, String{}, tok.position.line}}};
+         SourceCodeBlock{escapedLines, highlights, String{}, tok.position.line}}};
 
     auto expl = Explanation{String("Invalid UTF8 Encoding"), doc};
 
@@ -173,6 +179,44 @@ void reportInvalidEncoding(
     if (ie.isTainted) return; // already reported
 
     reportDecodeErrors(blockLine, ie, context);
+}
+
+template<class Context>
+void reportUnexpectedCharacter(
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedCharacter& uc, ContextApi<Context>& context) {
+    if (uc.isTainted) return;
+
+    using namespace diagnostic;
+
+    auto tokenLine = extractViewLines(blockLine, uc.input);
+
+    auto viewMarkers = ViewMarkers{};
+    for (auto& t : blockLine.insignificants) {
+        t.visitSome([&](const nesting::UnexpectedCharacter& ouc) {
+            if (ouc.input.begin() >= tokenLine.begin() && ouc.input.end() <= tokenLine.end()) {
+                viewMarkers.emplace_back(ouc.input);
+                if (&ouc != (void*)&uc) const_cast<nesting::UnexpectedCharacter&>(ouc).isTainted = true;
+            }
+        });
+    }
+
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLine, viewMarkers);
+
+    auto highlights = Highlights{};
+    for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+    auto doc = Document{
+        {Paragraph{(viewMarkers.size() == 1)
+                       ? String{"The tokenizer encountered a character that is not part of any Rebuild language token."}
+                       : String{"The tokenizer encountered multiple characters that are not part of any Rebuild "
+                                "language token."},
+                   {}},
+         SourceCodeBlock{escapedLines, highlights, String{}, uc.position.line}}};
+
+    auto expl = Explanation{String("Unexpected characters"), doc};
+
+    auto d = Diagnostic{Code{String{"rebuild-lexer"}, 2}, Parts{expl}};
+    context.reportDiagnostic(std::move(d));
 }
 
 } // namespace parser
