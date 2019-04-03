@@ -15,6 +15,7 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
     line.forEach([&](auto& t) {
         t.visitSome(
             [&](const nesting::InvalidEncoding& ie) { reportInvalidEncoding(line, ie, context); },
+            [&](const nesting::NewLineIndentation& nli) { reportNewline(line, nli, context); },
             [&](const nesting::CommentLiteral& cl) { reportTokenWithDecodeErrors(line, cl, context); },
             [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
             [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); });
@@ -117,36 +118,16 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
     return EscapedMarkers{to_string(output), std::move(markers)};
 }
 
-template<class Token, class Context>
-void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, ContextApi<Context>& context) {
+template<class Context>
+void reportDecodeErrorMarkers(
+    text::Line line,
+    strings::View tokenLines,
+    const parser::ViewMarkers& viewMarkers,
+    parser::ContextApi<Context>& context) {
+
     using namespace diagnostic;
 
-    auto tokenLine = extractViewLines(blockLine, tok.input);
-
-    auto viewMarkers = ViewMarkers{};
-    for (auto& t : blockLine.insignificants) {
-        t.visitSome(
-            [&](const nesting::InvalidEncoding& ie) {
-                if (ie.input.begin() >= tokenLine.begin() && ie.input.end() <= tokenLine.end()) {
-                    viewMarkers.emplace_back(ie.input);
-                    if (&ie != (void*)&tok) const_cast<nesting::InvalidEncoding&>(ie).isTainted = true;
-                }
-            },
-            [&](const nesting::CommentLiteral& cl) {
-                if (cl.input.begin() >= tokenLine.begin() && cl.input.end() <= tokenLine.end()) {
-                    for (auto& p : cl.decodeErrors) viewMarkers.emplace_back(p.input);
-                    if (&cl != (void*)&tok) const_cast<nesting::CommentLiteral&>(cl).isTainted = true;
-                }
-            },
-            [&](const nesting::IdentifierLiteral& il) {
-                if (il.input.begin() >= tokenLine.begin() && il.input.end() <= tokenLine.end()) {
-                    for (auto& p : il.decodeErrors) viewMarkers.emplace_back(p.input);
-                    if (&il != (void*)&tok) const_cast<nesting::IdentifierLiteral&>(il).isTainted = true;
-                }
-            });
-    }
-
-    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLine, viewMarkers);
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
 
     auto highlights = Highlights{};
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
@@ -155,12 +136,44 @@ void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, C
         {Paragraph{(viewMarkers.size() == 1) ? String{"The UTF8-decoder encountered an invalid encoding"}
                                              : String{"The UTF8-decoder encountered multiple invalid encodings"},
                    {}},
-         SourceCodeBlock{escapedLines, highlights, String{}, tok.position.line}}};
+         SourceCodeBlock{escapedLines, highlights, String{}, line}}};
 
     auto expl = Explanation{String("Invalid UTF8 Encoding"), doc};
 
     auto d = Diagnostic{Code{String{"rebuild-lexer"}, 1}, Parts{expl}};
     context.reportDiagnostic(std::move(d));
+}
+
+template<class Token, class Context>
+void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, ContextApi<Context>& context) {
+    using namespace diagnostic;
+
+    auto tokenLines = extractViewLines(blockLine, tok.input);
+
+    auto viewMarkers = ViewMarkers{};
+    for (auto& t : blockLine.insignificants) {
+        t.visitSome(
+            [&](const nesting::InvalidEncoding& ie) {
+                if (ie.input.begin() >= tokenLines.begin() && ie.input.end() <= tokenLines.end()) {
+                    viewMarkers.emplace_back(ie.input);
+                    if (&ie != (void*)&tok) const_cast<nesting::InvalidEncoding&>(ie).isTainted = true;
+                }
+            },
+            [&](const nesting::CommentLiteral& cl) {
+                if (cl.input.begin() >= tokenLines.begin() && cl.input.end() <= tokenLines.end()) {
+                    for (auto& p : cl.decodeErrors) viewMarkers.emplace_back(p.input);
+                    if (&cl != (void*)&tok) const_cast<nesting::CommentLiteral&>(cl).isTainted = true;
+                }
+            },
+            [&](const nesting::IdentifierLiteral& il) {
+                if (il.input.begin() >= tokenLines.begin() && il.input.end() <= tokenLines.end()) {
+                    for (auto& p : il.decodeErrors) viewMarkers.emplace_back(p.input);
+                    if (&il != (void*)&tok) const_cast<nesting::IdentifierLiteral&>(il).isTainted = true;
+                }
+            });
+    }
+
+    reportDecodeErrorMarkers(tok.position.line, tokenLines, viewMarkers, context);
 }
 
 template<class... Tags, class Context>
@@ -171,6 +184,43 @@ void reportTokenWithDecodeErrors(
     if (de.isTainted || de.decodeErrors.empty()) return; // already reported or no errors
 
     reportDecodeErrors(blockLine, de, context);
+}
+
+template<class Context>
+void reportNewline(
+    const nesting::BlockLine& blockLine, const nesting::NewLineIndentation& nli, ContextApi<Context>& context) {
+    if (nli.isTainted || !nli.value.hasErrors()) return; // already reported or no errors
+
+    using namespace diagnostic;
+
+    auto tokenLines = extractViewLines(blockLine, nli.input);
+    {
+        auto viewMarkers = ViewMarkers{};
+        for (auto& err : nli.value.errors) {
+            err.visitSome([&](const scanner::DecodedErrorPosition& dep) { viewMarkers.emplace_back(dep.input); });
+        }
+        if (!viewMarkers.empty()) reportDecodeErrorMarkers(nli.position.line, tokenLines, viewMarkers, context);
+    }
+    {
+        auto viewMarkers = ViewMarkers{};
+        for (auto& err : nli.value.errors) {
+            err.visitSome([&](const scanner::MixedIndentCharacter& mic) { viewMarkers.emplace_back(mic.input); });
+        }
+        if (viewMarkers.empty()) return;
+
+        auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+        auto highlights = Highlights{};
+        for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+        auto doc = Document{{Paragraph{String{"The indentation mixes tabs and spaces."}, {}},
+                             SourceCodeBlock{escapedLines, highlights, String{}, nli.position.line}}};
+
+        auto expl = Explanation{String("Mixed Indentation Characters"), doc};
+
+        auto d = Diagnostic{Code{String{"rebuild-lexer"}, 3}, Parts{expl}};
+        context.reportDiagnostic(std::move(d));
+    }
 }
 
 template<class Context>
@@ -188,19 +238,19 @@ void reportUnexpectedCharacter(
 
     using namespace diagnostic;
 
-    auto tokenLine = extractViewLines(blockLine, uc.input);
+    auto tokenLines = extractViewLines(blockLine, uc.input);
 
     auto viewMarkers = ViewMarkers{};
     for (auto& t : blockLine.insignificants) {
         t.visitSome([&](const nesting::UnexpectedCharacter& ouc) {
-            if (ouc.input.begin() >= tokenLine.begin() && ouc.input.end() <= tokenLine.end()) {
+            if (ouc.input.begin() >= tokenLines.begin() && ouc.input.end() <= tokenLines.end()) {
                 viewMarkers.emplace_back(ouc.input);
                 if (&ouc != (void*)&uc) const_cast<nesting::UnexpectedCharacter&>(ouc).isTainted = true;
             }
         });
     }
 
-    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLine, viewMarkers);
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
 
     auto highlights = Highlights{};
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});

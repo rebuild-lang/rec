@@ -6,15 +6,15 @@ int main() {
     using namespace rec;
 
     auto config = Config{text::Column{8}};
-    config.tokenOutput = &std::cout;
-    config.blockOutput = &std::cout;
+    // config.tokenOutput = &std::cout;
+    // config.blockOutput = &std::cout;
     config.diagnosticsOutput = &std::cout;
 
     auto compiler = Compiler{config};
 
     auto file = text::File{
         strings::String{"TestFile"},
-        strings::String{"\x07 \x00"
+        strings::String{"\n  \n\t\n"
                         R"(# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
 
 Rebuild.Context.declareFunction(() hi (a :Rebuild.literal.String) ():
