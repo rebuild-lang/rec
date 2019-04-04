@@ -25,9 +25,9 @@ TEST(LexerErrors, decodeErrors) {
 
 The UTF8-decoder encountered multiple invalid encodings
 
-input line: 1
-\[80] \[e280]x
-~~~~~ ~~~~~~~
+1 |\[80] \[e280]x
+  |~~~~~ ~~~~~~~
+
 
 )"s;
     EXPECT_EQ(outbuffer.str(), expected);
@@ -45,9 +45,51 @@ TEST(LexerErrors, unexpectedCharacter) {
 
 The tokenizer encountered multiple characters that are not part of any Rebuild language token.
 
-input line: 1
-\[7] \[0]
-~~~~ ~~~~
+1 |\[7] \0
+  |~~~~ ~~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}
+
+TEST(LexerErrors, mixedIndentation) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"\n \n\t\n"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[3]: Mixed Indentation Characters
+
+The indentation mixes tabs and spaces.
+
+1 | \n
+2 |\t
+  |~~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}
+
+TEST(LexerErrors, indentationDecodeError) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"\n \n\x80\n"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[1]: Invalid UTF8 Encoding
+
+The UTF8-decoder encountered multiple invalid encodings
+
+1 | \n
+2 |\[80]
+  |~~~~~
+
 
 )"s;
     EXPECT_EQ(outbuffer.str(), expected);

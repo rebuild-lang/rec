@@ -14,7 +14,7 @@ int main() {
 
     auto file = text::File{
         strings::String{"TestFile"},
-        strings::String{"\n  \n\t\n"
+        strings::String{"\n \n\x80\n"
                         R"(# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
 
 Rebuild.Context.declareFunction(() hi (a :Rebuild.literal.String) ():

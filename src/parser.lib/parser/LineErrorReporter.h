@@ -22,26 +22,30 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
     });
 }
 
+inline auto extractBlockLines(const nesting::BlockLine& blockLine) -> strings::View {
+    auto begin = strings::View::It{};
+    auto end = strings::View::It{};
+    if (!blockLine.tokens.empty()) {
+        begin = blockLine.tokens.front().visit([](auto& t) { return t.input.begin(); });
+        end = blockLine.tokens.back().visit([](auto& t) { return t.input.end(); });
+    }
+    if (!blockLine.insignificants.empty()) {
+        auto begin2 = blockLine.insignificants.front().visit([](auto& t) { return t.input.begin(); });
+        auto end2 = blockLine.insignificants.back().visit([](auto& t) { return t.input.end(); });
+        if (!begin || begin2 < begin) begin = begin2;
+        if (!end || end2 > end) end = end2;
+    }
+    return strings::View{begin, end};
+}
+
 // extends the view so that it starts after a newline and ends before a newline
 // note: it will never expand beyond the current blockLine - as we risk to run before the start of the string
 inline auto extractViewLines(const nesting::BlockLine& blockLine, strings::View view) -> strings::View {
-    auto blockLineBegin = strings::View::It{};
-    auto blockLineEnd = strings::View::It{};
-    if (!blockLine.tokens.empty()) {
-        blockLineBegin = blockLine.tokens.front().visit([](auto& t) { return t.input.begin(); });
-        blockLineEnd = blockLine.tokens.back().visit([](auto& t) { return t.input.end(); });
-    }
-    if (!blockLine.insignificants.empty()) {
-        auto start = blockLine.insignificants.front().visit([](auto& t) { return t.input.begin(); });
-        auto end = blockLine.insignificants.back().visit([](auto& t) { return t.input.end(); });
-        if (!blockLineBegin || start < blockLineBegin) blockLineBegin = start;
-        if (!blockLineEnd || end > blockLineEnd) blockLineEnd = end;
-    }
-
+    auto all = extractBlockLines(blockLine);
     auto begin = view.begin();
-    while (begin > blockLineBegin && begin[-1] != '\r' && begin[-1] != '\n') begin--;
+    while (begin > all.begin() && begin[-1] != '\r' && begin[-1] != '\n') begin--;
     auto end = view.end();
-    while (end < blockLineEnd && end[0] != '\r' && end[0] != '\n') end++;
+    while (end < all.end() && end[0] != '\r' && end[0] != '\n') end++;
     return strings::View{begin, end};
 }
 
@@ -69,12 +73,35 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
     };
     auto requiresEscapes = false;
     auto addEscaped = [&](strings::View input) {
-        requiresEscapes = true;
         output += strings::View{begin, input.begin()};
         auto escaped = std::stringstream{};
-        escaped << R"(\[)" << std::hex;
-        for (auto x : input) escaped << ((int)x & 255);
-        escaped << "]" << std::dec;
+        if (input.size() == 1) {
+            switch (input.front()) {
+            case 0xA: escaped << "\\n\n"; break;
+            case 0xD:
+                requiresEscapes = true;
+                escaped << R"(\r)";
+                break;
+            case 0x9:
+                requiresEscapes = true;
+                escaped << R"(\t)";
+                break;
+            case 0x0:
+                requiresEscapes = true;
+                escaped << R"(\0)";
+                break;
+            default:
+                requiresEscapes = true;
+                escaped << R"(\[)" << std::hex << ((int)input.front() & 255) << "]" << std::dec;
+                break;
+            }
+        }
+        else {
+            requiresEscapes = true;
+            escaped << R"(\[)" << std::hex;
+            for (auto x : input) escaped << ((int)x & 255);
+            escaped << "]" << std::dec;
+        }
         auto str = escaped.str();
         output += strings::String{str.data(), str.data() + str.size()};
         begin = input.end();
@@ -144,35 +171,49 @@ void reportDecodeErrorMarkers(
     context.reportDiagnostic(std::move(d));
 }
 
+inline void collectDecodeErrorMarkers(
+    ViewMarkers& viewMarkers, const nesting::BlockLine& blockLine, const strings::View& tokenLines, const void* tok) {
+    auto isOnLine = [&](strings::View& input) {
+        return input.begin() >= tokenLines.begin() && input.end() <= tokenLines.end();
+    };
+    for (auto& t : blockLine.insignificants) {
+        t.visitSome(
+            [&](const nesting::InvalidEncoding& ie) {
+                if (ie.isTainted || !ie.input.isPartOf(tokenLines)) return;
+                viewMarkers.emplace_back(ie.input);
+                if (&ie != tok) const_cast<nesting::InvalidEncoding&>(ie).isTainted = true;
+            },
+            [&](const nesting::CommentLiteral& cl) {
+                if (cl.isTainted || !cl.input.isPartOf(tokenLines)) return;
+                for (auto& p : cl.decodeErrors) viewMarkers.emplace_back(p.input);
+                if (&cl != tok) const_cast<nesting::CommentLiteral&>(cl).isTainted = true;
+            },
+            [&](const nesting::IdentifierLiteral& il) {
+                if (il.isTainted || !il.input.isPartOf(tokenLines)) return;
+                for (auto& p : il.decodeErrors) viewMarkers.emplace_back(p.input);
+                if (&il != tok) const_cast<nesting::IdentifierLiteral&>(il).isTainted = true;
+            },
+            [&](const nesting::NewLineIndentation& nli) {
+                if (nli.isTainted || !nli.input.isPartOf(tokenLines)) return;
+                for (auto& err : nli.value.errors) {
+                    if (!err.holds<scanner::DecodedErrorPosition>()) return;
+                }
+                for (auto& err : nli.value.errors) {
+                    err.visitSome(
+                        [&](const scanner::DecodedErrorPosition& dep) { viewMarkers.emplace_back(dep.input); });
+                }
+                if (&nli != tok) const_cast<nesting::NewLineIndentation&>(nli).isTainted = true;
+            });
+    }
+}
+
 template<class Token, class Context>
 void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, ContextApi<Context>& context) {
     using namespace diagnostic;
 
     auto tokenLines = extractViewLines(blockLine, tok.input);
-
     auto viewMarkers = ViewMarkers{};
-    for (auto& t : blockLine.insignificants) {
-        t.visitSome(
-            [&](const nesting::InvalidEncoding& ie) {
-                if (ie.input.begin() >= tokenLines.begin() && ie.input.end() <= tokenLines.end()) {
-                    viewMarkers.emplace_back(ie.input);
-                    if (&ie != (void*)&tok) const_cast<nesting::InvalidEncoding&>(ie).isTainted = true;
-                }
-            },
-            [&](const nesting::CommentLiteral& cl) {
-                if (cl.input.begin() >= tokenLines.begin() && cl.input.end() <= tokenLines.end()) {
-                    for (auto& p : cl.decodeErrors) viewMarkers.emplace_back(p.input);
-                    if (&cl != (void*)&tok) const_cast<nesting::CommentLiteral&>(cl).isTainted = true;
-                }
-            },
-            [&](const nesting::IdentifierLiteral& il) {
-                if (il.input.begin() >= tokenLines.begin() && il.input.end() <= tokenLines.end()) {
-                    for (auto& p : il.decodeErrors) viewMarkers.emplace_back(p.input);
-                    if (&il != (void*)&tok) const_cast<nesting::IdentifierLiteral&>(il).isTainted = true;
-                }
-            });
-    }
-
+    collectDecodeErrorMarkers(viewMarkers, blockLine, tokenLines, &tok);
     reportDecodeErrorMarkers(tok.position.line, tokenLines, viewMarkers, context);
 }
 
@@ -184,6 +225,14 @@ void reportTokenWithDecodeErrors(
     if (de.isTainted || de.decodeErrors.empty()) return; // already reported or no errors
 
     reportDecodeErrors(blockLine, de, context);
+}
+
+template<class Context>
+void reportInvalidEncoding(
+    const nesting::BlockLine& blockLine, const nesting::InvalidEncoding& ie, ContextApi<Context>& context) {
+    if (ie.isTainted) return; // already reported
+
+    reportDecodeErrors(blockLine, ie, context);
 }
 
 template<class Context>
@@ -199,7 +248,10 @@ void reportNewline(
         for (auto& err : nli.value.errors) {
             err.visitSome([&](const scanner::DecodedErrorPosition& dep) { viewMarkers.emplace_back(dep.input); });
         }
-        if (!viewMarkers.empty()) reportDecodeErrorMarkers(nli.position.line, tokenLines, viewMarkers, context);
+        if (!viewMarkers.empty()) {
+            collectDecodeErrorMarkers(viewMarkers, blockLine, tokenLines, &nli);
+            reportDecodeErrorMarkers(text::Line{nli.position.line.v - 1}, tokenLines, viewMarkers, context);
+        }
     }
     {
         auto viewMarkers = ViewMarkers{};
@@ -208,27 +260,33 @@ void reportNewline(
         }
         if (viewMarkers.empty()) return;
 
+        for (auto& t : blockLine.insignificants) {
+            t.visitSome([&](const nesting::NewLineIndentation& onli) {
+                if (onli.isTainted || !onli.input.isPartOf(tokenLines)) return;
+                for (auto& err : onli.value.errors) {
+                    if (!err.holds<scanner::MixedIndentCharacter>()) return;
+                }
+                for (auto& err : onli.value.errors) {
+                    err.visitSome(
+                        [&](const scanner::MixedIndentCharacter& mic) { viewMarkers.emplace_back(mic.input); });
+                }
+                if (&onli != (void*)&nli) const_cast<nesting::NewLineIndentation&>(onli).isTainted = true;
+            });
+        }
+
         auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
 
         auto highlights = Highlights{};
         for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
         auto doc = Document{{Paragraph{String{"The indentation mixes tabs and spaces."}, {}},
-                             SourceCodeBlock{escapedLines, highlights, String{}, nli.position.line}}};
+                             SourceCodeBlock{escapedLines, highlights, String{}, text::Line{nli.position.line.v - 1}}}};
 
         auto expl = Explanation{String("Mixed Indentation Characters"), doc};
 
         auto d = Diagnostic{Code{String{"rebuild-lexer"}, 3}, Parts{expl}};
         context.reportDiagnostic(std::move(d));
     }
-}
-
-template<class Context>
-void reportInvalidEncoding(
-    const nesting::BlockLine& blockLine, const nesting::InvalidEncoding& ie, ContextApi<Context>& context) {
-    if (ie.isTainted) return; // already reported
-
-    reportDecodeErrors(blockLine, ie, context);
 }
 
 template<class Context>

@@ -2,6 +2,8 @@
 
 #include "meta/Variant.ostream.h"
 #include "strings/String.ostream.h"
+#include "strings/View.ostream.h"
+#include "strings/utf8Decode.h"
 
 #include <algorithm>
 #include <ostream>
@@ -9,23 +11,41 @@
 namespace diagnostic {
 
 inline auto operator<<(std::ostream& out, const SourceCodeBlock& code) -> std::ostream& {
-    if (code.fileName.isEmpty()) {
-        out << "input line: " << code.sourceLine.v << '\n';
+    if (!code.fileName.isEmpty()) {
+        out << "--> " << code.fileName << ":" << code.sourceLine.v << '\n';
     }
-    else {
-        out << "in \"" << code.fileName << "\" on line: " << code.sourceLine.v << '\n';
-    }
-    out << code.code; // TODO(arBmind): add formatting
-    if (!code.highlights.empty()) {
-        auto markerLine = std::string(code.code.byteCount().v, ' ');
-        for (auto& h : code.highlights) {
-            if (h.holds<Marker>()) {
-                auto& m = h.get<Marker>();
-                for (auto i = 0; i < m.span.length; i++) markerLine[i + m.span.start] = '~';
+    auto codeLines = std::vector<strings::View>{};
+    auto b = code.code.begin();
+    for (auto chr : strings::utf8Decode(code.code)) {
+        chr.visitSome([&](strings::DecodedCodePoint& dcp) {
+            if (dcp.cp.v == '\n') {
+                codeLines.emplace_back(b, dcp.input.begin());
+                b = dcp.input.end();
             }
+        });
+    }
+    if (b != code.code.end()) codeLines.emplace_back(b, code.code.end());
+
+    auto markers = std::string(code.code.byteCount().v, ' ');
+    for (auto& h : code.highlights) {
+        if (h.holds<Marker>()) {
+            auto& m = h.get<Marker>();
+            for (auto i = 0; i < m.span.length; i++) markers[i + m.span.start] = '~';
         }
+    }
+
+    auto num = code.sourceLine.v;
+    auto numWidth = std::to_string(num + codeLines.size() - 1).size();
+    for (auto& line : codeLines) {
+        out << std::setw(numWidth) << std::right << num << " |" << line << '\n';
+        // TODO(arBmind): perform highlighting if terminal supports it
+        auto markerLine = std::string(
+            markers.begin() + (line.begin() - code.code.begin()), markers.begin() + (line.end() - code.code.begin()));
         markerLine.erase(std::find(markerLine.rbegin(), markerLine.rend(), '~').base(), markerLine.end());
-        out << '\n' << markerLine;
+        if (!markerLine.empty()) {
+            out << std::string(numWidth, ' ') << " |" << markerLine << '\n';
+        }
+        num++;
     }
     return out;
 }

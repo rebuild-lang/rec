@@ -64,9 +64,10 @@ public:
     constexpr bool isContentEqual(const This& o) const {
         return byteCount() == o.byteCount() && meta::equals(*this, o.begin());
     }
+    constexpr bool isEmpty() const { return start_m == end_m; }
+    constexpr bool isPartOf(const This& o) const { return begin() >= o.begin() && end() <= o.end(); }
 
     constexpr auto byteCount() const -> Counter { return {static_cast<uint32_t>(end_m - start_m)}; }
-    constexpr bool isEmpty() const { return start_m == end_m; }
     constexpr auto size() const -> size_t { return static_cast<size_t>(end_m - start_m); }
 
     template<size_t N>
