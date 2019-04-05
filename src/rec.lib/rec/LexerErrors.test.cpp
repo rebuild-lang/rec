@@ -84,11 +84,31 @@ TEST(LexerErrors, indentationDecodeError) {
     auto expected = R"(1 diagnostics:
 >>> rebuild-lexer[1]: Invalid UTF8 Encoding
 
-The UTF8-decoder encountered multiple invalid encodings
+The UTF8-decoder encountered an invalid encoding
 
 1 | \n
 2 |\[80]
   |~~~~~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}
+
+TEST(LexerErrors, unknownEscapeSequence) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{R"("\?")"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[11]: Unkown escape sequence
+
+These Escape sequences are unknown.
+
+1 |"\?"
+  | ~~
 
 
 )"s;

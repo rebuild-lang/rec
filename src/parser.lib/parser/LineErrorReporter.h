@@ -6,6 +6,7 @@
 #include "strings/Rope.h"
 #include "strings/utf8Decode.h"
 
+#include <bitset>
 #include <sstream>
 
 namespace parser {
@@ -18,7 +19,8 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
             [&](const nesting::NewLineIndentation& nli) { reportNewline(line, nli, context); },
             [&](const nesting::CommentLiteral& cl) { reportTokenWithDecodeErrors(line, cl, context); },
             [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
-            [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); });
+            [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); },
+            [&](const nesting::StringLiteral& sl) { reportStringLiteral(line, sl, context); });
     });
 }
 
@@ -326,6 +328,81 @@ void reportUnexpectedCharacter(
 
     auto d = Diagnostic{Code{String{"rebuild-lexer"}, 2}, Parts{expl}};
     context.reportDiagnostic(std::move(d));
+}
+
+template<class Context>
+void reportStringLiteral(
+    const nesting::BlockLine& blockLine, const nesting::StringLiteral& sl, ContextApi<Context>& context) {
+    if (sl.isTainted || !sl.value.hasErrors()) return;
+
+    using namespace diagnostic;
+
+    auto tokenLines = extractViewLines(blockLine, sl.input);
+
+    auto reportedKinds = std::bitset<8>{};
+    for (auto& err : sl.value.errors) {
+        if (reportedKinds[static_cast<int>(err.kind)]) continue;
+        reportedKinds.set(static_cast<int>(err.kind));
+
+        auto viewMarkers = ViewMarkers{};
+        for (auto& err2 : sl.value.errors)
+            if (err2.kind == err.kind) viewMarkers.emplace_back(err2.input);
+
+        auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+        auto highlights = Highlights{};
+        for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+        using Kind = scanner::StringError::Kind;
+        switch (err.kind) {
+        case Kind::EndOfInput: {
+            auto doc = Document{{Paragraph{String{"The string was not terminated."}, {}},
+                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto expl = Explanation{String("Unexpected end of input"), doc};
+            auto d = Diagnostic{Code{String{"rebuild-lexer"}, 10}, Parts{expl}};
+            context.reportDiagnostic(std::move(d));
+            break;
+        }
+        case Kind::InvalidEncoding: {
+            reportDecodeErrorMarkers(sl.position.line, tokenLines, viewMarkers, context);
+            break;
+        }
+        case Kind::InvalidEscape: {
+            auto doc = Document{{Paragraph{String{"These Escape sequences are unknown."}, {}},
+                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto expl = Explanation{String("Unkown escape sequence"), doc};
+            auto d = Diagnostic{Code{String{"rebuild-lexer"}, 11}, Parts{expl}};
+            context.reportDiagnostic(std::move(d));
+            break;
+        }
+        case Kind::InvalidControl: {
+            auto doc = Document{{Paragraph{String{"Use of invalid control characters. Use escape sequences."}, {}},
+                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto expl = Explanation{String("Unkown control characters"), doc};
+            auto d = Diagnostic{Code{String{"rebuild-lexer"}, 12}, Parts{expl}};
+            context.reportDiagnostic(std::move(d));
+            break;
+        }
+        case Kind::InvalidDecimalUnicode: {
+            auto doc = Document{{Paragraph{String{"Use of invalid decimal unicode values."}, {}},
+                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto expl = Explanation{String("Invalid decimal unicode"), doc};
+            auto d = Diagnostic{Code{String{"rebuild-lexer"}, 13}, Parts{expl}};
+            context.reportDiagnostic(std::move(d));
+            break;
+        }
+        case Kind::InvalidHexUnicode: {
+            auto doc = Document{{Paragraph{String{"Use of invalid hexadecimal unicode values."}, {}},
+                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto expl = Explanation{String("Invalid hexadecimal unicode"), doc};
+            auto d = Diagnostic{Code{String{"rebuild-lexer"}, 14}, Parts{expl}};
+            context.reportDiagnostic(std::move(d));
+            break;
+        }
+        } // switch
+    }
+
+    auto viewMarkers = ViewMarkers{};
 }
 
 } // namespace parser

@@ -32,6 +32,7 @@ inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
         endPosition = ip.position;
     };
     auto inputView = [&, begin = firstCpp.input.begin()] { return View{begin, end}; };
+    auto quoteView = firstCpp.input;
 
     auto peekCpp = [&]() -> OptCodePointPosition {
         while (true) {
@@ -59,7 +60,7 @@ inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
     auto addDecodeError = [&](DecodedErrorPosition& dep) {
         string.errors.push_back({StringError::Kind::InvalidEncoding, dep.input, dep.position});
     };
-    auto addEndOfInputError = [&] { string.errors.push_back({StringError::Kind::EndOfInput, View{}, endPosition}); };
+    auto addEndOfInputError = [&] { string.errors.push_back({StringError::Kind::EndOfInput, quoteView, endPosition}); };
     auto addInvalidControl = [&](const CodePointPosition& cpp) {
         string.errors.push_back({StringError::Kind::InvalidControl, cpp.input, cpp.position});
     };
@@ -69,6 +70,7 @@ inline auto extractString(CodePointPosition firstCpp, meta::CoEnumerator<Decoded
     static auto isTab = [](CodePoint cp) { return cp.v == '\t'; };
 
     auto raw = [&] {
+        quoteView = View{firstCpp.input.begin(), decoded->get<CodePointPosition>().input.end()};
         auto spaces = Rope{};
 
         auto handleQuotes = [&](const CodePointPosition& firstQuoteCpp) {
