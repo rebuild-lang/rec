@@ -249,6 +249,7 @@ void reportNewline(
             err.visitSome([&](const scanner::DecodedErrorPosition& dep) { viewMarkers.emplace_back(dep.input); });
         }
         if (!viewMarkers.empty()) {
+            if (viewMarkers.size() == nli.value.errors.size()) viewMarkers.clear();
             collectDecodeErrorMarkers(viewMarkers, blockLine, tokenLines, &nli);
             reportDecodeErrorMarkers(text::Line{nli.position.line.v - 1}, tokenLines, viewMarkers, context);
         }
