@@ -78,15 +78,16 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
 
     while (decoded) {
         auto dp = *decoded;
-        decoded++;
         auto next = dp.visit(
             [&](DecodedErrorPosition& dep) {
+                decoded++;
                 updateEnd(dep);
                 decodeErrors.push_back(dep);
                 return true;
             },
             [&](NewlinePosition&) { return false; },
             [&](CodePointPosition& cpp) {
+                decoded++;
                 updateEnd(cpp);
                 auto cp = cpp.codePoint;
                 if (cp == '\t' || cp.isWhiteSpace()) return scanLine();
