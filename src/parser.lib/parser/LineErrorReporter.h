@@ -20,7 +20,8 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
             [&](const nesting::CommentLiteral& cl) { reportTokenWithDecodeErrors(line, cl, context); },
             [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
             [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); },
-            [&](const nesting::StringLiteral& sl) { reportStringLiteral(line, sl, context); });
+            [&](const nesting::StringLiteral& sl) { reportStringLiteral(line, sl, context); },
+            [&](const nesting::NumberLiteral& sl) { reportNumberLiteral(line, sl, context); });
     });
 }
 
@@ -403,6 +404,58 @@ void reportStringLiteral(
     }
 
     auto viewMarkers = ViewMarkers{};
+}
+
+template<class Context>
+void reportNumberLiteral(
+    const nesting::BlockLine& blockLine, const nesting::NumberLiteral& nl, ContextApi<Context>& context) {
+    if (nl.isTainted || !nl.value.hasErrors()) return;
+
+    using namespace diagnostic;
+
+    auto tokenLines = extractViewLines(blockLine, nl.input);
+
+    auto reportedKinds = std::bitset<scanner::NumberLiteralError::optionCount()>{};
+    for (auto& err : nl.value.errors) {
+        auto kind = err.index().value();
+        if (reportedKinds[kind]) continue;
+        reportedKinds.set(kind);
+
+        auto viewMarkers = ViewMarkers{};
+        for (auto& err2 : nl.value.errors)
+            if (err2.index() == err.index()) err2.visit([&](auto& v) { viewMarkers.emplace_back(v.input); });
+
+        auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+        auto highlights = Highlights{};
+        for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+        err.visit(
+            [&](const scanner::DecodedErrorPosition&) {
+                reportDecodeErrorMarkers(nl.position.line, tokenLines, viewMarkers, context);
+            },
+            [&](const scanner::NumberMissingExponent&) {
+                auto doc = Document{{Paragraph{String{"After the exponent sign an actual value is expected."}, {}},
+                                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
+                auto expl = Explanation{String("Missing exponent value"), doc};
+                auto d = Diagnostic{Code{String{"rebuild-lexer"}, 20}, Parts{expl}};
+                context.reportDiagnostic(std::move(d));
+            },
+            [&](const scanner::NumberMissingValue&) {
+                auto doc = Document{{Paragraph{String{"After the radix sign an actual value is expected."}, {}},
+                                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
+                auto expl = Explanation{String("Missing value"), doc};
+                auto d = Diagnostic{Code{String{"rebuild-lexer"}, 21}, Parts{expl}};
+                context.reportDiagnostic(std::move(d));
+            },
+            [&](const scanner::NumberMissingBoundary&) {
+                auto doc = Document{{Paragraph{String{"The number literal ends with an unknown suffix."}, {}},
+                                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
+                auto expl = Explanation{String("Missing boundary"), doc};
+                auto d = Diagnostic{Code{String{"rebuild-lexer"}, 22}, Parts{expl}};
+                context.reportDiagnostic(std::move(d));
+            });
+    }
 }
 
 } // namespace parser

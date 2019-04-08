@@ -114,3 +114,23 @@ These Escape sequences are unknown.
 )"s;
     EXPECT_EQ(outbuffer.str(), expected);
 }
+
+TEST(LexerErrors, numberMissingBoundary) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"3.14p"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[22]: Missing boundary
+
+The number literal ends with an unknown suffix.
+
+1 |3.14p
+  |    ~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}

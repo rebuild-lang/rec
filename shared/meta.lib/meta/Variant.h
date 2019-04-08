@@ -57,6 +57,8 @@ public:
     bool operator==(const This& o) const { return m == o.m; }
     bool operator!=(const This& o) const { return m != o.m; }
 
+    constexpr static auto optionCount() { return sizeof...(T); }
+
     template<class... F>
     auto visit(F&&... f) const& -> decltype(auto) {
         return std::visit(Overloaded{std::forward<F>(f)...}, m);
