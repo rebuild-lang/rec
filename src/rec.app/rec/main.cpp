@@ -2,7 +2,16 @@
 
 #include <iostream>
 
+#ifdef _WIN32
+#    include <Windows.h>
+#endif
+
 int main() {
+
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     using namespace rec;
 
     auto config = Config{text::Column{8}};
@@ -14,7 +23,7 @@ int main() {
 
     auto file = text::File{
         strings::String{"TestFile"},
-        strings::String{"\n \n\x80\n"
+        strings::String{"*›‹\n"
                         R"(# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
 
 Rebuild.Context.declareFunction(() hi (a :Rebuild.literal.String) ():

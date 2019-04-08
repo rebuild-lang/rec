@@ -13,9 +13,10 @@ using OperatorNotClosed = text::InputPosition<struct OperatorNotClosedTag>;
 
 using OperatorLiteralError = meta::Variant< //
     DecodedErrorPosition,
-    OperatorWrongClose,
-    OperatorUnexpectedClose,
-    OperatorNotClosed>;
+    OperatorWrongClose, // opening and closing don't match
+    OperatorUnexpectedClose, // missing opening
+    OperatorNotClosed // missing closing
+    >;
 using OperatorLiteralErrors = std::vector<OperatorLiteralError>;
 
 struct OperatorLiteralValue {

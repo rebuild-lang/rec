@@ -10,6 +10,22 @@
 
 namespace diagnostic {
 
+inline auto extractUtf8Markers(const strings::View& line, const std::string& byteMarkers) -> std::string {
+    auto utf8Markers = std::string(byteMarkers.size(), ' ');
+    auto i = 0u;
+    for (auto& cp : utf8Decode(line)) {
+        cp.visit(
+            [&](const strings::DecodedCodePoint& c) {
+                auto vi = c.input.begin() - line.begin();
+                utf8Markers[i] = byteMarkers[vi];
+                i++;
+            },
+            [](const strings::DecodedError&) {});
+    }
+    if (utf8Markers.begin() + i < utf8Markers.end()) utf8Markers.erase(utf8Markers.begin() + i, utf8Markers.end());
+    return utf8Markers;
+}
+
 inline auto operator<<(std::ostream& out, const SourceCodeBlock& code) -> std::ostream& {
     if (!code.fileName.isEmpty()) {
         out << "--> " << code.fileName << ":" << code.sourceLine.v << '\n';
@@ -39,8 +55,9 @@ inline auto operator<<(std::ostream& out, const SourceCodeBlock& code) -> std::o
     for (auto& line : codeLines) {
         out << std::setw(numWidth) << std::right << num << " |" << line << '\n';
         // TODO(arBmind): perform highlighting if terminal supports it
-        auto markerLine = std::string(
+        auto byteMarkers = std::string(
             markers.begin() + (line.begin() - code.code.begin()), markers.begin() + (line.end() - code.code.begin()));
+        auto markerLine = extractUtf8Markers(line, byteMarkers);
         markerLine.erase(std::find(markerLine.rbegin(), markerLine.rend(), '~').base(), markerLine.end());
         if (!markerLine.empty()) {
             out << std::string(numWidth, ' ') << " |" << markerLine << '\n';

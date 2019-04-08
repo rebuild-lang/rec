@@ -208,6 +208,17 @@ private:
                 }
                 return parseInstance(result, *optNode.value(), it, context);
             },
+            [&](const nesting::OperatorLiteral& op) {
+                auto optNode = lookupIdentifier(op.input, result, context);
+                if (!optNode) {
+                    if (result) return ParseOptions::finish_single;
+
+                    result = OptNode{makeTokenValue<OperatorLiteral>(it, op, context)};
+                    ++it;
+                    return ParseOptions::continue_single;
+                }
+                return parseInstance(result, *optNode.value(), it, context);
+            },
             [&](const nesting::StringLiteral& s) {
                 if (result) return ParseOptions::finish_single;
                 result = OptNode{makeTokenValue<StringLiteral>(it, s, context)};

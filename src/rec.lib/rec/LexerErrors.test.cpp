@@ -134,3 +134,31 @@ The number literal ends with an unknown suffix.
 )"s;
     EXPECT_EQ(outbuffer.str(), expected);
 }
+
+TEST(LexerErrors, operatorParts) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"*›‹\n"}};
+    compiler.compile(file);
+
+    auto expected = R"(2 diagnostics:
+>>> rebuild-lexer[31]: Operator unexpected close
+
+There was no opening sign before the closing sign.
+
+1 |*›‹
+  | ~
+
+
+>>> rebuild-lexer[32]: Operator not closed
+
+The operator ends before the closing sign was found.
+
+1 |*›‹
+  |  ~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}

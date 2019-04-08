@@ -139,7 +139,7 @@ inline auto extractOperator(CodePointPosition firstCpp, meta::CoEnumerator<Decod
 
     auto isEnclosedPart = [&](CodePointPosition cpp) -> bool {
         auto cp = cpp.codePoint;
-        if (cp.isWhiteSpace()) return false;
+        if (cp.isWhiteSpace() || cp.isControl() || cp.isLineSeparator()) return false;
         if (isClosePunctuation(cp)) {
             if (stack.back().closeCp == cp) {
                 stack.pop_back();
@@ -161,7 +161,10 @@ inline auto extractOperator(CodePointPosition firstCpp, meta::CoEnumerator<Decod
         if (cp == '-' || cp.isSymbolMath() || cp.isSymbolOther() || cp.isNumberOther()) return true;
         if (cp.isSymbolCurrency() && cp.v != '$') return true;
         if (cp.isPunctuationOther() && cp.v != '.') return true; // others are handled before
-        if (isClosePunctuation(cp)) errors.emplace_back(OperatorUnexpectedClose{{cpp.input, cpp.position}});
+        if (isClosePunctuation(cp)) {
+            errors.emplace_back(OperatorUnexpectedClose{{cpp.input, cpp.position}});
+            return true;
+        }
         auto cpu = closePunctuation(cp);
         if (cpu) {
             stack.push_back(Entry{cpu.value(), cpp.input.begin(), cpp.position});

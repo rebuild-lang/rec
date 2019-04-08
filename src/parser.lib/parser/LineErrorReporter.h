@@ -15,13 +15,16 @@ template<class Context>
 void reportLineErrors(const nesting::BlockLine& line, Context& context) {
     line.forEach([&](auto& t) {
         t.visitSome(
-            [&](const nesting::InvalidEncoding& ie) { reportInvalidEncoding(line, ie, context); },
             [&](const nesting::NewLineIndentation& nli) { reportNewline(line, nli, context); },
             [&](const nesting::CommentLiteral& cl) { reportTokenWithDecodeErrors(line, cl, context); },
-            [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
-            [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); },
             [&](const nesting::StringLiteral& sl) { reportStringLiteral(line, sl, context); },
-            [&](const nesting::NumberLiteral& sl) { reportNumberLiteral(line, sl, context); });
+            [&](const nesting::NumberLiteral& sl) { reportNumberLiteral(line, sl, context); },
+            [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
+            [&](const nesting::OperatorLiteral& ol) { reportOperatorLiteral(line, ol, context); },
+            [&](const nesting::InvalidEncoding& ie) { reportInvalidEncoding(line, ie, context); },
+            [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); }
+
+        );
     });
 }
 
@@ -458,4 +461,55 @@ void reportNumberLiteral(
     }
 }
 
+template<class Context>
+void reportOperatorLiteral(
+    const nesting::BlockLine& blockLine, const nesting::OperatorLiteral& ol, ContextApi<Context>& context) {
+    if (ol.isTainted || !ol.value.hasErrors()) return;
+
+    using namespace diagnostic;
+
+    auto tokenLines = extractViewLines(blockLine, ol.input);
+
+    auto reportedKinds = std::bitset<scanner::OperatorLiteralError::optionCount()>{};
+    for (auto& err : ol.value.errors) {
+        auto kind = err.index().value();
+        if (reportedKinds[kind]) continue;
+        reportedKinds.set(kind);
+
+        auto viewMarkers = ViewMarkers{};
+        for (auto& err2 : ol.value.errors)
+            if (err2.index() == err.index()) err2.visit([&](auto& v) { viewMarkers.emplace_back(v.input); });
+
+        auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+        auto highlights = Highlights{};
+        for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+        err.visit(
+            [&](const scanner::DecodedErrorPosition&) {
+                reportDecodeErrorMarkers(ol.position.line, tokenLines, viewMarkers, context);
+            },
+            [&](const scanner::OperatorWrongClose&) {
+                auto doc = Document{{Paragraph{String{"The closing sign does not match the opening sign."}, {}},
+                                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
+                auto expl = Explanation{String("Operator wrong close"), doc};
+                auto d = Diagnostic{Code{String{"rebuild-lexer"}, 30}, Parts{expl}};
+                context.reportDiagnostic(std::move(d));
+            },
+            [&](const scanner::OperatorUnexpectedClose&) {
+                auto doc = Document{{Paragraph{String{"There was no opening sign before the closing sign."}, {}},
+                                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
+                auto expl = Explanation{String("Operator unexpected close"), doc};
+                auto d = Diagnostic{Code{String{"rebuild-lexer"}, 31}, Parts{expl}};
+                context.reportDiagnostic(std::move(d));
+            },
+            [&](const scanner::OperatorNotClosed&) {
+                auto doc = Document{{Paragraph{String{"The operator ends before the closing sign was found."}, {}},
+                                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
+                auto expl = Explanation{String("Operator not closed"), doc};
+                auto d = Diagnostic{Code{String{"rebuild-lexer"}, 32}, Parts{expl}};
+                context.reportDiagnostic(std::move(d));
+            });
+    }
+}
 } // namespace parser
