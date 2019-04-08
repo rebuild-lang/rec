@@ -162,3 +162,23 @@ The operator ends before the closing sign was found.
 )"s;
     EXPECT_EQ(outbuffer.str(), expected);
 }
+
+TEST(LexerErrors, unexpectedColon) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"\n:\n"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[4]: Unexpected colon
+
+The colon cannot be the only token on a line.
+
+2 |:
+  |~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}

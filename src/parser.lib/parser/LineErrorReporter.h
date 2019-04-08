@@ -22,9 +22,8 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
             [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
             [&](const nesting::OperatorLiteral& ol) { reportOperatorLiteral(line, ol, context); },
             [&](const nesting::InvalidEncoding& ie) { reportInvalidEncoding(line, ie, context); },
-            [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); }
-
-        );
+            [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); },
+            [&](const nesting::UnexpectedColon& uc) { reportUnexpectedColon(line, uc, context); });
     });
 }
 
@@ -223,24 +222,6 @@ void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, C
     reportDecodeErrorMarkers(tok.position.line, tokenLines, viewMarkers, context);
 }
 
-template<class... Tags, class Context>
-void reportTokenWithDecodeErrors(
-    const nesting::BlockLine& blockLine,
-    const scanner::details::TagTokenWithDecodeErrors<Tags...>& de,
-    ContextApi<Context>& context) {
-    if (de.isTainted || de.decodeErrors.empty()) return; // already reported or no errors
-
-    reportDecodeErrors(blockLine, de, context);
-}
-
-template<class Context>
-void reportInvalidEncoding(
-    const nesting::BlockLine& blockLine, const nesting::InvalidEncoding& ie, ContextApi<Context>& context) {
-    if (ie.isTainted) return; // already reported
-
-    reportDecodeErrors(blockLine, ie, context);
-}
-
 template<class Context>
 void reportNewline(
     const nesting::BlockLine& blockLine, const nesting::NewLineIndentation& nli, ContextApi<Context>& context) {
@@ -296,42 +277,14 @@ void reportNewline(
     }
 }
 
-template<class Context>
-void reportUnexpectedCharacter(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedCharacter& uc, ContextApi<Context>& context) {
-    if (uc.isTainted) return;
+template<class... Tags, class Context>
+void reportTokenWithDecodeErrors(
+    const nesting::BlockLine& blockLine,
+    const scanner::details::TagTokenWithDecodeErrors<Tags...>& de,
+    ContextApi<Context>& context) {
+    if (de.isTainted || de.decodeErrors.empty()) return; // already reported or no errors
 
-    using namespace diagnostic;
-
-    auto tokenLines = extractViewLines(blockLine, uc.input);
-
-    auto viewMarkers = ViewMarkers{};
-    for (auto& t : blockLine.insignificants) {
-        t.visitSome([&](const nesting::UnexpectedCharacter& ouc) {
-            if (ouc.input.begin() >= tokenLines.begin() && ouc.input.end() <= tokenLines.end()) {
-                viewMarkers.emplace_back(ouc.input);
-                if (&ouc != (void*)&uc) const_cast<nesting::UnexpectedCharacter&>(ouc).isTainted = true;
-            }
-        });
-    }
-
-    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
-
-    auto highlights = Highlights{};
-    for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
-
-    auto doc = Document{
-        {Paragraph{(viewMarkers.size() == 1)
-                       ? String{"The tokenizer encountered a character that is not part of any Rebuild language token."}
-                       : String{"The tokenizer encountered multiple characters that are not part of any Rebuild "
-                                "language token."},
-                   {}},
-         SourceCodeBlock{escapedLines, highlights, String{}, uc.position.line}}};
-
-    auto expl = Explanation{String("Unexpected characters"), doc};
-
-    auto d = Diagnostic{Code{String{"rebuild-lexer"}, 2}, Parts{expl}};
-    context.reportDiagnostic(std::move(d));
+    reportDecodeErrors(blockLine, de, context);
 }
 
 template<class Context>
@@ -512,4 +465,84 @@ void reportOperatorLiteral(
             });
     }
 }
+
+template<class Context>
+void reportInvalidEncoding(
+    const nesting::BlockLine& blockLine, const nesting::InvalidEncoding& ie, ContextApi<Context>& context) {
+    if (ie.isTainted) return; // already reported
+
+    reportDecodeErrors(blockLine, ie, context);
+}
+
+template<class Context>
+void reportUnexpectedCharacter(
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedCharacter& uc, ContextApi<Context>& context) {
+    if (uc.isTainted) return;
+
+    using namespace diagnostic;
+
+    auto tokenLines = extractViewLines(blockLine, uc.input);
+
+    auto viewMarkers = ViewMarkers{};
+    for (auto& t : blockLine.insignificants) {
+        t.visitSome([&](const nesting::UnexpectedCharacter& ouc) {
+            if (ouc.input.begin() >= tokenLines.begin() && ouc.input.end() <= tokenLines.end()) {
+                viewMarkers.emplace_back(ouc.input);
+                if (&ouc != (void*)&uc) const_cast<nesting::UnexpectedCharacter&>(ouc).isTainted = true;
+            }
+        });
+    }
+
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+    auto highlights = Highlights{};
+    for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+    auto doc = Document{
+        {Paragraph{(viewMarkers.size() == 1)
+                       ? String{"The tokenizer encountered a character that is not part of any Rebuild language token."}
+                       : String{"The tokenizer encountered multiple characters that are not part of any Rebuild "
+                                "language token."},
+                   {}},
+         SourceCodeBlock{escapedLines, highlights, String{}, uc.position.line}}};
+
+    auto expl = Explanation{String("Unexpected characters"), doc};
+
+    auto d = Diagnostic{Code{String{"rebuild-lexer"}, 2}, Parts{expl}};
+    context.reportDiagnostic(std::move(d));
+}
+
+template<class Context>
+void reportUnexpectedColon(
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedColon& uc, ContextApi<Context>& context) {
+    if (uc.isTainted) return;
+
+    using namespace diagnostic;
+
+    auto tokenLines = extractViewLines(blockLine, uc.input);
+
+    auto viewMarkers = ViewMarkers{};
+    for (auto& t : blockLine.insignificants) {
+        t.visitSome([&](const nesting::UnexpectedColon& ouc) {
+            if (ouc.input.begin() >= tokenLines.begin() && ouc.input.end() <= tokenLines.end()) {
+                viewMarkers.emplace_back(ouc.input);
+                if (&ouc != (void*)&uc) const_cast<nesting::UnexpectedColon&>(ouc).isTainted = true;
+            }
+        });
+    }
+
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+    auto highlights = Highlights{};
+    for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+    auto doc = Document{{Paragraph{String{"The colon cannot be the only token on a line."}, {}},
+                         SourceCodeBlock{escapedLines, highlights, String{}, uc.position.line}}};
+
+    auto expl = Explanation{String("Unexpected colon"), doc};
+
+    auto d = Diagnostic{Code{String{"rebuild-lexer"}, 4}, Parts{expl}};
+    context.reportDiagnostic(std::move(d));
+}
+
 } // namespace parser
