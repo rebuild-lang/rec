@@ -19,6 +19,11 @@ struct Line {
 
     constexpr bool operator==(const This& o) const { return v == o.v; }
     constexpr bool operator!=(const This& o) const { return v != o.v; }
+
+    constexpr bool operator>(const This& o) const { return v > o.v; }
+    constexpr bool operator<(const This& o) const { return v < o.v; }
+    constexpr bool operator>=(const This& o) const { return v >= o.v; }
+    constexpr bool operator<=(const This& o) const { return v <= o.v; }
 };
 
 struct Column {
@@ -61,6 +66,9 @@ struct Position {
 
     constexpr bool operator==(const This& o) const { return line == o.line && column == o.column; }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
+
+    constexpr bool operator>(const This& o) const { return line > o.line || (line == o.line && column > o.column); }
+    constexpr bool operator>=(const This& o) const { return line > o.line || (line == o.line && column >= o.column); }
 };
 
 } // namespace text

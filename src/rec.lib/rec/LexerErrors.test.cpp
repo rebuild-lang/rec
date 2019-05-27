@@ -183,6 +183,27 @@ The colon cannot be the only token on a line.
     EXPECT_EQ(outbuffer.str(), expected);
 }
 
+TEST(LexerErrors, unexpectedIndent) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"\n   a\n  c"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[5]: Unexpected indent
+
+The indentation is above the regular block level, but does not leave the block.
+
+2 |
+3 |  c
+  |~~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}
+
 TEST(LexerErrors, unexpectedTokenAfterEnd) {
     auto outbuffer = std::stringstream{};
     auto compiler = makeTestCompiler(outbuffer);

@@ -148,6 +148,7 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
             auto& m = markers[i];
             m.start = vm.begin() - view.begin();
             m.length = vm.byteCount().v;
+            i++;
         }
         return EscapedMarkers{to_string(view), std::move(markers)};
     }
@@ -584,21 +585,12 @@ void reportUnexpectedTokenAfterEnd(
     auto tokenLines = extractBlockLines(blockLine);
 
     auto viewMarkers = ViewMarkers{};
-    bool afterEnd = {};
-    for (auto& t : blockLine.insignificants) {
-        t.visit(
-            [&](const nesting::UnexpectedTokensAfterEnd& outae) {
-                if (outae.input.isPartOf(tokenLines)) {
-                    afterEnd = true;
-                }
-            },
-            [](const nesting::WhiteSpaceSeparator&) {},
-            [](const nesting::CommentLiteral&) {},
-            [&](const auto& tok) {
-                if (afterEnd) {
-                    viewMarkers.emplace_back(tok.input);
-                }
-            });
+    for (auto& t : blockLine.tokens) {
+        t.visit([&](const auto& tok) {
+            if (tok.position >= utae.position && tok.input.isPartOf(tokenLines)) {
+                viewMarkers.emplace_back(tok.input);
+            }
+        });
     }
 
     auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
