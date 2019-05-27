@@ -182,3 +182,24 @@ The colon cannot be the only token on a line.
 )"s;
     EXPECT_EQ(outbuffer.str(), expected);
 }
+
+TEST(LexerErrors, unexpectedTokenAfterEnd) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"b:\nend+ nx"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[6]: Unexpected tokens after end
+
+After end no more tokens are allowed.
+
+2 |b:
+3 |end+ nx
+  |   ~ ~~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}

@@ -15,6 +15,7 @@ template<class Context>
 void reportLineErrors(const nesting::BlockLine& line, Context& context) {
     line.forEach([&](auto& t) {
         t.visitSome(
+            // scanner
             [&](const nesting::NewLineIndentation& nli) { reportNewline(line, nli, context); },
             [&](const nesting::CommentLiteral& cl) { reportTokenWithDecodeErrors(line, cl, context); },
             [&](const nesting::StringLiteral& sl) { reportStringLiteral(line, sl, context); },
@@ -23,7 +24,11 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
             [&](const nesting::OperatorLiteral& ol) { reportOperatorLiteral(line, ol, context); },
             [&](const nesting::InvalidEncoding& ie) { reportInvalidEncoding(line, ie, context); },
             [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); },
-            [&](const nesting::UnexpectedColon& uc) { reportUnexpectedColon(line, uc, context); });
+            // filter
+            [&](const nesting::UnexpectedColon& uc) { reportUnexpectedColon(line, uc, context); },
+            // nesting
+            [&](const nesting::UnexpectedIndent& ui) { reportUnexpectedIndent(line, ui, context); },
+            [&](const nesting::UnexpectedTokensAfterEnd& utae) { reportUnexpectedTokenAfterEnd(line, utae, context); });
     });
 }
 
@@ -178,9 +183,7 @@ void reportDecodeErrorMarkers(
 
 inline void collectDecodeErrorMarkers(
     ViewMarkers& viewMarkers, const nesting::BlockLine& blockLine, const strings::View& tokenLines, const void* tok) {
-    auto isOnLine = [&](strings::View& input) {
-        return input.begin() >= tokenLines.begin() && input.end() <= tokenLines.end();
-    };
+
     for (auto& t : blockLine.insignificants) {
         t.visitSome(
             [&](const nesting::InvalidEncoding& ie) {
@@ -486,7 +489,7 @@ void reportUnexpectedCharacter(
     auto viewMarkers = ViewMarkers{};
     for (auto& t : blockLine.insignificants) {
         t.visitSome([&](const nesting::UnexpectedCharacter& ouc) {
-            if (ouc.input.begin() >= tokenLines.begin() && ouc.input.end() <= tokenLines.end()) {
+            if (ouc.input.isPartOf(tokenLines)) {
                 viewMarkers.emplace_back(ouc.input);
                 if (&ouc != (void*)&uc) const_cast<nesting::UnexpectedCharacter&>(ouc).isTainted = true;
             }
@@ -521,16 +524,7 @@ void reportUnexpectedColon(
 
     auto tokenLines = extractViewLines(blockLine, uc.input);
 
-    auto viewMarkers = ViewMarkers{};
-    for (auto& t : blockLine.insignificants) {
-        t.visitSome([&](const nesting::UnexpectedColon& ouc) {
-            if (ouc.input.begin() >= tokenLines.begin() && ouc.input.end() <= tokenLines.end()) {
-                viewMarkers.emplace_back(ouc.input);
-                if (&ouc != (void*)&uc) const_cast<nesting::UnexpectedColon&>(ouc).isTainted = true;
-            }
-        });
-    }
-
+    auto viewMarkers = ViewMarkers{uc.input};
     auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
 
     auto highlights = Highlights{};
@@ -542,6 +536,82 @@ void reportUnexpectedColon(
     auto expl = Explanation{String("Unexpected colon"), doc};
 
     auto d = Diagnostic{Code{String{"rebuild-lexer"}, 4}, Parts{expl}};
+    context.reportDiagnostic(std::move(d));
+}
+
+template<class Context>
+void reportUnexpectedIndent(
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedIndent& ui, ContextApi<Context>& context) {
+    if (ui.isTainted) return;
+
+    using namespace diagnostic;
+
+    // TODO(arBmind): find a way to add the line before.
+    // we probably have to report this in the parent block
+    auto tokenLines = extractBlockLines(blockLine);
+
+    auto viewMarkers = ViewMarkers{};
+    for (auto& t : blockLine.insignificants) {
+        t.visitSome([&](const nesting::UnexpectedIndent& oui) {
+            if (oui.input.isPartOf(tokenLines)) {
+                viewMarkers.emplace_back(oui.input);
+                if (&oui != (void*)&ui) const_cast<nesting::UnexpectedIndent&>(oui).isTainted = true;
+            }
+        });
+    }
+
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+    auto highlights = Highlights{};
+    for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+    auto doc = Document{
+        {Paragraph{String{"The indentation is above the regular block level, but does not leave the block."}, {}},
+         SourceCodeBlock{escapedLines, highlights, String{}, ui.position.line}}};
+
+    auto expl = Explanation{String("Unexpected indent"), doc};
+
+    auto d = Diagnostic{Code{String{"rebuild-lexer"}, 5}, Parts{expl}};
+    context.reportDiagnostic(std::move(d));
+}
+
+template<class Context>
+void reportUnexpectedTokenAfterEnd(
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedTokensAfterEnd& utae, ContextApi<Context>& context) {
+    if (utae.isTainted) return;
+
+    using namespace diagnostic;
+    auto tokenLines = extractBlockLines(blockLine);
+
+    auto viewMarkers = ViewMarkers{};
+    bool afterEnd = {};
+    for (auto& t : blockLine.insignificants) {
+        t.visit(
+            [&](const nesting::UnexpectedTokensAfterEnd& outae) {
+                if (outae.input.isPartOf(tokenLines)) {
+                    afterEnd = true;
+                }
+            },
+            [](const nesting::WhiteSpaceSeparator&) {},
+            [](const nesting::CommentLiteral&) {},
+            [&](const auto& tok) {
+                if (afterEnd) {
+                    viewMarkers.emplace_back(tok.input);
+                }
+            });
+    }
+
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+    auto highlights = Highlights{};
+    for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+    auto doc = Document{{Paragraph{String{"After end no more tokens are allowed."}, {}},
+                         SourceCodeBlock{escapedLines, highlights, String{}, utae.position.line}}};
+
+    auto expl = Explanation{String("Unexpected tokens after end"), doc};
+
+    auto d = Diagnostic{Code{String{"rebuild-lexer"}, 6}, Parts{expl}};
     context.reportDiagnostic(std::move(d));
 }
 
