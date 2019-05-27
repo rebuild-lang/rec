@@ -248,6 +248,7 @@ private:
             result = {};
             return ref.module->locals[id];
         }
+        // TODO(arBmind): add Variable/Argument Reference ?
         return context.lookup(id);
     }
 
@@ -288,7 +289,6 @@ private:
                 ++it;
                 return ParseOptions::continue_single;
             });
-        // TODO(arBmind): add modules
         // TODO(arBmind): add overloads
     }
 
