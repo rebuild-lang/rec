@@ -29,23 +29,20 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
             // nesting
             [&](const nesting::UnexpectedIndent& ui) { reportUnexpectedIndent(line, ui, context); },
             [&](const nesting::UnexpectedTokensAfterEnd& utae) { reportUnexpectedTokenAfterEnd(line, utae, context); },
-            [&](const nesting::UnexpectedBlockEnd& ube) { reportUnexpectedBlockEnd(line, ube, context); });
+            [&](const nesting::UnexpectedBlockEnd& ube) { reportUnexpectedBlockEnd(line, ube, context); },
+            [&](const nesting::MissingBlockEnd& mbe) { reportMissingBlockEnd(line, mbe, context); });
     });
 }
 
 inline auto extractBlockLines(const nesting::BlockLine& blockLine) -> strings::View {
     auto begin = strings::View::It{};
     auto end = strings::View::It{};
-    if (!blockLine.tokens.empty()) {
-        begin = blockLine.tokens.front().visit([](auto& t) { return t.input.begin(); });
-        end = blockLine.tokens.back().visit([](auto& t) { return t.input.end(); });
-    }
-    if (!blockLine.insignificants.empty()) {
-        auto begin2 = blockLine.insignificants.front().visit([](auto& t) { return t.input.begin(); });
-        auto end2 = blockLine.insignificants.back().visit([](auto& t) { return t.input.end(); });
-        if (!begin || begin2 < begin) begin = begin2;
-        if (!end || end2 > end) end = end2;
-    }
+    blockLine.forEach([&](auto& g) {
+        auto begin2 = g.visit([](auto& t) { return t.input.begin(); });
+        auto end2 = g.visit([](auto& t) { return t.input.end(); });
+        if (!begin || (begin2 && begin2 < begin)) begin = begin2;
+        if (!end || (end2 && end2 > end)) end = end2;
+    });
     return strings::View{begin, end};
 }
 
@@ -636,6 +633,29 @@ void reportUnexpectedBlockEnd(
     auto expl = Explanation{String("Unexpected block end"), doc};
 
     auto d = Diagnostic{Code{String{"rebuild-lexer"}, 7}, Parts{expl}};
+    context.reportDiagnostic(std::move(d));
+}
+
+template<class Context>
+void reportMissingBlockEnd(
+    const nesting::BlockLine& blockLine, const nesting::MissingBlockEnd& ube, ContextApi<Context>& context) {
+
+    if (ube.isTainted) return;
+    using namespace diagnostic;
+    auto tokenLines = extractBlockLines(blockLine);
+
+    auto viewMarkers = ViewMarkers{};
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+    auto highlights = Highlights{};
+    for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+    auto doc = Document{{Paragraph{String{"The block ended without the end keyword"}, {}},
+                         SourceCodeBlock{escapedLines, highlights, String{}, ube.position.line}}};
+
+    auto expl = Explanation{String("Missing Block End"), doc};
+
+    auto d = Diagnostic{Code{String{"rebuild-lexer"}, 8}, Parts{expl}};
     context.reportDiagnostic(std::move(d));
 }
 

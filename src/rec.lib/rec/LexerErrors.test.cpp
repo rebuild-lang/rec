@@ -245,3 +245,22 @@ The end keyword is only allowed to end blocks
 )"s;
     EXPECT_EQ(outbuffer.str(), expected);
 }
+
+TEST(LexerErrors, missingBlockEnd) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"b:\n  c\nmore"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[8]: Missing Block End
+
+The block ended without the end keyword
+
+1 |b:
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}
