@@ -28,7 +28,8 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
             [&](const nesting::UnexpectedColon& uc) { reportUnexpectedColon(line, uc, context); },
             // nesting
             [&](const nesting::UnexpectedIndent& ui) { reportUnexpectedIndent(line, ui, context); },
-            [&](const nesting::UnexpectedTokensAfterEnd& utae) { reportUnexpectedTokenAfterEnd(line, utae, context); });
+            [&](const nesting::UnexpectedTokensAfterEnd& utae) { reportUnexpectedTokenAfterEnd(line, utae, context); },
+            [&](const nesting::UnexpectedBlockEnd& ube) { reportUnexpectedBlockEnd(line, ube, context); });
     });
 }
 
@@ -579,7 +580,6 @@ void reportUnexpectedIndent(
 template<class Context>
 void reportUnexpectedTokenAfterEnd(
     const nesting::BlockLine& blockLine, const nesting::UnexpectedTokensAfterEnd& utae, ContextApi<Context>& context) {
-    if (utae.isTainted) return;
 
     using namespace diagnostic;
     auto tokenLines = extractBlockLines(blockLine);
@@ -604,6 +604,38 @@ void reportUnexpectedTokenAfterEnd(
     auto expl = Explanation{String("Unexpected tokens after end"), doc};
 
     auto d = Diagnostic{Code{String{"rebuild-lexer"}, 6}, Parts{expl}};
+    context.reportDiagnostic(std::move(d));
+}
+
+template<class Context>
+void reportUnexpectedBlockEnd(
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedBlockEnd& ube, ContextApi<Context>& context) {
+
+    if (ube.isTainted) return;
+    using namespace diagnostic;
+    auto tokenLines = extractBlockLines(blockLine);
+
+    auto viewMarkers = ViewMarkers{};
+    for (auto& t : blockLine.insignificants) {
+        t.visitSome([&](const nesting::UnexpectedBlockEnd& oube) {
+            if (oube.input.isPartOf(tokenLines)) {
+                viewMarkers.emplace_back(oube.input);
+                if (&oube != (void*)&ube) const_cast<nesting::UnexpectedBlockEnd&>(oube).isTainted = true;
+            }
+        });
+    }
+
+    auto [escapedLines, escapedMarkers] = escapeSourceLine(tokenLines, viewMarkers);
+
+    auto highlights = Highlights{};
+    for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
+
+    auto doc = Document{{Paragraph{String{"The end keyword is only allowed to end blocks"}, {}},
+                         SourceCodeBlock{escapedLines, highlights, String{}, ube.position.line}}};
+
+    auto expl = Explanation{String("Unexpected block end"), doc};
+
+    auto d = Diagnostic{Code{String{"rebuild-lexer"}, 7}, Parts{expl}};
     context.reportDiagnostic(std::move(d));
 }
 

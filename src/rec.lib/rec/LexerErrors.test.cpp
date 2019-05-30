@@ -224,3 +224,24 @@ After end no more tokens are allowed.
 )"s;
     EXPECT_EQ(outbuffer.str(), expected);
 }
+
+TEST(LexerErrors, unexpectedBlockEnd) {
+    auto outbuffer = std::stringstream{};
+    auto compiler = makeTestCompiler(outbuffer);
+
+    auto file = text::File{strings::String{"TestFile"}, strings::String{"b\n end"}};
+    compiler.compile(file);
+
+    auto expected = R"(1 diagnostics:
+>>> rebuild-lexer[7]: Unexpected block end
+
+The end keyword is only allowed to end blocks
+
+2 |b
+3 | end
+  | ~~~
+
+
+)"s;
+    EXPECT_EQ(outbuffer.str(), expected);
+}
