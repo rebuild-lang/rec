@@ -60,6 +60,16 @@ inline auto nestTokens(meta::CoEnumerator<FilterTokenLine> input) -> BlockLitera
                 [](auto&& d) -> Insignificant { return std::move(d); }));
         }
     };
+    auto findBlockInputEnd = [](const BlockLiteralValue& b) {
+        auto it = strings::View::It{};
+        for (auto& l : b.lines) {
+            l.forEach([&](auto& t) {
+                auto te = t.visit([](auto& x) { return x.input.end(); });
+                if (!it || (te && te > it)) it = te;
+            });
+        }
+        return it;
+    };
 
     enum class LineType { WithEnd, BlockStart, BlockStartLeave, Standalone, LeaveBlock };
     struct ParseLineResult {
@@ -111,14 +121,29 @@ inline auto nestTokens(meta::CoEnumerator<FilterTokenLine> input) -> BlockLitera
             }
 
             auto block = parseBlock(parentBlockColumn, blockIndent, parseBlock, parseLine);
-            line.tokens.push_back(BlockLiteral{{}, std::move(block)});
 
             // process line after block
-            if (!input) return {LineType::LeaveBlock, std::move(line), {}}; // no more input - TODO: handle error?
-            if (!input->startsOnNewLine())
+            if (!input) {
+                auto blockInuptEnd = findBlockInputEnd(block);
+                line.tokens.push_back(BlockLiteral{
+                    {{blockNewLine.input.begin(), blockInuptEnd}, blockNewLine.position},
+                    std::move(block) //
+                });
+                return {LineType::LeaveBlock, std::move(line), {}}; // no more input - TODO: handle error?
+            }
+            if (!input->startsOnNewLine()) {
+                auto blockInuptEnd = findBlockInputEnd(block);
+                line.tokens.push_back(BlockLiteral{
+                    {{blockNewLine.input.begin(), blockInuptEnd}, blockNewLine.position},
+                    std::move(block) //
+                });
                 return {LineType::WithEnd, std::move(line), {}}; // end not on new line - seems impossible
+            }
 
             auto endNewLine = input->newLine();
+            line.tokens.push_back(BlockLiteral{
+                {{blockNewLine.input.begin(), endNewLine.input.begin()}, blockNewLine.position}, std::move(block)});
+
             auto endIndent = endNewLine.value.indentColumn;
             if (endIndent <= parentBaseColumn) {
                 auto data = text::InputPositionData{{}, text::Position{endNewLine.position.line, endIndent}};

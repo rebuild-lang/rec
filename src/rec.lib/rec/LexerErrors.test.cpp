@@ -259,6 +259,7 @@ TEST(LexerErrors, missingBlockEnd) {
 The block ended without the end keyword
 
 1 |b:
+2 |  c
 
 
 )"s;
