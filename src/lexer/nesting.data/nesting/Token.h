@@ -17,7 +17,6 @@ using UnexpectedIndent = scanner::details::TagErrorToken<struct UnexpectedIndent
 using UnexpectedTokensAfterEnd = scanner::details::TagErrorToken<struct UnexpectedTokensAfterEndTag>;
 using UnexpectedBlockEnd = scanner::details::TagErrorToken<struct UnexpectedBlockEndTag>;
 using MissingBlockEnd = scanner::details::TagErrorToken<struct MissingBlockEndTag>;
-using MisIndentedBlockEnd = scanner::details::TagErrorToken<struct MisIndentedBlockEndTag>;
 
 using Insignificant = meta::Variant<
     CommentLiteral,
@@ -32,8 +31,7 @@ using Insignificant = meta::Variant<
     UnexpectedIndent,
     UnexpectedTokensAfterEnd,
     UnexpectedBlockEnd,
-    MissingBlockEnd,
-    MisIndentedBlockEnd>;
+    MissingBlockEnd>;
 
 struct Token;
 

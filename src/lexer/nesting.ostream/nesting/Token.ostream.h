@@ -19,9 +19,6 @@ inline auto operator<<(std::ostream& out, const UnexpectedBlockEnd&) -> std::ost
 inline auto operator<<(std::ostream& out, const MissingBlockEnd&) -> std::ostream& {
     return out << "<error: MissingBlockEnd>";
 }
-inline auto operator<<(std::ostream& out, const MisIndentedBlockEnd&) -> std::ostream& {
-    return out << "<error: MisIndentedBlockEnd>";
-}
 
 inline std::ostream& operator<<(std::ostream& out, const Insignificant& t) {
     return t.visit([&](const auto& v) -> decltype(auto) { return out << v; });
