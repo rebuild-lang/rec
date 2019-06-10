@@ -38,6 +38,7 @@ Project {
             ".clang-format",
             ".clang-tidy",
             ".editorconfig",
+            ".gitattributes",
             ".gitignore",
             "Makefile",
             "Readme.md",

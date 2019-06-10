@@ -93,7 +93,7 @@ private:
             [&](const parser::VariableReference&) {},
             [&](const parser::VariableInit& var) { initVariable(var, context); },
             [&](const parser::ModuleReference&) {},
-            [&](const parser::TypedTuple& typed) { runTyped(typed, context); },
+            [&](const parser::NameTypeValueTuple& typed) { runTyped(typed, context); },
             [&](const parser::Value&) {});
     }
 
@@ -129,7 +129,7 @@ private:
         runFunctionBlock(function.body.block, context);
     }
 
-    static void runTyped(const parser::TypedTuple& typed, Context& context) {
+    static void runTyped(const parser::NameTypeValueTuple& typed, Context& context) {
         for (const auto& entry : typed.tuple) {
             runNode(entry.value.value(), context);
         }
@@ -271,7 +271,7 @@ private:
             [&](const parser::VariableReference& var) { storeTypedValue(var.variable->typed, context, memory); },
             [&](const parser::VariableInit&) { assert(false); },
             [&](const parser::ModuleReference&) {},
-            [&](const parser::TypedTuple& tuple) { storeTupleCopy(tuple, memory); },
+            [&](const parser::NameTypeValueTuple& tuple) { storeTupleCopy(tuple, memory); },
             [&](const parser::Value& value) { storeValueCopy(value, memory); });
     }
 
@@ -300,8 +300,8 @@ private:
         cloneTypeInto(typed.type, memory, source);
     }
 
-    static void storeTupleCopy(const parser::TypedTuple& tuple, Byte* memory) {
-        new (memory) parser::TypedTuple(tuple);
+    static void storeTupleCopy(const parser::NameTypeValueTuple& tuple, Byte* memory) {
+        new (memory) parser::NameTypeValueTuple(tuple);
     }
 
     static void storeValueCopy(const parser::Value& value, Byte* memory) {

@@ -19,6 +19,8 @@ Project {
             "LineView.h",
             "Parser.cpp",
             "Parser.h",
+            "TupleLookup.cpp",
+            "TupleLookup.h",
         ]
 
         Export {

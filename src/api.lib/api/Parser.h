@@ -24,11 +24,11 @@ struct TypeOf<parser::VariableInit> {
 };
 
 template<>
-struct TypeOf<parser::TypedTuple> {
+struct TypeOf<parser::NameTypeValueTuple> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".TypedTuple"};
-        info.size = sizeof(parser::TypedTuple);
+        info.size = sizeof(parser::NameTypeValueTuple);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
@@ -49,7 +49,7 @@ struct ParserModule {
     template<class Module>
     static constexpr auto module(Module& mod) {
         mod.template type<parser::VariableInit>();
-        mod.template type<parser::TypedTuple>();
+        mod.template type<parser::NameTypeValueTuple>();
     }
 };
 

@@ -97,12 +97,22 @@ struct ModuleReference {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-struct Typed;
-using TypedVec = std::vector<Typed>;
+struct NameTypeValue;
+using NameTypeValueView = const NameTypeValue*;
+using NameTypeValueVec = std::vector<NameTypeValue>;
 
-struct TypedTuple {
-    using This = TypedTuple;
-    TypedVec tuple{};
+struct NameTypeValueReference {
+    using This = NameTypeValueReference;
+    Name name{}; // while parsing and building tuples the ptr is not used
+    NameTypeValueView nameTypeValue{}; // final blocks should have fixed ptr
+
+    bool operator==(const This& o) const { return name == o.name && nameTypeValue == o.nameTypeValue; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+
+struct NameTypeValueTuple {
+    using This = NameTypeValueTuple;
+    NameTypeValueVec tuple{};
 
     bool operator==(const This& o) const { return tuple == o.tuple; }
     bool operator!=(const This& o) const { return !(*this == o); }
@@ -120,10 +130,10 @@ using NodeVariant = meta::Variant<
     IntrinsicCall,
     ArgumentReference,
     VariableReference,
-    // TODO(arBmind): add PlaceholderReference
+    // TODO(arBmind): add NameTypeValueReference
     VariableInit,
     ModuleReference,
-    TypedTuple,
+    NameTypeValueTuple,
     Value>;
 
 // note: this type is needed because we cannot forward a using definition
@@ -142,8 +152,8 @@ using OptNode = meta::Optional<Node>;
 using NodeView = const Node*;
 using OptNodeView = meta::Optional<NodeView>;
 
-struct Typed {
-    using This = Typed;
+struct NameTypeValue {
+    using This = NameTypeValue;
     OptName name{}; // name might be empty!
     OptTypeExpression type{};
     OptNode value{};
@@ -153,32 +163,33 @@ struct Typed {
     bool operator==(const This& o) const { return name == o.name && type == o.type && value == o.value; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
-using OptTyped = meta::Optional<meta::DefaultPacked<Typed>>;
+using OptNameTypeValue = meta::Optional<meta::DefaultPacked<NameTypeValue>>;
+using OptNameTypeValueView = meta::Optional<meta::DefaultPacked<NameTypeValueView>>;
 
-struct TypedView {
-    using This = TypedView;
+struct ViewNameTypeValue {
+    using This = ViewNameTypeValue;
     OptView name{};
     OptTypeExpressionView type{};
     OptNodeView value{};
 
-    TypedView() = default;
-    TypedView(const Typed& typed)
+    ViewNameTypeValue() = default;
+    ViewNameTypeValue(const NameTypeValue& typed)
         : name(typed.name.map([](const auto& n) { return n; }))
         , type(typed.type.map([](const auto& t) { return &t; }))
         , value(typed.value.map([](const auto& v) { return &v; })) {}
-    TypedView(const Node& node)
+    ViewNameTypeValue(const Node& node)
         : value(&node) {}
 };
-using TypedViews = std::vector<TypedView>;
+using ViewNameTypeValues = std::vector<ViewNameTypeValue>;
 
-struct TypedViewTuple {
-    using This = TypedViewTuple;
-    TypedViews tuple{};
+struct ViewNameTypeValueTuple {
+    using This = ViewNameTypeValueTuple;
+    ViewNameTypeValues tuple{};
 
-    TypedViewTuple() = default;
-    TypedViewTuple(const TypedTuple& typed)
+    ViewNameTypeValueTuple() = default;
+    ViewNameTypeValueTuple(const NameTypeValueTuple& typed)
         : tuple(typed.tuple.begin(), typed.tuple.end()) {}
-    TypedViewTuple(const Node& node)
+    ViewNameTypeValueTuple(const Node& node)
         : tuple({node}) {}
 };
 

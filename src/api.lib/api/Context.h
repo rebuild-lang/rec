@@ -98,7 +98,7 @@ struct TypeOf<Context*> {
     }
 
     struct Typed {
-        parser::Typed v;
+        parser::NameTypeValue v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"__typed__"};
@@ -143,7 +143,7 @@ struct TypeOf<Context*> {
     }
 
     struct LeftArgumentTuple {
-        parser::TypedTuple v;
+        parser::NameTypeValueTuple v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"__left__"};
@@ -153,7 +153,7 @@ struct TypeOf<Context*> {
         }
     };
     struct RightArgumentTuple {
-        parser::TypedTuple v;
+        parser::NameTypeValueTuple v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"__right__"};
@@ -163,7 +163,7 @@ struct TypeOf<Context*> {
         }
     };
     struct ResultArgumentTuple {
-        parser::TypedTuple v;
+        parser::NameTypeValueTuple v;
         static constexpr auto info() {
             auto info = ArgumentInfo{};
             info.name = Name{"__result__"};
@@ -217,7 +217,7 @@ struct TypeOf<Context*> {
                 function.name = strings::to_string(name);
                 function.flags |= instance::FunctionFlag::compile_time; // TODO(arBmind): allow custom flags
 
-                auto addArgumentsFromTyped = [&](instance::ArgumentSide side, parser::TypedTuple& tuple) {
+                auto addArgumentsFromTyped = [&](instance::ArgumentSide side, parser::NameTypeValueTuple& tuple) {
                     for (auto& typed : tuple.tuple) {
                         auto optView = argumentScope.emplace([&] {
                             auto argument = instance::Argument{};

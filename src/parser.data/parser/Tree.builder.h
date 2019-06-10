@@ -77,7 +77,7 @@ struct TypedBuilder {
         return *this;
     }
 
-    auto build(const Scope& scope) && -> Typed { return Typed{name, std::move(typeExpr).build(scope), {}}; }
+    auto build(const Scope& scope) && -> NameTypeValue { return NameTypeValue{name, std::move(typeExpr).build(scope), {}}; }
 };
 
 using ValueVariant = meta::Variant<

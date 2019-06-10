@@ -2,6 +2,7 @@
 #include "Context.h"
 #include "LineErrorReporter.h"
 #include "LineView.h"
+#include "TupleLookup.h"
 
 #include "parser/Tree.h"
 
@@ -50,8 +51,10 @@ struct Parser {
 
 private:
     template<class Context>
-    static auto parseTuple(BlockLineView& it, Context& context) -> TypedTuple {
-        auto tuple = TypedTuple{};
+    static auto parseTuple(BlockLineView& it, Context& context) -> NameTypeValueTuple {
+        auto tuple = NameTypeValueTuple{};
+        // auto subLookup = TupleLookup{[&](View name) { return context.lookup(name); }, &tuple};
+        // auto subContext = context.setLookup(std::move(subLookup));
         if (!it) return tuple;
         auto withBrackets = it.current().holds<nesting::BracketOpen>();
         if (withBrackets) ++it;
@@ -71,7 +74,7 @@ private:
     }
 
     template<class Context>
-    static void parseTupleInto(TypedTuple& tuple, BlockLineView& it, Context& context) {
+    static void parseTupleInto(NameTypeValueTuple& tuple, BlockLineView& it, Context& context) {
         while (it) {
             auto opt = parseSingleTyped(it, context);
             if (opt) {
@@ -106,14 +109,14 @@ private:
     static bool isColon(const BlockToken& t) { return t.holds<nesting::ColonSeparator>(); }
 
     template<class Context>
-    static auto parseSingleTyped(BlockLineView& it, Context& context) -> OptTyped {
-        auto parseValueInto = [&](Typed& typed) { typed.value = parseSingle(it, context); };
+    static auto parseSingleTyped(BlockLineView& it, Context& context) -> OptNameTypeValue {
+        auto parseValueInto = [&](NameTypeValue& typed) { typed.value = parseSingle(it, context); };
         return parseSingleTypedCallback(it, context, parseValueInto);
     }
 
     template<class Context, class Callback>
-    static auto parseSingleTypedCallback(BlockLineView& it, Context& context, Callback&& callback) -> OptTyped {
-        auto result = Typed{};
+    static auto parseSingleTypedCallback(BlockLineView& it, Context& context, Callback&& callback) -> OptNameTypeValue {
+        auto result = NameTypeValue{};
         auto extractName = [&] {
             result.name = to_string(it.current().get<nesting::IdentifierLiteral>().input);
             ++it; // skip name
@@ -317,10 +320,10 @@ private:
                 , active(!function.arguments.empty())
                 , complete(function.arguments.empty()) {}
 
-            void retireLeft(const TypedViewTuple& left) {
+            void retireLeft(const ViewNameTypeValueTuple& left) {
                 auto o = 0u, t = 0u;
                 auto la = function->leftArguments();
-                for (const TypedView& typed : left.tuple) {
+                for (const ViewNameTypeValue& typed : left.tuple) {
                     if (!typed.value) {
                         // pass type?
                     }
@@ -368,9 +371,10 @@ private:
         // TODO(arBmind): allow multiple overloads
 
         void retireLeft(const OptNode& left) {
-            auto leftView = left ? left.value().holds<TypedTuple>() ? TypedViewTuple{left.value().get<TypedTuple>()}
-                                                                    : TypedViewTuple{left.value()}
-                                 : TypedViewTuple{};
+            auto leftView = left ? left.value().holds<NameTypeValueTuple>()
+                    ? ViewNameTypeValueTuple{left.value().get<NameTypeValueTuple>()}
+                    : ViewNameTypeValueTuple{left.value()}
+                                 : ViewNameTypeValueTuple{};
             for (auto& o : vec) o.retireLeft(leftView);
             update();
         }
@@ -435,7 +439,7 @@ private:
             [](const auto&) { return true; });
     }
 
-    static bool isDirectlyExecutable(const Typed& typed) {
+    static bool isDirectlyExecutable(const NameTypeValue& typed) {
         if (typed.value && !isDirectlyExecutable(typed.value.value())) return false;
         if (typed.type && !isDirectlyExecutable(typed.type.value())) return false;
         return true;
@@ -450,7 +454,7 @@ private:
             [](const VariableReference&) { return false; },
             [](const VariableInit&) { return false; },
             [](const ModuleReference&) { return false; },
-            [](const TypedTuple& tuple) {
+            [](const NameTypeValueTuple& tuple) {
                 for (auto& typed : tuple.tuple)
                     if (!isDirectlyExecutable(typed)) return false;
                 return true;
@@ -571,7 +575,7 @@ private:
     }
 
     template<class Context>
-    static auto parseTyped(BlockLineView& it, Context& context) -> OptTyped {
+    static auto parseTyped(BlockLineView& it, Context& context) -> OptNameTypeValue {
         auto name = it.current().visit(
             [&](const nesting::IdentifierLiteral& id) {
                 auto result = id.input;
@@ -592,7 +596,7 @@ private:
             ++it;
             return parseSingle(it, context);
         }();
-        return Typed{strings::to_string(name), std::move(type), std::move(value)};
+        return NameTypeValue{strings::to_string(name), std::move(type), std::move(value)};
     }
 
     template<class Context>
@@ -626,7 +630,7 @@ private:
                 auto optTyped = parseSingleTyped(it, context);
                 if (optTyped) {
                     auto type = context.intrinsicType(meta::Type<Typed>{});
-                    auto value = Typed{optTyped.value()};
+                    auto value = NameTypeValue{optTyped.value()};
                     return {Value{std::move(value), {TypeInstance{type}}}};
                 }
                 // return Node{TypedTuple{{optTyped.value()}}}; // TODO(arBmind): store as value
@@ -640,7 +644,9 @@ private:
     template<class Context>
     static bool isTyped(const TypeExpression& t, ContextApi<Context>& context) {
         return t.visit(
-            [&](const TypeInstance& ti) { return ti.concrete == context.intrinsicType(meta::Type<parser::Typed>{}); },
+            [&](const TypeInstance& ti) {
+                return ti.concrete == context.intrinsicType(meta::Type<parser::NameTypeValue>{});
+            },
             [](const auto&) { return false; });
     }
     template<class Context>
@@ -660,7 +666,7 @@ private:
             // TODO(arBmind): optimize for no custom parser case!
             for (auto& o : os.active()) {
                 auto* posArg = o.arg();
-                auto parseValueArgument = [&](Typed& typed) {
+                auto parseValueArgument = [&](NameTypeValue& typed) {
                     if (typed.name && !typed.type) {
                         auto optNamedArg = o.function->lookupArgument(typed.name.value());
                         if (optNamedArg) {
@@ -681,14 +687,14 @@ private:
                 // auto p = parserForType<Context>(a.typed.type);
                 // auto optTyped = p(o.it, context);
                 if (optTyped) {
-                    Typed& typed = optTyped.value();
+                    NameTypeValue& typed = optTyped.value();
                     do {
                         if (typed.type || !typed.value) {
                             if (isTyped(posArg->typed.type, context)) {
                                 auto as = ArgumentAssignment{};
                                 as.argument = posArg;
-                                auto type = context.intrinsicType(meta::Type<Typed>{});
-                                auto value = Typed{typed};
+                                auto type = context.intrinsicType(meta::Type<NameTypeValue>{});
+                                auto value = NameTypeValue{typed};
                                 as.values = {Value{std::move(value), {TypeInstance{type}}}};
                                 o.rightArgs.push_back(std::move(as));
                                 o.nextArg++;

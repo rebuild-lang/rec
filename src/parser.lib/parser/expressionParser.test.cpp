@@ -70,7 +70,7 @@ struct IntrinsicType {
 
     template<class T>
     auto operator()(meta::Type<T>) -> instance::TypeView {
-        if constexpr (std::is_same_v<T, Typed>) {
+        if constexpr (std::is_same_v<T, NameTypeValue>) {
             auto& m = (*scope)[strings::View{"Typed"}].value()->get<instance::Module>();
             auto& t = m.locals[strings::View{"type"}].value()->get<instance::Type>();
             return &t;
@@ -109,7 +109,7 @@ INSTANTIATE_TEST_CASE_P(
         [] {
             return ExpressionParserData("Call VarDecl") //
                 .ctx( //
-                    instance::typeModT<parser::Typed>("Typed"),
+                    instance::typeModT<parser::NameTypeValue>("Typed"),
                     instance::typeModT<uint64_t>("u64"),
                     instance::fun("var").runtime().args(instance::arg("v").right().type(type().instance("Typed"))))
                 .in(nesting::id(View{"var"}), nesting::id(View{"i"}), nesting::colon(), nesting::id(View{"u64"}))

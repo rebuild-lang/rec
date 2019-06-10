@@ -76,11 +76,11 @@ struct TypeOf<parser::IdentifierLiteral> {
 };
 
 template<>
-struct TypeOf<parser::Typed> {
+struct TypeOf<parser::NameTypeValue> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".Typed"};
-        info.size = sizeof(parser::Typed);
+        info.size = sizeof(parser::NameTypeValue);
         info.flags = TypeFlag::CompileTime;
         info.parser = Parser::IdTypeValue;
         return info;
@@ -106,7 +106,7 @@ struct Literal {
         mod.template type<parser::BlockLiteral>();
         mod.template type<parser::IdentifierLiteral>();
         // mod.template type<OperatorLiteral>();
-        mod.template type<parser::Typed>();
+        mod.template type<parser::NameTypeValue>();
     }
 };
 

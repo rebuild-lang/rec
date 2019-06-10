@@ -42,7 +42,7 @@ inline auto operator<<(std::ostream& out, const Call& inv) -> std::ostream& {
 inline auto operator<<(std::ostream& out, const VariableReference& vr) -> std::ostream& {
     return out << (vr.variable ? vr.variable->typed.name : Name("<?>"));
 }
-inline auto operator<<(std::ostream& out, const Typed& t) -> std::ostream& {
+inline auto operator<<(std::ostream& out, const NameTypeValue& t) -> std::ostream& {
     if (t.name) {
         out << t.name.value();
         if (t.type) out << " :" << t.type.value();
@@ -60,7 +60,7 @@ inline auto operator<<(std::ostream& out, const Typed& t) -> std::ostream& {
 
     return out;
 }
-inline auto operator<<(std::ostream& out, const TypedTuple& nt) -> std::ostream& {
+inline auto operator<<(std::ostream& out, const NameTypeValueTuple& nt) -> std::ostream& {
     size_t size = nt.tuple.size();
     if (size > 1) out << "(";
     strings::join(out, nt.tuple, ", ");

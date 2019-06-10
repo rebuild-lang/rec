@@ -58,6 +58,17 @@ struct ContextApi {
         return context.reportDiagnostic(std::move(diagnostic));
     }
 
+    template<class SubLookup>
+    auto setLookup(SubLookup&& subLookup) {
+        auto subContext = parser::Context{
+            std::forward<SubLookup>(subLookup),
+            std::ref(context.runCall),
+            std::ref(context.intrinsicType),
+            std::ref(context.reportDiagnostic) //
+        };
+        return ContextApi<decltype(subContext)>(std::move(subContext));
+    }
+
 private:
     Context context;
 };
