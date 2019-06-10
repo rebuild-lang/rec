@@ -215,7 +215,7 @@ struct TypeOf<Context*> {
             auto optNode = context.v->parserScope->emplace([&] {
                 auto function = instance::Function{};
                 function.name = strings::to_string(name);
-                function.flags |= instance::FunctionFlag::compile_time; // TODO(arBmind): allow custom flags
+                function.flags |= instance::FunctionFlag::compiletime; // TODO(arBmind): allow custom flags
 
                 auto addArgumentsFromTyped = [&](instance::ArgumentSide side, parser::NameTypeValueTuple& tuple) {
                     for (auto& typed : tuple.tuple) {
@@ -256,21 +256,21 @@ struct TypeOf<Context*> {
         mod.template function<&declareModule, [] {
             auto info = FunctionInfo{};
             info.name = Name{".declareModule"};
-            info.flags = FunctionFlag::CompileTimeOnly;
+            info.flags = FunctionFlag::CompileTimeSideEffects;
             return info;
         }>();
 
         mod.template function<&declareVariable, [] {
             auto info = FunctionInfo{};
             info.name = Name{".declareVariable"};
-            info.flags = FunctionFlag::CompileTimeOnly;
+            info.flags = FunctionFlag::CompileTimeSideEffects;
             return info;
         }>();
 
         mod.template function<&declareFunction, [] {
             auto info = FunctionInfo{};
             info.name = Name{".declareFunction"};
-            info.flags = FunctionFlag::CompileTimeOnly;
+            info.flags = FunctionFlag::CompileTimeSideEffects;
             return info;
         }>();
     }
@@ -310,7 +310,7 @@ struct Rebuild {
         mod.template function<&debugSay, [] {
             auto info = FunctionInfo{};
             info.name = Name{".say"};
-            info.flags = FunctionFlag::CompileTimeOnly;
+            info.flags = FunctionFlag::CompileTimeSideEffects;
             return info;
         }>();
 

@@ -344,7 +344,11 @@ private:
         using namespace intrinsic;
         auto r = instance::FunctionFlags{};
         if (flags.any(FunctionFlag::CompileTimeOnly)) {
-            r |= instance::FunctionFlag::compile_time;
+            r |= instance::FunctionFlag::compiletime;
+        }
+        if (flags.any(FunctionFlag::CompileTimeSideEffects)) {
+            r |= instance::FunctionFlag::compiletime;
+            r |= instance::FunctionFlag::compiletime_sideeffects;
         }
         return r;
     }

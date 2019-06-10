@@ -11,7 +11,8 @@ namespace intrinsic {
 using Name = strings::View;
 
 enum class FunctionFlag : uint64_t {
-    CompileTimeOnly = 1 << 0,
+    CompileTimeOnly = 1u << 0u,
+    CompileTimeSideEffects = 1u << 1u, // side effects imply CompileTimeOnly for now!
 };
 using FunctionFlags = meta::Flags<FunctionFlag>;
 META_FLAGS_OP(FunctionFlags)

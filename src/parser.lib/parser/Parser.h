@@ -463,7 +463,7 @@ private:
     }
 
     static bool isDirectlyExecutable(const Call& call) {
-        if (call.function->flags.none(instance::FunctionFlag::compile_time)) return false;
+        if (call.function->flags.none(instance::FunctionFlag::compiletime)) return false;
         for (auto& arg : call.arguments) {
             for (auto& node : arg.values) {
                 if (!isDirectlyExecutable(node)) return false;
@@ -663,7 +663,6 @@ private:
         os.setupIt(it);
         while (!os.active().empty()) {
             // auto baseIt = it;
-            // TODO(arBmind): optimize for no custom parser case!
             for (auto& o : os.active()) {
                 auto* posArg = o.arg();
                 auto parseValueArgument = [&](NameTypeValue& typed) {
@@ -684,8 +683,6 @@ private:
                 };
 
                 auto optTyped = parseSingleTypedCallback(o.it, context, parseValueArgument);
-                // auto p = parserForType<Context>(a.typed.type);
-                // auto optTyped = p(o.it, context);
                 if (optTyped) {
                     NameTypeValue& typed = optTyped.value();
                     do {

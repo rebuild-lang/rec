@@ -17,8 +17,9 @@ using Name = strings::String;
 using NameView = strings::View;
 
 enum class FunctionFlag {
-    compile_time = 1 << 0,
-    run_time = 1 << 1,
+    compiletime = 1u << 0u,
+    runtime = 1u << 1u,
+    compiletime_sideeffects = 1u << 2u,
 };
 using FunctionFlags = meta::Flags<FunctionFlag>;
 

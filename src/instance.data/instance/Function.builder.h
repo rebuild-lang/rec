@@ -18,12 +18,17 @@ struct FunctionBuilder {
     }
 
     auto runtime() && -> This {
-        fun_.flags |= FunctionFlag::run_time;
+        fun_.flags |= FunctionFlag::runtime;
         return std::move(*this);
     }
 
     auto compiletime() && -> This {
-        fun_.flags |= FunctionFlag::compile_time;
+        fun_.flags |= FunctionFlag::compiletime;
+        return std::move(*this);
+    }
+
+    auto compiletime_sideeffects() && -> This {
+        fun_.flags |= FunctionFlags(FunctionFlag::compiletime, FunctionFlag::compiletime_sideeffects);
         return std::move(*this);
     }
 
