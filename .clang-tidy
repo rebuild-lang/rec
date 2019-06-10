@@ -1,0 +1,15 @@
+---
+Checks: >-
+  *,
+  ,-google-readability-namespace-comments,
+  ,-google-runtime-references,
+  ,-google-build-using-namespace,
+  ,-llvm-header-guard,
+  ,-llvm-namespace-comment,
+  ,-readability-braces-around-statements,
+  ,-readability-named-parameter,
+  ,-fuchsia-overloaded-operator,
+  ,-fuchsia-default-arguments,
+  ,-fuchsia-trailing-return,
+  ,-hicpp-braces-around-statements,
+  #,-hicpp-explicit-conversions,

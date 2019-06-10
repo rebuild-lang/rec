@@ -1,5 +1,5 @@
 
-Layer 0: 
+Layer 0:
 * C++17 // STL
 * googletest
 
@@ -18,8 +18,8 @@ Layer 4:
 * scanner <- [token] // tokenizer
 * filterToken <- [token] // tokens for FilterPhase
 
-Layer 5: 
-* filterParser <- [filterToken] // removes comments, combines tokens
+Layer 5:
+* filterParser <- [filterToken] // remove comments, combine tokens
 * blockToken <- [filterToken] // tokens for BlockParser
 
 Layer 6:
@@ -30,12 +30,10 @@ Layer 7:
 * instance <- [expressionTree]
 
 Layer 8:
+* expressionParser <- [instance] // parses blockToken to AST and triggers execution
 * execution <- [instance] // virtual machine for compile time evaluation
 * intrinsicAdapter <- [instance, intrinsic] // create instances from intrinsics
 * api <- [instance, intrinsic] // compile time API (TODO: split this)
 
 Layer 9:
-* expressionParser <- [execution] // parses blockToken to AST and does compile time execution
-
-Layer 10:
 * compiler <- [expressionParser, api, intrinsicAdapter]

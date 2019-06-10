@@ -7,8 +7,7 @@ Project {
 
     property string googletestPath: "googletest"
     StaticLibrary {
-        id: googletest
-        name: "googletest"
+        name: "googletest.lib"
 
         files: [
             FileInfo.joinPaths(project.googletestPath, "googlemock/src/gmock-all.cc"),
@@ -16,46 +15,47 @@ Project {
         ]
 
         Depends { name: "cpp" }
-        cpp.cxxLanguageVersion: "c++17"
+        cpp.cxxLanguageVersion: "c++11"
         cpp.includePaths: [
             FileInfo.joinPaths(project.googletestPath, "googlemock"),
             FileInfo.joinPaths(project.googletestPath, "googlemock/include"),
             FileInfo.joinPaths(project.googletestPath, "googletest"),
             FileInfo.joinPaths(project.googletestPath, "googletest/include"),
         ]
-        cpp.defines: [
-            "GTEST_LANG_CXX11"
-        ]
-        cpp.cxxStandardLibrary: {
-            if (qbs.toolchain.contains('clang')) return "libc++";
+        cpp.defines: ["GTEST_LANG_CXX11"]
+        Properties {
+            condition: qbs.toolchain.contains('clang')
+            cpp.cxxStandardLibrary: "libc++"
         }
+
 
         Export {
             Depends { name: "cpp" }
 
-            cpp.includePaths: [
+            cpp.systemIncludePaths: [
                 FileInfo.joinPaths(project.googletestPath, "googlemock/include"),
                 FileInfo.joinPaths(project.googletestPath, "googletest/include")
             ]
-            cpp.defines: [
-                "GTEST_LANG_CXX11"
-            ]
+            cpp.defines: ["GTEST_LANG_CXX11"]
 
             property bool useMain: true
             Group {
                 name: "Main"
-                condition: product.googletest.useMain
+                condition: product.googletest.lib.useMain
 
                 files: [
                     FileInfo.joinPaths(root.googletestPath, "googlemock/src/gmock_main.cc"),
                 ]
             }
 
-            cpp.cxxStandardLibrary: {
-                if (qbs.toolchain.contains('clang')) return "libc++";
+            Properties {
+                condition: qbs.toolchain.contains('clang')
+                cpp.cxxStandardLibrary: "libc++"
+                cpp.staticLibraries: ["pthread"]
             }
-            cpp.staticLibraries: {
-                if (qbs.toolchain.contains('clang')) return ["pthread"];
+            Properties {
+                condition: qbs.toolchain.contains('msvc')
+                cpp.cxxFlags: ["/experimental:external", "/external:W0", "/external:I", FileInfo.joinPaths(qbs.sourceDirectory, project.googletestPath)]
             }
         }
     }
