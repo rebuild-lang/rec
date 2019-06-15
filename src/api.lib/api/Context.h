@@ -69,7 +69,7 @@ struct TypeOf<Context*> {
     };
 
     static void declareModule(Label label, Block block, ModuleResult& res, ImplicitContext context) {
-        auto name = Name{}; // label.v.range.view;
+        auto name = label.v.input;
         auto optNode = context.v->parserScope->locals[name];
         if (optNode) {
             auto node = optNode.value();
@@ -193,7 +193,7 @@ struct TypeOf<Context*> {
         ImplicitContext context) {
 
         // TODO(arBmind): implement
-        auto name = Name{}; // label.v.range.view;
+        auto name = label.v.input;
         auto optNode = context.v->parserScope->locals[name];
         if (optNode) {
             /*
