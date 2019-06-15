@@ -9,7 +9,6 @@ Project {
         targetName: "parser"
 
         Depends { name: "instance.data" }
-        Depends { name: "diagnostic.data" }
 
         files: [
             "Context.cpp",
@@ -28,7 +27,6 @@ Project {
             cpp.includePaths: [".."]
 
             Depends { name: "instance.data" }
-            Depends { name: "diagnostic.data" }
         }
     }
 

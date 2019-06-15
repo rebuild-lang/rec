@@ -15,10 +15,12 @@
 namespace execution {
 
 using ParseBlock = std::function<parser::Block(const nesting::BlockLiteral& block, instance::Scope* scope)>;
+using ReportDiagnositc = std::function<void(diagnostic::Diagnostic)>;
 
 struct Compiler {
     Stack stack{}; // stack allocator
     ParseBlock parseBlock{};
+    ReportDiagnositc reportDiagnostic = [](diagnostic::Diagnostic) {};
 };
 
 struct Context {
@@ -55,15 +57,17 @@ struct Context {
 };
 
 struct IntrinsicContext : intrinsic::Context {
-    ParseBlock parseBlock{};
+    Compiler* compiler{};
 
     IntrinsicContext(execution::Context& context, const instance::Scope* executionScope)
         : intrinsic::Context{context.parserScope, executionScope}
-        , parseBlock(context.compiler->parseBlock) {}
+        , compiler(context.compiler) {}
 
     auto parse(const parser::BlockLiteral& block, instance::Scope* scope) const -> parser::Block override {
-        return parseBlock(block, scope);
+        return compiler->parseBlock(block, scope);
     }
+
+    void report(diagnostic::Diagnostic diagnostic) override { compiler->reportDiagnostic(std::move(diagnostic)); }
 };
 
 struct Machine {

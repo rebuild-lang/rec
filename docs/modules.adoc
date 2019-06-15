@@ -3,37 +3,49 @@ Layer 0:
 * C++17 // STL
 * googletest
 
-Layer 1: tools
+Layer 1:
 * meta // Variant / Option / CoEnumerator …
-* strings // utf8 handling, Rope, View, …
+* instance.view // just forwards
 
 Layer 2:
-* text <- [strings, meta] // Line, Column, Position, Range
-* intrinsic <- [tools] // concepts for C++ based compile time Modules
+* strings <- [meta] // utf8 handling, Rope, View, …
 
 Layer 3:
-* token <- [text] // all scanner tokens
+* text.lib <- [strings] // Line, Column, Position, Range
 
 Layer 4:
-* scanner <- [token] // tokenizer
-* filterToken <- [token] // tokens for FilterPhase
+* diagnostic.data <- [text.lib]
+* scanner.data <- [text.lib]
 
 Layer 5:
-* filterParser <- [filterToken] // remove comments, combine tokens
-* blockToken <- [filterToken] // tokens for BlockParser
+* diagnostic.ostream <- [diagnostic.data]
+* scanner.ostream <- [scanner.data]
+* scanner.lib <- [scanner.data]
+* filter.data <- [scanner.data]
 
 Layer 6:
-* blockParser <- [blockToken] // indentations to lines & blocks
-* expressionTree <- [blockToken] // blocks of invocations with arguments
+* filter.ostream <- [filter.data, scanner.ostream]
+* filter.lib <- [filter.data]
+* nesting.data <- [filter.data]
 
 Layer 7:
-* instance <- [expressionTree]
+* nesting.ostream <- [nesting.data, filter.ostream]
+* nesting.lib <- [nesting.data]
+* parser.data <- [nesting.data, instance.view]
 
 Layer 8:
-* expressionParser <- [instance] // parses blockToken to AST and triggers execution
-* execution <- [instance] // virtual machine for compile time evaluation
-* intrinsicAdapter <- [instance, intrinsic] // create instances from intrinsics
-* api <- [instance, intrinsic] // compile time API (TODO: split this)
+* parser.ostream <- [parser.data, nesting.ostream]
+* instance.data <- [parser.data, diagnostic.data]
+* intrinsic.data <- [parser.data] // concepts for C++ based compile time Modules
 
 Layer 9:
-* compiler <- [expressionParser, api, intrinsicAdapter]
+* instance.ostream <- [instance.data, parser.ostream]
+* intrinsic.ostream <- [intrinsic.data]
+* parser.lib <- [instance.data]
+* intrinsic.lib <- [instance.data, intrinsic.data] // adapter for intrinsics to instance.data
+* api.lib <- [instance.data, intrinsic.data]
+* execution.lib <- [instance.data] // virtual machine for compile time evaluation
+
+Layer 10:
+* rec.lib <- [scanner.lib, filter.lib, nesting.lib, parser.lib, intrinsic.lib, execution.lib, api.lib, diagnostic.ostream,
+              nesting.ostream, scanner.ostream]

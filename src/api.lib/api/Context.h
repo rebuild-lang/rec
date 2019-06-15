@@ -81,8 +81,18 @@ struct TypeOf<Context*> {
                 module.locals = std::move(moduleScope.locals);
                 res.v = &module;
             }
-            else
+            else {
+                using namespace diagnostic;
+                auto doc =
+                    Document{{Paragraph{String("The name of the module is already taken and it's not a module"), {}}}};
+                // TODO: somehow extract the source code line.
+
+                auto expl = Explanation{String("Module Name already defined"), doc};
+                context.v->report(Diagnostic{Code{String{"rebuild-api"}, 1}, Parts{expl}});
+
+                res.v = new instance::Module{};
                 return; // error
+            }
         }
         else {
             auto optNode = context.v->parserScope->emplace([&] {

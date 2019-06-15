@@ -11,6 +11,7 @@ Project {
         cpp.includePaths: [".."]
 
         Depends { name: "parser.data" }
+        Depends { name: "diagnostic.data" }
 
         files: [
             "Argument.builder.h",
@@ -48,6 +49,7 @@ Project {
             cpp.includePaths: [".."]
 
             Depends { name: "parser.data" }
+            Depends { name: "diagnostic.data" }
         }
     }
 }

@@ -131,6 +131,9 @@ Compiler::Compiler(Config config, InstanceScope _globals)
     compilerCallback.parseBlock = [this](const BlockLiteral& block, InstanceScope* scope) -> parser::Block {
         return parser::Parser::parse(block, parserContext(*scope));
     };
+    compilerCallback.reportDiagnostic = [this](Diagnostic diagnostic) {
+        diagnostics.emplace_back(std::move(diagnostic));
+    };
 }
 
 void Compiler::compile(const TextFile& file) {
