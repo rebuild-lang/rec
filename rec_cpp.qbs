@@ -55,6 +55,7 @@ Project {
             "Makefile",
             "Readme.md",
             "Vagrantfile",
+            "azure-pipelines.yml",
             "docs/modules.adoc",
             "docs/rebuild_API.adoc",
             "vagrant_install.sh",
