@@ -49,7 +49,7 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
                 line.blockEndIdentifierIndex = line.insignificants.size();
                 return BlockEndIdentifier{c};
             },
-            [](auto&& d) { return meta::unreachable<Insignificant>(); }));
+            [](auto&&) { return meta::unreachable<Insignificant>(); }));
     };
     auto insertBlockStartColon = [&](size_t index, Insignificant colon) {
         if (colon.holds<BlockStartColon>()) line.blockStartColonIndex = index;

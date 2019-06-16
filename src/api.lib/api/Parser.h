@@ -18,7 +18,7 @@ struct TypeOf<parser::VariableInit> {
     }
 
     template<class Module>
-    static constexpr auto module(Module& mod) {
+    static constexpr auto module(Module&) {
         // TODO(arBmind): add API
     }
 };
@@ -34,7 +34,7 @@ struct TypeOf<parser::NameTypeValueTuple> {
     }
 
     template<class Module>
-    static constexpr auto module(Module& mod) {
+    static constexpr auto module(Module&) {
         // TODO(arBmind): add API
     }
 };

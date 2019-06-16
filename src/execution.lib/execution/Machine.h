@@ -317,9 +317,7 @@ private:
     static void cloneTypeInto(const parser::TypeExpression& type, Byte* dest, const Byte* source) {
         type.visit(
             [&](const parser::TypeInstance& i) { i.concrete->clone(dest, source); },
-            [&](const parser::Pointer& p) {
-                *reinterpret_cast<void**>(dest) = *reinterpret_cast<void* const*>(source);
-            },
+            [&](const parser::Pointer&) { *reinterpret_cast<void**>(dest) = *reinterpret_cast<void* const*>(source); },
             [](auto) { abort(); });
     }
 };

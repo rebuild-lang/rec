@@ -13,8 +13,8 @@ TEST(counter, basic) {
     static_assert(c2 == strings::Counter{23});
 }
 
-TEST(counter, runtime) {
-    auto c = strings::Counter{};
+// TEST(counter, runtime) {
+//    auto c = strings::Counter{};
 
-    // EXPECT_EQ(c, strings::Counter{23}); // Trigger failing assert output
-}
+//    EXPECT_EQ(c, strings::Counter{23}); // Trigger failing assert output
+//}

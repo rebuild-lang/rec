@@ -183,7 +183,7 @@ private:
     }
 
     template<class ValueType, class Context, class Token>
-    static auto makeTokenValue(BlockLineView& it, const Token& token, ContextApi<Context>& context) -> Value {
+    static auto makeTokenValue(BlockLineView&, const Token& token, ContextApi<Context>& context) -> Value {
         auto type = context.intrinsicType(meta::Type<ValueType>{});
         auto value = ValueType{token};
         return {std::move(value), {TypeInstance{type}}};
@@ -316,9 +316,9 @@ private:
 
             Overload() = default;
             explicit Overload(const Function& function)
-                : function(&function)
-                , active(!function.parameters.empty())
-                , complete(function.parameters.empty()) {}
+                : active(!function.parameters.empty())
+                , complete(function.parameters.empty())
+                , function(&function) {}
 
             void retireLeft(const ViewNameTypeValueTuple& left) {
                 auto o = 0u, t = 0u;
@@ -477,7 +477,7 @@ private:
         if (isDirectlyExecutable(call)) {
             return context.runCall(call);
         }
-        return OptNode{{call}};
+        return Node{std::move(call)};
     }
 
     template<class Context>

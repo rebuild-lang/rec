@@ -21,11 +21,22 @@ Project {
 
             Properties {
                 condition: qbs.toolchain.contains('msvc')
-                cpp.cxxFlags: ["/await", "/permissive-", "/Zc:__cplusplus", "/diagnostics:caret"]
+                cpp.cxxFlags: base.concat(
+                    "/permissive-", "/Zc:__cplusplus", // best C++ compatibilty
+                    "/diagnostics:caret", // better error messages
+                    "/await" // enable coroutine-ts
+                )
             }
             Properties {
                 condition: qbs.toolchain.contains('clang')
-                cpp.cxxFlags: ["-fcoroutines-ts"]
+                cpp.cxxFlags: base.concat(
+                    "--pedantic", // best C++ compatibility
+                    "-Wall", "-Wextra", // enable more warnings
+                    "-Wno-missing-braces", // relax bracing rules
+                    "-Wno-invalid-noreturn", // we need type for type checking
+                    "-Wno-gnu-zero-variadic-macro-arguments", // google test uses this
+                    "-fcoroutines-ts" // enable coroutine-ts
+                )
                 cpp.cxxStandardLibrary: "libc++"
                 cpp.staticLibraries: ["c++", "c++abi"]
             }
@@ -40,6 +51,7 @@ Project {
             ".editorconfig",
             ".gitattributes",
             ".gitignore",
+            ".travis.yml",
             "Makefile",
             "Readme.md",
             "Vagrantfile",

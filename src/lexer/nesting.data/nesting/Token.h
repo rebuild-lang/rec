@@ -47,22 +47,7 @@ struct BlockLine {
     bool operator!=(const This& o) const { return !(*this == o); }
 
     template<class F>
-    void forEach(F&& f) const {
-        auto ti = tokens.begin();
-        auto te = tokens.end();
-        auto ii = insignificants.begin();
-        auto ie = insignificants.end();
-        while (ti != te && ii != ie) {
-            auto tv = ti->visit([](auto& x) { return x.input; });
-            auto iv = ii->visit([](auto& x) { return x.input; });
-            if (tv.begin() < iv.begin())
-                f(*ti++);
-            else
-                f(*ii++);
-        }
-        while (ti != te) f(*ti++);
-        while (ii != ie) f(*ii++);
-    }
+    void forEach(F&& f) const;
 
     bool hasErrors() const {
         constexpr static auto hasError = [](const auto& t) {
@@ -113,5 +98,25 @@ using TokenVariant = meta::Variant<
 struct Token : TokenVariant {
     META_VARIANT_CONSTRUCT(Token, TokenVariant)
 };
+
+// **** implemenetation ****
+
+template<class F>
+void BlockLine::forEach(F&& f) const {
+    auto ti = tokens.begin();
+    auto te = tokens.end();
+    auto ii = insignificants.begin();
+    auto ie = insignificants.end();
+    while (ti != te && ii != ie) {
+        auto tv = ti->visit([](auto& x) { return x.input; });
+        auto iv = ii->visit([](auto& x) { return x.input; });
+        if (tv.begin() < iv.begin())
+            f(*ti++);
+        else
+            f(*ii++);
+    }
+    while (ti != te) f(*ti++);
+    while (ii != ie) f(*ii++);
+}
 
 } // namespace nesting

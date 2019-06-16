@@ -38,6 +38,6 @@ struct Type {
 };
 using TypeView = const Type*;
 
-inline auto nameOf(const Type& type) -> NameView { return NameView{"type"}; }
+inline auto nameOf(const Type&) -> NameView { return NameView{"type"}; }
 
 } // namespace instance

@@ -392,21 +392,21 @@ void reportNumberLiteral(
             [&](const scanner::DecodedErrorPosition&) {
                 reportDecodeErrorMarkers(nl.position.line, tokenLines, viewMarkers, context);
             },
-            [&](const scanner::NumberMissingExponent&) {
+            [&, &escapedLines = escapedLines](const scanner::NumberMissingExponent&) {
                 auto doc = Document{{Paragraph{String{"After the exponent sign an actual value is expected."}, {}},
                                      SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
                 auto expl = Explanation{String("Missing exponent value"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 20}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
             },
-            [&](const scanner::NumberMissingValue&) {
+            [&, &escapedLines = escapedLines](const scanner::NumberMissingValue&) {
                 auto doc = Document{{Paragraph{String{"After the radix sign an actual value is expected."}, {}},
                                      SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
                 auto expl = Explanation{String("Missing value"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 21}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
             },
-            [&](const scanner::NumberMissingBoundary&) {
+            [&, &escapedLines = escapedLines](const scanner::NumberMissingBoundary&) {
                 auto doc = Document{{Paragraph{String{"The number literal ends with an unknown suffix."}, {}},
                                      SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
                 auto expl = Explanation{String("Missing boundary"), doc};
@@ -444,21 +444,21 @@ void reportOperatorLiteral(
             [&](const scanner::DecodedErrorPosition&) {
                 reportDecodeErrorMarkers(ol.position.line, tokenLines, viewMarkers, context);
             },
-            [&](const scanner::OperatorWrongClose&) {
+            [&, &escapedLines = escapedLines](const scanner::OperatorWrongClose&) {
                 auto doc = Document{{Paragraph{String{"The closing sign does not match the opening sign."}, {}},
                                      SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
                 auto expl = Explanation{String("Operator wrong close"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 30}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
             },
-            [&](const scanner::OperatorUnexpectedClose&) {
+            [&, &escapedLines = escapedLines](const scanner::OperatorUnexpectedClose&) {
                 auto doc = Document{{Paragraph{String{"There was no opening sign before the closing sign."}, {}},
                                      SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
                 auto expl = Explanation{String("Operator unexpected close"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 31}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
             },
-            [&](const scanner::OperatorNotClosed&) {
+            [&, &escapedLines = escapedLines](const scanner::OperatorNotClosed&) {
                 auto doc = Document{{Paragraph{String{"The operator ends before the closing sign was found."}, {}},
                                      SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
                 auto expl = Explanation{String("Operator not closed"), doc};

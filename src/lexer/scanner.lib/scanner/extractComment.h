@@ -25,7 +25,6 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
     auto end = firstCpp.input.end();
     auto updateEnd = [&](auto ip) { end = ip.input.end(); };
 
-    size_t markerExtends = 1;
     auto makeToken = [&, begin = firstCpp.input.begin()]() -> CommentLiteral {
         return {View{begin, end}, firstCpp.position, decodeErrors};
     };
@@ -39,7 +38,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
                     decodeErrors.push_back(dep);
                     return true;
                 },
-                [&](NewlinePosition& nlp) { return false; },
+                [&](NewlinePosition&) { return false; },
                 [&](CodePointPosition& cpp) {
                     updateEnd(cpp);
                     return true;

@@ -17,7 +17,6 @@ using FilterTokenLine = filter::TokenLine;
  *
  */
 inline auto nestTokens(meta::CoEnumerator<FilterTokenLine> input) -> BlockLiteral {
-    using Input = meta::CoEnumerator<FilterTokenLine>;
     using BlockToken = nesting::Token;
     using BlockLine = nesting::BlockLine;
 

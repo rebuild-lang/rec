@@ -96,9 +96,8 @@ inline auto operator<<(std::ostream& out, const Explanation& e) -> std::ostream&
 }
 
 inline auto operator<<(std::ostream& out, const Suggestion& e) -> std::ostream& { //
-    // if (!e.title.isEmpty()) out << e.title << "\n" << std::string(e.title.byteCount().v, '-') << "\n";
-    // return out << e.details;
-    return out;
+    if (!e.title.isEmpty()) out << e.title << "\n" << std::string(e.title.byteCount().v, '-') << "\n";
+    return out << e.details;
 }
 
 inline auto operator<<(std::ostream& out, const Part& part) -> std::ostream& { //
