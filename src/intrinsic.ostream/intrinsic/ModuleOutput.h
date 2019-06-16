@@ -46,19 +46,19 @@ struct ModuleOutput {
 private:
     std::string indent{};
 
-    template<FunctionInfoFunc Info, auto* F, class... Args>
-    void functionImpl(FunctionSignature<void, Args...>) {
+    template<FunctionInfoFunc Info, auto* F, class... Params>
+    void functionImpl(FunctionSignature<void, Params...>) {
         auto info = Info();
         std::cout << indent << "function " << info.name << '\n';
         indent += "  ";
-        (argument<Args>(), ...);
+        (parameter<Params>(), ...);
         indent.resize(indent.size() - 2);
     }
 
     template<class T>
-    void argument() {
-        std::cout << indent << "arg " << Argument<T>::info().name //
-                  << " : " << Argument<T>::typeInfo().name << '\n';
+    void parameter() {
+        std::cout << indent << "param " << Parameter<T>::info().name //
+                  << " : " << Parameter<T>::typeInfo().name << '\n';
     }
 };
 

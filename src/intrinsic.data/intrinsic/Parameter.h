@@ -7,21 +7,21 @@
 
 namespace intrinsic {
 
-enum class ArgumentFlag : uint64_t {
+enum class ParameterFlag : uint64_t {
     Assignable = 1 << 0,
     Unrolled = 1 << 1,
     Reference = 1 << 2,
     Optional = 1 << 3,
 };
-using ArgumentFlags = meta::Flags<ArgumentFlag>;
-META_FLAGS_OP(ArgumentFlags)
+using ParameterFlags = meta::Flags<ParameterFlag>;
+META_FLAGS_OP(ParameterFlags)
 
-enum class ArgumentSide { Left, Right, Result, Implicit };
+enum class ParameterSide { Left, Right, Result, Implicit };
 
-struct ArgumentInfo {
+struct ParameterInfo {
     Name name{};
-    ArgumentSide side{};
-    ArgumentFlags flags{};
+    ParameterSide side{};
+    ParameterFlags flags{};
 };
 
 namespace details {
@@ -54,40 +54,40 @@ using ExistingTypeOf = typename ExistingTypeOfImpl<T>::type;
 
 } // namespace details
 
-// used to extract all types of arguments
+// used to extract all types of parameters
 template<class T>
-struct Argument {
+struct Parameter {
     using type = details::NestedType<T>;
     static constexpr bool is_pointer = std::is_pointer_v<type>;
-    static constexpr auto info() -> ArgumentInfo { return T::info(); }
+    static constexpr auto info() -> ParameterInfo { return T::info(); }
     static constexpr auto typeInfo() -> TypeInfo { return details::ExistingTypeOf<type>::info(); }
 
-    static_assert(info().flags.none(ArgumentFlag::Assignable), "value argument is not assignable");
-    static_assert(info().flags.none(ArgumentFlag::Reference), "value argument is not a reference");
+    static_assert(info().flags.none(ParameterFlag::Assignable), "value parameter is not assignable");
+    static_assert(info().flags.none(ParameterFlag::Reference), "value parameter is not a reference");
 };
 
 template<class T>
-struct Argument<const T&> {
+struct Parameter<const T&> {
     using type = details::NestedType<T>;
     static constexpr bool is_pointer = std::is_pointer_v<type>;
 
-    static constexpr auto info() -> ArgumentInfo { return T::info(); }
+    static constexpr auto info() -> ParameterInfo { return T::info(); }
     static constexpr auto typeInfo() { return details::ExistingTypeOf<type>::info(); }
 
-    static_assert(info().flags.none(ArgumentFlag::Assignable), "const-reference argument is not assignable");
-    static_assert(info().flags.any(ArgumentFlag::Reference), "const-reference uses reference");
+    static_assert(info().flags.none(ParameterFlag::Assignable), "const-reference parameter is not assignable");
+    static_assert(info().flags.any(ParameterFlag::Reference), "const-reference uses reference");
 };
 
 template<class T>
-struct Argument<T&> {
+struct Parameter<T&> {
     using type = details::NestedType<T>;
     static constexpr bool is_pointer = std::is_pointer_v<type>;
 
-    static constexpr auto info() -> ArgumentInfo { return T::info(); }
+    static constexpr auto info() -> ParameterInfo { return T::info(); }
     static constexpr auto typeInfo() { return details::ExistingTypeOf<type>::info(); }
 
-    static_assert(info().flags.any(ArgumentFlag::Assignable), "reference argument has to be assignable");
-    static_assert(info().flags.none(ArgumentFlag::Reference), "reference uses reference");
+    static_assert(info().flags.any(ParameterFlag::Assignable), "reference parameter has to be assignable");
+    static_assert(info().flags.none(ParameterFlag::Reference), "reference uses reference");
 };
 
 } // namespace intrinsic

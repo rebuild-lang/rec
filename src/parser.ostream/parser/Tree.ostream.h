@@ -2,7 +2,7 @@
 #include "parser/Tree.h"
 #include "parser/TypeTree.ostream.h"
 
-#include "instance/Argument.h"
+#include "instance/Parameter.h"
 #include "instance/Function.h"
 #include "instance/Variable.h"
 
@@ -32,7 +32,7 @@ inline auto operator<<(std::ostream& out, const Block& b) -> std::ostream& {
     return out;
 }
 inline auto operator<<(std::ostream& out, const ArgumentAssignment& as) -> std::ostream& {
-    return out << (as.argument ? as.argument->typed.name : Name("<?>")) << " = " << as.values;
+    return out << (as.parameter ? as.parameter->typed.name : Name("<?>")) << " = " << as.values;
 }
 inline auto operator<<(std::ostream& out, const Call& inv) -> std::ostream& {
     out << (inv.function ? inv.function->name : Name("<?>")) << "(";

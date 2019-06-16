@@ -62,19 +62,19 @@ struct TypeOf<uint64_t> {
     struct Result {
         uint64_t v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"result"};
-            info.side = ArgumentSide::Result;
-            info.flags = ArgumentFlag::Assignable;
+            info.side = ParameterSide::Result;
+            info.flags = ParameterFlag::Assignable;
             return info;
         }
     };
     struct Literal {
         scanner::NumberLiteral v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"literal"};
-            info.side = ArgumentSide::Right;
+            info.side = ParameterSide::Right;
             // info.flags = ArgumentFlag::Reference;
             return info;
         }
@@ -88,18 +88,18 @@ struct TypeOf<uint64_t> {
     struct Left {
         uint64_t v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"left"};
-            info.side = ArgumentSide::Left;
+            info.side = ParameterSide::Left;
             return info;
         }
     };
     struct Right {
         uint64_t v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"right"};
-            info.side = ArgumentSide::Right;
+            info.side = ParameterSide::Right;
             return info;
         }
     };
@@ -178,10 +178,10 @@ struct TypeOf<Flags> {
     struct IdentifierLiterals {
         std::vector<uint64_t> v; // TODO(arBmind): parser::Identifier
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"ids"};
-            info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Unrolled;
+            info.side = ParameterSide::Right;
+            info.flags = ParameterFlag::Unrolled;
             return info;
         }
     };
@@ -212,10 +212,10 @@ struct TypeOf<List> {
     struct Result {
         List v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"result"};
-            info.side = ArgumentSide::Result;
-            info.flags = ArgumentFlag::Assignable;
+            info.side = ParameterSide::Result;
+            info.flags = ParameterFlag::Assignable;
             return info;
         }
     };
@@ -223,9 +223,9 @@ struct TypeOf<List> {
     struct TypeArgument {
         instance::Type* v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"type"};
-            info.side = ArgumentSide::Right;
+            info.side = ParameterSide::Right;
             return info;
         }
     };
@@ -288,9 +288,9 @@ struct TypeOf<instance::Type*> {
     struct ThisArgument {
         instance::Type* v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"this"};
-            info.side = ArgumentSide::Left;
+            info.side = ParameterSide::Left;
             // info.flags = ArgumentFlag::Reference;
             return info;
         }
@@ -298,10 +298,10 @@ struct TypeOf<instance::Type*> {
     struct Result {
         instance::TypeFlags v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"result"};
-            info.side = ArgumentSide::Result;
-            info.flags = ArgumentFlag::Assignable;
+            info.side = ParameterSide::Result;
+            info.flags = ParameterFlag::Assignable;
             return info;
         }
     };

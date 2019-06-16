@@ -8,8 +8,8 @@
 
 namespace instance {
 
-enum class ArgumentSide { left, right, result };
-enum class ArgumentFlag {
+enum class ParameterSide { left, right, result };
+enum class ParameterFlag {
     optional = 1 << 0,
     splatted = 1 << 1, // array type is gathered during call
     token = 1 << 5, // unparsed token
@@ -18,17 +18,17 @@ enum class ArgumentFlag {
     assignable = 1 << 8,
     // …
 };
-using ArgumentFlags = meta::Flags<ArgumentFlag>;
-META_FLAGS_OP(ArgumentFlags)
+using ParameterFlags = meta::Flags<ParameterFlag>;
+META_FLAGS_OP(ParameterFlags)
 
-struct Argument {
+struct Parameter {
     Typed typed;
-    ArgumentSide side{};
-    ArgumentFlags flags{};
+    ParameterSide side{};
+    ParameterFlags flags{};
     parser::Nodes init{};
 };
-using Arguments = std::vector<Argument>;
+using Parameters = std::vector<Parameter>;
 
-inline auto nameOf(const Argument& arg) -> NameView { return nameOf(arg.typed); }
+inline auto nameOf(const Parameter& arg) -> NameView { return nameOf(arg.typed); }
 
 } // namespace instance

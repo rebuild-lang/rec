@@ -28,20 +28,20 @@ struct TypeOf<api::U64> {
     struct Result {
         api::U64 v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"result"};
-            info.side = ArgumentSide::Result;
-            info.flags = ArgumentFlag::Assignable;
+            info.side = ParameterSide::Result;
+            info.flags = ParameterFlag::Assignable;
             return info;
         }
     };
     struct Literal {
         parser::NumberLiteral v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"literal"};
-            info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            info.flags = ParameterFlag::Reference;
             return info;
         }
     };
@@ -62,18 +62,18 @@ struct TypeOf<api::U64> {
     struct Left {
         api::U64 v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"left"};
-            info.side = ArgumentSide::Left;
+            info.side = ParameterSide::Left;
             return info;
         }
     };
     struct Right {
         api::U64 v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"right"};
-            info.side = ArgumentSide::Right;
+            info.side = ParameterSide::Right;
             return info;
         }
     };

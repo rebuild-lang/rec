@@ -36,26 +36,26 @@ struct TypeOf<instance::Type*> {
         return info;
     }
 
-    //    struct ThisArgument {
+    //    struct Self {
     //        instance::Type v;
     //        static constexpr auto info() {
-    //            auto info = ArgumentInfo{};
-    //            info.name = Name{"this"};
-    //            info.side = ArgumentSide::Left;
+    //            auto info = ParameterInfo{};
+    //            info.name = Name{"self"};
+    //            info.side = ParameterSide::Left;
     //            return info;
     //        }
     //    };
     //    struct Result {
     //        instance::TypeFlags v;
     //        static constexpr auto info() {
-    //            auto info = ArgumentInfo{};
+    //            auto info = ParameterInfo{};
     //            info.name = Name{"result"};
-    //            info.side = ArgumentSide::Result;
-    //            info.flags = ArgumentFlag::Assignable;
+    //            info.side = ParameterSide::Result;
+    //            info.flags = ParameterFlag::Assignable;
     //            return info;
     //        }
     //    };
-    //    static void readFlags(const ThisArgument& self, Result& res) { //
+    //    static void readFlags(const Self& self, Result& res) { //
     //        res.v = self.v.flags;
     //    }
 
@@ -105,7 +105,7 @@ struct Instance {
         mod.template type<instance::Type*>();
         mod.template type<instance::Function*>();
         // mod.template type<instance::Variable>();
-        // mod.template type<instance::Argument>();
+        // mod.template type<instance::Parameter>();
     }
 };
 

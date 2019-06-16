@@ -91,7 +91,7 @@ INSTANTIATE_TEST_CASE_P(
             .ctx(
                 instance::typeModT<nesting::NumberLiteral>("Lit"),
                 instance::fun("print")
-                    .args(instance::arg("v").right().type(parser::type().instance("Lit")))
+                    .params(instance::param("v").right().type(parser::type().instance("Lit")))
                     .rawIntrinsic(&ExecutionMachineData::literal))
             .run(parser::call("print").right(parser::arg("v", "Lit", nesting::num("42"))))
             .expect("42")));

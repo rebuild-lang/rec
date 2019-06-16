@@ -12,10 +12,10 @@ Project {
         Depends { name: "parser.data" }
 
         files: [
-            "Argument.h",
             "Function.cpp",
             "Function.h",
             "Module.h",
+            "Parameter.h",
             "Type.h",
         ]
 

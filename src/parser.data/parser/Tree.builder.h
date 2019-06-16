@@ -77,7 +77,9 @@ struct TypedBuilder {
         return *this;
     }
 
-    auto build(const Scope& scope) && -> NameTypeValue { return NameTypeValue{name, std::move(typeExpr).build(scope), {}}; }
+    auto build(const Scope& scope) && -> NameTypeValue {
+        return NameTypeValue{name, std::move(typeExpr).build(scope), {}};
+    }
 };
 
 using ValueVariant = meta::Variant<
@@ -120,10 +122,10 @@ struct ExpressionBuilder<CallBuilder> {
 
 inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -> ArgumentAssignment {
     auto as = ArgumentAssignment{};
-    auto arg = fun.lookupArgument(name);
-    if (!arg) throw "missing argument";
-    auto* v = arg.value();
-    as.argument = v;
+    auto param = fun.lookupParameter(name);
+    if (!param) throw "missing argument";
+    auto* v = param.value();
+    as.parameter = v;
     as.values.reserve(values.size());
     for (auto&& val : std::move(values)) as.values.emplace_back(std::move(val).build(scope, typeName));
     return as;

@@ -1,14 +1,14 @@
 #pragma once
-#include "intrinsic/Argument.h"
 #include "intrinsic/Function.h"
 #include "intrinsic/Module.h"
+#include "intrinsic/Parameter.h"
 #include "intrinsic/Type.h"
 
-#include "instance/Argument.h"
 #include "instance/Function.h"
 #include "instance/IntrinsicContext.h"
 #include "instance/Module.h"
 #include "instance/Node.h"
+#include "instance/Parameter.h"
 #include "instance/Scope.h"
 #include "instance/Type.h"
 
@@ -30,40 +30,40 @@ constexpr auto partialSum(std::index_sequence<V...> values, std::index_sequence<
     return std::index_sequence<sumN<I>(decltype(values){}, decltype(indices){})...>{};
 }
 
-template<class Arg>
-struct ArgumentAt {
-    static auto from(uint8_t* memory) -> Arg { return *reinterpret_cast<Arg*>(memory); }
+template<class Param>
+struct ParameterAt {
+    static auto from(uint8_t* memory) -> Param { return *reinterpret_cast<Param*>(memory); }
 };
 
-template<class Arg>
-struct ArgumentAt<Arg&> {
-    static auto from(uint8_t* memory) -> Arg& { return **reinterpret_cast<Arg**>(memory); }
+template<class Param>
+struct ParameterAt<Param&> {
+    static auto from(uint8_t* memory) -> Param& { return **reinterpret_cast<Param**>(memory); }
 };
 
-template<class Arg>
-struct ArgumentAt<const Arg&> {
-    static auto from(uint8_t* memory) -> Arg& { return **reinterpret_cast<Arg**>(memory); }
+template<class Param>
+struct ParameterAt<const Param&> {
+    static auto from(uint8_t* memory) -> Param& { return **reinterpret_cast<Param**>(memory); }
 };
 
-template<class Arg>
-constexpr auto argumentSize() -> size_t {
+template<class Param>
+constexpr auto parameterSize() -> size_t {
     using namespace intrinsic;
-    if constexpr (Argument<Arg>::info().side == ArgumentSide::Implicit) {
+    if constexpr (Parameter<Param>::info().side == ParameterSide::Implicit) {
         return {};
     }
-    else if constexpr (Argument<Arg>::info().flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
+    else if constexpr (Parameter<Param>::info().flags.any(ParameterFlag::Assignable, ParameterFlag::Reference)) {
         return sizeof(void*);
     }
     else {
-        return Argument<Arg>::typeInfo().size;
+        return Parameter<Param>::typeInfo().size;
     }
 }
 
-template<auto* F, class... Args>
+template<auto* F, class... Params>
 struct Call {
-    using Func = void (*)(Args...);
-    using Sizes = std::index_sequence<argumentSize<Args>()...>;
-    using Indices = std::make_index_sequence<sizeof...(Args)>;
+    using Func = void (*)(Params...);
+    using Sizes = std::index_sequence<parameterSize<Params>()...>;
+    using Indices = std::make_index_sequence<sizeof...(Params)>;
 
     static void call(uint8_t* memory, intrinsic::Context* context) {
         constexpr auto sizes = Sizes{};
@@ -76,17 +76,17 @@ private:
     template<size_t... Offset>
     static void callImpl(uint8_t* memory, intrinsic::Context* context, std::index_sequence<Offset...>) {
         auto f = reinterpret_cast<Func>(F);
-        f(argumentAt<Args, Offset>(memory, context)...);
+        f(parameterAt<Params, Offset>(memory, context)...);
     }
 
-    template<class Arg, size_t Offset>
-    static auto argumentAt(uint8_t* memory, intrinsic::Context* context) -> Arg {
+    template<class Param, size_t Offset>
+    static auto parameterAt(uint8_t* memory, intrinsic::Context* context) -> Param {
         using namespace intrinsic;
-        if constexpr (Argument<Arg>::info().side == ArgumentSide::Implicit) {
+        if constexpr (Parameter<Param>::info().side == ParameterSide::Implicit) {
             return {context};
         }
         else {
-            return ArgumentAt<Arg>::from(memory + Offset);
+            return ParameterAt<Param>::from(memory + Offset);
         }
     }
 };
@@ -173,33 +173,33 @@ struct Adapter {
     }
 
     struct IsImplicit {
-        template<class Arg>
-        constexpr bool operator()(meta::Type<Arg>) const {
+        template<class Param>
+        constexpr bool operator()(meta::Type<Param>) const {
             using namespace intrinsic;
-            return Argument<Arg>::info().side == ArgumentSide::Implicit;
+            return Parameter<Param>::info().side == ParameterSide::Implicit;
         }
     };
 
-    template<FunctionInfoFunc Info, auto* F, class... Args>
-    void functionImpl(intrinsic::FunctionSignature<void, Args...>) {
-        auto externArgs = meta::TypeList<Args...>::template filterPred<IsImplicit>();
-        functionImpl2<Info, F, Args...>(externArgs);
+    template<FunctionInfoFunc Info, auto* F, class... Params>
+    void functionImpl(intrinsic::FunctionSignature<void, Params...>) {
+        auto externParams = meta::TypeList<Params...>::template filterPred<IsImplicit>();
+        functionImpl2<Info, F, Params...>(externParams);
     }
 
-    template<FunctionInfoFunc Info, auto* F, class... Args, class... ExternArgs>
-    void functionImpl2(meta::TypeList<ExternArgs...>) {
+    template<FunctionInfoFunc Info, auto* F, class... Params, class... ExternParams>
+    void functionImpl2(meta::TypeList<ExternParams...>) {
         // assert((GenericFunc)f2 == (GenericFunc)F);
         auto info = Info();
         auto r = instance::Function{};
         r.name = strings::to_string(info.name);
         r.flags = functionFlags(info.flags);
-        r.arguments = instance::ArgumentViews{argument<ExternArgs>(r.argumentScope)...};
+        r.parameters = instance::ParameterViews{parameter<ExternParams>(r.parameterScope)...};
 
-        auto call = &details::Call<F, Args...>::call;
+        auto call = &details::Call<F, Params...>::call;
         r.body.block.nodes.emplace_back(parser::IntrinsicCall{call});
 
-        auto indices = std::make_index_sequence<sizeof...(ExternArgs)>{};
-        trackArguments<ExternArgs...>(r.arguments, indices);
+        auto indices = std::make_index_sequence<sizeof...(ExternParams)>{};
+        trackParameters<ExternParams...>(r.parameters, indices);
 
         instanceModule.locals.emplace(std::move(r));
     }
@@ -207,15 +207,15 @@ struct Adapter {
     void moduleName(intrinsic::Name name) { instanceModule.name = strings::to_string(name); }
 
 private:
-    struct ArgumentRef {
-        instance::Argument* ref;
+    struct ParameterRef {
+        instance::Parameter* ref;
         const char* typeName;
     };
-    using Arguments = std::vector<ArgumentRef>;
+    using Parameters = std::vector<ParameterRef>;
     using TypeMap = std::map<const char*, instance::TypeView>;
     struct Types {
         TypeMap map{};
-        Arguments arguments{};
+        Parameters parameters{};
         // TODO(arBmind): add instance types etc.
     };
 
@@ -226,13 +226,13 @@ private:
         : types(*types) {}
 
     void resolveTypes() {
-        for (auto [argument, typeName] : types.arguments) {
+        for (auto [parameter, typeName] : types.parameters) {
             auto typeIt = types.map.find(typeName);
             if (typeIt == types.map.end()) {
                 // TODO(arBmind): error, unknown type
                 continue;
             }
-            argument->typed.type.visit(
+            parameter->typed.type.visit(
                 [&](parser::Pointer& p) {
                     if (p.target) {
                         p.target->get<parser::Pointer>().target =
@@ -242,7 +242,7 @@ private:
                         p.target = std::make_shared<parser::TypeExpression>(parser::TypeInstance{typeIt->second});
                     }
                 },
-                [&, a = argument](auto) { //
+                [&, a = parameter](auto) { //
                     a->typed.type = parser::TypeInstance{typeIt->second};
                 });
         }
@@ -255,8 +255,8 @@ private:
         (void)construct;
     }
 
-    template<class T, class R, class Arg>
-    void constructedType(R (*construct)(const Arg&)) {
+    template<class T, class R, class Param>
+    void constructedType(R (*construct)(const Param&)) {
         (void)construct;
         using namespace intrinsic;
         constexpr auto info = TypeOf<T>::info();
@@ -264,7 +264,7 @@ private:
         auto r = instance::Function{};
         r.name = strings::to_string(info.name);
         // r.flags =;
-        // r.arguments = typeArguments(&TypeOf<T>::eval);
+        // r.parameters = typeParameters(&TypeOf<T>::eval);
         // r.body =;
         // call T::eval(…)
         // return Type that stores result & all functions
@@ -291,53 +291,53 @@ private:
         return {};
     }
 
-    template<class R, class... Args>
-    auto typeArguments(R (*)(Args...)) -> instance::Arguments {
-        return {argument<Args>()..., typeResultArgument()};
+    template<class R, class... Params>
+    auto typeParameters(R (*)(Params...)) -> instance::Parameters {
+        return {parameter<Params>()..., typeResultParameter()};
     }
 
-    auto typeResultArgument() -> instance::Argument {
-        auto r = instance::Argument{};
+    auto typeResultParameter() -> instance::Parameter {
+        auto r = instance::Parameter{};
         r.typed.name = strings::String{"result"};
         // r.typed.type = // prosponed "instance::Type"
-        r.side = instance::ArgumentSide::result;
-        // r.flags |= instance::ArgumentFlag::assignable; // TODO(arBmind): missing
+        r.side = instance::ParameterSide::result;
+        // r.flags |= instance::ParameterFlag::assignable; // TODO(arBmind): missing
         return r;
     }
 
-    template<class... Args, size_t... I>
-    auto trackArguments(instance::ArgumentViews& args, std::index_sequence<I...>) {
+    template<class... Params, size_t... I>
+    auto trackParameters(instance::ParameterViews& args, std::index_sequence<I...>) {
         using namespace intrinsic;
-        (types.arguments.push_back(
-             ArgumentRef{const_cast<instance::Argument*>(args[I]), Argument<Args>::typeInfo().name.data()}),
+        (types.parameters.push_back(
+             ParameterRef{const_cast<instance::Parameter*>(args[I]), Parameter<Params>::typeInfo().name.data()}),
          ...);
     }
 
     template<class T>
-    auto argument(instance::LocalScope& scope) -> instance::ArgumentView {
+    auto parameter(instance::LocalScope& scope) -> instance::ParameterView {
         using namespace intrinsic;
 
         auto optNode = scope.emplace([] {
-            constexpr auto info = Argument<T>::info();
-            auto r = instance::Argument{};
+            constexpr auto info = Parameter<T>::info();
+            auto r = instance::Parameter{};
             r.typed.name = strings::to_string(info.name);
-            if (info.flags.any(ArgumentFlag::Assignable, ArgumentFlag::Reference)) {
-                if (Argument<T>::is_pointer) {
+            if (info.flags.any(ParameterFlag::Assignable, ParameterFlag::Reference)) {
+                if (Parameter<T>::is_pointer) {
                     r.typed.type = parser::Pointer{std::make_shared<parser::TypeExpression>(parser::Pointer{})};
                 }
                 else
                     r.typed.type = parser::Pointer{};
             }
-            else if (Argument<T>::is_pointer) {
+            else if (Parameter<T>::is_pointer) {
                 r.typed.type = parser::Pointer{};
             }
             // r.typed.type = // this has to be delayed until all types are known
-            r.side = argumentSide(info.side);
-            r.flags = argumentFlags(info.flags);
+            r.side = parameterSide(info.side);
+            r.flags = parameterFlags(info.flags);
             return r;
         }());
         assert(optNode);
-        return &optNode.value()->template get<instance::Argument>();
+        return &optNode.value()->template get<instance::Parameter>();
     }
 
     constexpr static auto functionFlags(intrinsic::FunctionFlags flags) -> instance::FunctionFlags {
@@ -353,28 +353,28 @@ private:
         return r;
     }
 
-    constexpr static auto argumentSide(intrinsic::ArgumentSide side) -> instance::ArgumentSide {
+    constexpr static auto parameterSide(intrinsic::ParameterSide side) -> instance::ParameterSide {
         using namespace intrinsic;
         switch (side) {
-        case ArgumentSide::Left: return instance::ArgumentSide::left;
-        case ArgumentSide::Right: return instance::ArgumentSide::right;
-        case ArgumentSide::Result: return instance::ArgumentSide::result;
-        case ArgumentSide::Implicit: assert(false); return {}; // should be filtered before
+        case ParameterSide::Left: return instance::ParameterSide::left;
+        case ParameterSide::Right: return instance::ParameterSide::right;
+        case ParameterSide::Result: return instance::ParameterSide::result;
+        case ParameterSide::Implicit: assert(false); return {}; // should be filtered before
         }
         return {};
     }
 
-    constexpr static auto argumentFlags(intrinsic::ArgumentFlags flags) -> instance::ArgumentFlags {
+    constexpr static auto parameterFlags(intrinsic::ParameterFlags flags) -> instance::ParameterFlags {
         using namespace intrinsic;
-        auto r = instance::ArgumentFlags{};
-        if (flags.any(ArgumentFlag::Assignable)) {
-            r |= instance::ArgumentFlag::assignable;
+        auto r = instance::ParameterFlags{};
+        if (flags.any(ParameterFlag::Assignable)) {
+            r |= instance::ParameterFlag::assignable;
         }
-        if (flags.any(ArgumentFlag::Unrolled)) {
-            r |= instance::ArgumentFlag::splatted;
+        if (flags.any(ParameterFlag::Unrolled)) {
+            r |= instance::ParameterFlag::splatted;
         }
         return r;
     }
-}; // namespace intrinsicAdapter
+};
 
 } // namespace intrinsicAdapter

@@ -30,40 +30,40 @@ struct TypeOf<Context*> {
     struct Label {
         parser::IdentifierLiteral v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__label__"};
-            info.side = ArgumentSide::Right;
-            // info.flags = ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            // info.flags = ParameterFlag::Reference;
             return info;
         }
     };
     struct Block {
         parser::BlockLiteral v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__block__"};
-            info.side = ArgumentSide::Right;
-            // info.flags = ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            // info.flags = ParameterFlag::Reference;
             return info;
         }
     };
     struct ModuleResult {
         instance::Module* v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__result__"};
-            info.side = ArgumentSide::Result;
-            info.flags = ArgumentFlag::Assignable;
+            info.side = ParameterSide::Result;
+            info.flags = ParameterFlag::Assignable;
             return info;
         }
     };
     struct ImplicitContext {
         Context* v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__context__"};
-            info.side = ArgumentSide::Implicit;
-            // info.flags = ArgumentFlag::Assignable; // | ArgumentFlag::Optional;
+            info.side = ParameterSide::Implicit;
+            // info.flags = ParameterFlag::Assignable; // | ParameterFlag::Optional;
             return info;
         }
     };
@@ -110,20 +110,20 @@ struct TypeOf<Context*> {
     struct Typed {
         parser::NameTypeValue v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__typed__"};
-            info.side = ArgumentSide::Right;
-            // info.flags = ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            // info.flags = ParameterFlag::Reference;
             return info;
         }
     };
     struct VariableInitResult {
         parser::VariableInit v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__variable_init__"};
-            info.side = ArgumentSide::Result;
-            info.flags = ArgumentFlag::Assignable;
+            info.side = ParameterSide::Result;
+            info.flags = ParameterFlag::Assignable;
             return info;
         }
     };
@@ -152,52 +152,52 @@ struct TypeOf<Context*> {
         if (typed.v.value) res.v.nodes.push_back(typed.v.value.value());
     }
 
-    struct LeftArgumentTuple {
+    struct LeftParameterTuple {
         parser::NameTypeValueTuple v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__left__"};
-            info.side = ArgumentSide::Right;
-            // info.flags = ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            // info.flags = ParameterFlag::Reference;
             return info;
         }
     };
-    struct RightArgumentTuple {
+    struct RightParameterTuple {
         parser::NameTypeValueTuple v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__right__"};
-            info.side = ArgumentSide::Right;
-            // info.flags = ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            // info.flags = ParameterFlag::Reference;
             return info;
         }
     };
-    struct ResultArgumentTuple {
+    struct ResultParameterTuple {
         parser::NameTypeValueTuple v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__result__"};
-            info.side = ArgumentSide::Right;
-            // info.flags = ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            // info.flags = ParameterFlag::Reference;
             return info;
         }
     };
     struct FunctionResult {
         instance::Function* v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"__function__"};
-            info.side = ArgumentSide::Result;
-            info.flags = ArgumentFlag::Assignable;
+            info.side = ParameterSide::Result;
+            info.flags = ParameterFlag::Assignable;
             return info;
         }
     };
 
     static void declareFunction(
-        LeftArgumentTuple left,
+        LeftParameterTuple left,
         Label label,
-        RightArgumentTuple right,
-        ResultArgumentTuple results,
+        RightParameterTuple right,
+        ResultParameterTuple results,
         Block block,
         FunctionResult& res,
         ImplicitContext context) {
@@ -221,41 +221,41 @@ struct TypeOf<Context*> {
             */
         }
         else {
-            auto argumentScope = instance::Scope(context.v->parserScope);
+            auto parameterScope = instance::Scope(context.v->parserScope);
             auto optNode = context.v->parserScope->emplace([&] {
                 auto function = instance::Function{};
                 function.name = strings::to_string(name);
                 function.flags |= instance::FunctionFlag::compiletime; // TODO(arBmind): allow custom flags
 
-                auto addArgumentsFromTyped = [&](instance::ArgumentSide side, parser::NameTypeValueTuple& tuple) {
+                auto addParametersFromTyped = [&](instance::ParameterSide side, parser::NameTypeValueTuple& tuple) {
                     for (auto& typed : tuple.tuple) {
-                        auto optView = argumentScope.emplace([&] {
-                            auto argument = instance::Argument{};
-                            if (typed.name) argument.typed.name = strings::to_string(typed.name.value());
-                            if (typed.type) argument.typed.type = typed.type.value();
-                            argument.side = side;
-                            if (side == instance::ArgumentSide::result)
-                                argument.flags |= instance::ArgumentFlag::assignable;
+                        auto optView = parameterScope.emplace([&] {
+                            auto parameter = instance::Parameter{};
+                            if (typed.name) parameter.typed.name = strings::to_string(typed.name.value());
+                            if (typed.type) parameter.typed.type = typed.type.value();
+                            parameter.side = side;
+                            if (side == instance::ParameterSide::result)
+                                parameter.flags |= instance::ParameterFlag::assignable;
 
-                            if (typed.value) argument.init.push_back(typed.value.value());
-                            return argument;
+                            if (typed.value) parameter.init.push_back(typed.value.value());
+                            return parameter;
                         }());
-                        if (optView) function.arguments.push_back(&optView.value()->get<instance::Argument>());
+                        if (optView) function.parameters.push_back(&optView.value()->get<instance::Parameter>());
                     }
                 };
 
-                addArgumentsFromTyped(instance::ArgumentSide::left, left.v);
-                addArgumentsFromTyped(instance::ArgumentSide::right, right.v);
-                addArgumentsFromTyped(instance::ArgumentSide::result, results.v);
+                addParametersFromTyped(instance::ParameterSide::left, left.v);
+                addParametersFromTyped(instance::ParameterSide::right, right.v);
+                addParametersFromTyped(instance::ParameterSide::result, results.v);
                 return function;
             }());
             auto& function = optNode.value()->get<instance::Function>();
 
-            auto bodyScope = instance::Scope(&argumentScope);
+            auto bodyScope = instance::Scope(&parameterScope);
             function.body.block = context.v->parse(block.v, &bodyScope);
             function.body.locals = std::move(bodyScope.locals);
 
-            function.argumentScope = std::move(argumentScope.locals);
+            function.parameterScope = std::move(parameterScope.locals);
 
             res.v = &function;
         }
@@ -296,10 +296,10 @@ struct Rebuild {
     struct SayLiteral {
         parser::StringLiteral v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"literal"};
-            info.side = ArgumentSide::Right;
-            // info.flags = ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            // info.flags = ParameterFlag::Reference;
             return info;
         }
     };

@@ -93,7 +93,7 @@ private:
             [&](const parser::Block& block) { runFunctionBlock(block, context); },
             [&](const parser::Call& call) { runCall(call, context); },
             [&](const parser::IntrinsicCall& intrinsic) { runIntrinsic(intrinsic, context); },
-            [&](const parser::ArgumentReference&) {},
+            [&](const parser::ParameterReference&) {},
             [&](const parser::VariableReference&) {},
             [&](const parser::VariableInit& var) { initVariable(var, context); },
             [&](const parser::ModuleReference&) {},
@@ -151,17 +151,17 @@ private:
 
     static auto argumentsSize(const instance::Function& fun) -> size_t {
         auto sum = 0u;
-        for (auto* a : fun.arguments) {
+        for (auto* a : fun.parameters) {
             sum += argumentSize(*a);
         }
         return sum;
     }
-    static auto argumentSize(const instance::Argument& arg) -> size_t {
+    static auto argumentSize(const instance::Parameter& arg) -> size_t {
         using namespace instance;
-        if (arg.flags.any(ArgumentFlag::splatted)) {
+        if (arg.flags.any(ParameterFlag::splatted)) {
             return 8; // TODO(arBmind): sizeof(Array)
         }
-        if (arg.flags.any(ArgumentFlag::assignable)) {
+        if (arg.flags.any(ParameterFlag::assignable)) {
             return sizeof(void*); // passed as pointer
         }
         return typeExpressionSize(arg.typed.type);
@@ -180,25 +180,25 @@ private:
         Byte* memory = context.localBase;
         const auto& fun = *call.function;
         // assert(call.arguments sufficient & valid)
-        for (auto* funArg : fun.arguments) {
-            context.localFrame.insert(&funArg->typed, memory);
-            assignArgument(call, *funArg, context, memory);
-            memory += argumentSize(*funArg);
+        for (auto* funParam : fun.parameters) {
+            context.localFrame.insert(&funParam->typed, memory);
+            assignArgument(call, *funParam, context, memory);
+            memory += argumentSize(*funParam);
         }
     }
 
     static void assignArgument(
         const parser::Call& call, //
-        const instance::Argument& argument,
+        const instance::Parameter& parameter,
         Context& context,
         Byte* memory) {
 
-        auto* assign = findAssign(call.arguments, argument);
+        auto* assign = findAssign(call.arguments, parameter);
         if (assign != nullptr) {
-            storeArgument(*context.caller, memory, argument, assign->values);
+            storeArgument(*context.caller, memory, parameter, assign->values);
         }
         else {
-            storeArgument(*context.caller, memory, argument, argument.init);
+            storeArgument(*context.caller, memory, parameter, parameter.init);
         }
     }
 
@@ -206,15 +206,15 @@ private:
         Byte* memory = context.localBase;
         const auto& fun = *call.function;
         // assert(call.arguments sufficient & valid)
-        for (auto* funArg : fun.arguments) {
-            context.localFrame.insert(&funArg->typed, memory);
-            if (funArg->side == instance::ArgumentSide::result) {
-                storeResultAt(memory, *funArg, result);
+        for (auto* funParam : fun.parameters) {
+            context.localFrame.insert(&funParam->typed, memory);
+            if (funParam->side == instance::ParameterSide::result) {
+                storeResultAt(memory, *funParam, result);
             }
             else {
-                assignArgument(call, *funArg, context, memory);
+                assignArgument(call, *funParam, context, memory);
             }
-            memory += argumentSize(*funArg);
+            memory += argumentSize(*funParam);
         }
     }
 
@@ -228,10 +228,10 @@ private:
         }
     }
 
-    static auto findAssign(const parser::ArgumentAssignments& assignments, const instance::Argument& arg)
+    static auto findAssign(const parser::ArgumentAssignments& assignments, const instance::Parameter& param)
         -> const parser::ArgumentAssignment* {
         for (const auto& assign : assignments) {
-            if (assign.argument == &arg) return &assign;
+            if (assign.parameter == &param) return &assign;
         }
         return nullptr;
     }
@@ -239,19 +239,21 @@ private:
     static void storeArgument(
         const Context& context, //
         Byte* memory,
-        const instance::Argument& arg,
+        const instance::Parameter& param,
         const parser::Nodes& nodes) {
 
         using namespace instance;
-        if (arg.flags.any(ArgumentFlag::splatted)) {
+        if (param.flags.any(ParameterFlag::splatted)) {
             assert(false); // TODO(arBmind)
             return;
         }
-        if (arg.flags.any(ArgumentFlag::assignable)) {
+        if (param.flags.any(ParameterFlag::assignable)) {
             assert(nodes.size() == 1);
             nodes[0].visit(
                 [&](const parser::VariableReference& var) { storeTypedAddress(var.variable->typed, context, memory); },
-                [&](const parser::ArgumentReference& arg) { storeTypedAddress(arg.argument->typed, context, memory); },
+                [&](const parser::ParameterReference& arg) {
+                    storeTypedAddress(arg.parameter->typed, context, memory);
+                },
                 [&](const parser::Value& value) { storeValueAddress(value, memory); },
                 [&](const auto&) { assert(false); });
             return;
@@ -261,7 +263,7 @@ private:
         }
     }
 
-    static void storeResultAt(Byte* memory, const instance::Argument& arg, Byte* result) {
+    static void storeResultAt(Byte* memory, const instance::Parameter& arg, Byte* result) {
         (void)arg;
         reinterpret_cast<void*&>(*memory) = result;
     }
@@ -271,7 +273,7 @@ private:
             [&](const parser::Block&) { assert(false); },
             [&](const parser::Call& call) { storeCallResult(call, context, memory); },
             [&](const parser::IntrinsicCall&) { assert(false); },
-            [&](const parser::ArgumentReference& arg) { storeTypedValue(arg.argument->typed, context, memory); },
+            [&](const parser::ParameterReference& arg) { storeTypedValue(arg.parameter->typed, context, memory); },
             [&](const parser::VariableReference& var) { storeTypedValue(var.variable->typed, context, memory); },
             [&](const parser::VariableInit&) { assert(false); },
             [&](const parser::ModuleReference&) {},

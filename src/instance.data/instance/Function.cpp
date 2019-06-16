@@ -4,8 +4,9 @@
 
 namespace instance {
 
-OptArgumentView Function::lookupArgument(NameView name) const {
-    return argumentScope[name].map([](const auto node) -> OptArgumentView { return &node->template get<Argument>(); });
+auto Function::lookupParameter(NameView name) const -> OptParameterView {
+    return parameterScope[name].map(
+        [](const auto node) -> OptParameterView { return &node->template get<Parameter>(); });
 }
 
 } // namespace instance

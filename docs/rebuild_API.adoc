@@ -139,7 +139,7 @@ type `NamedTuple`::
 
 type `ArgumentAssignment`::
   ** ! no parser (only part of call)
-  ** `.argument :*instance.Argument`
+  ** `.parameter :*instance.Parameter`
   ** `.values :list(Expression)` _a value for each splat instance_
 
 type `Call`::
@@ -162,19 +162,19 @@ type `Block`::
 * used only for parsing
 * access with `rebuild.decl.`
 
-type `LeftArguments`::
-  ** single argument decl or braces required
+type `LeftParameters`::
+  ** single parameter decl or braces required
   ** no special parsers allowed
-  ** `.arguments :list(instance.Argument)`
+  ** `.parameters :list(instance.Parameter)`
 
-type `RightArguments`::
+type `RightParameters`::
   ** optional braces
-  ** `.arguments :list(instance.Argument)`
+  ** `.parameters :list(instance.Parameter)`
 
 type `Results`::
   ** optional braces
   ** default writable
-  ** `.arguments :list(instance.Argument)`
+  ** `.parameters :list(instance.Parameter)`
 
 type `FunctionFlags`::
   ** parser: `'&'?`
@@ -221,10 +221,10 @@ type `Function`::
   ** `.name :str`
   ** `.parent :variant(*Module, *Type, *Function)`
   ** `.flags :flags(compile_time, run_time, var_args)`
-  ** `.arguments :list(Argument)`
-  ** `.leftArguments :list(*Argument)`
-  ** `.rightArguments :list(*Argument)`
-  ** `.results :list(*Argument)`
+  ** `.parameters :list(Parameter)`
+  ** `.leftParameters :list(*Parameter)`
+  ** `.rightParameters :list(*Parameter)`
+  ** `.results :list(*Parameter)`
   ** _TODO_ `.precedenceLevel :*Level = ()`
   ** `.implementation :parser.Block`
   ** `.define(:literal.Block)`
@@ -236,7 +236,7 @@ type `Variable`::
   ** `.type :*Type`
   ** `.initialisation :Expression?`
 
-type `Argument`::
+type `Parameter`::
   ** `.name :str`
   ** `.function :*Function`
   ** `.flags :flags()`
@@ -251,7 +251,7 @@ type `Argument`::
 type `Context`::
   ** `.scope :Scope # instances`
   ** _TODO_ `.stack :Stack # compile time variables`
-  ** `.declareFunction(leftArgs, name, rightArgs, results, body, flags = None, context = CurrentContext)`
+  ** `.declareFunction(leftParams, name, rightParams, results, body, flags = None, context = CurrentContext)`
   ** `.declareVariable(varDecl, context = CurrentContext)`
   ** `.declareModule(…)`
   ** `.declareType()`
@@ -276,19 +276,19 @@ type `LocalScope`::
 [source,ruby]
 ----
 rebuild.context.declareFunction(
-  (),                                          # no left arguments
+  (),                                          # no left parameters
   "fn",                                        # name
-  (leftArgs : rebuild.decl.LeftArguments,      # right arguments
+  (leftParams : rebuild.decl.LeftParameters,   # right parameters
    flags : rebuild.decl.FunctionFlags,
    name : rebuild.literal.Identifier,
-   rightArgs : rebuild.decl.RightArguments,
+   rightParams : rebuild.decl.RightParameters,
    result : rebuild.decl.Results = (),
    body : rebuild.literal.Block),
   (),                                          # no results
   flags = CompileTime):                        # run `fn` at compile time
 
   rebuild.caller.declareFunction
-    leftArgs, name, rightArgs, result, flags, body
+    leftParams, name, rightParams, result, flags, body
 end
 ----
 

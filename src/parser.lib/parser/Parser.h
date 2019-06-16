@@ -251,7 +251,7 @@ private:
             result = {};
             return ref.module->locals[id];
         }
-        // TODO(arBmind): add Variable/Argument Reference ?
+        // TODO(arBmind): add Variable/Parameter Reference ?
         return context.lookup(id);
     }
 
@@ -269,9 +269,9 @@ private:
                 ++it;
                 return ParseOptions::continue_single;
             },
-            [&](const instance::Argument& arg) {
+            [&](const instance::Parameter& arg) {
                 if (result) return ParseOptions::finish_single;
-                result = OptNode{ArgumentReference{&arg}};
+                result = OptNode{ParameterReference{&arg}};
                 ++it;
                 return ParseOptions::continue_single;
             },
@@ -317,22 +317,22 @@ private:
             Overload() = default;
             explicit Overload(const Function& function)
                 : function(&function)
-                , active(!function.arguments.empty())
-                , complete(function.arguments.empty()) {}
+                , active(!function.parameters.empty())
+                , complete(function.parameters.empty()) {}
 
             void retireLeft(const ViewNameTypeValueTuple& left) {
                 auto o = 0u, t = 0u;
-                auto la = function->leftArguments();
+                auto la = function->leftParameters();
                 for (const ViewNameTypeValue& typed : left.tuple) {
                     if (!typed.value) {
                         // pass type?
                     }
                     else if (typed.name) {
-                        auto optArg = function->lookupArgument(typed.name.value());
-                        if (optArg) {
-                            instance::ArgumentView arg = optArg.value();
-                            if (arg->side == instance::ArgumentSide::left //
-                                && canImplicitConvertToType(typed.value.value(), arg->typed.type)) {
+                        auto optParam = function->lookupParameter(typed.name.value());
+                        if (optParam) {
+                            instance::ParameterView param = optParam.value();
+                            if (param->side == instance::ParameterSide::left //
+                                && canImplicitConvertToType(typed.value.value(), param->typed.type)) {
                                 t++;
                                 continue;
                             }
@@ -342,9 +342,9 @@ private:
                         // name not found
                     }
                     else if (o < la.size()) {
-                        const auto* arg = la[o];
-                        if (arg->side == instance::ArgumentSide::left //
-                            && canImplicitConvertToType(typed.value.value(), arg->typed.type)) {
+                        const auto* param = la[o];
+                        if (param->side == instance::ParameterSide::left //
+                            && canImplicitConvertToType(typed.value.value(), param->typed.type)) {
                             o++;
                             continue;
                         }
@@ -360,7 +360,7 @@ private:
                 active = false;
             }
 
-            auto arg() const -> instance::ArgumentView { return function->rightArguments()[nextArg]; }
+            auto param() const -> instance::ParameterView { return function->rightParameters()[nextArg]; }
         };
         using Overloads = std::vector<Overload>;
 
@@ -450,7 +450,7 @@ private:
             [](const Block&) { return false; },
             [](const Call& call) { return isDirectlyExecutable(call); },
             [](const IntrinsicCall&) { return false; },
-            [](const ArgumentReference&) { return false; },
+            [](const ParameterReference&) { return false; },
             [](const VariableReference&) { return false; },
             [](const VariableInit&) { return false; },
             [](const ModuleReference&) { return false; },
@@ -545,7 +545,7 @@ private:
                 // TODO(arBmind): var is a TypeModule / Expression or Callable
                 return {};
             },
-            [&](const instance::Argument&) -> OptTypeExpression { return {}; },
+            [&](const instance::Parameter&) -> OptTypeExpression { return {}; },
             [&](const instance::Function&) -> OptTypeExpression {
                 // TODO(arBmind): compile time function that returns something useful
                 // ++it;
@@ -664,13 +664,13 @@ private:
         while (!os.active().empty()) {
             // auto baseIt = it;
             for (auto& o : os.active()) {
-                auto* posArg = o.arg();
+                auto* posParam = o.param();
                 auto parseValueArgument = [&](NameTypeValue& typed) {
                     if (typed.name && !typed.type) {
-                        auto optNamedArg = o.function->lookupArgument(typed.name.value());
-                        if (optNamedArg) {
-                            instance::ArgumentView namedArg = optNamedArg.value();
-                            auto p = parserForType<ContextApi<Context>>(namedArg->typed.type);
+                        auto optNamedParam = o.function->lookupParameter(typed.name.value());
+                        if (optNamedParam) {
+                            instance::ParameterView namedParam = optNamedParam.value();
+                            auto p = parserForType<ContextApi<Context>>(namedParam->typed.type);
                             typed.value = p(o.it, context);
                             return;
                         }
@@ -678,7 +678,7 @@ private:
                             // error: name not found / unless a == Typed{}
                         }
                     }
-                    auto p = parserForType<ContextApi<Context>>(posArg->typed.type);
+                    auto p = parserForType<ContextApi<Context>>(posParam->typed.type);
                     typed.value = p(o.it, context);
                 };
 
@@ -687,9 +687,9 @@ private:
                     NameTypeValue& typed = optTyped.value();
                     do {
                         if (typed.type || !typed.value) {
-                            if (isTyped(posArg->typed.type, context)) {
+                            if (isTyped(posParam->typed.type, context)) {
                                 auto as = ArgumentAssignment{};
-                                as.argument = posArg;
+                                as.parameter = posParam;
                                 auto type = context.intrinsicType(meta::Type<NameTypeValue>{});
                                 auto value = NameTypeValue{typed};
                                 as.values = {Value{std::move(value), {TypeInstance{type}}}};
@@ -709,12 +709,12 @@ private:
                         if (isNodeBlockLiteral(typed.value)) o.hasBlocks = true;
 
                         if (typed.name) {
-                            auto optNamedArg = o.function->lookupArgument(typed.name.value());
+                            auto optNamedArg = o.function->lookupParameter(typed.name.value());
                             if (optNamedArg) {
-                                instance::ArgumentView namedArg = optNamedArg.value();
+                                instance::ParameterView namedArg = optNamedArg.value();
                                 if (canImplicitConvertToType(&typed.value.value(), namedArg->typed.type)) {
                                     auto as = ArgumentAssignment{};
-                                    as.argument = namedArg;
+                                    as.parameter = namedArg;
                                     as.values = {std::move(optTyped).value().value.value()};
                                     o.rightArgs.push_back(std::move(as));
                                     // TODO(arBmind): add to call completion
@@ -728,9 +728,9 @@ private:
                                 break;
                             }
                         }
-                        if (canImplicitConvertToType(&typed.value.value(), posArg->typed.type)) {
+                        if (canImplicitConvertToType(&typed.value.value(), posParam->typed.type)) {
                             auto as = ArgumentAssignment{};
-                            as.argument = posArg;
+                            as.parameter = posParam;
                             as.values = {std::move(optTyped).value().value.value()};
                             o.rightArgs.push_back(std::move(as));
                             o.nextArg++;
@@ -743,7 +743,7 @@ private:
                     // no value
                 }
 
-                if (o.nextArg == o.function->rightArguments().size()) {
+                if (o.nextArg == o.function->rightParameters().size()) {
                     o.complete = true;
                     o.active = false;
                 }

@@ -14,9 +14,6 @@ Project {
         Depends { name: "diagnostic.data" }
 
         files: [
-            "Argument.builder.h",
-            "Argument.cpp",
-            "Argument.h",
             "Body.cpp",
             "Body.h",
             "Function.builder.h",
@@ -30,6 +27,9 @@ Project {
             "Module.h",
             "Node.cpp",
             "Node.h",
+            "Parameter.builder.h",
+            "Parameter.cpp",
+            "Parameter.h",
             "Scope.builder.h",
             "Scope.cpp",
             "Scope.h",

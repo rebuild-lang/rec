@@ -9,7 +9,7 @@ using Name = strings::String;
 using NameView = strings::View;
 using TypeExpression = parser::TypeExpression;
 
-// common attributes for Argument & Variable
+// common attributes for Parameter & Variable
 struct Typed {
     Name name;
     TypeExpression type{};

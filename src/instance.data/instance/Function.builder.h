@@ -1,5 +1,5 @@
 #pragma once
-#include "Argument.builder.h"
+#include "Parameter.builder.h"
 
 #include "Function.h"
 
@@ -10,7 +10,7 @@ namespace details {
 struct FunctionBuilder {
     using This = FunctionBuilder;
     Function fun_;
-    std::vector<ArgumentBuilder> args_;
+    std::vector<ParameterBuilder> params_;
 
     template<size_t N>
     explicit FunctionBuilder(const char (&name)[N]) {
@@ -32,9 +32,9 @@ struct FunctionBuilder {
         return std::move(*this);
     }
 
-    template<class... Argument>
-    auto args(Argument&&... argument) && -> This {
-        auto x = {(args_.push_back(std::forward<Argument>(argument)), 0)...};
+    template<class... Parameter>
+    auto params(Parameter&&... parameter) && -> This {
+        auto x = {(params_.push_back(std::forward<Parameter>(parameter)), 0)...};
         (void)x;
         return std::move(*this);
     }
@@ -45,7 +45,7 @@ struct FunctionBuilder {
     }
 
     auto build(const Scope& scope) && -> Function {
-        for (auto&& a : args_) fun_.arguments.emplace_back(std::move(a).build(scope, fun_.argumentScope));
+        for (auto&& a : params_) fun_.parameters.emplace_back(std::move(a).build(scope, fun_.parameterScope));
         return std::move(fun_);
     }
 };

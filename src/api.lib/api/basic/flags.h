@@ -32,10 +32,10 @@ struct TypeOf<api::Flags> {
     struct IdentifierLiterals {
         std::vector<uint64_t> v; // TODO(arBmind): parser::Identifier
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"ids"};
-            info.side = ArgumentSide::Right;
-            info.flags = ArgumentFlag::Unrolled | ArgumentFlag::Reference;
+            info.side = ParameterSide::Right;
+            info.flags = ParameterFlag::Unrolled | ParameterFlag::Reference;
             return info;
         }
     };

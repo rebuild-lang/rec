@@ -45,10 +45,10 @@ struct TypeOf<api::List> {
     struct Result {
         api::List v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"result"};
-            info.side = ArgumentSide::Result;
-            info.flags = ArgumentFlag::Assignable;
+            info.side = ParameterSide::Result;
+            info.flags = ParameterFlag::Assignable;
             return info;
         }
     };
@@ -56,9 +56,9 @@ struct TypeOf<api::List> {
     struct TypeArgument {
         instance::Type* v;
         static constexpr auto info() {
-            auto info = ArgumentInfo{};
+            auto info = ParameterInfo{};
             info.name = Name{"type"};
-            info.side = ArgumentSide::Right;
+            info.side = ParameterSide::Right;
             return info;
         }
     };

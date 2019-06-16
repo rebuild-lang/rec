@@ -8,7 +8,7 @@
 
 namespace instance {
 
-using NodeVariant = meta::Variant<Function, Variable, Argument, Type, Module>;
+using NodeVariant = meta::Variant<Function, Variable, Parameter, Type, Module>;
 
 // we need to inherit here, to allow forward declare this type
 class Node : public NodeVariant {

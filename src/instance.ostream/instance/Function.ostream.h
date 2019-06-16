@@ -1,7 +1,7 @@
 #pragma once
 #include "instance/Function.h"
 
-#include "Argument.ostream.h"
+#include "Parameter.ostream.h"
 
 #include "strings/join.h"
 
@@ -17,15 +17,15 @@ inline auto operator<<(std::ostream& out, const FunctionFlags& f) -> std::ostrea
     return out << ']';
 }
 
-inline auto operator<<(std::ostream& out, ArgumentView a) -> std::ostream& { return out << *a; }
+inline auto operator<<(std::ostream& out, ParameterView a) -> std::ostream& { return out << *a; }
 
-inline auto operator<<(std::ostream& out, const ArgumentViews& av) -> std::ostream& {
+inline auto operator<<(std::ostream& out, const ParameterViews& av) -> std::ostream& {
     strings::join(out, av, ", ");
     return out;
 }
 
 inline auto operator<<(std::ostream& out, const Function& f) -> std::ostream& {
-    return out << "fn " << f.name << '(' << f.arguments << ") " << f.flags;
+    return out << "fn " << f.name << '(' << f.parameters << ") " << f.flags;
 }
 
 } // namespace instance

@@ -1,5 +1,5 @@
 #pragma once
-#include "Argument.h"
+#include "Parameter.h"
 
 #include "Scope.h"
 #include "ScopeLookup.h"
@@ -13,54 +13,54 @@ namespace details {
 
 using TypeExprBuilder = std::function<auto(const Scope&)->parser::TypeExpression>;
 
-struct ArgumentBuilder {
-    using This = ArgumentBuilder;
-    Argument arg{};
+struct ParameterBuilder {
+    using This = ParameterBuilder;
+    Parameter arg{};
     TypeExprBuilder typeExprBuilder{};
 
     template<size_t N>
-    explicit ArgumentBuilder(const char (&name)[N]) {
+    explicit ParameterBuilder(const char (&name)[N]) {
         arg.typed.name = Name{name};
     }
 
     template<class Builder>
-    auto type(Builder&& b) -> ArgumentBuilder {
+    auto type(Builder&& b) -> ParameterBuilder {
         typeExprBuilder = [b2 = std::move(b)](const Scope& scope) mutable { return std::move(b2).build(scope); };
         return *this;
     }
 
-    auto left() -> ArgumentBuilder {
-        arg.side = ArgumentSide::left;
+    auto left() -> ParameterBuilder {
+        arg.side = ParameterSide::left;
         return *this;
     }
-    auto right() -> ArgumentBuilder {
-        arg.side = ArgumentSide::right;
+    auto right() -> ParameterBuilder {
+        arg.side = ParameterSide::right;
         return *this;
     }
-    auto result() -> ArgumentBuilder {
-        arg.side = ArgumentSide::result;
+    auto result() -> ParameterBuilder {
+        arg.side = ParameterSide::result;
         return *this;
     }
-    auto optional() -> ArgumentBuilder {
-        arg.flags |= ArgumentFlag::optional;
+    auto optional() -> ParameterBuilder {
+        arg.flags |= ParameterFlag::optional;
         return *this;
     }
 
-    auto build(const Scope& scope, LocalScope& funScope) && -> ArgumentView {
+    auto build(const Scope& scope, LocalScope& funScope) && -> ParameterView {
         if (typeExprBuilder) {
             arg.typed.type = typeExprBuilder(scope);
         }
         auto optNode = funScope.emplace(std::move(arg));
         assert(optNode);
-        return &optNode.value()->get<Argument>();
+        return &optNode.value()->get<Parameter>();
     }
 };
 
 } // namespace details
 
 template<size_t N>
-auto arg(const char (&name)[N]) {
-    return details::ArgumentBuilder{name};
+auto param(const char (&name)[N]) {
+    return details::ParameterBuilder{name};
 }
 
 } // namespace instance

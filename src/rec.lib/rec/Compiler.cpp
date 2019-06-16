@@ -41,8 +41,8 @@ struct IntrinsicType {
 
 auto assignResultStorage(Call& call) {
     const auto* f = call.function;
-    for (auto* a : f->arguments) {
-        if (a->side == instance::ArgumentSide::result //
+    for (auto* a : f->parameters) {
+        if (a->side == instance::ParameterSide::result //
             && a->typed.type.holds<parser::Pointer>()) {
 
             parser::TypeExpression* ptrTarget = a->typed.type.get<parser::Pointer>().target.get();
@@ -61,8 +61,8 @@ auto assignResultStorage(Call& call) {
 auto getResultValue(Call& call) -> meta::Optional<parser::Value> {
     auto result = meta::Optional<parser::Value>{};
     for (auto& a : call.arguments) {
-        if (a.argument->side == instance::ArgumentSide::result //
-            && a.argument->typed.type.holds<parser::Pointer>()) {
+        if (a.parameter->side == instance::ParameterSide::result //
+            && a.parameter->typed.type.holds<parser::Pointer>()) {
 
             if (result || a.values.size() != 1 || !a.values[0].holds<parser::Value>()) return {};
 

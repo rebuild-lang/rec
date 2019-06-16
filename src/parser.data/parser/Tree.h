@@ -38,10 +38,10 @@ struct Block {
 
 struct ArgumentAssignment {
     using This = ArgumentAssignment;
-    instance::ArgumentView argument{};
+    instance::ParameterView parameter{};
     Nodes values{};
 
-    bool operator==(const This& o) const { return argument == o.argument && values == o.values; }
+    bool operator==(const This& o) const { return parameter == o.parameter && values == o.values; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 using ArgumentAssignments = std::vector<ArgumentAssignment>;
@@ -64,11 +64,11 @@ struct IntrinsicCall {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
-struct ArgumentReference {
-    using This = ArgumentReference;
-    instance::ArgumentView argument{};
+struct ParameterReference {
+    using This = ParameterReference;
+    instance::ParameterView parameter{};
 
-    bool operator==(const This& o) const { return argument == o.argument; }
+    bool operator==(const This& o) const { return parameter == o.parameter; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
@@ -128,7 +128,7 @@ using NodeVariant = meta::Variant<
     Block,
     Call,
     IntrinsicCall,
-    ArgumentReference,
+    ParameterReference,
     VariableReference,
     // TODO(arBmind): add NameTypeValueReference
     VariableInit,

@@ -5,8 +5,8 @@ namespace instance {
 struct Module;
 using ModuleView = const Module*;
 
-struct Argument;
-using ArgumentView = const Argument*;
+struct Parameter;
+using ParameterView = const Parameter*;
 
 struct Variable;
 using VariableView = const Variable*;
