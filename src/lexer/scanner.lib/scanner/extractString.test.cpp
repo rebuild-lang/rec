@@ -186,7 +186,7 @@ INSTANTIATE_TEST_CASE_P( //
                         String{"\"ab"},
                         String{"\"ab"},
                         {StringCompareError{StringError::Kind::EndOfInput, //
-                                            View{""},
+                                            View{"\""},
                                             Position{Line{1}, Column{3}}}},
                         String{"ab"}},
         StringErrorData{"invalidCodePoint",
