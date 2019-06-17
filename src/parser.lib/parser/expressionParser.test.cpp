@@ -71,8 +71,8 @@ struct IntrinsicType {
     template<class T>
     auto operator()(meta::Type<T>) -> instance::TypeView {
         if constexpr (std::is_same_v<T, NameTypeValue>) {
-            auto& m = (*scope)[strings::View{"Typed"}].value()->get<instance::Module>();
-            auto& t = m.locals[strings::View{"type"}].value()->get<instance::Type>();
+            auto& m = (*scope)[strings::View{"Typed"}].frontValue().get<instance::Module>();
+            auto& t = m.locals[strings::View{"type"}].frontValue().get<instance::Type>();
             return &t;
         }
         return {};

@@ -377,13 +377,13 @@ TEST(intrinsic, call) {
     using View = strings::View;
     using Adapter = intrinsicAdapter::Adapter;
     auto rebuild = Adapter::moduleInstance<Rebuild>();
-    ASSERT_TRUE(rebuild.locals[View{"u64"}]);
-    ASSERT_TRUE(rebuild.locals[View{"u64"}].value()->holds<instance::Module>());
-    const auto& u64 = rebuild.locals[View{"u64"}].value()->get<instance::Module>();
+    ASSERT_TRUE(rebuild.locals[View{"u64"}].single());
+    ASSERT_TRUE(rebuild.locals[View{"u64"}].frontValue().holds<instance::Module>());
+    const auto& u64 = rebuild.locals[View{"u64"}].frontValue().get<instance::Module>();
 
-    ASSERT_TRUE(u64.locals[View{"add"}]);
-    ASSERT_TRUE(u64.locals[View{"add"}].value()->holds<instance::Function>());
-    const auto& add = u64.locals[View{"add"}].value()->get<instance::Function>();
+    ASSERT_TRUE(u64.locals[View{"add"}].single());
+    ASSERT_TRUE(u64.locals[View{"add"}].frontValue().holds<instance::Function>());
+    const auto& add = u64.locals[View{"add"}].frontValue().get<instance::Function>();
 
     ASSERT_TRUE(!add.body.block.nodes.empty());
     ASSERT_TRUE(add.body.block.nodes.front().holds<parser::IntrinsicCall>());

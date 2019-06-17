@@ -5,8 +5,9 @@
 namespace instance {
 
 auto Function::lookupParameter(NameView name) const -> OptParameterView {
-    return parameterScope[name].map(
-        [](const auto node) -> OptParameterView { return &node->template get<Parameter>(); });
+    auto r = parameterScope[name];
+    if (!r.single()) return {};
+    return &r.frontValue().get(meta::type<Parameter>);
 }
 
 } // namespace instance

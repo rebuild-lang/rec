@@ -30,7 +30,7 @@ Context(Lookup&&, RunCall&&, IntrinsicType&&, ReportDiagnostic &&)
 template<class Context>
 struct ContextApi {
     static_assert(
-        std::is_same_v<instance::OptConstNodeView, std::invoke_result_t<decltype(Context::lookup), strings::View>>,
+        std::is_same_v<instance::ConstNodeRange, std::invoke_result_t<decltype(Context::lookup), strings::View>>,
         "no lookup");
     static_assert(
         std::is_same_v<OptNode, std::invoke_result_t<decltype(Context::runCall), Call>>, //
@@ -47,7 +47,7 @@ struct ContextApi {
     explicit ContextApi(Context context)
         : context(std::move(context)) {}
 
-    auto lookup(strings::View view) const -> instance::OptConstNodeView { return context.lookup(view); }
+    auto lookup(strings::View view) const -> instance::ConstNodeRange { return context.lookup(view); }
     auto runCall(Call call) const -> OptNode { return context.runCall(std::move(call)); }
 
     template<class Type>

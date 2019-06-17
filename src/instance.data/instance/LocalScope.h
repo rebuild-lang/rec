@@ -13,7 +13,20 @@ using NodeView = Node*;
 using OptNodeView = meta::Optional<NodeView>;
 using OptConstNodeView = meta::Optional<const Node*>;
 
-using NodeByName = std::map<NameView, Node>;
+using NodeByName = std::multimap<NameView, Node>;
+template<class it>
+struct Range {
+    it _begin;
+    it _end;
+
+    bool empty() const { return _begin == _end; }
+    bool single() const { return _begin != _end && std::next(_begin) == _end; }
+    auto frontValue() const -> auto& { return _begin->second; }
+    it begin() const { return _begin; }
+    it end() const { return _end; }
+};
+using NodeRange = Range<NodeByName::iterator>;
+using ConstNodeRange = Range<NodeByName::const_iterator>;
 
 struct LocalScope {
     using This = LocalScope;
@@ -29,13 +42,13 @@ struct LocalScope {
     LocalScope(This&&) = default;
     auto operator=(This &&) -> This& = default;
 
-    auto operator[](NameView name) const& -> OptConstNodeView;
-    auto operator[](NameView name) & -> OptNodeView;
+    auto operator[](NameView name) const& -> ConstNodeRange;
+    auto operator[](NameView name) & -> NodeRange;
 
-    auto emplace(Node&& node) & -> OptNodeView { return emplaceImpl(std::move(node)); }
+    auto emplace(Node&& node) & -> NodeView { return emplaceImpl(std::move(node)); }
 
 private:
-    auto emplaceImpl(Node&&) & -> OptNodeView;
+    auto emplaceImpl(Node&&) & -> NodeView;
 
     // bool replace(old, new)
 };

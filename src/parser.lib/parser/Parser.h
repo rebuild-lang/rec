@@ -201,26 +201,26 @@ private:
                 return ParseOptions::continue_single;
             },
             [&](const nesting::IdentifierLiteral& id) {
-                auto optNode = lookupIdentifier(id.input, result, context);
-                if (!optNode) {
+                auto range = lookupIdentifier(id.input, result, context);
+                if (range.empty()) {
                     if (result) return ParseOptions::finish_single;
 
                     result = OptNode{makeTokenValue<IdentifierLiteral>(it, id, context)};
                     ++it;
                     return ParseOptions::continue_single;
                 }
-                return parseInstance(result, *optNode.value(), it, context);
+                return parseInstance(result, range, it, context);
             },
             [&](const nesting::OperatorLiteral& op) {
-                auto optNode = lookupIdentifier(op.input, result, context);
-                if (!optNode) {
+                auto range = lookupIdentifier(op.input, result, context);
+                if (range.empty()) {
                     if (result) return ParseOptions::finish_single;
 
                     result = OptNode{makeTokenValue<OperatorLiteral>(it, op, context)};
                     ++it;
                     return ParseOptions::continue_single;
                 }
-                return parseInstance(result, *optNode.value(), it, context);
+                return parseInstance(result, range, it, context);
             },
             [&](const nesting::StringLiteral& s) {
                 if (result) return ParseOptions::finish_single;
@@ -245,7 +245,7 @@ private:
 
     template<class Context>
     static auto lookupIdentifier(const strings::View& id, OptNode& result, ContextApi<Context>& context)
-        -> instance::OptConstNodeView {
+        -> instance::ConstNodeRange {
         if (result.map([](const Node& n) { return n.holds<ModuleReference>(); })) {
             auto ref = result.value().get<ModuleReference>();
             result = {};
@@ -258,11 +258,11 @@ private:
     template<class Context>
     static auto parseInstance( //
         OptNode& result,
-        const instance::Node& instance,
+        const instance::ConstNodeRange& range,
         BlockLineView& it,
         Context& context) -> ParseOptions {
 
-        return instance.visit(
+        return range.frontValue().visit(
             [&](const instance::Variable& var) {
                 if (result) return ParseOptions::finish_single;
                 result = OptNode{VariableReference{&var}};
@@ -528,8 +528,8 @@ private:
         return it.current().visit(
             [&](const nesting::IdentifierLiteral& id) -> OptTypeExpression {
                 auto name = id.input;
-                auto node = context.lookup(name);
-                if (node) return parseTypeInstance(*node.value(), it, context);
+                auto range = context.lookup(name);
+                if (range.single()) return parseTypeInstance(range.frontValue(), it, context);
                 return {};
             },
             [](const auto&) -> OptTypeExpression { // error
@@ -564,9 +564,9 @@ private:
                     // auto subNode = mod.locals[subName];
                     // if (subNode) return parseTypeInstance(*subNode.value(), it, context);
                 }
-                auto typeNode = mod.locals[View{"type"}];
-                if (typeNode) {
-                    const auto& type = typeNode.value()->get<instance::Type>();
+                auto typeRange = mod.locals[View{"type"}];
+                if (typeRange.single()) {
+                    const auto& type = typeRange.frontValue().get<instance::Type>();
                     return {TypeInstance{&type}};
                 }
                 // error

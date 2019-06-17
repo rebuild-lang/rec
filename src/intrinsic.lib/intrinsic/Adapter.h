@@ -143,15 +143,16 @@ struct Adapter {
                 return r;
             }());
 
-            auto optNode = a.instanceModule.locals[instance::Name{"type"}];
-            assert(optNode);
-            types.map[info.name.data()] = &optNode.value()->get<instance::Type>();
+            auto typeRange = a.instanceModule.locals[instance::Name{"type"}];
+            assert(typeRange.single());
+            types.map[info.name.data()] = &typeRange.frontValue().get<instance::Type>();
 
             instanceModule.locals.emplace(std::move(a.instanceModule));
 
-            auto modNode = instanceModule.locals[info.name];
-            assert(modNode != nullptr);
-            optNode.value()->get<instance::Type>().module = &modNode.value()->template get<instance::Module>();
+            auto modRange = instanceModule.locals[info.name];
+            assert(modRange.single());
+            typeRange.frontValue().get<instance::Type>().module =
+                &modRange.frontValue().get(meta::type<instance::Module>);
         }
     }
 
@@ -317,7 +318,7 @@ private:
     auto parameter(instance::LocalScope& scope) -> instance::ParameterView {
         using namespace intrinsic;
 
-        auto optNode = scope.emplace([] {
+        auto node = scope.emplace([] {
             constexpr auto info = Parameter<T>::info();
             auto r = instance::Parameter{};
             r.typed.name = strings::to_string(info.name);
@@ -336,8 +337,7 @@ private:
             r.flags = parameterFlags(info.flags);
             return r;
         }());
-        assert(optNode);
-        return &optNode.value()->template get<instance::Parameter>();
+        return &node->template get<instance::Parameter>();
     }
 
     constexpr static auto functionFlags(intrinsic::FunctionFlags flags) -> instance::FunctionFlags {

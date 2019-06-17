@@ -6,22 +6,19 @@ namespace instance {
 
 LocalScope::LocalScope() = default;
 
-auto LocalScope::operator[](NameView name) const& -> OptConstNodeView {
-    auto it = m.find(name);
-    if (it == m.end()) return {};
-    return &it->second;
+auto LocalScope::operator[](NameView name) const& -> ConstNodeRange {
+    auto [b, e] = m.equal_range(name);
+    return {b, e};
 }
 
-auto LocalScope::operator[](NameView name) & -> OptNodeView {
-    auto it = m.find(name);
-    if (it == m.end()) return {};
-    return &it->second;
+auto LocalScope::operator[](NameView name) & -> NodeRange {
+    auto [b, e] = m.equal_range(name);
+    return {b, e};
 }
 
-auto LocalScope::emplaceImpl(Node&& node) & -> OptNodeView {
+auto LocalScope::emplaceImpl(Node&& node) & -> NodeView {
     auto name = nameOf(node);
-    if (auto [it, success] = m.try_emplace(name, std::move(node)); success) return &it->second;
-    return {};
+    return &m.emplace(name, std::move(node))->second;
 }
 
 } // namespace instance

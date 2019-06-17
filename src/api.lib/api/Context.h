@@ -70,11 +70,11 @@ struct TypeOf<Context*> {
 
     static void declareModule(Label label, Block block, ModuleResult& res, ImplicitContext context) {
         auto name = label.v.input;
-        auto optNode = context.v->parserScope->locals[name];
-        if (optNode) {
-            auto node = optNode.value();
-            if (node->holds<instance::Module>()) {
-                auto& module = node->get<instance::Module>();
+        auto range = context.v->parserScope->locals[name];
+        if (!range.empty()) {
+            auto& node = range.frontValue();
+            if (range.single() && node.holds<instance::Module>()) {
+                auto& module = node.get<instance::Module>();
                 auto moduleScope = instance::Scope(context.v->parserScope);
                 moduleScope.locals = std::move(module.locals);
                 context.v->parse(block.v, &moduleScope);
@@ -95,7 +95,7 @@ struct TypeOf<Context*> {
             }
         }
         else {
-            auto optNode = context.v->parserScope->emplace([&] {
+            auto node = context.v->parserScope->emplace([&] {
                 auto module = instance::Module{};
                 module.name = strings::to_string(name);
                 auto moduleScope = instance::Scope(context.v->parserScope);
@@ -103,7 +103,7 @@ struct TypeOf<Context*> {
                 module.locals = std::move(moduleScope.locals);
                 return module;
             }());
-            res.v = &optNode.value()->get<instance::Module>();
+            res.v = &node->get<instance::Module>();
         }
     }
 
@@ -135,20 +135,16 @@ struct TypeOf<Context*> {
             return; // error
         }
         auto name = typed.v.name.value();
-        if (auto node = context.v->parserScope->locals[name]; node) {
+        if (auto range = context.v->parserScope->locals[name]; !range.single()) {
             return; // error
         }
-        auto optNode = context.v->parserScope->emplace([&] {
+        auto node = context.v->parserScope->emplace([&] {
             auto variable = instance::Variable{};
             variable.typed.name = name;
             variable.typed.type = typed.v.type.value();
             return variable;
         }());
-        if (!optNode) {
-            // error
-            return;
-        }
-        res.v.variable = &optNode.value()->get<instance::Variable>();
+        res.v.variable = &node->get<instance::Variable>();
         if (typed.v.value) res.v.nodes.push_back(typed.v.value.value());
     }
 
@@ -204,32 +200,23 @@ struct TypeOf<Context*> {
 
         // TODO(arBmind): implement
         auto name = label.v.input;
-        auto optNode = context.v->parserScope->locals[name];
-        if (optNode) {
+        auto range = context.v->parserScope->locals[name];
+        if (!range.empty() && !range.frontValue().holds<instance::Function>()) {
             /*
-            auto node = optNode.value();
-            if (node->holds<instance::Function>()) {
-                auto& module = node->get<instance::Function>();
-                auto moduleScope = instance::Scope(context.v->parserScope);
-                moduleScope.locals = std::move(module.locals);
-                context.v->parse(block.v, &moduleScope);
-                module.locals = std::move(moduleScope.locals);
-                res.v = &module;
-            }
-            else
                 return; // error
             */
         }
         else {
             auto parameterScope = instance::Scope(context.v->parserScope);
-            auto optNode = context.v->parserScope->emplace([&] {
+            auto node = context.v->parserScope->emplace([&] {
                 auto function = instance::Function{};
                 function.name = strings::to_string(name);
                 function.flags |= instance::FunctionFlag::compiletime; // TODO(arBmind): allow custom flags
 
                 auto addParametersFromTyped = [&](instance::ParameterSide side, parser::NameTypeValueTuple& tuple) {
                     for (auto& typed : tuple.tuple) {
-                        auto optView = parameterScope.emplace([&] {
+                        // TODO(arBmind): check double parameter names
+                        auto view = parameterScope.emplace([&] {
                             auto parameter = instance::Parameter{};
                             if (typed.name) parameter.typed.name = strings::to_string(typed.name.value());
                             if (typed.type) parameter.typed.type = typed.type.value();
@@ -240,7 +227,7 @@ struct TypeOf<Context*> {
                             if (typed.value) parameter.init.push_back(typed.value.value());
                             return parameter;
                         }());
-                        if (optView) function.parameters.push_back(&optView.value()->get<instance::Parameter>());
+                        function.parameters.push_back(&view->get<instance::Parameter>());
                     }
                 };
 
@@ -249,7 +236,7 @@ struct TypeOf<Context*> {
                 addParametersFromTyped(instance::ParameterSide::result, results.v);
                 return function;
             }());
-            auto& function = optNode.value()->get<instance::Function>();
+            auto& function = node->get<instance::Function>();
 
             auto bodyScope = instance::Scope(&parameterScope);
             function.body.block = context.v->parse(block.v, &bodyScope);
