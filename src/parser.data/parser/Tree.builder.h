@@ -97,11 +97,6 @@ class ValueExprBuilder : public ValueExprBuilderVariant {
     Name m_typeName{};
 
 public:
-    ValueExprBuilder(const This&) = default;
-    ValueExprBuilder(This&&) = default;
-    ValueExprBuilder& operator=(const This&) = default;
-    ValueExprBuilder& operator=(This&&) = default;
-
     META_VARIANT_CONSTRUCT(ValueExprBuilder, ValueExprBuilderVariant)
 
     template<size_t N>

@@ -37,7 +37,11 @@ public:
 template<class... T>
 class Variant {
     using This = Variant;
+
+public:
     using Data = std::variant<T...>;
+
+private:
     Data m;
 
 public:
@@ -49,7 +53,7 @@ public:
 
     // note: templated constructors are not forwarded with using
 #define META_VARIANT_CONSTRUCT(Derived, Variant)                                                                       \
-    template<class... A, typename = std::enable_if_t<std::is_constructible_v<Variant, A...>>>                          \
+    template<class... A, typename = std::enable_if_t<std::is_constructible_v<Variant::Data, A...>>>                    \
     Derived(A&&... a)                                                                                                  \
         : Variant(std::forward<A>(a)...) {}
 

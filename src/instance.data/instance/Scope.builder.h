@@ -26,8 +26,7 @@ auto buildNode(const Scope& scope, V&& v) -> decltype(auto) {
 
 template<class... P>
 auto buildScope(Scope& scope, P&&... p) {
-    auto x = {scope.emplace(buildNode(scope, std::forward<P>(p)))...};
-    (void)x;
+    (scope.emplace(buildNode(scope, std::forward<P>(p))), ...);
 }
 
 } // namespace instance
