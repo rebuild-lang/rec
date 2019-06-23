@@ -49,7 +49,6 @@ public:
 
     // note: templated constructors are not forwarded with using
 #define META_VARIANT_CONSTRUCT(Derived, Variant)                                                                       \
-    using Variant::Variant;                                                                                            \
     template<class... A, typename = std::enable_if_t<std::is_constructible_v<Variant, A...>>>                          \
     Derived(A&&... a)                                                                                                  \
         : Variant(std::forward<A>(a)...) {}
