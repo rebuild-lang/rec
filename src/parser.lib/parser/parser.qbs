@@ -39,6 +39,7 @@ Project {
         consoleApplication: true
         type: base.concat("autotest")
 
+        Depends { name: "parser.builder" }
         Depends { name: "parser.lib" }
         Depends { name: "parser.ostream" }
         Depends { name: "instance.ostream" }

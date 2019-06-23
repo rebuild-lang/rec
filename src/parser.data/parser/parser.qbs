@@ -13,7 +13,6 @@ Project {
         files: [
             "Tree.cpp",
             "Tree.h",
-            "Tree.builder.h",
             "TypeTree.cpp",
             "TypeTree.h",
             "Value.cpp",
@@ -26,6 +25,22 @@ Project {
 
             Depends { name: "nesting.data" }
             Depends { name: "instance.view" }
+        }
+    }
+
+    Product {
+        name: "parser.builder"
+
+        Depends { name: "parser.data" }
+        Depends { name: "instance.data" }
+
+        files: [
+            "Tree.builder.h",
+        ]
+
+        Export {
+            Depends { name: "parser.data" }
+            Depends { name: "instance.data" }
         }
     }
 }
