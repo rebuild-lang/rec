@@ -18,7 +18,7 @@ struct TokenLineBuilder {
     template<class... Tok>
     auto tokens(Tok&&... t) && -> This {
         (line.tokens.push_back(std::forward<Tok>(t)), ...);
-        return *this;
+        return std::move(*this);
     }
 
     template<class... Tok>
@@ -31,7 +31,7 @@ struct TokenLineBuilder {
             line.insignificants.emplace_back(std::forward<decltype(t)>(t));
         };
         (add(std::forward<Tok>(t)), ...);
-        return *this;
+        return std::move(*this);
     }
 
     auto build() && -> TokenLine { return std::move(line); }

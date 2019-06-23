@@ -24,12 +24,12 @@ struct NestTokensData {
     template<class... Lines>
     auto in(Lines&&... lines) && -> NestTokensData {
         input = filter::buildTokenLines(std::forward<Lines>(lines)...);
-        return *this;
+        return std::move(*this);
     }
     template<class... Lines>
     auto out(Lines&&... lines) && -> NestTokensData {
         expected = BlockLiteral{{}, {buildBlockLines(std::forward<Lines>(lines)...)}};
-        return *this;
+        return std::move(*this);
     }
 };
 static auto operator<<(std::ostream& out, const NestTokensData& ttd) -> std::ostream& {

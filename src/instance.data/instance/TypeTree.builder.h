@@ -47,19 +47,19 @@ struct TypeExprBuilder {
     template<size_t N>
     auto instance(const char (&name)[N]) && {
         terminal = TypeExprInstanceBuilder{name};
-        return *this;
+        return std::move(*this);
     }
 
     auto pointer() && -> This {
         if (not terminal.name.isEmpty()) throw "terminal present";
         nodes.push_back(TypeExprPointerBuilder{});
-        return *this;
+        return std::move(*this);
     }
 
     auto array(size_t count) && -> This {
         if (not terminal.name.isEmpty()) throw "terminal present";
         nodes.push_back(TypeExprArrayBuilder{count});
-        return *this;
+        return std::move(*this);
     }
 
     auto build(const instance::Scope& scope) && -> TypeExpression {

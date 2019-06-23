@@ -17,13 +17,13 @@ struct TokenLineBuilder {
     template<class... Tok>
     auto tokens(Tok&&... t) && -> This {
         (line.tokens.push_back(std::forward<Tok>(t)), ...);
-        return *this;
+        return std::move(*this);
     }
 
     template<class... Tok>
     auto insignificants(Tok&&... t) && -> This {
         (line.insignificants.emplace_back(std::forward<Tok>(t)), ...);
-        return *this;
+        return std::move(*this);
     }
 
     auto build() && -> BlockLine { return std::move(line); }

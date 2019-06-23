@@ -74,7 +74,7 @@ struct TypedBuilder {
 
     auto type(TypeExprBuilder&& builder) && -> This {
         typeExpr = std::move(builder);
-        return *this;
+        return std::move(*this);
     }
 
     auto build(const Scope& scope) && -> NameTypeValue {

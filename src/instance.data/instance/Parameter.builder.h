@@ -24,26 +24,26 @@ struct ParameterBuilder {
     }
 
     template<class Builder>
-    auto type(Builder&& b) -> ParameterBuilder {
+    auto type(Builder&& b) && -> ParameterBuilder {
         typeExprBuilder = [b2 = std::move(b)](const Scope& scope) mutable { return std::move(b2).build(scope); };
-        return *this;
+        return std::move(*this);
     }
 
-    auto left() -> ParameterBuilder {
+    auto left() && -> ParameterBuilder {
         arg.side = ParameterSide::left;
-        return *this;
+        return std::move(*this);
     }
-    auto right() -> ParameterBuilder {
+    auto right() && -> ParameterBuilder {
         arg.side = ParameterSide::right;
-        return *this;
+        return std::move(*this);
     }
-    auto result() -> ParameterBuilder {
+    auto result() && -> ParameterBuilder {
         arg.side = ParameterSide::result;
-        return *this;
+        return std::move(*this);
     }
-    auto optional() -> ParameterBuilder {
+    auto optional() && -> ParameterBuilder {
         arg.flags |= ParameterFlag::optional;
-        return *this;
+        return std::move(*this);
     }
 
     auto build(const Scope& scope, LocalScope& funScope) && -> ParameterView {
