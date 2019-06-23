@@ -11,6 +11,10 @@ Project {
         Depends { name: "instance.data" }
 
         files: [
+            "CallErrorReporter.cpp",
+            "CallErrorReporter.h",
+            "CallParser.cpp",
+            "CallParser.h",
             "Context.cpp",
             "Context.h",
             "LineErrorReporter.cpp",
@@ -38,10 +42,12 @@ Project {
         Depends { name: "parser.lib" }
         Depends { name: "parser.ostream" }
         Depends { name: "instance.ostream" }
+        Depends { name: "diagnostic.ostream" }
         Depends { name: "googletest.lib" }
         googletest.lib.useMain: true
 
         files: [
+            "CallParser.test.cpp",
             "expressionParser.test.cpp",
         ]
     }

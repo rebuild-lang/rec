@@ -62,6 +62,8 @@ struct TypeExprBuilder {
         return std::move(*this);
     }
 
+    explicit operator bool() { return !terminal.name.isEmpty(); }
+
     auto build(const instance::Scope& scope) && -> TypeExpression {
         auto c = std::move(terminal).build(scope);
         for (auto& node : nodes) {

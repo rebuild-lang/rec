@@ -93,5 +93,5 @@ INSTANTIATE_TEST_CASE_P(
                 instance::fun("print")
                     .params(instance::param("v").right().type(parser::type().instance("Lit")))
                     .rawIntrinsic(&ExecutionMachineData::literal))
-            .run(parser::call("print").right(parser::arg("v", "Lit", nesting::num("42"))))
+            .run(parser::call("print").right(parser::arg("v", parser::expr(nesting::num("42")).typeName("Lit"))))
             .expect("42")));

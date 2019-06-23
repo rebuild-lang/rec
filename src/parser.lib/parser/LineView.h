@@ -11,25 +11,29 @@ struct BlockLineView {
 
     BlockLineView() = default;
     explicit BlockLineView(const BlockLine* line)
-        : line(line) {}
+        : m_line(line) {}
 
-    explicit operator bool() const { return line && index < line->tokens.size(); }
-    bool hasNext() const { return index + 1 < line->tokens.size(); }
+    explicit operator bool() const { return m_line && m_index < m_line->tokens.size(); }
+    bool hasNext() const { return m_index + 1 < m_line->tokens.size(); }
 
-    auto current() const -> decltype(auto) { return line->tokens[index]; }
-    auto next() const -> decltype(auto) { return line->tokens[index + 1]; }
+    auto current() const -> decltype(auto) { return m_line->tokens[m_index]; }
+    auto next() const -> decltype(auto) { return m_line->tokens[m_index + 1]; }
 
-    bool operator==(const This& o) const { return line == o.line && index == o.index; }
+    bool operator==(const This& o) const { return m_line == o.m_line && m_index == o.m_index; }
     bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator<(const This& o) const { return m_line == o.m_line && m_index < o.m_index; }
 
     auto operator++() & -> This& {
-        index++;
+        m_index++;
         return *this;
     }
 
+    auto line() const -> const BlockLine* { return m_line; }
+    auto index() const -> size_t { return m_index; }
+
 private:
-    const BlockLine* line{};
-    size_t index{};
+    const BlockLine* m_line{};
+    size_t m_index{};
 };
 
 } // namespace parser

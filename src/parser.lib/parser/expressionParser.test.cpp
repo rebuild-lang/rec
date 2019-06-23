@@ -46,10 +46,7 @@ struct ExpressionParserData {
     template<class... Expr>
     auto out(Expr&&... expr) && -> ExpressionParserData {
         expected.nodes.reserve(expected.nodes.size() + sizeof...(Expr));
-        auto x = {
-            (expected.nodes.emplace_back(parser::buildExpression(*scope, std::forward<Expr>(expr))), 0)... //
-        };
-        (void)x;
+        (expected.nodes.emplace_back(parser::buildExpression(*scope, std::forward<Expr>(expr))), ...);
         return std::move(*this);
     }
 };
@@ -99,20 +96,22 @@ INSTANTIATE_TEST_CASE_P(
     ExpressionParser,
     ::testing::Values( //
         [] {
-            return ExpressionParserData("Call Number Literal") //
+            return ExpressionParserData("Call_Number_Literal") //
                 .ctx( //
                     instance::typeModT<nesting::NumberLiteral>("NumLit"),
                     instance::fun("print").runtime().params(
                         instance::param("v").right().type(type().instance("NumLit"))))
                 .in(nesting::id(View{"print"}), nesting::num("1"))
-                .out(parser::call("print").right(arg("v", "NumLit", nesting::num("1"))));
+                .out(parser::call("print").right(arg("v", parser::expr(nesting::num("1")).typeName("NumLit"))));
         }(),
         [] {
-            return ExpressionParserData("Call VarDecl") //
+            return ExpressionParserData("Call_VarDecl") //
                 .ctx( //
                     instance::typeModT<parser::NameTypeValue>("Typed"),
                     instance::typeModT<uint64_t>("u64"),
                     instance::fun("var").runtime().params(instance::param("v").right().type(type().instance("Typed"))))
                 .in(nesting::id(View{"var"}), nesting::id(View{"i"}), nesting::colon(), nesting::id(View{"u64"}))
-                .out(parser::call("var").right(arg("v", "Typed", typed("i").type(type().instance("u64")))));
-        }()));
+                .out(parser::call("var").right(
+                    arg("v", parser::expr(typed("i").type(type().instance("u64"))).typeName("Typed"))));
+        }()),
+    [](const ::testing::TestParamInfo<ExpressionParserData>& inf) { return inf.param.name; });
