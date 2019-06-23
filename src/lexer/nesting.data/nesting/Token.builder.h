@@ -50,7 +50,7 @@ auto buildTokens(Tok&&... t) -> Tokens {
     return Tokens{::nesting::buildToken(std::forward<Tok>(t))...};
 }
 
-auto id(View view) -> IdentifierLiteral { return IdentifierLiteral{view}; }
+inline auto id(View view) -> IdentifierLiteral { return IdentifierLiteral{view}; }
 
 template<size_t N>
 auto op(const char (&text)[N]) -> OperatorLiteral {
