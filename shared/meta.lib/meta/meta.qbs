@@ -12,6 +12,7 @@ Project {
 
         files: [
             "CoEnumerator.h",
+            "CoRoutine.h",
             "Flags.h",
             "Flags.ostream.h",
             "Optional.h",

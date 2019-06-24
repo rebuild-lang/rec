@@ -1,6 +1,8 @@
 #pragma once
 
-#include <experimental/coroutine>
+#include "CoRoutine.h"
+
+#include <iterator>
 
 namespace meta {
 
@@ -49,26 +51,24 @@ struct CoEnumerator {
     struct End {};
     static auto end() -> End { return {}; }
 
-    auto begin() {
-        struct Iterator {
-            using iterator_category = std::input_iterator_tag;
-            using difference_type = ptrdiff_t;
-            using value_type = V;
-            using reference = V const&;
-            using pointer = V const*;
+    struct Iterator {
+        using iterator_category = std::input_iterator_tag;
+        using difference_type = ptrdiff_t;
+        using value_type = V;
+        using reference = V const&;
+        using pointer = V const*;
 
-            CoEnumerator& gen;
+        CoEnumerator& gen;
 
-            auto operator*() const -> const V& { return *gen; }
-            auto operator++() -> Iterator& {
-                ++gen;
-                return *this;
-            }
-            bool operator==(End) const { return !gen; }
-            bool operator!=(End) const { return !!gen; }
-        };
-        return Iterator{++(*this)};
-    }
+        auto operator*() const -> const V& { return *gen; }
+        auto operator++() -> Iterator& {
+            ++gen;
+            return *this;
+        }
+        bool operator==(End) const { return !gen; }
+        bool operator!=(End) const { return !!gen; }
+    };
+    auto begin() { return Iterator{++(*this)}; }
 
 #if !defined(__cpp_coroutines) && !defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
 #    pragma message("Warning: Lacking Coroutine Support!")
