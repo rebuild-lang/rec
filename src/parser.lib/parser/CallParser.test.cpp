@@ -63,7 +63,10 @@ struct TestCallExternal {
             auto k = [&] {
                 auto ks = std::stringstream{};
                 ks << '[' << blv.index() << ']' << type;
-                return ks.str();
+                auto s = ks.str();
+                auto p = std::string("(bytes:");
+                auto it = std::search(begin(s), end(s), begin(p), end(p));
+                return std::string(s.begin(), it);
             }();
             auto it = valueNodes.find(k);
             ++blv;
@@ -193,7 +196,7 @@ INSTANTIATE_TEST_CASE_P(
                 .in(nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed())
-                .value("[0]:NumLit(bytes: 176)", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .value("[0]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
                 .complete(1);
         }(),
         [] {
@@ -205,7 +208,7 @@ INSTANTIATE_TEST_CASE_P(
                 .in(nesting::id(View{"v="}), nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed("v"))
-                .value("[1]:NumLit(bytes: 176)", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .value("[1]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
                 .complete(1);
         }(),
         [] {
@@ -219,7 +222,7 @@ INSTANTIATE_TEST_CASE_P(
                 .in(nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed())
-                .value("[0]:NumLit(bytes: 176)", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .value("[0]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
                 .complete(2);
         }(),
         [] {
@@ -233,7 +236,7 @@ INSTANTIATE_TEST_CASE_P(
                 .in(nesting::id(View{"v="}), nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed("v"))
-                .value("[1]:NumLit(bytes: 176)", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .value("[1]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
                 .complete(1);
         }(),
         [] {
@@ -248,7 +251,7 @@ INSTANTIATE_TEST_CASE_P(
                 .in(nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed())
-                .value("[0]:NumLit(bytes: 176)", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .value("[0]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
                 .complete(1);
         }()),
     [](const ::testing::TestParamInfo<CallParserData>& inf) { return inf.param.name; });
