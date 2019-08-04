@@ -135,7 +135,7 @@ struct TypeOf<Context*> {
             return; // error
         }
         auto name = typed.v.name.value();
-        if (auto range = context.v->parserScope->locals[name]; !range.single()) {
+        if (auto range = context.v->parserScope->locals[name]; !range.empty()) {
             return; // error
         }
         auto node = context.v->parserScope->emplace([&] {
