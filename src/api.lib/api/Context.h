@@ -152,7 +152,7 @@ struct TypeOf<Context*> {
         parser::NameTypeValueTuple v;
         static constexpr auto info() {
             auto info = ParameterInfo{};
-            info.name = Name{"__left__"};
+            info.name = Name{"left"};
             info.side = ParameterSide::Right;
             // info.flags = ParameterFlag::Reference;
             return info;

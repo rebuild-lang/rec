@@ -26,7 +26,7 @@ int main() {
         strings::String{""
                         R"(# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
 
-Rebuild.Context.declareFunction(() hi (a :Rebuild.literal.String) ():
+Rebuild.Context.declareFunction left=() hi (a :Rebuild.literal.String) ():
     # Rebuild.say hif # TODO(arBmind): get globals working
     Rebuild.say "Hello from Hi"
     Rebuild.say a
