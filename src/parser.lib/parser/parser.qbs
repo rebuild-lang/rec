@@ -24,6 +24,8 @@ Project {
             "Parser.h",
             "TupleLookup.cpp",
             "TupleLookup.h",
+            "hasSideEffects.cpp",
+            "hasSideEffects.h",
         ]
 
         Export {

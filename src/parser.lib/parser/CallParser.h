@@ -1,6 +1,7 @@
 #pragma once
 #include "CallErrorReporter.h"
 #include "LineView.h"
+#include "hasSideEffects.h"
 
 #include "instance/Function.h"
 
@@ -20,10 +21,11 @@ struct CallOverloads {
         bool active{}; // more parsing required
         bool complete{}; // all required arguments (possibly more optional)
         bool hasBlocks{}; // true if one argument was a block
+        int sideEffects{}; // count the side effects involved for the overload
     };
     using Items = std::vector<Item>;
     Items items{};
-    bool sideEffects{}; // true if side effects were created
+    int sideEffects{}; // the total side effects that were created during parsing
     bool tainted{}; // true if error was already reported
 };
 
@@ -155,6 +157,8 @@ private:
             }
         };
         auto assignParam = [&](ItemIt& itemIt, BlockLineView& it, const NameTypeValue& typed) {
+            bool sideEffect = hasSideEffects(typed);
+            if (sideEffect) os.sideEffects++;
             auto allowMismatch = bool{};
             auto baseIt = itemIt->it;
             auto isNamed = typed.name && !typed.type;
@@ -168,6 +172,7 @@ private:
                     itemIt->args.push_back(std::move(as));
                     itemIt->it = it;
                     itemIt->argIndex = isNamed ? -1 : (itemIt->argIndex + 1);
+                    if (sideEffect) itemIt->sideEffects++;
                     if (isNodeBlockLiteral(typed.value, external)) itemIt->hasBlocks = true;
                     updateStatus(*itemIt);
                     if (itemIt->active) parseOptionalComma(itemIt->it);
@@ -201,10 +206,6 @@ private:
             if (next == active) continue; // no params matched
             if (optTyped) {
                 assignParam(next, nextIt, optTyped.value());
-                /*if (optTyped->sideEffects) {
-                    os.sideEffects = true;
-                    // TODO(arBmind): check if overloads diverged
-                }*/
             }
             else {
                 next->active = false;
