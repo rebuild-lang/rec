@@ -168,10 +168,7 @@ TEST_P(CallParserP, parse) {
 
     auto os = CallOverloads{};
     for (auto& fv : data.functions) {
-        auto item = CallOverloads::Item{};
-        item.function = fv;
-        item.active = true;
-        os.items.emplace_back(std::move(item));
+        os.items.emplace_back(fv);
     }
 
     auto it = BlockLineView{&data.input};

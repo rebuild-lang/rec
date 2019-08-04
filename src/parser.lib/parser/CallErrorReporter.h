@@ -27,9 +27,9 @@ struct CallErrorReporter {
         static_assert(
             std::is_same_v<
                 OptNode,
-                std::invoke_result_t<
-                    decltype(std::declval<T>().parserForType(std::declval<const TypeExpression&>())),
-                    BlockLineView&>>,
+                decltype( //
+                    std::declval<T>().parserForType(std::declval<const TypeExpression&>()) //
+                    (std::declval<BlockLineView&>()))>,
             "no parserForType");
         static_assert(
             std::is_same_v<

@@ -1,4 +1,5 @@
 #pragma once
+#include "CallParser.h"
 #include "Context.h"
 #include "LineErrorReporter.h"
 #include "LineView.h"
@@ -303,102 +304,72 @@ private:
         return true;
     }
 
-    struct OverloadSet {
-        struct Overload {
-            using This = Overload;
-            bool active{true};
-            bool complete{false};
-            bool hasBlocks{false};
-            FunctionView function{};
-            BlockLineView it{};
-            ArgumentAssignments rightArgs{};
-            size_t nextArg{};
-
-            Overload() = default;
-            explicit Overload(const Function& function)
-                : active(!function.parameters.empty())
-                , complete(function.parameters.empty())
-                , function(&function) {}
-
-            void retireLeft(const ViewNameTypeValueTuple& left) {
-                auto o = 0u, t = 0u;
-                auto la = function->leftParameters();
-                for (const ViewNameTypeValue& typed : left.tuple) {
-                    if (!typed.value) {
-                        // pass type?
-                    }
-                    else if (typed.name) {
-                        auto optParam = function->lookupParameter(typed.name.value());
-                        if (optParam) {
-                            instance::ParameterView param = optParam.value();
-                            if (param->side == instance::ParameterSide::left //
-                                && canImplicitConvertToType(typed.value.value(), param->typed.type)) {
-                                t++;
-                                continue;
-                            }
-                            // side does not match
-                            // type does not match
-                        }
-                        // name not found
-                    }
-                    else if (o < la.size()) {
-                        const auto* param = la[o];
+    static void assignLeftArguments(CallOverloads& co, const OptNode& left) {
+        auto leftView = left //
+            ? left.value().holds<NameTypeValueTuple>() //
+                ? ViewNameTypeValueTuple{left.value().get<NameTypeValueTuple>()}
+                : ViewNameTypeValueTuple{left.value()}
+            : ViewNameTypeValueTuple{};
+        for (auto& coi : co.items) {
+            auto o = 0u, t = 0u;
+            auto la = coi.function->leftParameters();
+            for (const ViewNameTypeValue& typed : leftView.tuple) {
+                if (!typed.value) {
+                    // pass type?
+                }
+                else if (typed.name) {
+                    auto optParam = coi.function->lookupParameter(typed.name.value());
+                    if (optParam) {
+                        instance::ParameterView param = optParam.value();
                         if (param->side == instance::ParameterSide::left //
                             && canImplicitConvertToType(typed.value.value(), param->typed.type)) {
-                            o++;
+                            t++;
                             continue;
                         }
                         // side does not match
                         // type does not match
                     }
-                    // index out of range
-                    active = false;
-                    return;
+                    // name not found
                 }
-                if (o + t == la.size()) return;
-                // not right count
-                active = false;
+                else if (o < la.size()) {
+                    const auto* param = la[o];
+                    if (param->side == instance::ParameterSide::left //
+                        && canImplicitConvertToType(typed.value.value(), param->typed.type)) {
+                        o++;
+                        continue;
+                    }
+                    // side does not match
+                    // type does not match
+                }
+                // index out of range
+                coi.active = false;
+                return;
             }
-
-            auto param() const -> instance::ParameterView { return function->rightParameters()[nextArg]; }
-        };
-        using Overloads = std::vector<Overload>;
-
-        explicit OverloadSet(const Function& fun) {
-            vec.emplace_back(fun);
-            activeCount = 1;
+            if (o + t == la.size()) return;
+            // not right count
+            coi.active = false;
         }
-        // TODO(arBmind): allow multiple overloads
+    }
 
-        void retireLeft(const OptNode& left) {
-            auto leftView = left ? left.value().holds<NameTypeValueTuple>()
-                    ? ViewNameTypeValueTuple{left.value().get<NameTypeValueTuple>()}
-                    : ViewNameTypeValueTuple{left.value()}
-                                 : ViewNameTypeValueTuple{};
-            for (auto& o : vec) o.retireLeft(leftView);
-            update();
+    template<class Context>
+    struct Wrap {
+        template<class Type>
+        auto intrinsicType(meta::Type<Type>) -> instance::TypeView {
+            return context->intrinsicType(meta::Type<Type>{});
         }
-
-        void setupIt(BlockLineView& it) {
-            for (auto& o : vec) o.it = it;
+        auto reportDiagnostic(diagnostic::Diagnostic diagnostic) -> void {
+            return context->reportDiagnostic(std::move(diagnostic));
         }
-
-        auto active() const& -> meta::VectorRange<const Overload> { return {vec.begin(), vec.begin() + activeCount}; }
-        auto active() & -> meta::VectorRange<Overload> { return {vec.begin(), vec.begin() + activeCount}; }
-
-        void update() {
-            auto it = std::stable_partition(
-                vec.begin(), vec.begin() + activeCount, [](const Overload& o) { return o.active; });
-            activeCount = std::distance(vec.begin(), it);
+        auto parserForType(const TypeExpression& type) {
+            return [this, parser = Parser::parserForType<Context>(type)](BlockLineView& blv) { //
+                return parser(blv, *context);
+            };
         }
-        auto finish() & -> meta::VectorRange<Overload> {
-            auto it = std::stable_partition(vec.begin(), vec.end(), [](const Overload& o) { return o.complete; });
-            return {vec.begin(), it};
+        template<class Callback>
+        auto parseTypedWithCallback(BlockLineView& it, Callback&& cb) -> OptNameTypeValue {
+            return Parser::parseSingleTypedCallback(it, *context, cb);
         }
-
-    private:
-        Overloads vec{};
-        int64_t activeCount{};
+        Context* context;
     };
 
     template<class Context>
@@ -408,24 +379,15 @@ private:
         BlockLineView& it,
         Context& context) -> ParseOptions { //
 
-        auto os = OverloadSet{fun};
-        os.retireLeft(left);
-        if (!os.active().empty() && it) {
-            parseArguments(os, it, context);
-        }
-        auto completed = os.finish();
-        if (completed.size() == 1) {
-            auto& o = completed.front();
-            it = o.it;
-            auto inv = [&] {
-                auto r = Call{};
-                r.function = o.function;
-                // TODO(arBmind): assign left arguments
-                r.arguments = o.rightArgs;
-                return r;
-            };
-            left = buildCallNode(inv(), context);
-            return o.hasBlocks ? ParseOptions::finish_single : ParseOptions::continue_single;
+        auto co = CallOverloads{};
+        co.items.emplace_back(&fun);
+        assignLeftArguments(co, left);
+
+        CallParser::parse(co, it, Wrap<Context>{&context});
+        if (co.countComplete() == 1) {
+            auto& ci = co.items.front();
+            left = buildCallNode(Call{ci.function, ci.args}, context);
+            return ci.hasBlocks ? ParseOptions::finish_single : ParseOptions::continue_single;
         }
 
         if (left) return ParseOptions::finish_single;
@@ -478,24 +440,6 @@ private:
             return context.runCall(call);
         }
         return Node{std::move(call)};
-    }
-
-    template<class Context>
-    static void parseArguments(OverloadSet& os, BlockLineView& it, Context& context) {
-        auto withBrackets = it.current().holds<nesting::BracketOpen>();
-        if (withBrackets) ++it;
-        parseArgumentsWithout(os, it, context);
-        if (withBrackets) {
-            if (!it) {
-                // error: missing closing bracket
-            }
-            else if (!it.current().holds<nesting::BracketClose>()) {
-                // error: missing closing bracket
-            }
-            else {
-                ++it;
-            }
-        }
     }
 
     template<class Token, class Context>
@@ -560,9 +504,9 @@ private:
             [&](const instance::Module& mod) -> OptTypeExpression {
                 ++it;
                 if (it && it.current().holds<nesting::IdentifierLiteral>()) {
-                    // auto subName = it.current().get<nesting::IdentifierLiteral>().range.view;
-                    // auto subNode = mod.locals[subName];
-                    // if (subNode) return parseTypeInstance(*subNode.value(), it, context);
+                    auto subName = it.current().get<nesting::IdentifierLiteral>().input;
+                    auto subRange = mod.locals[subName];
+                    if (subRange.single()) return parseTypeInstance(subRange.frontValue(), it, context);
                 }
                 auto typeRange = mod.locals[View{"type"}];
                 if (typeRange.single()) {
@@ -572,31 +516,6 @@ private:
                 // error
                 return {};
             });
-    }
-
-    template<class Context>
-    static auto parseTyped(BlockLineView& it, Context& context) -> OptNameTypeValue {
-        auto name = it.current().visit(
-            [&](const nesting::IdentifierLiteral& id) {
-                auto result = id.input;
-                ++it;
-                return result;
-            },
-            [](const auto&) { return View{}; });
-        auto type = [&]() -> OptTypeExpression {
-            if (!it.current().holds<nesting::ColonSeparator>()) return {};
-            ++it;
-            return parseTypeExpression(it, context);
-        }();
-        auto value = [&]() -> OptNode {
-            if (!it.current().visit(
-                    [&](const nesting::OperatorLiteral& op) { return op.input == CompareView{"="}; },
-                    [](const auto&) { return false; }))
-                return {};
-            ++it;
-            return parseSingle(it, context);
-        }();
-        return NameTypeValue{strings::to_string(name), std::move(type), std::move(value)};
     }
 
     template<class Context>
@@ -620,11 +539,14 @@ private:
         using namespace instance;
         using Parser = instance::Parser;
         switch (getParserForType(type)) {
-        case Parser::Expression: return [](BlockLineView& it, Context& context) { return parseSingle(it, context); };
-
+        case Parser::Expression:
+            return [](BlockLineView& it, Context& context) {
+                return parseSingle(it, context); //
+            };
         case Parser::SingleToken:
-            return [](BlockLineView& it, Context& context) { return parseSingleToken(it, context); };
-
+            return [](BlockLineView& it, Context& context) { //
+                return parseSingleToken(it, context);
+            };
         case Parser::IdTypeValue:
             return [](BlockLineView& it, Context& context) -> OptNode {
                 auto optTyped = parseSingleTyped(it, context);
@@ -638,123 +560,6 @@ private:
             };
 
         default: return [](BlockLineView&, Context&) { return OptNode{}; };
-        }
-    }
-
-    template<class Context>
-    static bool isTyped(const TypeExpression& t, ContextApi<Context>& context) {
-        return t.visit(
-            [&](const TypeInstance& ti) {
-                return ti.concrete == context.intrinsicType(meta::Type<parser::NameTypeValue>{});
-            },
-            [](const auto&) { return false; });
-    }
-    template<class Context>
-    static bool isBlockLiteral(const TypeExpression& t, ContextApi<Context>& context) {
-        return t.visit(
-            [&](const TypeInstance& ti) {
-                return ti.concrete == context.intrinsicType(meta::Type<parser::BlockLiteral>{});
-            },
-            [](const auto&) { return false; });
-    }
-
-    template<class Context>
-    static void parseArgumentsWithout(OverloadSet& os, BlockLineView& it, ContextApi<Context>& context) {
-        os.setupIt(it);
-        while (!os.active().empty()) {
-            // auto baseIt = it;
-            for (auto& o : os.active()) {
-                auto* posParam = o.param();
-                auto parseValueArgument = [&](NameTypeValue& typed) {
-                    if (typed.name && !typed.type) {
-                        auto optNamedParam = o.function->lookupParameter(typed.name.value());
-                        if (optNamedParam) {
-                            instance::ParameterView namedParam = optNamedParam.value();
-                            auto p = parserForType<ContextApi<Context>>(namedParam->typed.type);
-                            typed.value = p(o.it, context);
-                            return;
-                        }
-                        else {
-                            // error: name not found / unless a == Typed{}
-                        }
-                    }
-                    auto p = parserForType<ContextApi<Context>>(posParam->typed.type);
-                    typed.value = p(o.it, context);
-                };
-
-                auto optTyped = parseSingleTypedCallback(o.it, context, parseValueArgument);
-                if (optTyped) {
-                    NameTypeValue& typed = optTyped.value();
-                    do {
-                        if (typed.type || !typed.value) {
-                            if (isTyped(posParam->typed.type, context)) {
-                                auto as = ArgumentAssignment{};
-                                as.parameter = posParam;
-                                auto type = context.intrinsicType(meta::Type<NameTypeValue>{});
-                                auto value = NameTypeValue{typed};
-                                as.values = {Value{std::move(value), {TypeInstance{type}}}};
-                                o.rightArgs.push_back(std::move(as));
-                                o.nextArg++;
-                                break;
-                            }
-                            // unexpected type / no value
-                            break;
-                        }
-                        auto isNodeBlockLiteral = [&](OptNode& node) {
-                            if (!node) return false;
-                            if (!node.value().holds<Value>()) return false;
-                            auto& value = node.value().get<Value>();
-                            return isBlockLiteral(value.type(), context);
-                        };
-                        if (isNodeBlockLiteral(typed.value)) o.hasBlocks = true;
-
-                        if (typed.name) {
-                            auto optNamedArg = o.function->lookupParameter(typed.name.value());
-                            if (optNamedArg) {
-                                instance::ParameterView namedArg = optNamedArg.value();
-                                if (canImplicitConvertToType(&typed.value.value(), namedArg->typed.type)) {
-                                    auto as = ArgumentAssignment{};
-                                    as.parameter = namedArg;
-                                    as.values = {std::move(optTyped).value().value.value()};
-                                    o.rightArgs.push_back(std::move(as));
-                                    // TODO(arBmind): add to call completion
-                                    break;
-                                }
-                                // type does not match
-                                break;
-                            }
-                            else {
-                                // name not found
-                                break;
-                            }
-                        }
-                        if (canImplicitConvertToType(&typed.value.value(), posParam->typed.type)) {
-                            auto as = ArgumentAssignment{};
-                            as.parameter = posParam;
-                            as.values = {std::move(optTyped).value().value.value()};
-                            o.rightArgs.push_back(std::move(as));
-                            o.nextArg++;
-                            break;
-                        }
-                        // type does not match
-                    } while (false);
-                }
-                else {
-                    // no value
-                }
-
-                if (o.nextArg == o.function->rightParameters().size()) {
-                    o.complete = true;
-                    o.active = false;
-                }
-                else {
-                    auto r = parseOptionalComma(o.it);
-                    if (r == ParseOptions::finish_single) {
-                        o.active = false;
-                    }
-                }
-            }
-            os.update();
         }
     }
 };

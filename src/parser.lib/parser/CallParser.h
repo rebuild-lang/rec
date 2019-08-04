@@ -18,15 +18,31 @@ struct CallOverloads {
         ArgumentAssignments args{}; // successfully assigned arguments
         int argIndex{}; // next positional argument, -1 for none
 
-        bool active{}; // more parsing required
+        bool active{true}; // more parsing required
         bool complete{}; // all required arguments (possibly more optional)
         bool hasBlocks{}; // true if one argument was a block
         int sideEffects{}; // count the side effects involved for the overload
+
+        Item(const FunctionView& function)
+            : function(function)
+            , active(!function->parameters.empty())
+            , complete(function->parameters.empty()) {}
     };
     using Items = std::vector<Item>;
     Items items{};
     int sideEffects{}; // the total side effects that were created during parsing
     bool tainted{}; // true if error was already reported
+
+    auto countComplete() const -> int {
+        auto c = int{};
+        for (auto& i : items) {
+            if (i.complete)
+                c++;
+            else
+                break;
+        }
+        return c;
+    }
 };
 
 struct CallParser {
@@ -34,7 +50,7 @@ struct CallParser {
     using External = CallErrorReporter::External<T>;
 
     template<class T>
-    static auto parse(CallOverloads& os, BlockLineView& it, T t) {
+    static void parse(CallOverloads& os, BlockLineView& it, T t) {
         auto external = External<T>{t};
         auto withBrackets = it.current().holds<nesting::BracketOpen>();
         if (withBrackets) {
@@ -51,7 +67,7 @@ struct CallParser {
             ++it; // skip BracketClose
             return;
         }
-        return parseArgumentsWithout(os, it, external);
+        parseArgumentsWithout(os, it, external);
     }
 
 private:
@@ -171,7 +187,7 @@ private:
                     as.values = implicitConvert(typed, param, external);
                     itemIt->args.push_back(std::move(as));
                     itemIt->it = it;
-                    itemIt->argIndex = isNamed ? -1 : (itemIt->argIndex + 1);
+                    itemIt->argIndex = isNamed && paramByPos(itemIt) != optParam ? -1 : (itemIt->argIndex + 1);
                     if (sideEffect) itemIt->sideEffects++;
                     if (isNodeBlockLiteral(typed.value, external)) itemIt->hasBlocks = true;
                     updateStatus(*itemIt);
@@ -213,6 +229,7 @@ private:
         }
         startIt =
             std::max_element(itemBegin, itemEnd, [](auto& l, auto& r) { return l.it.index() < r.it.index(); })->it;
+        std::stable_partition(itemBegin, itemEnd, [](auto& o) { return o.complete; });
     }
 };
 
