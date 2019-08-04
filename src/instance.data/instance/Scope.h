@@ -26,7 +26,7 @@ struct Scope {
 public:
     auto operator[](NameView name) const& -> ConstNodeRange {
         auto range = locals[name];
-        if (!range.empty() && parent != nullptr) return (*parent)[name];
+        if (range.empty() && parent != nullptr) return (*parent)[name];
         return range;
     }
 

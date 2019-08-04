@@ -30,7 +30,6 @@ using ConstNodeRange = Range<NodeByName::const_iterator>;
 
 struct LocalScope {
     using This = LocalScope;
-    // NodeByName m;
     std::aligned_storage_t<sizeof(NodeByName), alignof(NodeByName)> m_storage;
 
     LocalScope();
