@@ -32,17 +32,17 @@ constexpr auto partialSum(std::index_sequence<V...> values, std::index_sequence<
 
 template<class Param>
 struct ParameterAt {
-    static auto from(uint8_t* memory) -> Param { return *reinterpret_cast<Param*>(memory); }
+    static auto from(uint8_t* memory) -> Param { return *std::launder(reinterpret_cast<Param*>(memory)); }
 };
 
 template<class Param>
 struct ParameterAt<Param&> {
-    static auto from(uint8_t* memory) -> Param& { return **reinterpret_cast<Param**>(memory); }
+    static auto from(uint8_t* memory) -> Param& { return **std::launder(reinterpret_cast<Param**>(memory)); }
 };
 
 template<class Param>
 struct ParameterAt<const Param&> {
-    static auto from(uint8_t* memory) -> Param& { return **reinterpret_cast<Param**>(memory); }
+    static auto from(uint8_t* memory) -> Param& { return **std::launder(reinterpret_cast<Param**>(memory)); }
 };
 
 template<class Param>
