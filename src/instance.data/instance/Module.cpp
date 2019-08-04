@@ -7,7 +7,7 @@ namespace instance {
 namespace {
 
 void fixTypes(Module& old, Module& cur) {
-    for (auto& n : cur.locals.m) {
+    for (auto& n : cur.locals) {
         n.second.visitSome([&](Type& t) {
             if (t.module == &old) t.module = &cur;
         });

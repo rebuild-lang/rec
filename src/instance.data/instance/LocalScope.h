@@ -30,24 +30,30 @@ using ConstNodeRange = Range<NodeByName::const_iterator>;
 
 struct LocalScope {
     using This = LocalScope;
-    NodeByName m;
+    // NodeByName m;
+    std::aligned_storage_t<sizeof(NodeByName), alignof(NodeByName)> m_storage;
 
     LocalScope();
-    ~LocalScope() = default;
+    ~LocalScope();
 
     // non copyable
     LocalScope(const This&) = delete;
     auto operator=(const This&) -> This& = delete;
     // move enabled
-    LocalScope(This&&) = default;
-    auto operator=(This &&) -> This& = default;
+    LocalScope(This&&);
+    auto operator=(This &&) -> This&;
 
     auto operator[](NameView name) const& -> ConstNodeRange;
     auto operator[](NameView name) & -> NodeRange;
 
+    auto begin() -> NodeByName::iterator;
+    auto end() -> NodeByName::iterator;
+
     auto emplace(Node&& node) & -> NodeView { return emplaceImpl(std::move(node)); }
 
 private:
+    auto m() -> NodeByName&;
+    auto m() const -> const NodeByName&;
     auto emplaceImpl(Node&&) & -> NodeView;
 
     // bool replace(old, new)
