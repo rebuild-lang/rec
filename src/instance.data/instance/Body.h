@@ -5,11 +5,11 @@
 
 namespace instance {
 
-using Block = parser::Block;
+using parser::Block;
 
 struct Body {
-    LocalScope locals;
-    Block block;
+    LocalScope locals{};
+    Block block{};
 };
 
 } // namespace instance
