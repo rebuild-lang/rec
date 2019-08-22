@@ -4,6 +4,7 @@
 #include "LineErrorReporter.h"
 #include "LineView.h"
 #include "TupleLookup.h"
+#include "isDirectlyExecutable.h"
 
 #include "parser/Tree.h"
 
@@ -393,45 +394,6 @@ private:
         if (left) return ParseOptions::finish_single;
         // left = OptNode{FunctionReference{fun}};
         return ParseOptions::continue_single;
-    }
-
-    static bool isDirectlyExecutable(const TypeExpression& expr) {
-        return expr.visit(
-            [](const Auto&) { return false; }, //
-            [](const auto&) { return true; });
-    }
-
-    static bool isDirectlyExecutable(const NameTypeValue& typed) {
-        if (typed.value && !isDirectlyExecutable(typed.value.value())) return false;
-        if (typed.type && !isDirectlyExecutable(typed.type.value())) return false;
-        return true;
-    }
-
-    static bool isDirectlyExecutable(const Node& node) {
-        return node.visit(
-            [](const Block&) { return false; },
-            [](const Call& call) { return isDirectlyExecutable(call); },
-            [](const IntrinsicCall&) { return false; },
-            [](const ParameterReference&) { return false; },
-            [](const VariableReference&) { return false; },
-            [](const VariableInit&) { return false; },
-            [](const ModuleReference&) { return false; },
-            [](const NameTypeValueTuple& tuple) {
-                for (auto& typed : tuple.tuple)
-                    if (!isDirectlyExecutable(typed)) return false;
-                return true;
-            },
-            [](const Value&) { return true; });
-    }
-
-    static bool isDirectlyExecutable(const Call& call) {
-        if (call.function->flags.none(instance::FunctionFlag::compiletime)) return false;
-        for (auto& arg : call.arguments) {
-            for (auto& node : arg.values) {
-                if (!isDirectlyExecutable(node)) return false;
-            }
-        }
-        return true;
     }
 
     template<class Context>

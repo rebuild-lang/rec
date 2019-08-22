@@ -26,6 +26,8 @@ Project {
             "TupleLookup.h",
             "hasSideEffects.cpp",
             "hasSideEffects.h",
+            "isDirectlyExecutable.cpp",
+            "isDirectlyExecutable.h",
         ]
 
         Export {
