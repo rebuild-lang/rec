@@ -32,30 +32,30 @@ Context(Lookup&&, RunCall&&, IntrinsicType&&, ReportDiagnostic &&)
 template<class Context>
 struct ContextApi {
     static_assert(
-        std::is_same_v<instance::ConstNodeRange, std::invoke_result_t<decltype(Context::lookup), strings::View>>,
+        std::is_same_v<std::invoke_result_t<decltype(Context::lookup), strings::View>, instance::ConstNodeRange>,
         "no lookup");
     static_assert(
-        std::is_same_v<OptNode, std::invoke_result_t<decltype(Context::runCall), Call>>, //
+        std::is_same_v<std::invoke_result_t<decltype(Context::runCall), Call>, OptNode>, //
         "no runCall");
     static_assert(
         std::is_same_v<
-            instance::TypeView,
-            std::invoke_result_t<decltype(Context::intrinsicType), meta::Type<StringLiteral>>>,
+            std::invoke_result_t<decltype(Context::intrinsicType), meta::Type<StringLiteral>>,
+            instance::TypeView>,
         "no intrinsicType");
     static_assert(
-        std::is_same_v<void, std::invoke_result_t<decltype(Context::reportDiagnostic), diagnostic::Diagnostic>>,
+        std::is_same_v<std::invoke_result_t<decltype(Context::reportDiagnostic), diagnostic::Diagnostic>, void>,
         "no reportDiagnostic");
 
     explicit ContextApi(Context context, TupleLookup tupleLookup = {})
         : context(std::move(context))
         , tupleLookup(tupleLookup) {}
 
-    auto lookup(strings::View view) const -> instance::ConstNodeRange { return context.lookup(view); }
-    auto runCall(Call call) const -> OptNode { return context.runCall(std::move(call)); }
+    [[nodiscard]] auto lookup(strings::View view) const -> instance::ConstNodeRange { return context.lookup(view); }
+    [[nodiscard]] auto runCall(Call call) const -> OptNode { return context.runCall(std::move(call)); }
 
     template<class Type>
     auto intrinsicType(meta::Type<Type>) -> instance::TypeView {
-        return context.intrinsicType(meta::Type<Type>{});
+        return context.intrinsicType(meta::type<Type>);
     }
     auto reportDiagnostic(diagnostic::Diagnostic diagnostic) -> void {
         return context.reportDiagnostic(std::move(diagnostic));
