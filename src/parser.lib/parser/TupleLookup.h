@@ -1,29 +1,28 @@
 #pragma once
-#include "instance/Scope.h"
 #include "parser/Tree.h"
 
 namespace parser {
 
-using instance::OptConstNodeView;
-
 struct LocalTupleLookup {
     const NameTypeValueTuple* tuple{};
 
-    auto operator[](View name) const& -> OptNameTypeValueView;
+    auto operator[](View name) const& -> OptNameTypeValueView {
+        for (auto& ntv : tuple->tuple) {
+            if (ntv.name && name.isContentEqual(ntv.name.value())) return &ntv;
+        }
+        return {};
+    }
 };
 
-template<class Parent>
 struct TupleLookup {
-    Parent parent{};
-    LocalTupleLookup local{};
+    TupleLookup* parent{};
+    LocalTupleLookup tuple{};
 
-    auto operator()(View name) const& -> OptConstNodeView {
-        auto optNode = local[name];
-        if (!optNode) return parent(name);
+    auto operator[](View name) const& -> OptNameTypeValueView {
+        auto optNode = tuple[name];
+        if (!optNode && parent != nullptr) return (*parent)[name];
         return optNode;
     }
 };
-template<class Parent>
-TupleLookup(Parent, const NameTypeValueTuple*)->TupleLookup<Parent>;
 
 } // namespace parser

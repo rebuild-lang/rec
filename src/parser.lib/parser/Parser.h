@@ -53,14 +53,13 @@ struct Parser {
 
 private:
     template<class Context>
-    static auto parseTuple(BlockLineView& it, Context& context) -> NameTypeValueTuple {
+    static auto parseTuple(BlockLineView& it, ContextApi<Context>& context) -> NameTypeValueTuple {
         auto tuple = NameTypeValueTuple{};
-        // auto subLookup = TupleLookup{[&](View name) { return context.lookup(name); }, &tuple};
-        // auto subContext = context.setLookup(std::move(subLookup));
+        auto subContext = context.withTupleLookup(&tuple);
         if (!it) return tuple;
         auto withBrackets = it.current().holds<nesting::BracketOpen>();
         if (withBrackets) ++it;
-        parseTupleInto(tuple, it, context);
+        parseTupleInto(tuple, it, subContext);
         if (withBrackets) {
             if (!it) {
                 // error: missing closing bracket

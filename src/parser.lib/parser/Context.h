@@ -1,4 +1,6 @@
 #pragma once
+#include "TupleLookup.h"
+
 #include "parser/Tree.h"
 
 #include "diagnostic/Diagnostic.h"
@@ -44,8 +46,9 @@ struct ContextApi {
         std::is_same_v<void, std::invoke_result_t<decltype(Context::reportDiagnostic), diagnostic::Diagnostic>>,
         "no reportDiagnostic");
 
-    explicit ContextApi(Context context)
-        : context(std::move(context)) {}
+    explicit ContextApi(Context context, TupleLookup tupleLookup = {})
+        : context(std::move(context))
+        , tupleLookup(tupleLookup) {}
 
     auto lookup(strings::View view) const -> instance::ConstNodeRange { return context.lookup(view); }
     auto runCall(Call call) const -> OptNode { return context.runCall(std::move(call)); }
@@ -58,19 +61,16 @@ struct ContextApi {
         return context.reportDiagnostic(std::move(diagnostic));
     }
 
-    template<class SubLookup>
-    auto setLookup(SubLookup&& subLookup) {
-        auto subContext = parser::Context{
-            std::forward<SubLookup>(subLookup),
-            std::ref(context.runCall),
-            std::ref(context.intrinsicType),
-            std::ref(context.reportDiagnostic) //
-        };
-        return ContextApi<decltype(subContext)>(std::move(subContext));
+    [[nodiscard]] auto lookupTuple(strings::View view) const -> OptNameTypeValueView { return tupleLookup[view]; }
+
+    auto withTupleLookup(const NameTypeValueTuple* tuple) {
+        auto subTupleLookup = TupleLookup{&tupleLookup, {tuple}};
+        return ContextApi(std::ref(context), subTupleLookup);
     }
 
 private:
     Context context;
+    TupleLookup tupleLookup{};
 };
 
 } // namespace parser
