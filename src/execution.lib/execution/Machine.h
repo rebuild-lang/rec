@@ -152,8 +152,8 @@ private:
 
     static auto argumentsSize(const instance::Function& fun) -> size_t {
         auto sum = 0u;
-        for (auto* a : fun.parameters) {
-            sum += argumentSize(*a);
+        for (auto* param : fun.parameters) {
+            sum += argumentSize(*param);
         }
         return sum;
     }
@@ -194,8 +194,7 @@ private:
         Context& context,
         Byte* memory) {
 
-        auto* assign = findAssign(call.arguments, parameter);
-        if (assign != nullptr) {
+        if (auto* assign = findAssign(call.arguments, parameter); assign != nullptr) {
             storeArgument(*context.caller, memory, parameter, assign->values);
         }
         else {
@@ -252,8 +251,8 @@ private:
             assert(nodes.size() == 1);
             nodes[0].visit(
                 [&](const parser::VariableReference& var) { storeTypedAddress(var.variable->typed, context, memory); },
-                [&](const parser::ParameterReference& arg) {
-                    storeTypedAddress(arg.parameter->typed, context, memory);
+                [&](const parser::ParameterReference& param) {
+                    storeTypedAddress(param.parameter->typed, context, memory);
                 },
                 [&](const parser::Value& value) { storeValueAddress(value, memory); },
                 [&](const auto&) { assert(false); });
@@ -264,8 +263,8 @@ private:
         }
     }
 
-    static void storeResultAt(Byte* memory, const instance::Parameter& arg, Byte* result) {
-        (void)arg;
+    static void storeResultAt(Byte* memory, const instance::Parameter& param, Byte* result) {
+        (void)param;
         reinterpret_cast<void*&>(*memory) = result;
     }
 
@@ -274,7 +273,7 @@ private:
             [&](const parser::Block&) { assert(false); },
             [&](const parser::Call& call) { storeCallResult(call, context, memory); },
             [&](const parser::IntrinsicCall&) { assert(false); },
-            [&](const parser::ParameterReference& arg) { storeTypedValue(arg.parameter->typed, context, memory); },
+            [&](const parser::ParameterReference& param) { storeTypedValue(param.parameter->typed, context, memory); },
             [&](const parser::VariableReference& var) { storeTypedValue(var.variable->typed, context, memory); },
             [&](const parser::NameTypeValueReference& ref) {
                 if (ref.nameTypeValue && ref.nameTypeValue->value)

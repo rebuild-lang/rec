@@ -31,39 +31,39 @@ constexpr auto partialSum(std::index_sequence<V...> values, std::index_sequence<
 }
 
 template<class Param>
-struct ParameterAt {
+struct ArgumentAt {
     static auto from(uint8_t* memory) -> Param { return *std::launder(reinterpret_cast<Param*>(memory)); }
 };
 
 template<class Param>
-struct ParameterAt<Param&> {
+struct ArgumentAt<Param&> {
     static auto from(uint8_t* memory) -> Param& { return **std::launder(reinterpret_cast<Param**>(memory)); }
 };
 
 template<class Param>
-struct ParameterAt<const Param&> {
+struct ArgumentAt<const Param&> {
     static auto from(uint8_t* memory) -> Param& { return **std::launder(reinterpret_cast<Param**>(memory)); }
 };
 
-template<class Param>
-constexpr auto parameterSize() -> size_t {
+template<class Type>
+constexpr auto argumentSize() -> size_t {
     using namespace intrinsic;
-    if constexpr (Parameter<Param>::info().side == ParameterSide::Implicit) {
+    if constexpr (Parameter<Type>::info().side == ParameterSide::Implicit) {
         return {};
     }
-    else if constexpr (Parameter<Param>::info().flags.any(ParameterFlag::Assignable, ParameterFlag::Reference)) {
+    else if constexpr (Parameter<Type>::info().flags.any(ParameterFlag::Assignable, ParameterFlag::Reference)) {
         return sizeof(void*);
     }
     else {
-        return Parameter<Param>::typeInfo().size;
+        return Parameter<Type>::typeInfo().size;
     }
 }
 
-template<auto* F, class... Params>
+template<auto* F, class... ParameterTypes>
 struct Call {
-    using Func = void (*)(Params...);
-    using Sizes = std::index_sequence<parameterSize<Params>()...>;
-    using Indices = std::make_index_sequence<sizeof...(Params)>;
+    using Func = void (*)(ParameterTypes...);
+    using Sizes = std::index_sequence<parameterSize<ParameterTypes>()...>;
+    using Indices = std::make_index_sequence<sizeof...(ParameterTypes)>;
 
     static void call(uint8_t* memory, intrinsic::Context* context) {
         constexpr auto sizes = Sizes{};
@@ -76,17 +76,17 @@ private:
     template<size_t... Offset>
     static void callImpl(uint8_t* memory, intrinsic::Context* context, std::index_sequence<Offset...>) {
         auto f = reinterpret_cast<Func>(F);
-        f(parameterAt<Params, Offset>(memory, context)...);
+        f(argumentAt<ParameterTypes, Offset>(memory, context)...);
     }
 
-    template<class Param, size_t Offset>
-    static auto parameterAt(uint8_t* memory, intrinsic::Context* context) -> Param {
+    template<class Type, size_t Offset>
+    static auto argumentAt(uint8_t* memory, intrinsic::Context* context) -> Type {
         using namespace intrinsic;
-        if constexpr (Parameter<Param>::info().side == ParameterSide::Implicit) {
+        if constexpr (Parameter<Type>::info().side == ParameterSide::Implicit) {
             return {context};
         }
         else {
-            return ParameterAt<Param>::from(memory + Offset);
+            return ArgumentAt<Type>::from(memory + Offset);
         }
     }
 };
