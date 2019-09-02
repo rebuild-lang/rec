@@ -2,8 +2,8 @@
 #include "parser/Tree.h"
 #include "parser/TypeTree.ostream.h"
 
-#include "instance/Parameter.h"
 #include "instance/Function.h"
+#include "instance/Parameter.h"
 #include "instance/Variable.h"
 
 #include "nesting/Token.ostream.h"
@@ -42,6 +42,9 @@ inline auto operator<<(std::ostream& out, const Call& inv) -> std::ostream& {
 inline auto operator<<(std::ostream& out, const VariableReference& vr) -> std::ostream& {
     return out << (vr.variable ? vr.variable->typed.name : Name("<?>"));
 }
+inline auto operator<<(std::ostream& out, const NameTypeValueReference& ntvr) -> std::ostream& {
+    return out << (ntvr.nameTypeValue ? ntvr.nameTypeValue->name.value() : Name("<?>"));
+}
 inline auto operator<<(std::ostream& out, const NameTypeValue& t) -> std::ostream& {
     if (t.name) {
         out << t.name.value();
@@ -69,8 +72,9 @@ inline auto operator<<(std::ostream& out, const NameTypeValueTuple& nt) -> std::
 }
 
 inline auto operator<<(std::ostream& out, const Value& val) -> std::ostream& {
-    out << "val: [" << val.type() << "] = ";
+    out << "val: [" << val.type() << "]";
 #ifdef VALUE_DEBUG_DATA
+    out << " =";
     val.debugData(out); //
 #endif
     return out;

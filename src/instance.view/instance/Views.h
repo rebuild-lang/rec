@@ -19,4 +19,7 @@ using FunctionView = const Function*;
 
 struct Scope;
 
+struct Type;
+using TypeView = const Type*;
+
 } // namespace instance

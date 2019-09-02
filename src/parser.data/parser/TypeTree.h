@@ -1,17 +1,14 @@
 #pragma once
+#include "instance/Views.h"
 
 #include "meta/Optional.h"
 #include "meta/Variant.h"
 
 #include <memory>
 
-namespace instance {
-struct Type;
-} // namespace instance
-
 namespace parser {
 
-using TypeView = const instance::Type*;
+using instance::TypeView;
 
 struct TypeExpression;
 

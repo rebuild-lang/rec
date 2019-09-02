@@ -30,6 +30,7 @@ inline bool isDirectlyExecutable(const Node& node) {
         [](const IntrinsicCall&) { return false; },
         [](const ParameterReference&) { return false; },
         [](const VariableReference&) { return false; },
+        [](const NameTypeValueReference&) { return true; },
         [](const VariableInit&) { return false; },
         [](const ModuleReference&) { return false; },
         [](const NameTypeValueTuple& tuple) {

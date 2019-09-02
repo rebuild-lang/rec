@@ -15,7 +15,12 @@ inline auto operator<<(std::ostream& out, const Array& a) -> std::ostream& {
     return out << a.count << " of " << *a.element;
 }
 
-inline auto operator<<(std::ostream& out, const TypeInstance& i) -> std::ostream& { return out << *i.concrete; }
+inline auto operator<<(std::ostream& out, const TypeInstance& i) -> std::ostream& {
+    if (i.concrete)
+        return out << *i.concrete;
+    else
+        return out << ":<null>";
+}
 
 inline auto operator<<(std::ostream& out, const TypeExpression& e) -> std::ostream& {
     e.visit([&](const auto& v) { out << v; });

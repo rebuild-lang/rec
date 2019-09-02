@@ -10,6 +10,7 @@
 
 #include "meta/Variant.h"
 
+#include <list>
 #include <vector>
 
 namespace intrinsic {
@@ -99,20 +100,19 @@ struct ModuleReference {
 
 struct NameTypeValue;
 using NameTypeValueView = const NameTypeValue*;
-using NameTypeValueVec = std::vector<NameTypeValue>;
+using NameTypeValueList = std::list<NameTypeValue>;
 
 struct NameTypeValueReference {
     using This = NameTypeValueReference;
-    Name name{}; // while parsing and building tuples the ptr is not used
-    NameTypeValueView nameTypeValue{}; // final blocks should have fixed ptr
+    NameTypeValueView nameTypeValue{};
 
-    bool operator==(const This& o) const { return name == o.name && nameTypeValue == o.nameTypeValue; }
+    bool operator==(const This& o) const;
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 
 struct NameTypeValueTuple {
     using This = NameTypeValueTuple;
-    NameTypeValueVec tuple{};
+    NameTypeValueList tuple{};
 
     bool operator==(const This& o) const { return tuple == o.tuple; }
     bool operator!=(const This& o) const { return !(*this == o); }
@@ -130,7 +130,7 @@ using NodeVariant = meta::Variant<
     IntrinsicCall,
     ParameterReference,
     VariableReference,
-    // TODO(arBmind): add NameTypeValueReference
+    NameTypeValueReference,
     VariableInit,
     ModuleReference,
     NameTypeValueTuple,

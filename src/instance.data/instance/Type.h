@@ -36,7 +36,6 @@ struct Type {
     CloneFunc* clone{};
     MakeUninitializedFunc* makeUninitialized{};
 };
-using TypeView = const Type*;
 
 inline auto nameOf(const Type&) -> NameView { return NameView{"type"}; }
 

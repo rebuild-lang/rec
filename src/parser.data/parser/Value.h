@@ -123,9 +123,7 @@ private:
         auto data() -> void* { return &v; }
         auto operator==(const Interface& o) const -> bool { return v == static_cast<const Implementation&>(o).v; }
 #ifdef VALUE_DEBUG_DATA
-        auto debugData(std::ostream& out) const -> std::ostream& {
-            return out; // << v;
-        }
+        auto debugData(std::ostream& out) const -> std::ostream& { return out << v; }
 #endif
     };
 
@@ -133,6 +131,6 @@ private:
 
     Value(std::shared_ptr<Interface>&& ptr)
         : m(std::move(ptr)) {}
-}; // namespace parser
+};
 
 } // namespace parser

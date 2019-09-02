@@ -8,6 +8,10 @@ namespace parser {
 
 using instance::Scope;
 
+struct TupleRef {
+    NameTypeValueView ref{};
+};
+
 namespace details {
 
 class ValueExprBuilder;
@@ -32,6 +36,32 @@ struct ArgumentBuilder {
     auto build(const Scope& scope, const Function& fun) && -> ArgumentAssignment;
 };
 using ArgumentBuilders = std::vector<ArgumentBuilder>;
+
+struct NameTypeValueBuilder;
+using NameTypeValueBuilders = std::vector<NameTypeValueBuilder>;
+
+struct TupleBuilder {
+    using This = TupleBuilder;
+
+    NameTypeValueBuilders builders{};
+    std::vector<NameTypeValueView*> references{};
+
+    template<class... Ts>
+    TupleBuilder(Ts&&... ts) {
+        builders.reserve(sizeof...(Ts));
+        references.resize(sizeof...(Ts));
+
+        (add(std::forward<Ts>(ts)), ...);
+    }
+
+    auto build(const Scope& scope) && -> Node;
+
+private:
+    auto add(NameTypeValueBuilder&& x) { builders.push_back(std::move(x)); }
+    auto add(TupleRef& ref) {
+        references[builders.size() - 1] = &ref.ref; //
+    }
+};
 
 struct CallBuilder {
     using This = CallBuilder;
@@ -90,7 +120,8 @@ using ValueExprBuilderVariant = meta::Variant<
     nesting::IdentifierLiteral,
     nesting::BlockLiteral,
     CallBuilder,
-    NameTypeValueBuilder>;
+    NameTypeValueBuilder,
+    TupleRef*>;
 
 class ValueExprBuilder : public ValueExprBuilderVariant {
     using This = ValueExprBuilder;
@@ -112,6 +143,9 @@ public:
                 auto& type = instance::lookupA<instance::Type>(scope, m_typeName);
                 return Value{std::move(typ).build(scope), TypeExpression{TypeInstance{&type}}};
             },
+            [&](TupleRef* ref) -> Node {
+                return NameTypeValueReference{ref->ref}; //
+            },
             [&](auto&& lit) -> Node {
                 auto& type = instance::lookupA<instance::Type>(scope, m_typeName);
                 return Value{std::move(lit), TypeExpression{TypeInstance{&type}}};
@@ -129,6 +163,11 @@ struct ExpressionBuilder<CallBuilder> {
     static auto build(const Scope& scope, CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }
 };
 
+template<>
+struct ExpressionBuilder<TupleBuilder> {
+    static auto build(const Scope& scope, TupleBuilder&& inv) -> Node { return std::move(inv).build(scope); }
+};
+
 inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -> ArgumentAssignment {
     auto as = ArgumentAssignment{};
     auto param = fun.lookupParameter(name);
@@ -138,6 +177,18 @@ inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -
     as.values.reserve(values.size());
     for (auto&& val : std::move(values)) as.values.emplace_back(std::move(val).build(scope));
     return as;
+}
+
+inline auto TupleBuilder::build(const Scope& scope) && -> Node {
+    auto tuple = NameTypeValueTuple{};
+    auto i = 0;
+    for (auto&& ts : std::move(builders)) {
+        tuple.tuple.emplace_back(std::move(ts).build(scope));
+        if (references[i]) //
+            *(references[i]) = &tuple.tuple.back();
+        i++;
+    }
+    return tuple;
 }
 
 inline auto NameTypeValueBuilder::value(ValueExprBuilder&& value) && -> This {
@@ -169,6 +220,11 @@ inline auto typed() -> details::NameTypeValueBuilder { return {}; }
 template<size_t N, class... Value>
 auto arg(const char (&name)[N], Value&&... value) -> details::ArgumentBuilder {
     return {name, std::forward<Value>(value)...};
+}
+
+template<class... Ts>
+auto tuple(Ts&&... ts) -> details::TupleBuilder {
+    return {std::forward<Ts>(ts)...};
 }
 
 template<class Expr>

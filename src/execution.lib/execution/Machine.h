@@ -95,6 +95,7 @@ private:
             [&](const parser::IntrinsicCall& intrinsic) { runIntrinsic(intrinsic, context); },
             [&](const parser::ParameterReference&) {},
             [&](const parser::VariableReference&) {},
+            [&](const parser::NameTypeValueReference&) {},
             [&](const parser::VariableInit& var) { initVariable(var, context); },
             [&](const parser::ModuleReference&) {},
             [&](const parser::NameTypeValueTuple& typed) { runTyped(typed, context); },
@@ -275,6 +276,12 @@ private:
             [&](const parser::IntrinsicCall&) { assert(false); },
             [&](const parser::ParameterReference& arg) { storeTypedValue(arg.parameter->typed, context, memory); },
             [&](const parser::VariableReference& var) { storeTypedValue(var.variable->typed, context, memory); },
+            [&](const parser::NameTypeValueReference& ref) {
+                if (ref.nameTypeValue && ref.nameTypeValue->value)
+                    storeNode(ref.nameTypeValue->value.value(), context, memory);
+                else
+                    assert(false);
+            },
             [&](const parser::VariableInit&) { assert(false); },
             [&](const parser::ModuleReference&) {},
             [&](const parser::NameTypeValueTuple& tuple) { storeTupleCopy(tuple, memory); },

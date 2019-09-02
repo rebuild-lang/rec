@@ -25,11 +25,12 @@ struct ExpressionParserData {
     const char* name{};
     std::shared_ptr<Scope> scope{};
     BlockLine input{};
-    Block expected{};
+    std::shared_ptr<Block> expected{};
 
     ExpressionParserData(const char* name)
         : name{name}
-        , scope{std::make_shared<Scope>()} {}
+        , scope{std::make_shared<Scope>()}
+        , expected{std::make_shared<Block>()} {}
 
     template<class... Instance>
     auto ctx(Instance&&... instance) && -> ExpressionParserData {
@@ -45,8 +46,8 @@ struct ExpressionParserData {
 
     template<class... Expr>
     auto out(Expr&&... expr) && -> ExpressionParserData {
-        expected.nodes.reserve(expected.nodes.size() + sizeof...(Expr));
-        (expected.nodes.emplace_back(parser::buildExpression(*scope, std::forward<Expr>(expr))), ...);
+        expected->nodes.reserve(expected->nodes.size() + sizeof...(Expr));
+        (expected->nodes.emplace_back(parser::buildExpression(*scope, std::forward<Expr>(expr))), ...);
         return std::move(*this);
     }
 };
@@ -56,7 +57,7 @@ static auto operator<<(std::ostream& out, const ExpressionParserData& epd) -> st
     out << "input:\n";
     out << epd.input << '\n';
     out << "expected:\n";
-    out << epd.expected << '\n';
+    out << *epd.expected << '\n';
     return out;
 }
 
@@ -72,6 +73,11 @@ struct IntrinsicType {
             auto& t = m.locals[strings::View{"type"}].frontValue().get<instance::Type>();
             return &t;
         }
+        if constexpr (std::is_same_v<T, NumberLiteral>) {
+            auto& m = (*scope)[strings::View{"NumLit"}].frontValue().get<instance::Module>();
+            auto& t = m.locals[strings::View{"type"}].frontValue().get<instance::Type>();
+            return &t;
+        }
         return {};
     }
 };
@@ -80,7 +86,7 @@ TEST_P(ExpressionParser, calls) {
     const ExpressionParserData& data = GetParam();
     const auto input = nesting::BlockLiteral{{}, {{data.input}}};
     const auto scope = data.scope;
-    const auto& expected = data.expected;
+    const auto& expected = *data.expected;
 
     auto context = Context{[scope](const strings::View& id) { return (*scope)[id]; },
                            [=](const parser::Call&) -> OptNode { return {}; },
@@ -94,24 +100,47 @@ TEST_P(ExpressionParser, calls) {
 INSTANTIATE_TEST_CASE_P(
     simple,
     ExpressionParser,
-    ::testing::Values( //
-        [] {
-            return ExpressionParserData("Call_Number_Literal") //
-                .ctx( //
-                    instance::typeModT<nesting::NumberLiteral>("NumLit"),
-                    instance::fun("print").runtime().params(
-                        instance::param("v").right().type(type().instance("NumLit"))))
-                .in(nesting::id(View{"print"}), nesting::num("1"))
-                .out(parser::call("print").right(arg("v", parser::expr(nesting::num("1")).typeName("NumLit"))));
-        }(),
-        [] {
-            return ExpressionParserData("Call_VarDecl") //
-                .ctx( //
-                    instance::typeModT<parser::NameTypeValue>("Typed"),
-                    instance::typeModT<uint64_t>("u64"),
-                    instance::fun("var").runtime().params(instance::param("v").right().type(type().instance("Typed"))))
-                .in(nesting::id(View{"var"}), nesting::id(View{"i"}), nesting::colon(), nesting::id(View{"u64"}))
-                .out(parser::call("var").right(
-                    arg("v", parser::expr(typed("i").type(type().instance("u64"))).typeName("Typed"))));
-        }()),
+    ::testing::
+        Values( //
+            [] {
+                return ExpressionParserData("Call_Number_Literal") //
+                    .ctx( //
+                        instance::typeModT<nesting::NumberLiteral>("NumLit"),
+                        instance::fun("print").runtime().params(
+                            instance::param("v").right().type(type().instance("NumLit"))))
+                    .in(nesting::id(View{"print"}), nesting::num("1"))
+                    .out(parser::call("print").right(arg("v", parser::expr(nesting::num("1")).typeName("NumLit"))));
+            }(),
+            [] {
+                return ExpressionParserData("Call_VarDecl") //
+                    .ctx( //
+                        instance::typeModT<parser::NameTypeValue>("Typed"),
+                        instance::typeModT<uint64_t>("u64"),
+                        instance::fun("var").runtime().params(
+                            instance::param("v").right().type(type().instance("Typed"))))
+                    .in(nesting::id(View{"var"}), nesting::id(View{"i"}), nesting::colon(), nesting::id(View{"u64"}))
+                    .out(parser::call("var").right(
+                        arg("v", parser::expr(typed("i").type(type().instance("u64"))).typeName("Typed"))));
+            }(),
+            [] {
+                auto tupleRef = parser::TupleRef{};
+                return ExpressionParserData("Tuple_Ref") //
+                    .ctx( //
+                        instance::typeModT<nesting::NumberLiteral>("NumLit"),
+                        instance::typeModT<parser::NameTypeValue>("Typed"),
+                        instance::typeModT<uint64_t>("u64"))
+                    .in(nesting::bracketOpen(),
+                        nesting::id(View{"a"}),
+                        nesting::op("="),
+                        nesting::num("1"),
+                        nesting::comma(),
+                        nesting::id(View{"b"}),
+                        nesting::op("="),
+                        nesting::id(View{"a"}),
+                        nesting::bracketClose())
+                    .out(tuple(
+                        typed("a").value(parser::expr(nesting::num("1")).typeName("NumLit")), //
+                        tupleRef,
+                        typed("b").value(parser::expr(&tupleRef))));
+            }()),
     [](const ::testing::TestParamInfo<ExpressionParserData>& inf) { return inf.param.name; });

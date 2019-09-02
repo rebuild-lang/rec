@@ -66,6 +66,10 @@ auto num(const char (&intPart)[N]) -> NumberLiteral {
 }
 
 inline auto colon() -> Token { return ColonSeparator{}; }
+inline auto comma() -> Token { return CommaSeparator{}; }
+
+inline auto bracketOpen() -> Token { return BracketOpen{}; }
+inline auto bracketClose() -> Token { return BracketClose{}; }
 
 inline auto line() -> details::TokenLineBuilder { return {}; }
 

@@ -191,7 +191,35 @@ private:
     }
 
     template<class Context>
-    static auto parseStep(OptNode& result, BlockLineView& it, Context& context) -> ParseOptions {
+    static auto parseStep(OptNode& result, BlockLineView& it, ContextApi<Context>& context) -> ParseOptions {
+        auto parseId = [&](const auto& id) {
+            using Id = std::remove_const_t<std::remove_reference_t<decltype(id)>>;
+            if (auto range = lookupModule(id.input, result); !range.empty()) {
+                result = {};
+                return parseInstance(result, range, it, context);
+            }
+            if (auto opRef = context.lookupTuple(id.input); opRef) {
+                if (result) return ParseOptions::finish_single;
+                result = OptNode{NameTypeValueReference{opRef.value()}};
+                ++it;
+                return ParseOptions::continue_single;
+            }
+            if (auto range = context.lookup(id.input); !range.empty()) {
+                return parseInstance(result, range, it, context);
+            }
+            // symbol not found
+            if (result) return ParseOptions::finish_single;
+            result = OptNode{makeTokenValue<Id>(it, id, context)};
+            ++it;
+            return ParseOptions::continue_single;
+        };
+        auto parseLiteral = [&](const auto& lit) {
+            using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
+            if (result) return ParseOptions::finish_single;
+            result = OptNode{makeTokenValue<Lit>(it, lit, context)};
+            ++it;
+            return ParseOptions::continue_single;
+        };
         return it.current().visit(
             [](const nesting::CommaSeparator&) { return ParseOptions::finish_single; },
             [](const nesting::BracketClose&) { return ParseOptions::finish_single; },
@@ -201,59 +229,23 @@ private:
                 result = Node{std::move(tuple)};
                 return ParseOptions::continue_single;
             },
-            [&](const nesting::IdentifierLiteral& id) {
-                auto range = lookupIdentifier(id.input, result, context);
-                if (range.empty()) {
-                    if (result) return ParseOptions::finish_single;
-
-                    result = OptNode{makeTokenValue<IdentifierLiteral>(it, id, context)};
-                    ++it;
-                    return ParseOptions::continue_single;
-                }
-                return parseInstance(result, range, it, context);
-            },
-            [&](const nesting::OperatorLiteral& op) {
-                auto range = lookupIdentifier(op.input, result, context);
-                if (range.empty()) {
-                    if (result) return ParseOptions::finish_single;
-
-                    result = OptNode{makeTokenValue<OperatorLiteral>(it, op, context)};
-                    ++it;
-                    return ParseOptions::continue_single;
-                }
-                return parseInstance(result, range, it, context);
-            },
-            [&](const nesting::StringLiteral& s) {
-                if (result) return ParseOptions::finish_single;
-                result = OptNode{makeTokenValue<StringLiteral>(it, s, context)};
-                ++it;
-                return ParseOptions::continue_single;
-            },
-            [&](const nesting::NumberLiteral& n) {
-                if (result) return ParseOptions::finish_single;
-                result = OptNode{makeTokenValue<NumberLiteral>(it, n, context)};
-                ++it;
-                return ParseOptions::continue_single;
-            },
-            [&](const nesting::BlockLiteral& b) {
-                if (result) return ParseOptions::finish_single;
-                result = OptNode{makeTokenValue<BlockLiteral>(it, b, context)};
-                ++it;
-                return ParseOptions::continue_single;
-            },
+            [&](const nesting::IdentifierLiteral& id) { return parseId(id); },
+            [&](const nesting::OperatorLiteral& op) { return parseId(op); },
+            [&](const nesting::StringLiteral& s) { return parseLiteral(s); },
+            [&](const nesting::NumberLiteral& n) { return parseLiteral(n); },
+            [&](const nesting::BlockLiteral& b) { return parseLiteral(b); },
             [](const auto&) { return ParseOptions::finish_single; });
     }
 
-    template<class Context>
-    static auto lookupIdentifier(const strings::View& id, OptNode& result, ContextApi<Context>& context)
-        -> instance::ConstNodeRange {
-        if (result.map([](const Node& n) { return n.holds<ModuleReference>(); })) {
-            auto ref = result.value().get<ModuleReference>();
-            result = {};
-            return ref.module->locals[id];
-        }
-        // TODO(arBmind): add Variable/Parameter Reference ?
-        return context.lookup(id);
+    static auto lookupModule(const strings::View& id, const OptNode& result) -> instance::ConstNodeRange {
+        return result.map([&](const Node& n) -> instance::ConstNodeRange {
+            return n.visit(
+                [&](const ModuleReference& ref) { return ref.module->locals[id]; },
+                // [&](const VariableReference& ref) {},
+                // [&](const ParameterReference& ref) {},
+                // [&](const NameTypeValueReference& ref) {},
+                [](const auto&) { return instance::ConstNodeRange{}; });
+        });
     }
 
     template<class Context>
