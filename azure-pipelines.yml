@@ -32,7 +32,8 @@ jobs:
       - checkout: self
         submodules: true
       - script:
-          docker run -v${PWD}:/build
+          docker run -t -v${PWD}:/build -e TERM=xterm-color -e GTEST_COLOR=yes
             arbmind/qbs-clang8:1
             build --file /build/rec_cpp.qbs --build-directory /tmp/build
             -p autotest-runner
+            modules.cpp.commonCompilerFlags:-fcolor-diagnostics
