@@ -46,7 +46,7 @@ struct ArgumentAt<const Param&> {
 };
 
 template<class Type>
-constexpr auto argumentSize() -> size_t {
+constexpr auto parameterSize() -> size_t {
     using namespace intrinsic;
     if constexpr (Parameter<Type>::info().side == ParameterSide::Implicit) {
         return {};
