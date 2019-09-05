@@ -1,6 +1,10 @@
 #pragma once
 #include "Tree.h"
 
+#ifdef VALUE_DEBUG_DATA
+#    include "parser/Tree.ostream.h"
+#endif
+
 #include "instance/ScopeLookup.h"
 #include "instance/TypeTree.builder.h"
 

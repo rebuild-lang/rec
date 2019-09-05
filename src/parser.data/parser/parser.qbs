@@ -31,7 +31,7 @@ Project {
     Product {
         name: "parser.builder"
 
-        Depends { name: "parser.data" }
+        Depends { name: "parser.ostream" }
         Depends { name: "instance.data" }
 
         files: [
