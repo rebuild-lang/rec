@@ -307,10 +307,10 @@ private:
     }
 
     template<class... Params, size_t... I>
-    auto trackParameters(instance::ParameterViews& args, std::index_sequence<I...>) {
+    auto trackParameters(instance::ParameterViews& params, std::index_sequence<I...>) {
         using namespace intrinsic;
         (types.parameters.push_back(
-             ParameterRef{const_cast<instance::Parameter*>(args[I]), Parameter<Params>::typeInfo().name.data()}),
+             ParameterRef{const_cast<instance::Parameter*>(params[I]), Parameter<Params>::typeInfo().name.data()}),
          ...);
     }
 
