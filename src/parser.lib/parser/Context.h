@@ -4,7 +4,7 @@
 #include "parser/Tree.h"
 
 #include "diagnostic/Diagnostic.h"
-#include "instance/Node.h"
+#include "instance/Entry.h"
 
 #include <type_traits>
 
@@ -16,7 +16,7 @@ struct NoDiagnositics {
 
 template<class Lookup, class RunCall, class IntrinsicType, class ReportDiagnostic = NoDiagnositics>
 struct Context {
-    Lookup lookup; // strings::View -> instance::NodeView
+    Lookup lookup; // strings::View -> instance::EntryView
     RunCall runCall; // Call -> AST Node
     IntrinsicType intrinsicType; // <Type> -> instance::TypeView
     ReportDiagnostic reportDiagnostic; // diagnostic::Diagnostic -> void
@@ -32,7 +32,7 @@ Context(Lookup&&, RunCall&&, IntrinsicType&&, ReportDiagnostic &&)
 template<class Context>
 struct ContextApi {
     static_assert(
-        std::is_same_v<std::invoke_result_t<decltype(Context::lookup), strings::View>, instance::ConstNodeRange>,
+        std::is_same_v<std::invoke_result_t<decltype(Context::lookup), strings::View>, instance::ConstEntryRange>,
         "no lookup");
     static_assert(
         std::is_same_v<std::invoke_result_t<decltype(Context::runCall), Call>, OptNode>, //
@@ -50,7 +50,7 @@ struct ContextApi {
         : context(std::move(context))
         , tupleLookup(tupleLookup) {}
 
-    [[nodiscard]] auto lookup(strings::View view) const -> instance::ConstNodeRange { return context.lookup(view); }
+    [[nodiscard]] auto lookup(strings::View view) const -> instance::ConstEntryRange { return context.lookup(view); }
     [[nodiscard]] auto runCall(Call call) const -> OptNode { return context.runCall(std::move(call)); }
 
     template<class Type>

@@ -8,9 +8,9 @@
 
 #include "parser/Tree.h"
 
+#include "instance/Entry.h"
 #include "instance/Function.h"
 #include "instance/Module.h"
-#include "instance/Node.h"
 #include "instance/Type.h"
 
 #include <type_traits>
@@ -237,21 +237,21 @@ private:
             [](const auto&) { return ParseOptions::finish_single; });
     }
 
-    static auto lookupModule(const strings::View& id, const OptNode& result) -> instance::ConstNodeRange {
-        return result.map([&](const Node& n) -> instance::ConstNodeRange {
+    static auto lookupModule(const strings::View& id, const OptNode& result) -> instance::ConstEntryRange {
+        return result.map([&](const Node& n) -> instance::ConstEntryRange {
             return n.visit(
                 [&](const ModuleReference& ref) { return ref.module->locals[id]; },
                 // [&](const VariableReference& ref) {},
                 // [&](const ParameterReference& ref) {},
                 // [&](const NameTypeValueReference& ref) {},
-                [](const auto&) { return instance::ConstNodeRange{}; });
+                [](const auto&) { return instance::ConstEntryRange{}; });
         });
     }
 
     template<class Context>
     static auto parseInstance( //
         OptNode& result,
-        const instance::ConstNodeRange& range,
+        const instance::ConstEntryRange& range,
         BlockLineView& it,
         Context& context) -> ParseOptions {
 
@@ -435,7 +435,7 @@ private:
     }
 
     template<class Context>
-    static auto parseTypeInstance(const instance::Node& instance, BlockLineView& it, Context& context)
+    static auto parseTypeInstance(const instance::Entry& instance, BlockLineView& it, Context& context)
         -> OptTypeExpression {
         return instance.visit(
             [&](const instance::Variable&) -> OptTypeExpression {

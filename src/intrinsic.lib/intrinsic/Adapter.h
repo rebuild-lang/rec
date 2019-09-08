@@ -4,10 +4,10 @@
 #include "intrinsic/Parameter.h"
 #include "intrinsic/Type.h"
 
+#include "instance/Entry.h"
 #include "instance/Function.h"
 #include "instance/IntrinsicContext.h"
 #include "instance/Module.h"
-#include "instance/Node.h"
 #include "instance/Parameter.h"
 #include "instance/Scope.h"
 #include "instance/Type.h"

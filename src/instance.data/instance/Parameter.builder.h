@@ -50,8 +50,8 @@ struct ParameterBuilder {
         if (typeExprBuilder) {
             arg.typed.type = typeExprBuilder(scope);
         }
-        auto node = funScope.emplace(std::move(arg));
-        return &node->get<Parameter>();
+        auto entry = funScope.emplace(std::move(arg));
+        return &entry->get<Parameter>();
     }
 };
 

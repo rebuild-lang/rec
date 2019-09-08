@@ -4,7 +4,7 @@
 
 namespace instance {
 
-inline auto lookup(const Scope& scope, NameView name) -> const Node& {
+inline auto lookup(const Scope& scope, NameView name) -> const Entry& {
     auto it = name.begin();
     auto end = name.end();
     auto it2 = std::find(it, end, '.');

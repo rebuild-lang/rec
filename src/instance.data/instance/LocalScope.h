@@ -8,12 +8,12 @@ namespace instance {
 using Name = strings::String;
 using NameView = strings::View;
 
-class Node;
-using NodeView = Node*;
-using OptNodeView = meta::Optional<NodeView>;
-using OptConstNodeView = meta::Optional<const Node*>;
+class Entry;
+using EntryView = Entry*;
+using OptEntryView = meta::Optional<EntryView>;
+using OptConstEntryView = meta::Optional<const Entry*>;
 
-using NodeByName = std::multimap<NameView, Node>;
+using EntryByName = std::multimap<NameView, Entry>;
 template<class it>
 struct Range {
     it _begin;
@@ -25,12 +25,12 @@ struct Range {
     it begin() const { return _begin; }
     it end() const { return _end; }
 };
-using NodeRange = Range<NodeByName::iterator>;
-using ConstNodeRange = Range<NodeByName::const_iterator>;
+using EntryRange = Range<EntryByName::iterator>;
+using ConstEntryRange = Range<EntryByName::const_iterator>;
 
 struct LocalScope {
     using This = LocalScope;
-    std::aligned_storage_t<sizeof(NodeByName), alignof(NodeByName)> m_storage;
+    std::aligned_storage_t<sizeof(EntryByName), alignof(EntryByName)> m_storage;
 
     LocalScope();
     ~LocalScope();
@@ -42,18 +42,18 @@ struct LocalScope {
     LocalScope(This&&);
     auto operator=(This &&) -> This&;
 
-    auto operator[](NameView name) const& -> ConstNodeRange;
-    auto operator[](NameView name) & -> NodeRange;
+    auto operator[](NameView name) const& -> ConstEntryRange;
+    auto operator[](NameView name) & -> EntryRange;
 
-    auto begin() -> NodeByName::iterator;
-    auto end() -> NodeByName::iterator;
+    auto begin() -> EntryByName::iterator;
+    auto end() -> EntryByName::iterator;
 
-    auto emplace(Node&& node) & -> NodeView { return emplaceImpl(std::move(node)); }
+    auto emplace(Entry&& entry) & -> EntryView { return emplaceImpl(std::move(entry)); }
 
 private:
-    auto m() -> NodeByName&;
-    auto m() const -> const NodeByName&;
-    auto emplaceImpl(Node&&) & -> NodeView;
+    auto m() -> EntryByName&;
+    auto m() const -> const EntryByName&;
+    auto emplaceImpl(Entry&&) & -> EntryView;
 
     // bool replace(old, new)
 };

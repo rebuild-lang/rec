@@ -18,7 +18,7 @@
 
 namespace rec {
 
-using InstanceNode = instance::Node;
+using InstanceNode = instance::Entry;
 using ExecutionContext = execution::Context;
 using StringView = strings::View;
 
