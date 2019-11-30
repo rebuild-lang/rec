@@ -9,20 +9,7 @@ jobs:
       - checkout: self
         submodules: true
       - script: qbs
-            build profile:MSVC0-x64 --file rec_cpp.qbs --build-directory %TMP%\build
-            -p autotest-runner
-
-  - job: Windows_msvc2017
-    pool:
-      vmImage: vs2017-win2016
-    steps:
-      - script: choco install qbs
-      - script: qbs setup-toolchains --detect
-      - script: qbs config --list profiles
-      - checkout: self
-        submodules: true
-      - script: qbs
-            build profile:MSVC2017-x64 --file rec_cpp.qbs --build-directory %TMP%\build
+            build profile:MSVC2019-x64 --file rec_cpp.qbs --build-directory %TMP%\build
             -p autotest-runner
 
   - job: Linux_docker_clang8
