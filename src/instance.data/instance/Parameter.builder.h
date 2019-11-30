@@ -11,12 +11,12 @@ namespace instance {
 
 namespace details {
 
-using TypeExprBuilder = std::function<auto(const Scope&)->parser::TypeExpression>;
+using TypeBuilder = std::function<auto(const Scope&)->parser::TypeView>;
 
 struct ParameterBuilder {
     using This = ParameterBuilder;
     Parameter arg{};
-    TypeExprBuilder typeExprBuilder{};
+    TypeBuilder typeBuilder{};
 
     template<size_t N>
     explicit ParameterBuilder(const char (&name)[N]) {
@@ -25,7 +25,7 @@ struct ParameterBuilder {
 
     template<class Builder>
     auto type(Builder&& b) && -> ParameterBuilder {
-        typeExprBuilder = [b2 = std::move(b)](const Scope& scope) mutable { return std::move(b2).build(scope); };
+        typeBuilder = [b2 = std::move(b)](const Scope& scope) mutable { return std::move(b2).build(scope); };
         return std::move(*this);
     }
 
@@ -47,8 +47,8 @@ struct ParameterBuilder {
     }
 
     auto build(const Scope& scope, LocalScope& funScope) && -> ParameterView {
-        if (typeExprBuilder) {
-            arg.typed.type = typeExprBuilder(scope);
+        if (typeBuilder) {
+            arg.typed.type = typeBuilder(scope);
         }
         auto entry = funScope.emplace(std::move(arg));
         return &entry->get<Parameter>();

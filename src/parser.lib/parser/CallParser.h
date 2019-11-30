@@ -76,20 +76,12 @@ private:
     using ItemIt = Items::iterator;
 
     template<class T>
-    static bool isTyped(const TypeExpression& t, External<T>& external) {
-        return t.visit(
-            [&](const TypeInstance& ti) {
-                return ti.concrete == external.intrinsicType(meta::Type<parser::NameTypeValue>{});
-            },
-            [](const auto&) { return false; });
+    static bool isTyped(const TypeView& t, External<T>& external) {
+        return t == external.intrinsicType(meta::Type<parser::NameTypeValue>{});
     }
     template<class T>
-    static bool isBlockLiteral(const TypeExpression& t, External<T>& external) {
-        return t.visit(
-            [&](const TypeInstance& ti) {
-                return ti.concrete == external.intrinsicType(meta::Type<parser::BlockLiteral>{});
-            },
-            [](const auto&) { return false; });
+    static bool isBlockLiteral(const TypeView& t, External<T>& external) {
+        return t == external.intrinsicType(meta::Type<parser::BlockLiteral>{});
     }
     template<class T>
     static bool isNodeBlockLiteral(const OptNode& node, External<T>& external) {
@@ -111,7 +103,9 @@ private:
     static auto implicitConvert(const NameTypeValue& typed, ParameterView parameter, External<T>& external) -> Nodes {
         if (typed.type || !typed.value) {
             auto type = external.intrinsicType(meta::Type<NameTypeValue>{});
-            return {Value{NameTypeValue{typed}, {TypeInstance{type}}}};
+            auto value = Value(type);
+            value.set<NameTypeValue>() = typed;
+            return {std::move(value)};
         }
         return {typed.value.value()};
     }

@@ -24,7 +24,6 @@ struct TypeOf<api::Flags> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"flags"};
-        info.size = sizeof(uint64_t);
         info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
         return info;
     }

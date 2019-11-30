@@ -168,14 +168,7 @@ private:
         return typeExpressionSize(arg.typed.type);
     }
 
-    static auto typeExpressionSize(const parser::TypeExpression& type) -> size_t {
-        using namespace parser;
-        return type.visit(
-            [](const Auto&) -> size_t { return 0u; },
-            [](const Array& a) -> size_t { return a.count * typeExpressionSize(*a.element); },
-            [](const TypeInstance& i) -> size_t { return i.concrete->size; },
-            [](const Pointer&) -> size_t { return sizeof(void*); });
-    }
+    static auto typeExpressionSize(const parser::TypeView& type) -> size_t { return type->size; }
 
     static void storeArguments(const parser::Call& call, Context& context) {
         Byte* memory = context.localBase;
@@ -320,11 +313,8 @@ private:
         cloneTypeInto(value.type(), memory, reinterpret_cast<const Byte*>(value.data()));
     }
 
-    static void cloneTypeInto(const parser::TypeExpression& type, Byte* dest, const Byte* source) {
-        type.visit(
-            [&](const parser::TypeInstance& i) { i.concrete->clone(dest, source); },
-            [&](const parser::Pointer&) { *reinterpret_cast<void**>(dest) = *reinterpret_cast<void* const*>(source); },
-            [](auto) { abort(); });
+    static void cloneTypeInto(const parser::TypeView& type, Byte* dest, const Byte* source) {
+        type->cloneFunc(dest, source);
     }
 };
 

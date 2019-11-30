@@ -28,7 +28,7 @@ struct CallErrorReporter {
             std::is_same_v<
                 OptNode,
                 decltype( //
-                    std::declval<T>().parserForType(std::declval<const TypeExpression&>()) //
+                    std::declval<T>().parserForType(std::declval<const TypeView&>()) //
                     (std::declval<BlockLineView&>()))>,
             "no parserForType");
         static_assert(
@@ -44,7 +44,7 @@ struct CallErrorReporter {
         }
 
         void reportDiagnostic(diagnostic::Diagnostic diagnostic) { api.reportDiagnostic(std::move(diagnostic)); }
-        auto parserForType(const TypeExpression& type) { return api.parserForType(type); }
+        auto parserForType(const TypeView& type) { return api.parserForType(type); }
 
         template<class Callback>
         auto parseTypedWithCallback(BlockLineView& it, Callback&& cb) -> OptNameTypeValue {

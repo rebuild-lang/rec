@@ -8,7 +8,7 @@ namespace instance {
 using Name = strings::String;
 using NameView = strings::View;
 
-class Entry;
+struct Entry;
 using EntryView = Entry*;
 using OptEntryView = meta::Optional<EntryView>;
 using OptConstEntryView = meta::Optional<const Entry*>;
@@ -30,8 +30,11 @@ using ConstEntryRange = Range<EntryByName::const_iterator>;
 
 struct LocalScope {
     using This = LocalScope;
-    std::aligned_storage_t<sizeof(EntryByName), alignof(EntryByName)> m_storage;
 
+private:
+    EntryByName m; // note map is not fully known here, so we implement all life cycle methods
+
+public:
     LocalScope();
     ~LocalScope();
 
@@ -40,20 +43,15 @@ struct LocalScope {
     auto operator=(const This&) -> This& = delete;
     // move enabled
     LocalScope(This&&);
-    auto operator=(This &&) -> This&;
+    auto operator=(This&&) -> This&;
 
-    auto operator[](NameView name) const& -> ConstEntryRange;
-    auto operator[](NameView name) & -> EntryRange;
+    auto operator[](NameView name) const& noexcept -> ConstEntryRange;
+    auto operator[](NameView name) & noexcept -> EntryRange;
 
-    auto begin() -> EntryByName::iterator;
-    auto end() -> EntryByName::iterator;
+    auto begin() noexcept -> EntryByName::iterator;
+    auto end() noexcept -> EntryByName::iterator;
 
-    auto emplace(Entry&& entry) & -> EntryView { return emplaceImpl(std::move(entry)); }
-
-private:
-    auto m() -> EntryByName&;
-    auto m() const -> const EntryByName&;
-    auto emplaceImpl(Entry&&) & -> EntryView;
+    auto emplace(Entry&& entry) & -> EntryView;
 
     // bool replace(old, new)
 };

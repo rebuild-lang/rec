@@ -12,7 +12,6 @@ struct TypeOf<parser::VariableInit> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".VariableInit"};
-        info.size = sizeof(parser::VariableInit);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
@@ -28,7 +27,6 @@ struct TypeOf<parser::NameTypeValueTuple> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".TypedTuple"};
-        info.size = sizeof(parser::NameTypeValueTuple);
         info.flags = TypeFlag::CompileTime;
         return info;
     }

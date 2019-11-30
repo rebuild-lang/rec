@@ -37,7 +37,6 @@ Project {
             "Type.builder.h",
             "Type.cpp",
             "Type.h",
-            "TypeTree.builder.h",
             "Typed.cpp",
             "Typed.h",
             "Variable.cpp",

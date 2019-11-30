@@ -42,32 +42,35 @@ struct IntrinsicType {
 auto assignResultStorage(Call& call) {
     const auto* f = call.function;
     for (auto* a : f->parameters) {
-        if (a->side == instance::ParameterSide::result //
-            && a->typed.type.holds<parser::Pointer>()) {
+        // TODO(arBmind): new types - handle pointers
+        //        if (a->side == instance::ParameterSide::result //
+        //            && a->typed.type.holds<parser::Pointer>()) {
 
-            parser::TypeExpression* ptrTarget = a->typed.type.get<parser::Pointer>().target.get();
-            ptrTarget->visit(
-                [&](const parser::Pointer& p) {
-                    call.arguments.push_back({a, {parser::Value{nullptr, parser::TypeExpression{*ptrTarget}}}});
-                },
-                [&](const parser::TypeInstance& i) {
-                    call.arguments.push_back({a, {i.concrete->makeUninitialized({*ptrTarget})}});
-                },
-                [](const auto) {});
-        }
+        //            parser::TypeExpression* ptrTarget = a->typed.type.get<parser::Pointer>().target.get();
+        //            ptrTarget->visit(
+        //                [&](const parser::Pointer& p) {
+        //                    call.arguments.push_back({a, {parser::Value{nullptr,
+        //                    parser::TypeExpression{*ptrTarget}}}});
+        //                },
+        //                [&](const parser::TypeInstance& i) {
+        //                    call.arguments.push_back({a, {i.concrete->makeUninitialized({*ptrTarget})}});
+        //                },
+        //                [](const auto) {});
+        //        }
     }
 }
 
 auto getResultValue(Call& call) -> meta::Optional<parser::Value> {
     auto result = meta::Optional<parser::Value>{};
     for (auto& a : call.arguments) {
-        if (a.parameter->side == instance::ParameterSide::result //
-            && a.parameter->typed.type.holds<parser::Pointer>()) {
+        // TODO(arBmind): new types - extract results
+        //        if (a.parameter->side == instance::ParameterSide::result //
+        //            && a.parameter->typed.type.holds<parser::Pointer>()) {
 
-            if (result || a.values.size() != 1 || !a.values[0].holds<parser::Value>()) return {};
+        //            if (result || a.values.size() != 1 || !a.values[0].holds<parser::Value>()) return {};
 
-            result = a.values[0].get<parser::Value>();
-        }
+        //            result = a.values[0].get<parser::Value>();
+        //        }
     }
     return result;
 }
@@ -75,13 +78,14 @@ auto getResultValue(Call& call) -> meta::Optional<parser::Value> {
 auto extractResults(Call& call, const InstanceScope& globals) -> OptNode {
     auto optResult = getResultValue(call);
     if (optResult) {
-        auto& resultType = optResult.value().type();
-        if (resultType.holds<parser::TypeInstance>() &&
-            resultType.get<parser::TypeInstance>().concrete ==
-                IntrinsicType{&globals}(meta::Type<parser::VariableInit>{})) {
+        // TODO(arBmind): new types
+        //        auto& resultType = optResult.value().type();
+        //        if (resultType.holds<parser::TypeInstance>() &&
+        //            resultType.get<parser::TypeInstance>().concrete ==
+        //                IntrinsicType{&globals}(meta::Type<parser::VariableInit>{})) {
 
-            return parser::Node{*reinterpret_cast<parser::VariableInit*>(optResult.value().data())};
-        }
+        //            return parser::Node{*reinterpret_cast<parser::VariableInit*>(optResult.value().data())};
+        //        }
     }
     // TODO(arBmind): create TypedTuple from results
     return {};

@@ -4,7 +4,6 @@
 #include "instance/Function.ostream.h"
 #include "instance/Scope.builder.h"
 #include "instance/Type.builder.h"
-#include "instance/TypeTree.builder.h"
 
 #include "nesting/Token.builder.h"
 
@@ -91,7 +90,7 @@ INSTANTIATE_TEST_CASE_P(
             .ctx(
                 instance::typeModT<nesting::NumberLiteral>("Lit"),
                 instance::fun("print")
-                    .params(instance::param("v").right().type(parser::type().instance("Lit")))
+                    .params(instance::param("v").right().type(parser::type("Lit")))
                     .rawIntrinsic(&ExecutionMachineData::literal))
             .run(parser::call("print").right(parser::arg("v", parser::expr(nesting::num("42")).typeName("Lit"))))
             .expect("42")));

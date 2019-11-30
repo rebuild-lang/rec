@@ -5,17 +5,13 @@
 
 namespace parser {
 
-bool isDirectlyExecutable(const TypeExpression&);
+bool isDirectlyExecutable(const TypeView&);
 bool isDirectlyExecutable(const NameTypeValue&);
 bool isDirectlyExecutable(const Node&);
 bool isDirectlyExecutable(const Call&);
 
 // impl
-inline bool isDirectlyExecutable(const TypeExpression& expr) {
-    return expr.visit(
-        [](const Auto&) { return false; }, //
-        [](const auto&) { return true; });
-}
+inline bool isDirectlyExecutable(const TypeView& expr) { return expr != nullptr; }
 
 inline bool isDirectlyExecutable(const NameTypeValue& typed) {
     if (typed.value && !isDirectlyExecutable(typed.value.value())) return false;

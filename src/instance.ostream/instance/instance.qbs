@@ -14,7 +14,6 @@ Project {
             "Function.ostream.h",
             "Module.ostream.h",
             "Parameter.ostream.h",
-            "Type.ostream.h",
             "Variable.ostream.h",
         ]
 

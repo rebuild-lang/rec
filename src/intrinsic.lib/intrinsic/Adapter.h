@@ -55,7 +55,8 @@ constexpr auto parameterSize() -> size_t {
         return sizeof(void*);
     }
     else {
-        return Parameter<Type>::typeInfo().size;
+        using T = typename Parameter<Type>::type;
+        return sizeof(T);
     }
 }
 
@@ -131,19 +132,20 @@ struct Adapter {
             a.instanceModule.locals.emplace([]() -> instance::Type {
                 constexpr auto info = TypeOf<T>::info();
                 auto r = instance::Type{};
-                r.size = info.size;
-                r.flags = typeFlags(info.flags);
-                r.parser = typeParser(info.parser);
-                r.clone = [](uint8_t* dest, const uint8_t* source) {
-                    new (dest) T(*reinterpret_cast<const T*>(source));
-                };
-                r.makeUninitialized = [](const parser::TypeExpression& typeExpr) {
-                    return parser::Value::uninitialized<T>(typeExpr);
+                r.size = sizeof(T);
+                r.alignment = alignof(T);
+                //                r.flags = typeFlags(info.flags);
+                r.typeParser = typeParser(info.parser);
+                r.constructFunc = [](void* dest) { new (dest) T(); };
+                r.destructFunc = [](void* dest) { std::launder(reinterpret_cast<T*>(dest))->~T(); };
+                r.cloneFunc = [](void* dest, const void* source) { new (dest) T(*reinterpret_cast<const T*>(source)); };
+                r.equalFunc = [](const void* a, const void* b) -> bool {
+                    return *std::launder(reinterpret_cast<const T*>(a)) == *std::launder(reinterpret_cast<const T*>(b));
                 };
                 return r;
             }());
 
-            auto typeRange = a.instanceModule.locals[instance::Name{"type"}];
+            auto typeRange = a.instanceModule.locals[instance::nameOfType()];
             assert(typeRange.single());
             types.map[info.name.data()] = &typeRange.frontValue().get<instance::Type>();
 
@@ -233,19 +235,7 @@ private:
                 // TODO(arBmind): error, unknown type
                 continue;
             }
-            parameter->typed.type.visit(
-                [&](parser::Pointer& p) {
-                    if (p.target) {
-                        p.target->get<parser::Pointer>().target =
-                            std::make_shared<parser::TypeExpression>(parser::TypeInstance{typeIt->second});
-                    }
-                    else {
-                        p.target = std::make_shared<parser::TypeExpression>(parser::TypeInstance{typeIt->second});
-                    }
-                },
-                [&, a = parameter](auto) { //
-                    a->typed.type = parser::TypeInstance{typeIt->second};
-                });
+            parameter->typed.type = typeIt->second;
         }
         // TODO(arBmind): resolve other types
     }
@@ -273,21 +263,12 @@ private:
         instanceModule.locals.emplace(std::move(r));
     }
 
-    static constexpr auto typeFlags(intrinsic::TypeFlags flags) -> instance::TypeFlags {
-        auto r = instance::TypeFlags{};
-        (void)flags;
-        // TODO(arBmind)
-        return r;
-    }
-
-    static constexpr auto typeParser(intrinsic::Parser parser) -> instance::Parser {
+    static constexpr auto typeParser(intrinsic::Parser parser) -> parser::TypeParser {
         using namespace intrinsic;
         switch (parser) {
-        case Parser::Expression: return instance::Parser::Expression;
-        case Parser::SingleToken: return instance::Parser::SingleToken;
-        case Parser::IdTypeValue: return instance::Parser::IdTypeValue;
-        case Parser::IdTypeValueTuple: return instance::Parser::IdTypeValueTuple;
-        case Parser::OptionalIdTypeValueTuple: return instance::Parser::OptionalIdTypeValueTuple;
+        case Parser::Expression: return parser::TypeParser::Expression;
+        case Parser::SingleToken: return parser::TypeParser::SingleToken;
+        case Parser::IdTypeValue: return parser::TypeParser::IdTypeValue;
         }
         return {};
     }
@@ -323,15 +304,17 @@ private:
             auto r = instance::Parameter{};
             r.typed.name = strings::to_string(info.name);
             if (info.flags.any(ParameterFlag::Assignable, ParameterFlag::Reference)) {
-                if (Parameter<T>::is_pointer) {
-                    r.typed.type = parser::Pointer{std::make_shared<parser::TypeExpression>(parser::Pointer{})};
-                }
-                else
-                    r.typed.type = parser::Pointer{};
+                // TODO(arBmind): new types - assign pointer
+                //                if (Parameter<T>::is_pointer) {
+                //                    r.typed.type =
+                //                    parser::Pointer{std::make_shared<parser::TypeExpression>(parser::Pointer{})};
+                //                }
+                //                else
+                //                    r.typed.type = parser::Pointer{};
             }
-            else if (Parameter<T>::is_pointer) {
-                r.typed.type = parser::Pointer{};
-            }
+            //            else if (Parameter<T>::is_pointer) {
+            //                r.typed.type = parser::Pointer{};
+            //            }
             // r.typed.type = // this has to be delayed until all types are known
             r.side = parameterSide(info.side);
             r.flags = parameterFlags(info.flags);

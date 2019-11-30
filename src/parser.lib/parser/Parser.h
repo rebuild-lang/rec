@@ -186,8 +186,9 @@ private:
     template<class ValueType, class Context, class Token>
     static auto makeTokenValue(BlockLineView&, const Token& token, ContextApi<Context>& context) -> Value {
         auto type = context.intrinsicType(meta::Type<ValueType>{});
-        auto value = ValueType{token};
-        return {std::move(value), {TypeInstance{type}}};
+        auto value = Value{type};
+        value.set<ValueType>() = ValueType{token};
+        return value;
     }
 
     template<class Context>
@@ -288,7 +289,7 @@ private:
         // TODO(arBmind): add overloads
     }
 
-    static bool canImplicitConvertToType(NodeView node, const parser::TypeExpression& type) {
+    static bool canImplicitConvertToType(NodeView node, const parser::TypeView& type) {
         // TODO(arBmind):
         // I guess we need a scope here
         (void)node;
@@ -352,7 +353,7 @@ private:
         auto reportDiagnostic(diagnostic::Diagnostic diagnostic) -> void {
             return context->reportDiagnostic(std::move(diagnostic));
         }
-        auto parserForType(const TypeExpression& type) {
+        auto parserForType(const TypeView& type) {
             return [this, parser = Parser::parserForType<Context>(type)](BlockLineView& blv) { //
                 return parser(blv, *context);
             };
@@ -421,50 +422,49 @@ private:
     }
 
     template<class Context>
-    static auto parseTypeExpression(BlockLineView& it, ContextApi<Context>& context) -> OptTypeExpression {
+    static auto parseTypeExpression(BlockLineView& it, ContextApi<Context>& context) -> OptTypeView {
         return it.current().visit(
-            [&](const nesting::IdentifierLiteral& id) -> OptTypeExpression {
+            [&](const nesting::IdentifierLiteral& id) -> OptTypeView {
                 auto name = id.input;
                 auto range = context.lookup(name);
                 if (range.single()) return parseTypeInstance(range.frontValue(), it, context);
                 return {};
             },
-            [](const auto&) -> OptTypeExpression { // error
+            [](const auto&) -> OptTypeView { // error
                 return {};
             });
     }
 
     template<class Context>
-    static auto parseTypeInstance(const instance::Entry& instance, BlockLineView& it, Context& context)
-        -> OptTypeExpression {
+    static auto parseTypeInstance(const instance::Entry& instance, BlockLineView& it, Context& context) -> OptTypeView {
         return instance.visit(
-            [&](const instance::Variable&) -> OptTypeExpression {
+            [&](const instance::Variable&) -> OptTypeView {
                 // TODO(arBmind): var is a TypeModule / Expression or Callable
                 return {};
             },
-            [&](const instance::Parameter&) -> OptTypeExpression { return {}; },
-            [&](const instance::Function&) -> OptTypeExpression {
+            [&](const instance::Parameter&) -> OptTypeView { return {}; },
+            [&](const instance::Function&) -> OptTypeView {
                 // TODO(arBmind): compile time function that returns something useful
                 // ++it;
                 // auto result = OptNode{};
                 // return parseCall(result, fun, it, context);
                 return {};
             },
-            [&](const instance::Type&) -> OptTypeExpression {
+            [&](const instance::Type&) -> OptTypeView {
                 // this should not occur
                 return {};
             },
-            [&](const instance::Module& mod) -> OptTypeExpression {
+            [&](const instance::Module& mod) -> OptTypeView {
                 ++it;
                 if (it && it.current().holds<nesting::IdentifierLiteral>()) {
                     auto subName = it.current().get<nesting::IdentifierLiteral>().input;
                     auto subRange = mod.locals[subName];
                     if (subRange.single()) return parseTypeInstance(subRange.frontValue(), it, context);
                 }
-                auto typeRange = mod.locals[View{"type"}];
+                auto typeRange = mod.locals[instance::nameOfType()];
                 if (typeRange.single()) {
                     const auto& type = typeRange.frontValue().get<instance::Type>();
-                    return {TypeInstance{&type}};
+                    return {&type};
                 }
                 // error
                 return {};
@@ -474,39 +474,37 @@ private:
     template<class Context>
     using ParseFunc = auto (*)(BlockLineView& it, Context& context) -> OptNode;
 
-    static auto getParserForType(const parser::TypeExpression& type) -> instance::Parser {
-        using parser::Pointer;
-        using parser::TypeInstance;
-
-        return type.visit(
-            [&](const Pointer& ptr) {
-                return ptr.target->visit(
-                    [&](const TypeInstance& inst) { return inst.concrete->parser; },
-                    [](const auto&) { return instance::Parser::Expression; });
-            },
-            [](const auto&) { return instance::Parser::Expression; });
+    static auto getParserForType(const parser::TypeView& type) -> TypeParser {
+        return TypeParser::Expression;
+        //        return type.visit(
+        //            [&](const Pointer& ptr) {
+        //                return ptr.target->visit(
+        //                    [&](const TypeInstance& inst) { return inst.concrete->parser; },
+        //                    [](const auto&) { return instance::Parser::Expression; });
+        //            },
+        //            [](const auto&) { return instance::Parser::Expression; });
     }
 
     template<class Context>
-    static auto parserForType(const parser::TypeExpression& type) -> ParseFunc<Context> {
+    static auto parserForType(const parser::TypeView& type) -> ParseFunc<Context> {
         using namespace instance;
-        using Parser = instance::Parser;
         switch (getParserForType(type)) {
-        case Parser::Expression:
+        case TypeParser::Expression:
             return [](BlockLineView& it, Context& context) {
                 return parseSingle(it, context); //
             };
-        case Parser::SingleToken:
+        case TypeParser::SingleToken:
             return [](BlockLineView& it, Context& context) { //
                 return parseSingleToken(it, context);
             };
-        case Parser::IdTypeValue:
+        case TypeParser::IdTypeValue:
             return [](BlockLineView& it, Context& context) -> OptNode {
                 auto optTyped = parseSingleTyped(it, context);
                 if (optTyped) {
                     auto type = context.intrinsicType(meta::Type<Typed>{});
                     auto value = NameTypeValue{optTyped.value()};
-                    return {Value{std::move(value), {TypeInstance{type}}}};
+                    // return {Value{std::move(value), {TypeInstance{type}}}};
+                    return {}; // TODO(arBmind): new types
                 }
                 // return Node{TypedTuple{{optTyped.value()}}}; // TODO(arBmind): store as value
                 return {};

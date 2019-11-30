@@ -22,7 +22,6 @@ struct TypeOf<Context*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".Context"};
-        info.size = sizeof(Context);
         info.flags = TypeFlag::CompileTime;
         return info;
     }

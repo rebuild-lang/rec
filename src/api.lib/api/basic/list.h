@@ -37,7 +37,6 @@ struct TypeOf<api::List> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"list"};
-        info.size = sizeof(api::List);
         info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
         return info;
     }

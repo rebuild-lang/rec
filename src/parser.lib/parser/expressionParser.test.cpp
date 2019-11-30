@@ -2,6 +2,7 @@
 
 #include "parser/Tree.builder.h"
 #include "parser/Tree.ostream.h"
+#include "parser/Type.builder.h"
 
 #include "nesting/Token.builder.h"
 #include "nesting/Token.ostream.h"
@@ -10,7 +11,6 @@
 #include "instance/Function.ostream.h"
 #include "instance/Scope.builder.h"
 #include "instance/Type.builder.h"
-#include "instance/TypeTree.builder.h"
 
 #include "gtest/gtest.h"
 
@@ -100,47 +100,43 @@ TEST_P(ExpressionParser, calls) {
 INSTANTIATE_TEST_CASE_P(
     simple,
     ExpressionParser,
-    ::testing::
-        Values( //
-            [] {
-                return ExpressionParserData("Call_Number_Literal") //
-                    .ctx( //
-                        instance::typeModT<nesting::NumberLiteral>("NumLit"),
-                        instance::fun("print").runtime().params(
-                            instance::param("v").right().type(type().instance("NumLit"))))
-                    .in(nesting::id(View{"print"}), nesting::num("1"))
-                    .out(parser::call("print").right(arg("v", parser::expr(nesting::num("1")).typeName("NumLit"))));
-            }(),
-            [] {
-                return ExpressionParserData("Call_VarDecl") //
-                    .ctx( //
-                        instance::typeModT<parser::NameTypeValue>("Typed"),
-                        instance::typeModT<uint64_t>("u64"),
-                        instance::fun("var").runtime().params(
-                            instance::param("v").right().type(type().instance("Typed"))))
-                    .in(nesting::id(View{"var"}), nesting::id(View{"i"}), nesting::colon(), nesting::id(View{"u64"}))
-                    .out(parser::call("var").right(
-                        arg("v", parser::expr(typed("i").type(type().instance("u64"))).typeName("Typed"))));
-            }(),
-            [] {
-                auto tupleRef = parser::TupleRef{};
-                return ExpressionParserData("Tuple_Ref") //
-                    .ctx( //
-                        instance::typeModT<nesting::NumberLiteral>("NumLit"),
-                        instance::typeModT<parser::NameTypeValue>("Typed"),
-                        instance::typeModT<uint64_t>("u64"))
-                    .in(nesting::bracketOpen(),
-                        nesting::id(View{"a"}),
-                        nesting::op("="),
-                        nesting::num("1"),
-                        nesting::comma(),
-                        nesting::id(View{"b"}),
-                        nesting::op("="),
-                        nesting::id(View{"a"}),
-                        nesting::bracketClose())
-                    .out(tuple(
-                        typed("a").value(parser::expr(nesting::num("1")).typeName("NumLit")), //
-                        tupleRef,
-                        typed("b").value(parser::expr(&tupleRef))));
-            }()),
+    ::testing::Values( //
+        [] {
+            return ExpressionParserData("Call_Number_Literal") //
+                .ctx( //
+                    instance::typeModT<nesting::NumberLiteral>("NumLit"),
+                    instance::fun("print").runtime().params(instance::param("v").right().type(type("NumLit"))))
+                .in(nesting::id(View{"print"}), nesting::num("1"))
+                .out(parser::call("print").right(arg("v", parser::expr(nesting::num("1")).typeName("NumLit"))));
+        }(),
+        [] {
+            return ExpressionParserData("Call_VarDecl") //
+                .ctx( //
+                    instance::typeModT<parser::NameTypeValue>("Typed"),
+                    instance::typeModT<uint64_t>("u64"),
+                    instance::fun("var").runtime().params(instance::param("v").right().type(type("Typed"))))
+                .in(nesting::id(View{"var"}), nesting::id(View{"i"}), nesting::colon(), nesting::id(View{"u64"}))
+                .out(parser::call("var").right(arg("v", parser::expr(typed("i").type(type("u64"))).typeName("Typed"))));
+        }(),
+        [] {
+            auto tupleRef = parser::TupleRef{};
+            return ExpressionParserData("Tuple_Ref") //
+                .ctx( //
+                    instance::typeModT<nesting::NumberLiteral>("NumLit"),
+                    instance::typeModT<parser::NameTypeValue>("Typed"),
+                    instance::typeModT<uint64_t>("u64"))
+                .in(nesting::bracketOpen(),
+                    nesting::id(View{"a"}),
+                    nesting::op("="),
+                    nesting::num("1"),
+                    nesting::comma(),
+                    nesting::id(View{"b"}),
+                    nesting::op("="),
+                    nesting::id(View{"a"}),
+                    nesting::bracketClose())
+                .out(tuple(
+                    typed("a").value(parser::expr(nesting::num("1")).typeName("NumLit")), //
+                    tupleRef,
+                    typed("b").value(parser::expr(&tupleRef))));
+        }()),
     [](const ::testing::TestParamInfo<ExpressionParserData>& inf) { return inf.param.name; });

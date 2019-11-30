@@ -1,6 +1,6 @@
 #pragma once
 #include "parser/Tree.h"
-#include "parser/TypeTree.ostream.h"
+#include "parser/Type.ostream.h"
 
 #include "instance/Function.h"
 #include "instance/Parameter.h"
@@ -43,16 +43,16 @@ inline auto operator<<(std::ostream& out, const VariableReference& vr) -> std::o
     return out << (vr.variable ? vr.variable->typed.name : Name("<?>"));
 }
 inline auto operator<<(std::ostream& out, const NameTypeValueReference& ntvr) -> std::ostream& {
-    return out << (ntvr.nameTypeValue ? ntvr.nameTypeValue->name.value() : Name("<?>"));
+    return out << (ntvr.nameTypeValue && ntvr.nameTypeValue->name ? ntvr.nameTypeValue->name.value() : Name("<?>"));
 }
 inline auto operator<<(std::ostream& out, const NameTypeValue& t) -> std::ostream& {
     if (t.name) {
         out << t.name.value();
-        if (t.type) out << " :" << t.type.value();
+        if (t.type) out << " :" << *t.type.value();
         if (t.value) out << " = " << t.value.value();
     }
     else if (t.type) {
-        out << " :" << t.type.value();
+        out << " :" << *t.type.value();
         if (t.value) out << " = " << t.value.value();
     }
     else if (t.value) {
@@ -72,12 +72,19 @@ inline auto operator<<(std::ostream& out, const NameTypeValueTuple& nt) -> std::
 }
 
 inline auto operator<<(std::ostream& out, const Value& val) -> std::ostream& {
-    out << "val: [" << val.type() << "]";
+    if (val.type()) {
+        out << "val: [" << *val.type() << "]";
 #ifdef VALUE_DEBUG_DATA
-    out << " =";
-    val.debugData(out); //
+        if (val.data() && val.type()->debugDataFunc) {
+            out << " = ";
+            val.type()->debugDataFunc(out, val.data());
+        }
 #endif
-    return out;
+        return out;
+    }
+    else {
+        return out << "val: <empty>";
+    }
 }
 
 inline auto operator<<(std::ostream& out, const Node& n) -> std::ostream& {

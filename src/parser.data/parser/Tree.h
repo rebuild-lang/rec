@@ -1,5 +1,4 @@
 #pragma once
-#include "TypeTree.h"
 #include "Value.h"
 
 #include "instance/Views.h"
@@ -25,7 +24,7 @@ using OptView = strings::OptionalView;
 using Name = strings::String;
 using OptName = strings::OptionalString;
 
-class Node;
+struct Node;
 using Nodes = std::vector<Node>;
 using NodePtr = std::unique_ptr<Node>;
 
@@ -36,6 +35,7 @@ struct Block {
     bool operator==(const This& o) const { return nodes == o.nodes; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<Block>);
 
 struct ArgumentAssignment {
     using This = ArgumentAssignment;
@@ -46,6 +46,7 @@ struct ArgumentAssignment {
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 using ArgumentAssignments = std::vector<ArgumentAssignment>;
+static_assert(meta::has_move_assignment<ArgumentAssignment>);
 
 struct Call {
     using This = Call;
@@ -55,6 +56,7 @@ struct Call {
     bool operator==(const This& o) const { return function == o.function && arguments == o.arguments; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<Call>);
 
 struct IntrinsicCall {
     using This = IntrinsicCall;
@@ -64,6 +66,7 @@ struct IntrinsicCall {
     bool operator==(const This& o) const { return exec == o.exec; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<IntrinsicCall>);
 
 struct ParameterReference {
     using This = ParameterReference;
@@ -72,6 +75,7 @@ struct ParameterReference {
     bool operator==(const This& o) const { return parameter == o.parameter; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<ParameterReference>);
 
 struct VariableReference {
     using This = VariableReference;
@@ -80,6 +84,7 @@ struct VariableReference {
     bool operator==(const This& o) const { return variable == o.variable; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<VariableReference>);
 
 struct VariableInit {
     using This = VariableInit;
@@ -89,6 +94,7 @@ struct VariableInit {
     bool operator==(const This& o) const { return variable == o.variable && nodes == o.nodes; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<VariableInit>);
 
 struct ModuleReference {
     using This = ModuleReference;
@@ -97,6 +103,7 @@ struct ModuleReference {
     bool operator==(const This& o) const { return module == o.module; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<ModuleReference>);
 
 struct NameTypeValue;
 using NameTypeValueView = const NameTypeValue*;
@@ -109,6 +116,7 @@ struct NameTypeValueReference {
     bool operator==(const This& o) const;
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<NameTypeValueReference>);
 
 struct NameTypeValueTuple {
     using This = NameTypeValueTuple;
@@ -117,6 +125,7 @@ struct NameTypeValueTuple {
     bool operator==(const This& o) const { return tuple == o.tuple; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
+static_assert(meta::has_move_assignment<NameTypeValueTuple>);
 
 using StringLiteral = nesting::StringLiteral;
 using NumberLiteral = nesting::NumberLiteral;
@@ -135,27 +144,23 @@ using NodeVariant = meta::Variant<
     ModuleReference,
     NameTypeValueTuple,
     Value>;
+static_assert(meta::has_move_assignment<NodeVariant>);
 
 // note: this type is needed because we cannot forward a using definition
-class Node : public NodeVariant {
-    using This = Node;
-
-public:
-    Node() = default;
-    //    Node(const Node&) = delete;
-    //    Node& operator=(const Node&) = delete;
-    //    Node(Node&&) noexcept = default;
-    //    Node& operator=(Node&&) noexcept = default;
+struct Node : public NodeVariant {
     META_VARIANT_CONSTRUCT(Node, NodeVariant)
 };
 using OptNode = meta::Optional<Node>;
 using NodeView = const Node*;
 using OptNodeView = meta::Optional<NodeView>;
 
+static_assert(meta::has_move_assignment<Node>);
+static_assert(meta::has_move_assignment<OptNode>);
+
 struct NameTypeValue {
     using This = NameTypeValue;
     OptName name{}; // name might be empty!
-    OptTypeExpression type{};
+    OptTypeView type{};
     OptNode value{};
 
     auto onlyValue() const { return !name && !type && value; }
@@ -166,21 +171,25 @@ struct NameTypeValue {
 using OptNameTypeValue = meta::Optional<meta::DefaultPacked<NameTypeValue>>;
 using OptNameTypeValueView = meta::Optional<meta::DefaultPacked<NameTypeValueView>>;
 
+static_assert(meta::has_move_assignment<NameTypeValue>);
+
 struct ViewNameTypeValue {
     using This = ViewNameTypeValue;
     OptView name{};
-    OptTypeExpressionView type{};
+    OptTypeView type{};
     OptNodeView value{};
 
     ViewNameTypeValue() = default;
     ViewNameTypeValue(const NameTypeValue& typed)
         : name(typed.name.map([](const auto& n) { return n; }))
-        , type(typed.type.map([](const auto& t) { return &t; }))
+        , type(typed.type)
         , value(typed.value.map([](const auto& v) { return &v; })) {}
     ViewNameTypeValue(const Node& node)
         : value(&node) {}
 };
 using ViewNameTypeValues = std::vector<ViewNameTypeValue>;
+
+static_assert(meta::has_move_assignment<ViewNameTypeValue>);
 
 struct ViewNameTypeValueTuple {
     using This = ViewNameTypeValueTuple;
@@ -192,5 +201,6 @@ struct ViewNameTypeValueTuple {
     ViewNameTypeValueTuple(const Node& node)
         : tuple({node}) {}
 };
+static_assert(meta::has_move_assignment<ViewNameTypeValueTuple>);
 
 } // namespace parser

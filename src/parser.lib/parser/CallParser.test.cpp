@@ -2,7 +2,8 @@
 
 #include "parser/Tree.builder.h"
 #include "parser/Tree.ostream.h"
-#include "parser/TypeTree.ostream.h"
+#include "parser/Type.builder.h"
+#include "parser/Type.ostream.h"
 
 #include "nesting/Token.builder.h"
 #include "nesting/Token.ostream.h"
@@ -11,7 +12,6 @@
 #include "instance/Function.ostream.h"
 #include "instance/Scope.builder.h"
 #include "instance/Type.builder.h"
-#include "instance/TypeTree.builder.h"
 
 #include "diagnostic/Diagnostic.ostream.h"
 
@@ -57,12 +57,12 @@ struct TestCallExternal {
         diagnostics = stream.str();
     }
 
-    auto parserForType(const TypeExpression& type) {
+    auto parserForType(const TypeView& type) {
         return [this, type](BlockLineView& blv) -> OptNode {
             if (!blv) return {};
             auto k = [&] {
                 auto ks = std::stringstream{};
-                ks << '[' << blv.index() << ']' << type;
+                ks << '[' << blv.index() << ']' << *type;
                 auto s = ks.str();
                 auto p = std::string("(bytes:");
                 auto it = std::search(begin(s), end(s), begin(p), end(p));
@@ -188,8 +188,7 @@ INSTANTIATE_TEST_CASE_P(
             return CallParserData("PositionArg") //
                 .ctx( //
                     instance::typeModT<nesting::NumberLiteral>("NumLit"),
-                    instance::fun("print").runtime().params(
-                        instance::param("v").right().type(type().instance("NumLit"))))
+                    instance::fun("print").runtime().params(instance::param("v").right().type(type("NumLit"))))
                 .in(nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed())
@@ -200,8 +199,7 @@ INSTANTIATE_TEST_CASE_P(
             return CallParserData("NamedArg") //
                 .ctx( //
                     instance::typeModT<nesting::NumberLiteral>("NumLit"),
-                    instance::fun("print").runtime().params(
-                        instance::param("v").right().type(type().instance("NumLit"))))
+                    instance::fun("print").runtime().params(instance::param("v").right().type(type("NumLit"))))
                 .in(nesting::id(View{"v="}), nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed("v"))
@@ -212,10 +210,8 @@ INSTANTIATE_TEST_CASE_P(
             return CallParserData("Ambigious") //
                 .ctx( //
                     instance::typeModT<nesting::NumberLiteral>("NumLit"),
-                    instance::fun("print").runtime().params(
-                        instance::param("v").right().type(type().instance("NumLit"))),
-                    instance::fun("print").runtime().params(
-                        instance::param("w").right().type(type().instance("NumLit"))))
+                    instance::fun("print").runtime().params(instance::param("v").right().type(type("NumLit"))),
+                    instance::fun("print").runtime().params(instance::param("w").right().type(type("NumLit"))))
                 .in(nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed())
@@ -226,10 +222,8 @@ INSTANTIATE_TEST_CASE_P(
             return CallParserData("ResolveByArgName") //
                 .ctx( //
                     instance::typeModT<nesting::NumberLiteral>("NumLit"),
-                    instance::fun("print").runtime().params(
-                        instance::param("v").right().type(type().instance("NumLit"))),
-                    instance::fun("print").runtime().params(
-                        instance::param("w").right().type(type().instance("NumLit"))))
+                    instance::fun("print").runtime().params(instance::param("v").right().type(type("NumLit"))),
+                    instance::fun("print").runtime().params(instance::param("w").right().type(type("NumLit"))))
                 .in(nesting::id(View{"v="}), nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed("v"))
@@ -241,10 +235,9 @@ INSTANTIATE_TEST_CASE_P(
                 .ctx( //
                     instance::typeModT<nesting::NumberLiteral>("NumLit"),
                     instance::fun("print").runtime().params(
-                        instance::param("v").right().type(type().instance("NumLit")),
-                        instance::param("w").right().type(type().instance("NumLit"))),
-                    instance::fun("print").runtime().params(
-                        instance::param("w").right().type(type().instance("NumLit"))))
+                        instance::param("v").right().type(type("NumLit")),
+                        instance::param("w").right().type(type("NumLit"))),
+                    instance::fun("print").runtime().params(instance::param("w").right().type(type("NumLit"))))
                 .in(nesting::num("1"))
                 .load("print")
                 .typed(0, parser::typed())

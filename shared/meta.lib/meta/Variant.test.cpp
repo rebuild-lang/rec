@@ -38,8 +38,7 @@ TEST(variant, normal) {
 }
 
 using DerivedVariant = meta::Variant<int, float>;
-class Derived : public DerivedVariant {
-public:
+struct Derived final : DerivedVariant {
     int member{};
 
     META_VARIANT_CONSTRUCT(Derived, DerivedVariant)
@@ -80,6 +79,7 @@ TEST(variant, ostream_annotated) {
 
 TEST(variant, ostream_index) {
     using TestVariantIndex = meta::VariantIndex<int, double>;
+    static_assert(meta::details::all_named<meta::TypePack<int, double>>);
 
     auto ss = std::stringstream{};
     ss << TestVariantIndex{1};

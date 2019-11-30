@@ -9,7 +9,7 @@ Project {
 
         files: [
             "Tree.ostream.h",
-            "TypeTree.ostream.h",
+            "Type.ostream.h",
         ]
 
         Export {

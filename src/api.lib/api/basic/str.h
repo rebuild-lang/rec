@@ -18,7 +18,6 @@ struct TypeOf<api::String> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"str"};
-        info.size = sizeof(api::String);
         info.flags = TypeFlag::CompileTime; // | TypeFlag::Construct;
         return info;
     }

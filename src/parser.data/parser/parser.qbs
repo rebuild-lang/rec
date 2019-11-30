@@ -13,8 +13,8 @@ Project {
         files: [
             "Tree.cpp",
             "Tree.h",
-            "TypeTree.cpp",
-            "TypeTree.h",
+            "Type.cpp",
+            "Type.h",
             "Value.cpp",
             "Value.h",
         ]
@@ -36,6 +36,7 @@ Project {
 
         files: [
             "Tree.builder.h",
+            "Type.builder.h",
         ]
 
         Export {

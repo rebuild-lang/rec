@@ -1,4 +1,6 @@
 #pragma once
+#include "Type.builder.h"
+
 #include "Tree.h"
 
 #ifdef VALUE_DEBUG_DATA
@@ -6,7 +8,6 @@
 #endif
 
 #include "instance/ScopeLookup.h"
-#include "instance/TypeTree.builder.h"
 
 namespace parser {
 
@@ -18,7 +19,7 @@ struct TupleRef {
 
 namespace details {
 
-class ValueExprBuilder;
+struct ValueExprBuilder;
 using ValueExprBuilders = std::vector<ValueExprBuilder>;
 using ValueExprBuilderPtr = std::shared_ptr<ValueExprBuilder>;
 
@@ -98,7 +99,7 @@ struct NameTypeValueBuilder {
     using This = NameTypeValueBuilder;
 
     Name name{};
-    TypeExprBuilder typeExpr{};
+    TypeBuilder typeBuilder{};
     ValueExprBuilderPtr valuePtr{};
 
     NameTypeValueBuilder() = default;
@@ -107,8 +108,8 @@ struct NameTypeValueBuilder {
     NameTypeValueBuilder(const char (&name)[N])
         : name(name) {}
 
-    auto type(TypeExprBuilder&& builder) && -> This {
-        typeExpr = std::move(builder);
+    auto type(TypeBuilder&& builder) && -> This {
+        typeBuilder = std::move(builder);
         return std::move(*this);
     }
 
@@ -127,7 +128,7 @@ using ValueExprBuilderVariant = meta::Variant<
     NameTypeValueBuilder,
     TupleRef*>;
 
-class ValueExprBuilder : public ValueExprBuilderVariant {
+struct ValueExprBuilder final : ValueExprBuilderVariant {
     using This = ValueExprBuilder;
     Name m_typeName{};
 
@@ -145,14 +146,19 @@ public:
             [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }, //
             [&](NameTypeValueBuilder&& typ) -> Node {
                 auto& type = instance::lookupA<instance::Type>(scope, m_typeName);
-                return Value{std::move(typ).build(scope), TypeExpression{TypeInstance{&type}}};
+                auto value = Value(&type);
+                value.set<NameTypeValue>() = std::move(typ).build(scope);
+                return value;
             },
             [&](TupleRef* ref) -> Node {
                 return NameTypeValueReference{ref->ref}; //
             },
             [&](auto&& lit) -> Node {
+		using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
                 auto& type = instance::lookupA<instance::Type>(scope, m_typeName);
-                return Value{std::move(lit), TypeExpression{TypeInstance{&type}}};
+                auto value = Value(&type);
+                value.set<Lit>() = std::move(lit);
+                return value;
             });
     }
 };
@@ -203,7 +209,7 @@ inline auto NameTypeValueBuilder::value(ValueExprBuilder&& value) && -> This {
 inline auto NameTypeValueBuilder::build(const Scope& scope) && -> NameTypeValue {
     auto r = NameTypeValue{};
     if (!name.isEmpty()) r.name = name;
-    if (typeExpr) r.type = std::move(typeExpr).build(scope);
+    if (typeBuilder) r.type = std::move(typeBuilder).build(scope);
     if (valuePtr) r.value = std::move(*valuePtr).build(scope);
     return r;
 }

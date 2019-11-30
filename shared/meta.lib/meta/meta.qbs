@@ -21,6 +21,7 @@ Project {
             "Type.h",
             "TypeList.h",
             "TypePack.h",
+            "TypeTraits.h",
             "Unreachable.cpp",
             "Unreachable.h",
             "ValueList.h",

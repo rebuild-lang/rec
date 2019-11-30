@@ -54,7 +54,6 @@ struct TypeOf<uint64_t> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"u64"};
-        info.size = sizeof(uint64_t);
         info.flags = TypeFlag::CompileTime | TypeFlag::RunTime;
         return info;
     }
@@ -144,7 +143,6 @@ struct TypeOf<String> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"str"};
-        info.size = sizeof(String);
         info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
         return info;
     }
@@ -170,7 +168,6 @@ struct TypeOf<Flags> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"flags"};
-        info.size = sizeof(uint64_t);
         info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
         return info;
     }
@@ -204,7 +201,6 @@ struct TypeOf<List> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"list"};
-        info.size = sizeof(List);
         info.flags = TypeFlag::CompileTime | TypeFlag::Construct;
         return info;
     }
@@ -259,28 +255,10 @@ struct TypeOf<List> {
 };
 
 template<>
-struct TypeOf<instance::TypeFlags> {
-    static constexpr auto info() {
-        auto info = TypeInfo{};
-        info.name = Name{"TypeFlags"};
-        info.size = sizeof(instance::TypeFlags);
-        info.flags = intrinsic::TypeFlag::CompileTime | intrinsic::TypeFlag::Instance;
-        return info;
-    }
-
-    using evalType = Flags;
-    static auto constructArguments() -> TypeOf<Flags>::TypeData {
-        // constexpr auto names = std::array<const char*, 2>{{"CompileTime", "RunTime"}};
-        return {}; // TODO(arBmind)
-    }
-};
-
-template<>
 struct TypeOf<instance::Type*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"Type"};
-        info.size = sizeof(instance::Type);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
@@ -295,30 +273,11 @@ struct TypeOf<instance::Type*> {
             return info;
         }
     };
-    struct Result {
-        instance::TypeFlags v;
-        static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"result"};
-            info.side = ParameterSide::Result;
-            info.flags = ParameterFlag::Assignable;
-            return info;
-        }
-    };
-    static void readFlags(ThisArgument self, Result& res) { //
-        res.v = self.v->flags;
-    }
 
     template<class Module>
     static constexpr void module(Module& mod) {
         // mod.function<ReadName>();
         // mod.function<ReadParent>();
-        mod.template function<&readFlags, [] {
-            auto info = FunctionInfo{};
-            info.name = Name{".flags"};
-            info.flags = FunctionFlag::CompileTimeOnly;
-            return info;
-        }>();
         // mod.function<ReadSize>();
         // mod.function<Construct>();
         // mod.function<Destruct>();
@@ -332,7 +291,6 @@ struct TypeOf<scanner::NumberLiteral> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"NumberLiteral"};
-        info.size = sizeof(scanner::NumberLiteral);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
@@ -389,7 +347,7 @@ TEST(intrinsic, call) {
     ASSERT_TRUE(add.body.block.nodes.front().holds<parser::IntrinsicCall>());
     auto& call = add.body.block.nodes.front().get<parser::IntrinsicCall>();
 
-    constexpr auto u64_size = intrinsic::TypeOf<uint64_t>::info().size;
+    constexpr auto u64_size = sizeof(uint64_t);
     constexpr auto ptr_size = sizeof(void*);
     auto result = uint64_t{};
     using Memory = std::array<uint8_t, 2 * u64_size + ptr_size>;
