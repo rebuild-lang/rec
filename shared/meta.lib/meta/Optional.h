@@ -10,7 +10,8 @@ namespace meta {
 // simple encapsulation to add map functionality
 // not all features are delegated!
 template<class T>
-class Optional {
+struct Optional {
+private:
     using This = Optional;
     std::optional<T> m{};
 
@@ -18,10 +19,12 @@ public:
     using Value = T;
 
     constexpr Optional() = default;
-    constexpr Optional(const T& t)
-        : m{t} {}
-    constexpr Optional(T&& t)
+    constexpr Optional(T t)
         : m(std::move(t)) {}
+    //    constexpr Optional& operator=(T t) {
+    //        m = std::move(t);
+    //        return *this;
+    //    }
 
     constexpr explicit operator bool() const { return m.has_value(); }
     constexpr auto value() const& -> const Value& { return m.value(); }
@@ -75,7 +78,8 @@ struct Packed;
 /// very simple value packed optional specialization
 // keep the API in sync with above optional
 template<class InvalidFunc>
-class Optional<Packed<InvalidFunc>> {
+struct Optional<Packed<InvalidFunc>> {
+private:
     using This = Optional;
     using Data = decltype(std::declval<InvalidFunc>()());
     Data data{InvalidFunc{}()};
@@ -143,7 +147,7 @@ struct DefaultFunc {
 
 /// convenience overload for default initialized invalid values
 template<class T>
-class Optional<DefaultPacked<T>> : public Optional<Packed<DefaultFunc<T>>> {
+struct Optional<DefaultPacked<T>> : Optional<Packed<DefaultFunc<T>>> {
     using Optional<Packed<DefaultFunc<T>>>::Optional;
 };
 
@@ -152,13 +156,13 @@ using OptionalBool = Optional<DefaultPacked<bool>>;
 
 /// pointers are always default packed
 template<class T>
-class Optional<T*> : public Optional<DefaultPacked<T*>> {
+struct Optional<T*> : Optional<DefaultPacked<T*>> {
     using Optional<DefaultPacked<T*>>::Optional;
 };
 
 /// references are always packed but api changes
 template<class T>
-class Optional<T&> {
+struct Optional<T&> {
     using This = Optional;
     using M = Optional<DefaultPacked<T*>>;
     M m{};

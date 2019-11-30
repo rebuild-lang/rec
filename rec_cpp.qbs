@@ -20,11 +20,19 @@ Project {
             cpp.cxxLanguageVersion: "c++17"
 
             Properties {
-                condition: qbs.toolchain.contains('msvc')
+                condition: qbs.toolchain.contains('msvc') && !qbs.toolchain.contains('clang-cl')
                 cpp.cxxFlags: base.concat(
                     "/permissive-", "/Zc:__cplusplus", // best C++ compatibilty
                     "/diagnostics:caret", // better error messages
                     "/await" // enable coroutine-ts
+                )
+            }
+            Properties {
+                condition: qbs.toolchain.contains('msvc') && qbs.toolchain.contains('clang-cl')
+                cpp.cxxFlags: base.concat(
+                    "/permissive-", "/Zc:__cplusplus", // best C++ compatibilty
+                    "/diagnostics:caret", // better error messages
+                    "-Xclang", "-fcoroutines-ts" // enable coroutine-ts
                 )
             }
             Properties {

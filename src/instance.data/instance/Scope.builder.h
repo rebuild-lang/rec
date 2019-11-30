@@ -8,26 +8,25 @@ namespace instance {
 namespace details {
 
 template<class Variant>
-struct NodeBuilder {
-    static auto build(const Scope&, Variant&& v) -> Node { return Node{std::move(v).build()}; }
+struct EntryBuilder {
+    static auto build(const Scope&, Variant&& v) -> Entry { return Entry{std::move(v).build()}; }
 };
 
 template<>
-struct NodeBuilder<FunctionBuilder> {
-    static auto build(const Scope& scope, FunctionBuilder&& v) -> Node { return Node{std::move(v).build(scope)}; }
+struct EntryBuilder<FunctionBuilder> {
+    static auto build(const Scope& scope, FunctionBuilder&& v) -> Entry { return Entry{std::move(v).build(scope)}; }
 };
 
 } // namespace details
 
 template<class V>
-auto buildNode(const Scope& scope, V&& v) -> decltype(auto) {
-    return details::NodeBuilder<V>::build(scope, std::forward<V>(v));
+auto buildEntry(const Scope& scope, V&& v) -> decltype(auto) {
+    return details::EntryBuilder<V>::build(scope, std::forward<V>(v));
 }
 
 template<class... P>
 auto buildScope(Scope& scope, P&&... p) {
-    auto x = {scope.emplace(buildNode(scope, std::forward<P>(p)))...};
-    (void)x;
+    (scope.emplace(buildEntry(scope, std::forward<P>(p))), ...);
 }
 
 } // namespace instance

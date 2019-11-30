@@ -1,5 +1,5 @@
 #pragma once
-#include "parser/TypeTree.h"
+#include "parser/Type.h"
 
 #include "strings/View.h"
 
@@ -7,12 +7,12 @@ namespace instance {
 
 using Name = strings::String;
 using NameView = strings::View;
-using TypeExpression = parser::TypeExpression;
+using parser::TypeView;
 
 // common attributes for Parameter & Variable
 struct Typed {
     Name name;
-    TypeExpression type{};
+    TypeView type{};
 };
 
 inline auto nameOf(const Typed& typed) -> NameView { return typed.name; }

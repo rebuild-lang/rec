@@ -1,27 +1,31 @@
 #include "LocalScope.h"
 
-#include "Node.h"
+#include "Entry.h"
 
 namespace instance {
 
 LocalScope::LocalScope() = default;
+LocalScope::~LocalScope() = default;
 
-auto LocalScope::operator[](NameView name) const& -> OptConstNodeView {
-    auto it = m.find(name);
-    if (it == m.end()) return {};
-    return &it->second;
+LocalScope::LocalScope(This&&) = default;
+auto LocalScope::operator=(This&&) -> This& = default;
+
+auto LocalScope::operator[](NameView name) const& noexcept -> ConstEntryRange {
+    auto [b, e] = m.equal_range(name);
+    return {b, e};
 }
 
-auto LocalScope::operator[](NameView name) & -> OptNodeView {
-    auto it = m.find(name);
-    if (it == m.end()) return {};
-    return &it->second;
+auto LocalScope::operator[](NameView name) & noexcept -> EntryRange {
+    auto [b, e] = m.equal_range(name);
+    return {b, e};
 }
 
-auto LocalScope::emplaceImpl(Node&& node) & -> OptNodeView {
-    auto name = nameOf(node);
-    if (auto [it, success] = m.try_emplace(name, std::move(node)); success) return &it->second;
-    return {};
+auto LocalScope::begin() noexcept -> EntryByName::iterator { return m.begin(); }
+auto LocalScope::end() noexcept -> EntryByName::iterator { return m.end(); }
+
+auto LocalScope::emplace(Entry&& entry) & -> EntryView {
+    auto name = nameOf(entry);
+    return &m.emplace(name, std::move(entry))->second;
 }
 
 } // namespace instance

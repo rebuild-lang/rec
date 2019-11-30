@@ -8,34 +8,50 @@ namespace instance {
 using Name = strings::String;
 using NameView = strings::View;
 
-class Node;
-using NodeView = Node*;
-using OptNodeView = meta::Optional<NodeView>;
-using OptConstNodeView = meta::Optional<const Node*>;
+struct Entry;
+using EntryView = Entry*;
+using OptEntryView = meta::Optional<EntryView>;
+using OptConstEntryView = meta::Optional<const Entry*>;
 
-using NodeByName = std::map<NameView, Node>;
+using EntryByName = std::multimap<NameView, Entry>;
+template<class it>
+struct Range {
+    it _begin;
+    it _end;
+
+    bool empty() const { return _begin == _end; }
+    bool single() const { return _begin != _end && std::next(_begin) == _end; }
+    auto frontValue() const -> auto& { return _begin->second; }
+    it begin() const { return _begin; }
+    it end() const { return _end; }
+};
+using EntryRange = Range<EntryByName::iterator>;
+using ConstEntryRange = Range<EntryByName::const_iterator>;
 
 struct LocalScope {
     using This = LocalScope;
-    NodeByName m;
 
+private:
+    EntryByName m; // note map is not fully known here, so we implement all life cycle methods
+
+public:
     LocalScope();
-    ~LocalScope() = default;
+    ~LocalScope();
 
     // non copyable
     LocalScope(const This&) = delete;
     auto operator=(const This&) -> This& = delete;
     // move enabled
-    LocalScope(This&&) = default;
-    auto operator=(This &&) -> This& = default;
+    LocalScope(This&&);
+    auto operator=(This&&) -> This&;
 
-    auto operator[](NameView name) const& -> OptConstNodeView;
-    auto operator[](NameView name) & -> OptNodeView;
+    auto operator[](NameView name) const& noexcept -> ConstEntryRange;
+    auto operator[](NameView name) & noexcept -> EntryRange;
 
-    auto emplace(Node&& node) & -> OptNodeView { return emplaceImpl(std::move(node)); }
+    auto begin() noexcept -> EntryByName::iterator;
+    auto end() noexcept -> EntryByName::iterator;
 
-private:
-    auto emplaceImpl(Node&&) & -> OptNodeView;
+    auto emplace(Entry&& entry) & -> EntryView;
 
     // bool replace(old, new)
 };

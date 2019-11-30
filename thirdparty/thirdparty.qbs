@@ -10,11 +10,12 @@ Project {
         name: "googletest.lib"
 
         files: [
+            FileInfo.joinPaths(project.googletestPath, "googletest/src/gtest-all.cc"),
             FileInfo.joinPaths(project.googletestPath, "googlemock/src/gmock-all.cc"),
-            FileInfo.joinPaths(project.googletestPath, "googletest/src/gtest-all.cc")
         ]
 
         Depends { name: "cpp" }
+        cpp.combineCxxSources: true
         cpp.cxxLanguageVersion: "c++11"
         cpp.includePaths: [
             FileInfo.joinPaths(project.googletestPath, "googlemock"),
@@ -54,7 +55,7 @@ Project {
                 cpp.staticLibraries: ["pthread"]
             }
             Properties {
-                condition: qbs.toolchain.contains('msvc')
+                condition: qbs.toolchain.contains('msvc') && !qbs.toolchain.contains('clang-cl')
                 cpp.cxxFlags: ["/experimental:external", "/external:W0", "/external:I", FileInfo.joinPaths(qbs.sourceDirectory, project.googletestPath)]
             }
         }

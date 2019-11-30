@@ -1,4 +1,4 @@
-#include "TypeTree.h"
+#include "Type.h"
 
 namespace parser {
 

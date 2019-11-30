@@ -1,7 +1,7 @@
 #pragma once
 #include "instance/Parameter.h"
 
-#include "parser/TypeTree.ostream.h"
+#include "parser/Type.ostream.h"
 
 #include "strings/join.h"
 

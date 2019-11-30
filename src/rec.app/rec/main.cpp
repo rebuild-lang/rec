@@ -26,19 +26,19 @@ int main() {
         strings::String{""
                         R"(# Rebuild.Context.declareVariable hif :Rebuild.literal.String = "Hello from Global!"
 
-Rebuild.Context.declareFunction(() hi (a :Rebuild.literal.String) ():
+Rebuild.Context.declareFunction left=() hi (a :Rebuild.literal.String) ():
     # Rebuild.say hif # TODO(arBmind): get globals working
-    Rebuild.say "Hello from Hi"
+    Rebuild.say "Hello from parsing function Hi"
     Rebuild.say a
 end
-hi "Hello from calling"
+hi "Hello from calling Hi"
 
 Rebuild.Context.declareVariable foo :Rebuild.literal.String = "Hello from Variable!"
 Rebuild.say foo
 hi foo
 
 Rebuild.Context.declareModule test:
-    Rebuild.say "parsing inside!"
+    Rebuild.say "Hello from parsing module test!"
 end
 )"}};
 

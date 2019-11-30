@@ -24,16 +24,16 @@ struct ResolveType {
     void type() {
         if constexpr (std::is_same_v<T, Type>) {
             constexpr auto info = TypeOf<T>::info();
-            auto& mod = (*scope)[info.name].value()->template get<instance::Module>();
-            result = &mod.locals[strings::View{"type"}].value()->template get<instance::Type>();
+            auto& mod = (*scope)[info.name].frontValue().template get<instance::Module>();
+            result = &mod.locals[strings::View{"type"}].frontValue().template get<instance::Type>();
         }
     }
 
     template<class T>
     void module() {
         auto info = T::info();
-        auto optMod = (*scope)[info.name];
-        auto inner = This{&optMod.value()->template get<instance::Module>().locals};
+        auto modRange = (*scope)[info.name];
+        auto inner = This{&modRange.frontValue().template get<instance::Module>().locals};
         T::module(inner);
         if (inner.result) result = inner.result;
     }

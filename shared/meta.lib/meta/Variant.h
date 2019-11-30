@@ -1,6 +1,7 @@
 #pragma once
 #include "Overloaded.h"
 #include "TypeList.h"
+#include "TypeTraits.h"
 #include "ValueList.h"
 
 #include <type_traits>
@@ -10,7 +11,8 @@
 namespace meta {
 
 template<class... T>
-class VariantIndex {
+struct VariantIndex {
+private:
     using This = VariantIndex;
     size_t m{sizeof...(T)};
 
@@ -35,22 +37,34 @@ public:
 };
 
 template<class... T>
-class Variant {
+struct Variant {
+private:
     using This = Variant;
+
+public:
     using Data = std::variant<T...>;
+
+private:
     Data m;
 
 public:
     Variant() = default;
 
-    template<class... A, typename = std::enable_if_t<std::is_constructible_v<Data, A...>>>
+    template<
+        class... A,
+        typename = std::enable_if_t< //
+            (sizeof...(A) != 1 || !meta::same_remove_const_ref_head_type<Variant, A...>)&& //
+            std::is_constructible_v<Data, A...>>>
     Variant(A&&... a)
         : m(std::forward<A>(a)...) {}
 
     // note: templated constructors are not forwarded with using
 #define META_VARIANT_CONSTRUCT(Derived, Variant)                                                                       \
-    using Variant::Variant;                                                                                            \
-    template<class... A, typename = std::enable_if_t<std::is_constructible_v<Variant, A...>>>                          \
+    template<                                                                                                          \
+        class... A,                                                                                                    \
+        typename = std::enable_if_t<(                                                                                  \
+            sizeof...(A) != 1 ||                                                                                       \
+            !meta::same_remove_const_ref_head_type<Derived, A...>)&&std::is_constructible_v<Variant, A...>>>           \
     Derived(A&&... a)                                                                                                  \
         : Variant(std::forward<A>(a)...) {}
 

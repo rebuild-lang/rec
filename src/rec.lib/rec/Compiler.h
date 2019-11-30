@@ -22,7 +22,8 @@ struct Config : TextConfig {
     // std::ostream* rebuildOutput{}; // TODO(arBmind): allow to configure stdout used by builtin stdout
 };
 
-class Compiler final {
+struct Compiler final {
+private:
     Config config;
     InstanceScope globals;
     InstanceScope globalScope;

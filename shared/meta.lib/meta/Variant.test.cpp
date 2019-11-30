@@ -14,14 +14,14 @@ TEST(variant, normal) {
     using TestVariant = meta::Variant<int, float>;
 
     auto v = TestVariant{23};
+    EXPECT_FALSE(v.holds<float>());
     ASSERT_TRUE(v.holds<int>());
-    ASSERT_FALSE(v.holds<float>());
-    ASSERT_EQ(v.get<int>(), 23);
-    ASSERT_EQ(v, TestVariant{23});
+    EXPECT_EQ(v.get<int>(), 23);
+    EXPECT_EQ(v, TestVariant{23});
 
-    ASSERT_EQ(v.index(), TestVariant::indexOf<int>());
+    EXPECT_EQ(v.index(), TestVariant::indexOf<int>());
 
-    ASSERT_TRUE(v.visit([](int) { return true; }, [](auto) { return false; }));
+    EXPECT_TRUE(v.visit([](int) { return true; }, [](auto) { return false; }));
 
     {
         auto visited = bool{};
@@ -35,6 +35,30 @@ TEST(variant, normal) {
     }
 
     // ASSERT_EQ(TestVariant{23.}, TestVariant{23}); // Trigger Failure Output
+}
+
+using DerivedVariant = meta::Variant<int, float>;
+struct Derived final : DerivedVariant {
+    int member{};
+
+    META_VARIANT_CONSTRUCT(Derived, DerivedVariant)
+};
+TEST(variant, derived) {
+    auto v = Derived{23};
+    v.member = 42;
+
+    EXPECT_FALSE(v.holds<float>());
+    ASSERT_TRUE(v.holds<int>());
+    EXPECT_EQ(v.get<int>(), 23);
+    EXPECT_EQ(v, Derived{23});
+
+    EXPECT_EQ(v.index(), Derived::indexOf<int>());
+
+    EXPECT_TRUE(v.visit([](int) { return true; }, [](auto) { return false; }));
+
+    auto b = v;
+    EXPECT_EQ(b.member, v.member);
+    EXPECT_EQ(b, Derived{23});
 }
 
 TEST(variant, ostream_simple) {
@@ -55,6 +79,7 @@ TEST(variant, ostream_annotated) {
 
 TEST(variant, ostream_index) {
     using TestVariantIndex = meta::VariantIndex<int, double>;
+    static_assert(meta::details::all_named<meta::TypePack<int, double>>);
 
     auto ss = std::stringstream{};
     ss << TestVariantIndex{1};

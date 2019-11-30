@@ -26,12 +26,12 @@ struct TokensFilterData {
     template<class... Tok>
     auto in(Tok&&... tok) && -> TokensFilterData {
         input = scanner::buildTokens(std::forward<Tok>(tok)...);
-        return *this;
+        return std::move(*this);
     }
     template<class... Lines>
     auto out(Lines&&... lines) && -> TokensFilterData {
         expected = filter::buildTokenLines(std::forward<Lines>(lines)...);
-        return *this;
+        return std::move(*this);
     }
 };
 static auto operator<<(std::ostream& out, const TokensFilterData& ttd) -> std::ostream& {

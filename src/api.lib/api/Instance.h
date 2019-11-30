@@ -17,7 +17,6 @@ struct TypeOf<instance::Module*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"Module"};
-        info.size = sizeof(instance::Module*);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
@@ -31,7 +30,6 @@ struct TypeOf<instance::Type*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"Type"};
-        info.size = sizeof(instance::Type*);
         info.flags = TypeFlag::CompileTime;
         return info;
     }
@@ -83,7 +81,6 @@ struct TypeOf<instance::Function*> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{"Function"};
-        info.size = sizeof(instance::Function*);
         info.flags = TypeFlag::CompileTime;
         return info;
     }

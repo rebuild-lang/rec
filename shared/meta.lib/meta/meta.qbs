@@ -12,6 +12,7 @@ Project {
 
         files: [
             "CoEnumerator.h",
+            "CoRoutine.h",
             "Flags.h",
             "Flags.ostream.h",
             "Optional.h",
@@ -20,6 +21,7 @@ Project {
             "Type.h",
             "TypeList.h",
             "TypePack.h",
+            "TypeTraits.h",
             "Unreachable.cpp",
             "Unreachable.h",
             "ValueList.h",

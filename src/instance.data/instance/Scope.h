@@ -1,6 +1,6 @@
 #pragma once
+#include "Entry.h"
 #include "LocalScope.h"
-#include "Node.h"
 
 namespace instance {
 
@@ -17,20 +17,20 @@ struct Scope {
 
     // move enabled
     Scope(This&&) = default;
-    auto operator=(This &&) -> This& = default;
+    Scope& operator=(This&&) = default;
 
     // no copy
     Scope(const This&) = delete;
-    auto operator=(const This&) -> This& = delete;
+    Scope& operator=(const This&) = delete;
 
 public:
-    auto operator[](NameView name) const& -> const OptConstNodeView {
-        auto optNode = locals[name];
-        if (!optNode && parent) return (*parent)[name];
-        return optNode;
+    auto operator[](NameView name) const& -> ConstEntryRange {
+        auto range = locals[name];
+        if (range.empty() && parent != nullptr) return (*parent)[name];
+        return range;
     }
 
-    auto emplace(Node&& node) & -> OptNodeView { return locals.emplace(std::move(node)); }
+    auto emplace(Entry&& entry) & -> EntryView { return locals.emplace(std::move(entry)); }
 };
 
 } // namespace instance

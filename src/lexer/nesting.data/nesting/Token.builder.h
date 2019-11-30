@@ -17,13 +17,13 @@ struct TokenLineBuilder {
     template<class... Tok>
     auto tokens(Tok&&... t) && -> This {
         (line.tokens.push_back(std::forward<Tok>(t)), ...);
-        return *this;
+        return std::move(*this);
     }
 
     template<class... Tok>
     auto insignificants(Tok&&... t) && -> This {
         (line.insignificants.emplace_back(std::forward<Tok>(t)), ...);
-        return *this;
+        return std::move(*this);
     }
 
     auto build() && -> BlockLine { return std::move(line); }
@@ -50,7 +50,7 @@ auto buildTokens(Tok&&... t) -> Tokens {
     return Tokens{::nesting::buildToken(std::forward<Tok>(t))...};
 }
 
-auto id(View view) -> IdentifierLiteral { return IdentifierLiteral{view}; }
+inline auto id(View view) -> IdentifierLiteral { return IdentifierLiteral{view}; }
 
 template<size_t N>
 auto op(const char (&text)[N]) -> OperatorLiteral {
@@ -66,6 +66,10 @@ auto num(const char (&intPart)[N]) -> NumberLiteral {
 }
 
 inline auto colon() -> Token { return ColonSeparator{}; }
+inline auto comma() -> Token { return CommaSeparator{}; }
+
+inline auto bracketOpen() -> Token { return BracketOpen{}; }
+inline auto bracketClose() -> Token { return BracketClose{}; }
 
 inline auto line() -> details::TokenLineBuilder { return {}; }
 

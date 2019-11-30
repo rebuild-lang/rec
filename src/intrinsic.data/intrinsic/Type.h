@@ -21,13 +21,10 @@ enum class Parser {
     Expression,
     SingleToken,
     IdTypeValue,
-    IdTypeValueTuple,
-    OptionalIdTypeValueTuple,
 };
 
 struct TypeInfo {
     Name name{};
-    uint64_t size{};
     TypeFlags flags{};
     Parser parser{};
 };

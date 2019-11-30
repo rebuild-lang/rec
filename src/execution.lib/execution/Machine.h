@@ -95,6 +95,7 @@ private:
             [&](const parser::IntrinsicCall& intrinsic) { runIntrinsic(intrinsic, context); },
             [&](const parser::ParameterReference&) {},
             [&](const parser::VariableReference&) {},
+            [&](const parser::NameTypeValueReference&) {},
             [&](const parser::VariableInit& var) { initVariable(var, context); },
             [&](const parser::ModuleReference&) {},
             [&](const parser::NameTypeValueTuple& typed) { runTyped(typed, context); },
@@ -151,8 +152,8 @@ private:
 
     static auto argumentsSize(const instance::Function& fun) -> size_t {
         auto sum = 0u;
-        for (auto* a : fun.parameters) {
-            sum += argumentSize(*a);
+        for (auto* param : fun.parameters) {
+            sum += argumentSize(*param);
         }
         return sum;
     }
@@ -167,14 +168,7 @@ private:
         return typeExpressionSize(arg.typed.type);
     }
 
-    static auto typeExpressionSize(const parser::TypeExpression& type) -> size_t {
-        using namespace parser;
-        return type.visit(
-            [](const Auto&) -> size_t { return 0u; },
-            [](const Array& a) -> size_t { return a.count * typeExpressionSize(*a.element); },
-            [](const TypeInstance& i) -> size_t { return i.concrete->size; },
-            [](const Pointer&) -> size_t { return sizeof(void*); });
-    }
+    static auto typeExpressionSize(const parser::TypeView& type) -> size_t { return type->size; }
 
     static void storeArguments(const parser::Call& call, Context& context) {
         Byte* memory = context.localBase;
@@ -193,8 +187,7 @@ private:
         Context& context,
         Byte* memory) {
 
-        auto* assign = findAssign(call.arguments, parameter);
-        if (assign != nullptr) {
+        if (auto* assign = findAssign(call.arguments, parameter); assign != nullptr) {
             storeArgument(*context.caller, memory, parameter, assign->values);
         }
         else {
@@ -251,8 +244,8 @@ private:
             assert(nodes.size() == 1);
             nodes[0].visit(
                 [&](const parser::VariableReference& var) { storeTypedAddress(var.variable->typed, context, memory); },
-                [&](const parser::ParameterReference& arg) {
-                    storeTypedAddress(arg.parameter->typed, context, memory);
+                [&](const parser::ParameterReference& param) {
+                    storeTypedAddress(param.parameter->typed, context, memory);
                 },
                 [&](const parser::Value& value) { storeValueAddress(value, memory); },
                 [&](const auto&) { assert(false); });
@@ -263,8 +256,8 @@ private:
         }
     }
 
-    static void storeResultAt(Byte* memory, const instance::Parameter& arg, Byte* result) {
-        (void)arg;
+    static void storeResultAt(Byte* memory, const instance::Parameter& param, Byte* result) {
+        (void)param;
         reinterpret_cast<void*&>(*memory) = result;
     }
 
@@ -273,8 +266,14 @@ private:
             [&](const parser::Block&) { assert(false); },
             [&](const parser::Call& call) { storeCallResult(call, context, memory); },
             [&](const parser::IntrinsicCall&) { assert(false); },
-            [&](const parser::ParameterReference& arg) { storeTypedValue(arg.parameter->typed, context, memory); },
+            [&](const parser::ParameterReference& param) { storeTypedValue(param.parameter->typed, context, memory); },
             [&](const parser::VariableReference& var) { storeTypedValue(var.variable->typed, context, memory); },
+            [&](const parser::NameTypeValueReference& ref) {
+                if (ref.nameTypeValue && ref.nameTypeValue->value)
+                    storeNode(ref.nameTypeValue->value.value(), context, memory);
+                else
+                    assert(false);
+            },
             [&](const parser::VariableInit&) { assert(false); },
             [&](const parser::ModuleReference&) {},
             [&](const parser::NameTypeValueTuple& tuple) { storeTupleCopy(tuple, memory); },
@@ -314,11 +313,8 @@ private:
         cloneTypeInto(value.type(), memory, reinterpret_cast<const Byte*>(value.data()));
     }
 
-    static void cloneTypeInto(const parser::TypeExpression& type, Byte* dest, const Byte* source) {
-        type.visit(
-            [&](const parser::TypeInstance& i) { i.concrete->clone(dest, source); },
-            [&](const parser::Pointer&) { *reinterpret_cast<void**>(dest) = *reinterpret_cast<void* const*>(source); },
-            [](auto) { abort(); });
+    static void cloneTypeInto(const parser::TypeView& type, Byte* dest, const Byte* source) {
+        type->cloneFunc(dest, source);
     }
 };
 

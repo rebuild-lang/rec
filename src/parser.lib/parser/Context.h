@@ -1,8 +1,10 @@
 #pragma once
+#include "TupleLookup.h"
+
 #include "parser/Tree.h"
 
 #include "diagnostic/Diagnostic.h"
-#include "instance/Node.h"
+#include "instance/Entry.h"
 
 #include <type_traits>
 
@@ -14,7 +16,7 @@ struct NoDiagnositics {
 
 template<class Lookup, class RunCall, class IntrinsicType, class ReportDiagnostic = NoDiagnositics>
 struct Context {
-    Lookup lookup; // strings::View -> instance::NodeView
+    Lookup lookup; // strings::View -> instance::EntryView
     RunCall runCall; // Call -> AST Node
     IntrinsicType intrinsicType; // <Type> -> instance::TypeView
     ReportDiagnostic reportDiagnostic; // diagnostic::Diagnostic -> void
@@ -30,47 +32,45 @@ Context(Lookup&&, RunCall&&, IntrinsicType&&, ReportDiagnostic &&)
 template<class Context>
 struct ContextApi {
     static_assert(
-        std::is_same_v<instance::OptConstNodeView, std::invoke_result_t<decltype(Context::lookup), strings::View>>,
+        std::is_same_v<std::invoke_result_t<decltype(Context::lookup), strings::View>, instance::ConstEntryRange>,
         "no lookup");
     static_assert(
-        std::is_same_v<OptNode, std::invoke_result_t<decltype(Context::runCall), Call>>, //
+        std::is_same_v<std::invoke_result_t<decltype(Context::runCall), Call>, OptNode>, //
         "no runCall");
     static_assert(
         std::is_same_v<
-            instance::TypeView,
-            std::invoke_result_t<decltype(Context::intrinsicType), meta::Type<StringLiteral>>>,
+            std::invoke_result_t<decltype(Context::intrinsicType), meta::Type<StringLiteral>>,
+            instance::TypeView>,
         "no intrinsicType");
     static_assert(
-        std::is_same_v<void, std::invoke_result_t<decltype(Context::reportDiagnostic), diagnostic::Diagnostic>>,
+        std::is_same_v<std::invoke_result_t<decltype(Context::reportDiagnostic), diagnostic::Diagnostic>, void>,
         "no reportDiagnostic");
 
-    explicit ContextApi(Context context)
-        : context(std::move(context)) {}
+    explicit ContextApi(Context context, TupleLookup tupleLookup = {})
+        : context(std::move(context))
+        , tupleLookup(tupleLookup) {}
 
-    auto lookup(strings::View view) const -> instance::OptConstNodeView { return context.lookup(view); }
-    auto runCall(Call call) const -> OptNode { return context.runCall(std::move(call)); }
+    [[nodiscard]] auto lookup(strings::View view) const -> instance::ConstEntryRange { return context.lookup(view); }
+    [[nodiscard]] auto runCall(Call call) const -> OptNode { return context.runCall(std::move(call)); }
 
     template<class Type>
     auto intrinsicType(meta::Type<Type>) -> instance::TypeView {
-        return context.intrinsicType(meta::Type<Type>{});
+        return context.intrinsicType(meta::type<Type>);
     }
     auto reportDiagnostic(diagnostic::Diagnostic diagnostic) -> void {
         return context.reportDiagnostic(std::move(diagnostic));
     }
 
-    template<class SubLookup>
-    auto setLookup(SubLookup&& subLookup) {
-        auto subContext = parser::Context{
-            std::forward<SubLookup>(subLookup),
-            std::ref(context.runCall),
-            std::ref(context.intrinsicType),
-            std::ref(context.reportDiagnostic) //
-        };
-        return ContextApi<decltype(subContext)>(std::move(subContext));
+    [[nodiscard]] auto lookupTuple(strings::View view) const -> OptNameTypeValueView { return tupleLookup[view]; }
+
+    auto withTupleLookup(const NameTypeValueTuple* tuple) {
+        auto subTupleLookup = TupleLookup{&tupleLookup, {tuple}};
+        return ContextApi(std::ref(context), subTupleLookup);
     }
 
 private:
     Context context;
+    TupleLookup tupleLookup{};
 };
 
 } // namespace parser
