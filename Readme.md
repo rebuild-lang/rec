@@ -13,11 +13,11 @@ This is a spare time project, we use what makes the job easier and more enjoyabl
 
 Windows:
 * Visual Studio 2019
-* Qbs 1.13
+* Qbs 1.14
 
 Linux:
 * Clang 8 + libc++
-* Qbs 1.13
+* Qbs 1.14
 
 ## Status
 
