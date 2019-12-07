@@ -24,7 +24,7 @@ struct Compiler {
 };
 
 struct Context {
-    Context* parent{};
+    const Context* parent{};
     Compiler* compiler{};
 
     const Context* caller{};
@@ -40,14 +40,14 @@ struct Context {
         return nullptr;
     }
 
-    auto createCall() const -> Context {
+    auto createCall() const& -> Context {
         auto result = Context{};
         result.compiler = compiler;
         result.caller = this;
         result.parserScope = parserScope;
         return result;
     }
-    auto createNested() & -> Context {
+    auto createNested() const& -> Context {
         auto result = Context{};
         result.parent = this;
         result.compiler = compiler;
@@ -72,12 +72,8 @@ struct IntrinsicContext : intrinsic::Context {
 
 struct Machine {
     static void runCall(const parser::Call& call, const Context& context) {
-        auto stackSize = argumentsSize(*call.function);
-        auto stackData = context.compiler->stack.allocate(stackSize);
-
-        auto callContext = context.createCall();
-        callContext.localBase = stackData.get();
-        storeArguments(call, callContext);
+        auto tmpContext = storeTemporaryResults(call, context);
+        auto callContext = storeArguments(call, tmpContext);
 
         runFunction(*call.function, callContext);
     }
@@ -170,15 +166,55 @@ private:
 
     static auto typeExpressionSize(const parser::TypeView& type) -> size_t { return type->size; }
 
-    static void storeArguments(const parser::Call& call, Context& context) {
-        Byte* memory = context.localBase;
+    static auto temporaryResultSize(const parser::Call& call) -> size_t {
+        auto size = size_t{};
         const auto& fun = *call.function;
-        // assert(call.arguments sufficient & valid)
         for (auto* funParam : fun.parameters) {
-            context.localFrame.insert(&funParam->typed, memory);
-            assignArgument(call, *funParam, context, memory);
-            memory += argumentSize(*funParam);
+            auto& parameter = *funParam;
+            if (parameter.side != instance::ParameterSide::result) continue;
+            if (!parameter.init.empty()) continue;
+            if (auto* assign = findAssign(call.arguments, parameter); assign != nullptr) continue;
+            size += parameter.typed.type->size;
         }
+        return size;
+    }
+
+    static auto storeTemporaryResults(const parser::Call& call, const Context& context) -> Context {
+        auto tmpSize = temporaryResultSize(call);
+        auto tmpData = context.compiler->stack.allocate(tmpSize);
+        auto tmpContext = context.createNested();
+
+        auto memory = tmpData.get();
+        const auto& fun = *call.function;
+        for (auto* funParam : fun.parameters) {
+            auto& parameter = *funParam;
+            if (parameter.side != instance::ParameterSide::result) continue;
+            if (!parameter.init.empty()) continue;
+            if (auto* assign = findAssign(call.arguments, parameter); assign != nullptr) continue;
+
+            tmpContext.localFrame.insert(&parameter.typed, memory);
+            parameter.typed.type->constructFunc(memory);
+            memory += parameter.typed.type->size;
+        }
+        return tmpContext;
+    }
+
+    static auto storeArguments(const parser::Call& call, const Context& context) -> Context {
+        auto stackSize = argumentsSize(*call.function);
+        auto stackData = context.compiler->stack.allocate(stackSize);
+
+        auto callContext = context.createCall();
+        auto memory = callContext.localBase = stackData.get();
+
+        const auto& fun = *call.function;
+        for (auto* funParam : fun.parameters) {
+            auto& parameter = *funParam;
+            assignArgument(call, parameter, callContext, memory);
+
+            callContext.localFrame.insert(&parameter.typed, memory);
+            memory += argumentSize(parameter);
+        }
+        return callContext;
     }
 
     static void assignArgument(
@@ -190,8 +226,12 @@ private:
         if (auto* assign = findAssign(call.arguments, parameter); assign != nullptr) {
             storeArgument(*context.caller, memory, parameter, assign->values);
         }
-        else {
+        else if (!parameter.init.empty()) {
             storeArgument(*context.caller, memory, parameter, parameter.init);
+        }
+        else if (parameter.side == instance::ParameterSide::result) {
+            auto tmpMemory = (*context.caller)[&parameter.typed];
+            storeResultAt(memory, parameter, tmpMemory);
         }
     }
 
