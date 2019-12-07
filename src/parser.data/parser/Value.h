@@ -14,9 +14,7 @@ struct Value {
         , m_storage(m_type ? new uint8_t[type->size] : nullptr) {
         if (m_type) m_type->constructFunc(data());
     }
-    ~Value() {
-        if (m_type && m_storage) m_type->destructFunc(data());
-    }
+    ~Value() { destruct(); }
 
     Value(const This& o)
         : m_type(o.m_type)
@@ -46,8 +44,16 @@ struct Value {
         return *this;
     }
 
-    Value(This&& o) = default;
-    auto operator=(This&& o) -> This& = default;
+    Value(This&& o) noexcept
+        : m_type(o.m_type)
+        , m_storage(o.m_storage.release()) {}
+
+    auto operator=(This&& o) noexcept -> This& {
+        destruct();
+        m_type = o.m_type;
+        m_storage = std::move(o.m_storage);
+        return *this;
+    }
 
     bool operator==(const This& o) const {
         return m_type == o.m_type && (m_type == nullptr || m_type->equalFunc(data(), o.data()));
@@ -71,6 +77,10 @@ struct Value {
 private:
     TypeView m_type{};
     std::unique_ptr<uint8_t[]> m_storage{};
+
+    void destruct() noexcept {
+        if (m_type && m_storage) m_type->destructFunc(data());
+    }
 };
 static_assert(meta::has_move_assignment<Value>);
 
