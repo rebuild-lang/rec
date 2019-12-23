@@ -20,50 +20,32 @@ namespace intrinsic {
 template<>
 struct TypeOf<Context*> {
     static constexpr auto info() {
-        auto info = TypeInfo{};
-        info.name = Name{".Context"};
-        info.flags = TypeFlag::CompileTime;
-        return info;
+        return TypeInfo{Name{".Context"}, TypeFlag::CompileTime}; //
     }
 
     struct Label {
         parser::IdentifierLiteral v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__label__"};
-            info.side = ParameterSide::Right;
-            // info.flags = ParameterFlag::Reference;
-            return info;
+            return ParameterInfo{Name{"__label__"}, ParameterSide::Right}; //
         }
     };
     struct Block {
         parser::BlockLiteral v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__block__"};
-            info.side = ParameterSide::Right;
-            // info.flags = ParameterFlag::Reference;
-            return info;
+            return ParameterInfo{Name{"__block__"}, ParameterSide::Right}; //
         }
     };
     struct ModuleResult {
         instance::Module* v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__result__"};
-            info.side = ParameterSide::Result;
-            info.flags = ParameterFlag::Assignable;
-            return info;
+            return ParameterInfo{Name{"__result__"}, ParameterSide::Result, ParameterFlag::Assignable};
         }
     };
     struct ImplicitContext {
         Context* v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__context__"};
-            info.side = ParameterSide::Implicit;
+            return ParameterInfo{Name{"__context__"}, ParameterSide::Implicit};
             // info.flags = ParameterFlag::Assignable; // | ParameterFlag::Optional;
-            return info;
         }
     };
 
@@ -109,21 +91,13 @@ struct TypeOf<Context*> {
     struct Typed {
         parser::NameTypeValue v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__typed__"};
-            info.side = ParameterSide::Right;
-            // info.flags = ParameterFlag::Reference;
-            return info;
+            return ParameterInfo{Name{"__typed__"}, ParameterSide::Right}; //
         }
     };
     struct VariableInitResult {
         parser::VariableInit v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__variable_init__"};
-            info.side = ParameterSide::Result;
-            info.flags = ParameterFlag::Assignable;
-            return info;
+            return ParameterInfo{Name{"__variable_init__"}, ParameterSide::Result, ParameterFlag::Assignable};
         }
     };
 
@@ -165,41 +139,25 @@ struct TypeOf<Context*> {
     struct LeftParameterTuple {
         parser::NameTypeValueTuple v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"left"};
-            info.side = ParameterSide::Right;
-            // info.flags = ParameterFlag::Reference;
-            return info;
+            return ParameterInfo{Name{"left"}, ParameterSide::Right}; //
         }
     };
     struct RightParameterTuple {
         parser::NameTypeValueTuple v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__right__"};
-            info.side = ParameterSide::Right;
-            // info.flags = ParameterFlag::Reference;
-            return info;
+            return ParameterInfo{Name{"__right__"}, ParameterSide::Right}; //
         }
     };
     struct ResultParameterTuple {
         parser::NameTypeValueTuple v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__result__"};
-            info.side = ParameterSide::Right;
-            // info.flags = ParameterFlag::Reference;
-            return info;
+            return ParameterInfo{Name{"__result__"}, ParameterSide::Right}; //
         }
     };
     struct FunctionResult {
         instance::Function* v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"__function__"};
-            info.side = ParameterSide::Result;
-            info.flags = ParameterFlag::Assignable;
-            return info;
+            return ParameterInfo{Name{"__function__"}, ParameterSide::Result, ParameterFlag::Assignable};
         }
     };
 
@@ -266,43 +224,28 @@ struct TypeOf<Context*> {
     template<class Module>
     static constexpr auto module(Module& mod) {
         mod.template function<&declareModule, [] {
-            auto info = FunctionInfo{};
-            info.name = Name{".declareModule"};
-            info.flags = FunctionFlag::CompileTimeSideEffects;
-            return info;
+            return FunctionInfo{Name{".declareModule"}, FunctionFlag::CompileTimeSideEffects};
         }>();
 
         mod.template function<&declareVariable, [] {
-            auto info = FunctionInfo{};
-            info.name = Name{".declareVariable"};
-            info.flags = FunctionFlag::CompileTimeSideEffects;
-            return info;
+            return FunctionInfo{Name{".declareVariable"}, FunctionFlag::CompileTimeSideEffects};
         }>();
 
         mod.template function<&declareFunction, [] {
-            auto info = FunctionInfo{};
-            info.name = Name{".declareFunction"};
-            info.flags = FunctionFlag::CompileTimeSideEffects;
-            return info;
+            return FunctionInfo{Name{".declareFunction"}, FunctionFlag::CompileTimeSideEffects};
         }>();
     }
 };
 
 struct Rebuild {
     static constexpr auto info() {
-        auto info = ModuleInfo{};
-        info.name = Name{"Rebuild"};
-        return info;
+        return ModuleInfo{Name{"Rebuild"}}; //
     }
 
     struct SayLiteral {
         parser::StringLiteral v;
         static constexpr auto info() {
-            auto info = ParameterInfo{};
-            info.name = Name{"literal"};
-            info.side = ParameterSide::Right;
-            // info.flags = ParameterFlag::Reference;
-            return info;
+            return ParameterInfo{Name{"literal"}, ParameterSide::Right}; //
         }
     };
     static void debugSay(SayLiteral literal) {
@@ -320,10 +263,7 @@ struct Rebuild {
         mod.template module<ParserModule>();
 
         mod.template function<&debugSay, [] {
-            auto info = FunctionInfo{};
-            info.name = Name{".say"};
-            info.flags = FunctionFlag::CompileTimeSideEffects;
-            return info;
+            return FunctionInfo{Name{".say"}, FunctionFlag::CompileTimeSideEffects};
         }>();
 
         // mod.template type<compiler::Scope>();
