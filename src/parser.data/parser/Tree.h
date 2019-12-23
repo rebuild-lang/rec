@@ -105,6 +105,15 @@ struct ModuleReference {
 };
 static_assert(meta::has_move_assignment<ModuleReference>);
 
+struct TypeReference {
+    using This = TypeReference;
+    TypeView type{};
+
+    bool operator==(const This& o) const { return type == o.type; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+static_assert(meta::has_move_assignment<TypeReference>);
+
 struct NameTypeValue;
 using NameTypeValueView = const NameTypeValue*;
 using NameTypeValueList = std::list<NameTypeValue>;
@@ -142,6 +151,7 @@ using NodeVariant = meta::Variant<
     NameTypeValueReference,
     VariableInit,
     ModuleReference,
+    TypeReference,
     NameTypeValueTuple,
     Value>;
 static_assert(meta::has_move_assignment<NodeVariant>);
@@ -160,7 +170,7 @@ static_assert(meta::has_move_assignment<OptNode>);
 struct NameTypeValue {
     using This = NameTypeValue;
     OptName name{}; // name might be empty!
-    OptTypeView type{};
+    OptNode type{};
     OptNode value{};
 
     auto onlyValue() const { return !name && !type && value; }
@@ -176,14 +186,14 @@ static_assert(meta::has_move_assignment<NameTypeValue>);
 struct ViewNameTypeValue {
     using This = ViewNameTypeValue;
     OptView name{};
-    OptTypeView type{};
+    OptNodeView type{};
     OptNodeView value{};
 
     ViewNameTypeValue() = default;
     ViewNameTypeValue(const NameTypeValue& typed)
-        : name(typed.name.map([](const auto& n) { return n; }))
-        , type(typed.type)
-        , value(typed.value.map([](const auto& v) { return &v; })) {}
+        : name(typed.name.map([](const auto& n) -> View { return n; }))
+        , type(typed.type.map([](const auto& v) -> NodeView { return &v; }))
+        , value(typed.value.map([](const auto& v) -> NodeView { return &v; })) {}
     ViewNameTypeValue(const Node& node)
         : value(&node) {}
 };

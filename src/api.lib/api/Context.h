@@ -127,9 +127,23 @@ struct TypeOf<Context*> {
         }
     };
 
-    static void declareVariable(Typed typed, VariableInitResult& res, ImplicitContext context) {
-        new (&res.v) parser::VariableInit();
+    static auto typeFromNode(const parser::Node& node) -> parser::TypeView {
+        // TODO(arBmind): somehow handle computed types
+        return node.visit(
+            [](const parser::TypeReference& tr) { return tr.type; }, //
+            [](const parser::ModuleReference& mr) -> parser::TypeView {
+                auto typeRange = mr.module->locals[instance::nameOfType()];
+                if (typeRange.single()) {
+                    const auto& type = typeRange.frontValue().get<instance::Type>();
+                    return &type;
+                }
+                return {}; // error module is not a type
+            },
+            [](const auto&) -> parser::TypeView { return {}; } // not a type
+        );
+    }
 
+    static void declareVariable(Typed typed, VariableInitResult& res, ImplicitContext context) {
         if (!typed.v.name || !typed.v.type) {
             return; // error
         }
@@ -140,7 +154,8 @@ struct TypeOf<Context*> {
         auto node = context.v->parserScope->emplace([&] {
             auto variable = instance::Variable{};
             variable.typed.name = name;
-            variable.typed.type = typed.v.type.value();
+            if (typed.v.type) variable.typed.type = typeFromNode(typed.v.type.value());
+            // TODO(arBmind): else use type of value!
             return variable;
         }());
         res.v.variable = &node->get<instance::Variable>();
@@ -218,7 +233,8 @@ struct TypeOf<Context*> {
                         auto view = parameterScope.emplace([&] {
                             auto parameter = instance::Parameter{};
                             if (typed.name) parameter.typed.name = strings::to_string(typed.name.value());
-                            if (typed.type) parameter.typed.type = typed.type.value();
+                            if (typed.type) parameter.typed.type = typeFromNode(typed.type.value());
+                            // TODO(arBmind): else type of value / error
                             parameter.side = side;
                             if (side == instance::ParameterSide::result)
                                 parameter.flags |= instance::ParameterFlag::assignable;

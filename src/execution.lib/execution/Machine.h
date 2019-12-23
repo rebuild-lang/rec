@@ -95,6 +95,7 @@ private:
             [&](const parser::VariableInit& var) { initVariable(var, context); },
             [&](const parser::ModuleReference&) {},
             [&](const parser::NameTypeValueTuple& typed) { runTyped(typed, context); },
+            [&](const parser::TypeReference&) {},
             [&](const parser::Value&) {});
     }
 
@@ -317,6 +318,7 @@ private:
             [&](const parser::VariableInit&) { assert(false); },
             [&](const parser::ModuleReference&) {},
             [&](const parser::NameTypeValueTuple& tuple) { storeTupleCopy(tuple, memory); },
+            [&](const parser::TypeReference&) { assert(false); },
             [&](const parser::Value& value) { storeValueCopy(value, memory); });
     }
 

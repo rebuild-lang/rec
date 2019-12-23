@@ -45,14 +45,17 @@ inline auto operator<<(std::ostream& out, const VariableReference& vr) -> std::o
 inline auto operator<<(std::ostream& out, const NameTypeValueReference& ntvr) -> std::ostream& {
     return out << (ntvr.nameTypeValue && ntvr.nameTypeValue->name ? ntvr.nameTypeValue->name.value() : Name("<?>"));
 }
+inline auto operator<<(std::ostream& out, const TypeReference& tr) -> std::ostream& {
+    return out << *tr.type; // << (vr.variable ? vr.variable->typed.name : Name("<?>"));
+}
 inline auto operator<<(std::ostream& out, const NameTypeValue& t) -> std::ostream& {
     if (t.name) {
         out << t.name.value();
-        if (t.type) out << " :" << *t.type.value();
+        if (t.type) out << " :" << t.type.value();
         if (t.value) out << " = " << t.value.value();
     }
     else if (t.type) {
-        out << " :" << *t.type.value();
+        out << " :" << t.type.value();
         if (t.value) out << " = " << t.value.value();
     }
     else if (t.value) {

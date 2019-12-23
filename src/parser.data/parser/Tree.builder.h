@@ -154,7 +154,7 @@ public:
                 return NameTypeValueReference{ref->ref}; //
             },
             [&](auto&& lit) -> Node {
-		using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
+                using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
                 auto& type = instance::lookupA<instance::Type>(scope, m_typeName);
                 auto value = Value(&type);
                 value.set<Lit>() = std::move(lit);
@@ -209,7 +209,8 @@ inline auto NameTypeValueBuilder::value(ValueExprBuilder&& value) && -> This {
 inline auto NameTypeValueBuilder::build(const Scope& scope) && -> NameTypeValue {
     auto r = NameTypeValue{};
     if (!name.isEmpty()) r.name = name;
-    if (typeBuilder) r.type = std::move(typeBuilder).build(scope);
+    // TODO(arBmind): allow defered types
+    if (typeBuilder) r.type = Node{TypeReference{std::move(typeBuilder).build(scope)}};
     if (valuePtr) r.value = std::move(*valuePtr).build(scope);
     return r;
 }

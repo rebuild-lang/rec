@@ -124,7 +124,7 @@ private:
         };
         auto parseType = [&] {
             ++it; // skip colon
-            result.type = parseTypeExpression(it, context);
+            result.type = parseSingle(it, context);
         };
         auto parseValue = [&] {
             ++it; // skip assign
@@ -275,8 +275,7 @@ private:
             },
             [&](const instance::Type& type) {
                 if (result) return ParseOptions::finish_single;
-                (void)type;
-                // result = OptNode{TypeReference{&type}};
+                result = OptNode{TypeReference{&type}};
                 ++it;
                 return ParseOptions::continue_single;
             },
@@ -419,56 +418,6 @@ private:
             buildTokenVisitors<Context, BlockLiteral, StringLiteral, NumberLiteral, IdentifierLiteral, OperatorLiteral>(
                 it, context),
             [](const auto&) { return OptNode{}; });
-    }
-
-    template<class Context>
-    static auto parseTypeExpression(BlockLineView& it, ContextApi<Context>& context) -> OptTypeView {
-        return it.current().visit(
-            [&](const nesting::IdentifierLiteral& id) -> OptTypeView {
-                auto name = id.input;
-                auto range = context.lookup(name);
-                if (range.single()) return parseTypeInstance(range.frontValue(), it, context);
-                return {};
-            },
-            [](const auto&) -> OptTypeView { // error
-                return {};
-            });
-    }
-
-    template<class Context>
-    static auto parseTypeInstance(const instance::Entry& instance, BlockLineView& it, Context& context) -> OptTypeView {
-        return instance.visit(
-            [&](const instance::Variable&) -> OptTypeView {
-                // TODO(arBmind): var is a TypeModule / Expression or Callable
-                return {};
-            },
-            [&](const instance::Parameter&) -> OptTypeView { return {}; },
-            [&](const instance::Function&) -> OptTypeView {
-                // TODO(arBmind): compile time function that returns something useful
-                // ++it;
-                // auto result = OptNode{};
-                // return parseCall(result, fun, it, context);
-                return {};
-            },
-            [&](const instance::Type&) -> OptTypeView {
-                // this should not occur
-                return {};
-            },
-            [&](const instance::Module& mod) -> OptTypeView {
-                ++it;
-                if (it && it.current().holds<nesting::IdentifierLiteral>()) {
-                    auto subName = it.current().get<nesting::IdentifierLiteral>().input;
-                    auto subRange = mod.locals[subName];
-                    if (subRange.single()) return parseTypeInstance(subRange.frontValue(), it, context);
-                }
-                auto typeRange = mod.locals[instance::nameOfType()];
-                if (typeRange.single()) {
-                    const auto& type = typeRange.frontValue().get<instance::Type>();
-                    return {&type};
-                }
-                // error
-                return {};
-            });
     }
 
     template<class Context>
