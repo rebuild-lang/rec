@@ -7,6 +7,10 @@ Project {
     Product {
         name: "parser.ostream"
 
+        Depends { name: "parser.data" }
+        Depends { name: "nesting.ostream" }
+        Depends { name: "instance.data" }
+
         files: [
             "Tree.ostream.h",
             "Type.ostream.h",
@@ -18,6 +22,7 @@ Project {
 
             Depends { name: "parser.data" }
             Depends { name: "nesting.ostream" }
+            Depends { name: "instance.data" }
         }
     }
 }
