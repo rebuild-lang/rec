@@ -19,6 +19,23 @@ struct TupleRef {
 
 namespace details {
 
+struct ModuleBuilder {
+    Name name{};
+
+    ModuleBuilder() = default;
+
+    template<size_t N>
+    ModuleBuilder(const char (&name)[N])
+        : name(Name{name}) {}
+
+    operator bool() const { return !name.isEmpty(); }
+
+    auto build(const instance::Scope& scope) && -> ModuleView {
+        auto* t = &instance::lookupA<instance::Module>(scope, name);
+        return t;
+    }
+};
+
 struct ValueExprBuilder;
 using ValueExprBuilders = std::vector<ValueExprBuilder>;
 using ValueExprBuilderPtr = std::shared_ptr<ValueExprBuilder>;
@@ -99,7 +116,7 @@ struct NameTypeValueBuilder {
     using This = NameTypeValueBuilder;
 
     Name name{};
-    TypeBuilder typeBuilder{};
+    ValueExprBuilderPtr typePtr{};
     ValueExprBuilderPtr valuePtr{};
 
     NameTypeValueBuilder() = default;
@@ -108,11 +125,7 @@ struct NameTypeValueBuilder {
     NameTypeValueBuilder(const char (&name)[N])
         : name(name) {}
 
-    auto type(TypeBuilder&& builder) && -> This {
-        typeBuilder = std::move(builder);
-        return std::move(*this);
-    }
-
+    auto type(ValueExprBuilder&& builder) && -> This;
     auto value(ValueExprBuilder&& value) && -> This;
 
     auto build(const Scope& scope) && -> NameTypeValue;
@@ -126,6 +139,7 @@ using ValueExprBuilderVariant = meta::Variant<
     nesting::BlockLiteral,
     CallBuilder,
     NameTypeValueBuilder,
+    ModuleBuilder,
     TupleRef*>;
 
 struct ValueExprBuilder final : ValueExprBuilderVariant {
@@ -150,6 +164,7 @@ public:
                 value.set<NameTypeValue>() = std::move(typ).build(scope);
                 return value;
             },
+            [&](ModuleBuilder&& mod) -> Node { return ModuleReference{std::move(mod).build(scope)}; },
             [&](TupleRef* ref) -> Node {
                 return NameTypeValueReference{ref->ref}; //
             },
@@ -201,6 +216,10 @@ inline auto TupleBuilder::build(const Scope& scope) && -> Node {
     return tuple;
 }
 
+inline auto NameTypeValueBuilder::type(ValueExprBuilder&& value) && -> This {
+    typePtr.reset(new ValueExprBuilder{std::move(value)});
+    return std::move(*this);
+}
 inline auto NameTypeValueBuilder::value(ValueExprBuilder&& value) && -> This {
     valuePtr.reset(new ValueExprBuilder{std::move(value)});
     return std::move(*this);
@@ -209,8 +228,7 @@ inline auto NameTypeValueBuilder::value(ValueExprBuilder&& value) && -> This {
 inline auto NameTypeValueBuilder::build(const Scope& scope) && -> NameTypeValue {
     auto r = NameTypeValue{};
     if (!name.isEmpty()) r.name = name;
-    // TODO(arBmind): allow defered types
-    if (typeBuilder) r.type = Node{TypeReference{std::move(typeBuilder).build(scope)}};
+    if (typePtr) r.type = std::move(*typePtr).build(scope);
     if (valuePtr) r.value = std::move(*valuePtr).build(scope);
     return r;
 }
@@ -227,6 +245,11 @@ auto typed(const char (&name)[N]) -> details::NameTypeValueBuilder {
     return {name};
 }
 inline auto typed() -> details::NameTypeValueBuilder { return {}; }
+
+template<size_t N>
+inline auto mod(const char (&name)[N]) -> details::ModuleBuilder {
+    return {name};
+}
 
 template<size_t N, class... Value>
 auto arg(const char (&name)[N], Value&&... value) -> details::ArgumentBuilder {

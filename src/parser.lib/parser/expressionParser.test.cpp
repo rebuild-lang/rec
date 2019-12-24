@@ -116,7 +116,7 @@ INSTANTIATE_TEST_CASE_P(
                     instance::typeModT<uint64_t>("u64"),
                     instance::fun("var").runtime().params(instance::param("v").right().type(type("Typed"))))
                 .in(nesting::id(View{"var"}), nesting::id(View{"i"}), nesting::colon(), nesting::id(View{"u64"}))
-                .out(parser::call("var").right(arg("v", parser::expr(typed("i").type(type("u64"))).typeName("Typed"))));
+                .out(parser::call("var").right(arg("v", parser::expr(typed("i").type(mod("u64"))).typeName("Typed"))));
         }(),
         [] {
             auto tupleRef = parser::TupleRef{};
