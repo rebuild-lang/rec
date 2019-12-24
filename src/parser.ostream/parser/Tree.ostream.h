@@ -1,6 +1,7 @@
 #pragma once
+#include "Type.ostream.h"
+
 #include "parser/Tree.h"
-#include "parser/Type.ostream.h"
 
 #include "instance/Function.h"
 #include "instance/Parameter.h"
@@ -42,11 +43,17 @@ inline auto operator<<(std::ostream& out, const Call& inv) -> std::ostream& {
 inline auto operator<<(std::ostream& out, const VariableReference& vr) -> std::ostream& {
     return out << (vr.variable ? vr.variable->typed.name : Name("<?>"));
 }
+inline auto operator<<(std::ostream& out, const ParameterReference& pr) -> std::ostream& {
+    return out << (pr.parameter ? pr.parameter->typed.name : Name("<?>"));
+}
 inline auto operator<<(std::ostream& out, const NameTypeValueReference& ntvr) -> std::ostream& {
     return out << (ntvr.nameTypeValue && ntvr.nameTypeValue->name ? ntvr.nameTypeValue->name.value() : Name("<?>"));
 }
 inline auto operator<<(std::ostream& out, const TypeReference& tr) -> std::ostream& {
     return out << *tr.type; // << (vr.variable ? vr.variable->typed.name : Name("<?>"));
+}
+inline auto operator<<(std::ostream& out, const ModuleReference& mr) -> std::ostream& {
+    return out << (mr.module ? mr.module->name : Name("<?>"));
 }
 inline auto operator<<(std::ostream& out, const NameTypeValue& t) -> std::ostream& {
     if (t.name) {
@@ -89,9 +96,18 @@ inline auto operator<<(std::ostream& out, const Value& val) -> std::ostream& {
         return out << "val: <empty>";
     }
 }
+inline auto operator<<(std::ostream& out, const IntrinsicCall&) -> std::ostream& {
+    return out << "<intrinsic>"; //
+}
+inline auto operator<<(std::ostream& out, const VariableInit& vi) -> std::ostream& {
+    return out << vi.variable << " = " << vi.nodes; //
+}
 
 inline auto operator<<(std::ostream& out, const Node& n) -> std::ostream& {
-    n.visit([&](const auto& a) { out << a; });
+    n.visit([&](const auto& a) {
+        using OP = auto(std::ostream&, decltype(a))->std::ostream&;
+        static_cast<OP*>(operator<<)(out, a);
+    });
     return out;
 }
 
