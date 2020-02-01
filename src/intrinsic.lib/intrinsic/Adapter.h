@@ -199,7 +199,7 @@ struct Adapter {
         r.parameters = instance::ParameterViews{parameter<ExternParams>(r.parameterScope)...};
 
         auto call = &details::Call<F, Params...>::call;
-        r.body.block.nodes.emplace_back(parser::IntrinsicCall{call});
+        r.body.block.expressions.emplace_back(parser::IntrinsicCall{call});
 
         auto indices = std::make_index_sequence<sizeof...(ExternParams)>{};
         trackParameters<ExternParams...>(r.parameters, indices);

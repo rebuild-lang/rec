@@ -11,8 +11,8 @@ Project {
         Depends { name: "instance.view" }
 
         files: [
-            "Tree.cpp",
-            "Tree.h",
+            "Expression.cpp",
+            "Expression.h",
             "Type.cpp",
             "Type.h",
             "Value.cpp",

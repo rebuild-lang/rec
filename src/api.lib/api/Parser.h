@@ -3,7 +3,7 @@
 #include "intrinsic/Module.h"
 #include "intrinsic/Type.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 namespace intrinsic {
 

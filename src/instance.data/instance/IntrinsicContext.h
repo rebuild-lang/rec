@@ -1,7 +1,7 @@
 #pragma once
 #include "diagnostic/Diagnostic.h"
 #include "instance/Views.h"
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 namespace intrinsic {
 

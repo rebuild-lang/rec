@@ -2,7 +2,7 @@
 #include "execution/Frame.h"
 #include "execution/Stack.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include "instance/Function.h"
 #include "instance/IntrinsicContext.h"
@@ -13,6 +13,10 @@
 #include <functional>
 
 namespace execution {
+
+// TODO(arBmind): somehow fix result / assignable (note: localFrame[TypeView] uses wrong type!
+// TODO(arBmind): run destructors on frames!
+// TODO(arBmind): assign defaults to results if unused!
 
 using ParseBlock = std::function<parser::Block(const nesting::BlockLiteral& block, instance::Scope* scope)>;
 using ReportDiagnositc = std::function<void(diagnostic::Diagnostic)>;
@@ -84,7 +88,7 @@ struct Machine {
     }
 
 private:
-    static void runNode(const parser::Node& node, Context& context) {
+    static void runNode(const parser::Expression& node, Context& context) {
         node.visit(
             [&](const parser::Block& block) { runFunctionBlock(block, context); },
             [&](const parser::Call& call) { runCall(call, context); },
@@ -109,14 +113,14 @@ private:
     }
 
     static void runFunctionBlock(const parser::Block& block, Context& context) {
-        auto frameSize = variablesInBlockSize(block.nodes);
+        auto frameSize = variablesInBlockSize(block.expressions);
         auto frameData = context.compiler->stack.allocate(frameSize);
 
         auto nested = context.createNested();
         nested.localBase = frameData.get();
-        layoutVariables(block.nodes, nested);
+        layoutVariables(block.expressions, nested);
 
-        for (const auto& node : block.nodes) {
+        for (const auto& node : block.expressions) {
             runNode(node, nested);
         }
     }
@@ -137,7 +141,7 @@ private:
         }
     }
 
-    static auto variablesInBlockSize(const parser::Nodes& nodes) -> size_t {
+    static auto variablesInBlockSize(const parser::Expressions& nodes) -> size_t {
         auto sum = 0u;
         for (auto& n : nodes) {
             n.visitSome([&](const parser::VariableInit& var) { //
@@ -252,7 +256,7 @@ private:
         }
     }
 
-    static void layoutVariables(const parser::Nodes& nodes, Context& context) {
+    static void layoutVariables(const parser::Expressions& nodes, Context& context) {
         Byte* memory = context.localBase;
         for (const auto& node : nodes) {
             node.visitSome([&](const parser::VariableInit& var) { //
@@ -274,7 +278,7 @@ private:
         const Context& context, //
         Byte* memory,
         const instance::Parameter& param,
-        const parser::Nodes& nodes) {
+        const parser::Expressions& nodes) {
 
         using namespace instance;
         if (param.flags.any(ParameterFlag::splatted)) {
@@ -302,7 +306,7 @@ private:
         reinterpret_cast<void*&>(*memory) = result;
     }
 
-    static void storeNode(const parser::Node& node, const Context& context, Byte* memory) {
+    static void storeNode(const parser::Expression& node, const Context& context, Byte* memory) {
         node.visit(
             [&](const parser::Block&) { assert(false); },
             [&](const parser::Call& call) { storeCallResult(call, context, memory); },

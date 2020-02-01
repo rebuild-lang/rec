@@ -1,7 +1,7 @@
 #pragma once
 #include "Type.ostream.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include "instance/Function.h"
 #include "instance/Parameter.h"
@@ -13,8 +13,8 @@
 
 namespace parser {
 
-auto operator<<(std::ostream& out, const Node&) -> std::ostream&;
-inline auto operator<<(std::ostream& out, const Nodes& ns) -> std::ostream& {
+auto operator<<(std::ostream& out, const Expression&) -> std::ostream&;
+inline auto operator<<(std::ostream& out, const Expressions& ns) -> std::ostream& {
     auto size = ns.size();
     if (size > 1) out << "(";
     strings::join(out, ns, ", ");
@@ -22,12 +22,12 @@ inline auto operator<<(std::ostream& out, const Nodes& ns) -> std::ostream& {
     return out;
 }
 inline auto operator<<(std::ostream& out, const Block& b) -> std::ostream& {
-    if (b.nodes.empty()) {
+    if (b.expressions.empty()) {
         out << "{}\n";
     }
     else {
         out << "{\n  ";
-        strings::join(out, b.nodes, "\n  ");
+        strings::join(out, b.expressions, "\n  ");
         out << "\n}\n";
     }
     return out;
@@ -103,7 +103,7 @@ inline auto operator<<(std::ostream& out, const VariableInit& vi) -> std::ostrea
     return out << vi.variable << " = " << vi.nodes; //
 }
 
-inline auto operator<<(std::ostream& out, const Node& n) -> std::ostream& {
+inline auto operator<<(std::ostream& out, const Expression& n) -> std::ostream& {
     n.visit([&](const auto& a) {
         using OP = auto(std::ostream&, decltype(a))->std::ostream&;
         static_cast<OP*>(operator<<)(out, a);

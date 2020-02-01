@@ -26,7 +26,7 @@ using diagnostic::Diagnostic;
 using nesting::BlockLiteral;
 using parser::Block;
 using parser::Call;
-using parser::OptNode;
+using parser::OptExpression;
 
 namespace {
 
@@ -58,12 +58,12 @@ auto getResultValue(Call& call) -> meta::Optional<parser::Value> {
     return result;
 }
 
-auto extractResults(Call& call, const InstanceScope& globals) -> OptNode {
+auto extractResults(Call& call, const InstanceScope& globals) -> OptExpression {
     auto optResult = getResultValue(call);
     if (optResult) {
         auto resultType = optResult.value().type();
         if (resultType == IntrinsicType{&globals}(meta::Type<parser::VariableInit>{})) {
-            return parser::Node{optResult.value().get<parser::VariableInit>()};
+            return parser::Expression{optResult.value().get<parser::VariableInit>()};
         }
     }
     // TODO(arBmind): create TypedTuple from results
@@ -87,7 +87,7 @@ auto Compiler::executionContext(InstanceScope& parserScope) {
 
 auto Compiler::parserContext(InstanceScope& scope) {
     auto lookup = [&](const StringView& id) { return scope[id]; };
-    auto runCall = [&](const Call& call) -> OptNode {
+    auto runCall = [&](const Call& call) -> OptExpression {
         // TODO(arBmind):
         // * check arguments - have to be available
         auto callCopy = call;

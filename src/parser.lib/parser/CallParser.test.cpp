@@ -26,7 +26,7 @@
 using namespace parser;
 
 using diagnostic::Diagnostics;
-using ValueNodes = std::map<std::string, OptNode>;
+using ValueNodes = std::map<std::string, OptExpression>;
 using IndexTyped = std::map<size_t, OptNameTypeValue>;
 using FunctionViews = std::vector<instance::FunctionView>;
 
@@ -58,7 +58,7 @@ struct TestCallExternal {
     }
 
     auto parserForType(const TypeView& type) {
-        return [this, type](BlockLineView& blv) -> OptNode {
+        return [this, type](BlockLineView& blv) -> OptExpression {
             if (!blv) return {};
             auto k = [&] {
                 auto ks = std::stringstream{};

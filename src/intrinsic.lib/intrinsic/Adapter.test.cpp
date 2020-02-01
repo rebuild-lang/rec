@@ -343,9 +343,9 @@ TEST(intrinsic, call) {
     ASSERT_TRUE(u64.locals[View{"add"}].frontValue().holds<instance::Function>());
     const auto& add = u64.locals[View{"add"}].frontValue().get<instance::Function>();
 
-    ASSERT_TRUE(!add.body.block.nodes.empty());
-    ASSERT_TRUE(add.body.block.nodes.front().holds<parser::IntrinsicCall>());
-    auto& call = add.body.block.nodes.front().get<parser::IntrinsicCall>();
+    ASSERT_TRUE(!add.body.block.expressions.empty());
+    ASSERT_TRUE(add.body.block.expressions.front().holds<parser::IntrinsicCall>());
+    auto& call = add.body.block.expressions.front().get<parser::IntrinsicCall>();
 
     constexpr auto u64_size = sizeof(uint64_t);
     constexpr auto ptr_size = sizeof(void*);

@@ -1,0 +1,109 @@
+
+(5 3)
+// TypedTuple:
+//   Typed{name: '', type: auto, value: num'5'}
+//   Typed{name: '', type: auto, value: num'3'}
+
+(a = 5 b = 3)
+// TypedTuple:
+//   Typed{name: id'a', type: auto, value: num'5'}
+//   Typed{name: id'b', type: auto, value: num'3'}
+
+(a :u64 = 5 b :u64 = 3)
+// TypedTuple:
+//   Typed{name: id'a', type: inst'u64', value: num'5'}
+//   Typed{name: id'b', type: inst'u64', value: num'3'}
+
+(a :$n of u64 = () b :$m of u64 = ())
+// TypedTuple:
+//   placeholders: {id'n', id'm'}
+//   Typed:
+//     name: id'a'
+//     type: Call'of'{'count': ref'n', 'type': inst'u64'}
+//     value: TypedTuple{}
+//   Typed:
+//     name: id'b'
+//     type: Call'of'{'count': ref'm', 'type': inst'u64'}
+//     value: TypedTuple{}
+
+fn run(a : $n of u64)
+// Call'fn':
+//   'name': id'run'
+//   'rightArgs': TypedTuple:
+//     placeholders: {id'n'}
+//     Typed:
+//       name: id'a'
+//       type: Call'of'{'count': ref'n', 'type': inst'u64'}
+
+---
+
+compiler
+
+parseBlock(…)
+…… -> invoke(…)
+
+api::declareModule(…, block)
+-> parseBlock(…)
+
+struct Block:
+    attr decls :[]Decl
+    attr body :[]Node
+end
+
+enum Node:
+    opt :Block
+    opt Call = (:*Decl + Arguments:[]Node)
+    opt IntrinsicCall
+    opt Literal
+    opt Reference = :*Decl
+    opt Init = :*Decl
+    opt Tuple = :[](Name:Str + :Node)
+    opt Value = :[]Byte
+end
+
+struct Decl:
+    attr name :str
+    attr kind :enum(Argument, Variable, Constant)
+    attr type :TypeExpr
+    attr value :[]Node
+end
+
+enum TypeExpr:
+    opt Undefined
+    opt Pointer = (target :TypeExpr)
+    opt Reference = :*Decl
+end
+
+---
+
+type = :Decl {
+    .name = "Type"
+    .kind = Constant
+    .type = Reference{*type}
+    .value = [:Node { Value = *builtinType }]
+}
+
+module = :Decl {
+    .name = "Module"
+    .kind = Constant
+    .type = Reference{*type}
+    .value = [:Node { Value = *builtinModule }]
+}
+
+function = :Decl {
+    .name = "Function"
+    .kind = Constant
+    .type = Reference{*type}
+    .value = [:Node { Value = *builtinFunction }]
+}
+
+global = :Block {
+    decls = [
+        :Decl {
+            .name = "Rebuild", 
+            .kind = Constant, 
+            .type = Reference{*module},
+            .value = [:Node { Value = *builtinRebuild }]
+        }
+    ]
+}

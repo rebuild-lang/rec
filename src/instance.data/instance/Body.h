@@ -1,7 +1,7 @@
 #pragma once
 #include "LocalScope.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 namespace instance {
 

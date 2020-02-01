@@ -40,7 +40,7 @@ struct FunctionBuilder {
     }
 
     auto rawIntrinsic(void (*f)(uint8_t*, intrinsic::Context*)) && -> This {
-        fun_.body.block.nodes.emplace_back(parser::IntrinsicCall{f});
+        fun_.body.block.expressions.emplace_back(parser::IntrinsicCall{f});
         return std::move(*this);
     }
 

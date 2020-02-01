@@ -46,8 +46,8 @@ struct ExpressionParserData {
 
     template<class... Expr>
     auto out(Expr&&... expr) && -> ExpressionParserData {
-        expected->nodes.reserve(expected->nodes.size() + sizeof...(Expr));
-        (expected->nodes.emplace_back(parser::buildExpression(*scope, std::forward<Expr>(expr))), ...);
+        expected->expressions.reserve(expected->expressions.size() + sizeof...(Expr));
+        (expected->expressions.emplace_back(parser::buildExpression(*scope, std::forward<Expr>(expr))), ...);
         return std::move(*this);
     }
 };
@@ -89,7 +89,7 @@ TEST_P(ExpressionParser, calls) {
     const auto& expected = *data.expected;
 
     auto context = Context{[scope](const strings::View& id) { return (*scope)[id]; },
-                           [=](const parser::Call&) -> OptNode { return {}; },
+                           [=](const parser::Call&) -> OptExpression { return {}; },
                            IntrinsicType{scope}};
 
     auto parsed = parser::Parser::parse(input, context);

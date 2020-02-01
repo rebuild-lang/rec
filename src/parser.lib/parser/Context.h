@@ -1,7 +1,7 @@
 #pragma once
 #include "TupleLookup.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include "diagnostic/Diagnostic.h"
 #include "instance/Entry.h"
@@ -35,7 +35,7 @@ struct ContextApi {
         std::is_same_v<std::invoke_result_t<decltype(Context::lookup), strings::View>, instance::ConstEntryRange>,
         "no lookup");
     static_assert(
-        std::is_same_v<std::invoke_result_t<decltype(Context::runCall), Call>, OptNode>, //
+        std::is_same_v<std::invoke_result_t<decltype(Context::runCall), Call>, OptExpression>, //
         "no runCall");
     static_assert(
         std::is_same_v<
@@ -51,7 +51,7 @@ struct ContextApi {
         , tupleLookup(tupleLookup) {}
 
     [[nodiscard]] auto lookup(strings::View view) const -> instance::ConstEntryRange { return context.lookup(view); }
-    [[nodiscard]] auto runCall(Call call) const -> OptNode { return context.runCall(std::move(call)); }
+    [[nodiscard]] auto runCall(Call call) const -> OptExpression { return context.runCall(std::move(call)); }
 
     template<class Type>
     auto intrinsicType(meta::Type<Type>) -> instance::TypeView {

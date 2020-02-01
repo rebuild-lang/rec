@@ -19,20 +19,20 @@ struct Context;
 namespace parser {
 
 using TextRange = text::Range;
-using View = text::View;
+using text::View;
 using OptView = strings::OptionalView;
 using Name = strings::String;
 using OptName = strings::OptionalString;
 
-struct Node;
-using Nodes = std::vector<Node>;
-using NodePtr = std::unique_ptr<Node>;
+struct Expression;
+using Expressions = std::vector<Expression>;
+using ExpressionPtr = std::unique_ptr<Expression>;
 
 struct Block {
     using This = Block;
-    Nodes nodes{};
+    Expressions expressions{};
 
-    bool operator==(const This& o) const { return nodes == o.nodes; }
+    bool operator==(const This& o) const { return expressions == o.expressions; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 static_assert(meta::has_move_assignment<Block>);
@@ -40,7 +40,7 @@ static_assert(meta::has_move_assignment<Block>);
 struct ArgumentAssignment {
     using This = ArgumentAssignment;
     instance::ParameterView parameter{};
-    Nodes values{};
+    Expressions values{};
 
     bool operator==(const This& o) const { return parameter == o.parameter && values == o.values; }
     bool operator!=(const This& o) const { return !(*this == o); }
@@ -89,7 +89,7 @@ static_assert(meta::has_move_assignment<VariableReference>);
 struct VariableInit {
     using This = VariableInit;
     instance::VariableView variable{};
-    Nodes nodes{};
+    Expressions nodes{};
 
     bool operator==(const This& o) const { return variable == o.variable && nodes == o.nodes; }
     bool operator!=(const This& o) const { return !(*this == o); }
@@ -136,13 +136,13 @@ struct NameTypeValueTuple {
 };
 static_assert(meta::has_move_assignment<NameTypeValueTuple>);
 
-using StringLiteral = nesting::StringLiteral;
-using NumberLiteral = nesting::NumberLiteral;
-using OperatorLiteral = nesting::OperatorLiteral;
-using IdentifierLiteral = nesting::IdentifierLiteral;
-using BlockLiteral = nesting::BlockLiteral;
+using nesting::BlockLiteral;
+using nesting::IdentifierLiteral;
+using nesting::NumberLiteral;
+using nesting::OperatorLiteral;
+using nesting::StringLiteral;
 
-using NodeVariant = meta::Variant<
+using ExpressionVariant = meta::Variant<
     Block,
     Call,
     IntrinsicCall,
@@ -154,24 +154,24 @@ using NodeVariant = meta::Variant<
     TypeReference,
     NameTypeValueTuple,
     Value>;
-static_assert(meta::has_move_assignment<NodeVariant>);
+static_assert(meta::has_move_assignment<ExpressionVariant>);
 
 // note: this type is needed because we cannot forward a using definition
-struct Node : public NodeVariant {
-    META_VARIANT_CONSTRUCT(Node, NodeVariant)
+struct Expression : public ExpressionVariant {
+    META_VARIANT_CONSTRUCT(Expression, ExpressionVariant)
 };
-using OptNode = meta::Optional<Node>;
-using NodeView = const Node*;
-using OptNodeView = meta::Optional<NodeView>;
+using OptExpression = meta::Optional<Expression>;
+using ExpressionView = const Expression*;
+using OptExpressionView = meta::Optional<ExpressionView>;
 
-static_assert(meta::has_move_assignment<Node>);
-static_assert(meta::has_move_assignment<OptNode>);
+static_assert(meta::has_move_assignment<Expression>);
+static_assert(meta::has_move_assignment<OptExpression>);
 
 struct NameTypeValue {
     using This = NameTypeValue;
     OptName name{}; // name might be empty!
-    OptNode type{};
-    OptNode value{};
+    OptExpression type{};
+    OptExpression value{};
 
     auto onlyValue() const { return !name && !type && value; }
 
@@ -186,15 +186,15 @@ static_assert(meta::has_move_assignment<NameTypeValue>);
 struct ViewNameTypeValue {
     using This = ViewNameTypeValue;
     OptView name{};
-    OptNodeView type{};
-    OptNodeView value{};
+    OptExpressionView type{};
+    OptExpressionView value{};
 
     ViewNameTypeValue() = default;
     ViewNameTypeValue(const NameTypeValue& typed)
         : name(typed.name.map([](const auto& n) -> View { return n; }))
-        , type(typed.type.map([](const auto& v) -> NodeView { return &v; }))
-        , value(typed.value.map([](const auto& v) -> NodeView { return &v; })) {}
-    ViewNameTypeValue(const Node& node)
+        , type(typed.type.map([](const auto& v) -> ExpressionView { return &v; }))
+        , value(typed.value.map([](const auto& v) -> ExpressionView { return &v; })) {}
+    ViewNameTypeValue(const Expression& node)
         : value(&node) {}
 };
 using ViewNameTypeValues = std::vector<ViewNameTypeValue>;
@@ -208,7 +208,7 @@ struct ViewNameTypeValueTuple {
     ViewNameTypeValueTuple() = default;
     ViewNameTypeValueTuple(const NameTypeValueTuple& typed)
         : tuple(typed.tuple.begin(), typed.tuple.end()) {}
-    ViewNameTypeValueTuple(const Node& node)
+    ViewNameTypeValueTuple(const Expression& node)
         : tuple({node}) {}
 };
 static_assert(meta::has_move_assignment<ViewNameTypeValueTuple>);

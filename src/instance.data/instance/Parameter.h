@@ -1,7 +1,7 @@
 #pragma once
 #include "instance/Typed.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include "meta/Flags.h"
 #include "strings/String.h"
@@ -25,7 +25,7 @@ struct Parameter {
     Typed typed;
     ParameterSide side{};
     ParameterFlags flags{};
-    parser::Nodes init{};
+    parser::Expressions init{};
 };
 using Parameters = std::vector<Parameter>;
 

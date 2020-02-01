@@ -101,7 +101,7 @@ struct TypeOf<Context*> {
         }
     };
 
-    static auto typeFromNode(const parser::Node& node) -> parser::TypeView {
+    static auto typeFromNode(const parser::Expression& node) -> parser::TypeView {
         // TODO(arBmind): somehow handle computed types
         return node.visit(
             [](const parser::TypeReference& tr) { return tr.type; }, //

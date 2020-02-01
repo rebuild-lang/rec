@@ -26,7 +26,7 @@ struct CallErrorReporter {
             "no reportDiagnostic");
         static_assert(
             std::is_same_v<
-                OptNode,
+                OptExpression,
                 decltype( //
                     std::declval<T>().parserForType(std::declval<const TypeView&>()) //
                     (std::declval<BlockLineView&>()))>,

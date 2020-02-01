@@ -1,7 +1,7 @@
 #pragma once
 #include "Type.builder.h"
 
-#include "Tree.h"
+#include "Expression.h"
 
 #ifdef VALUE_DEBUG_DATA
 #    include "parser/Tree.ostream.h"
@@ -76,7 +76,7 @@ struct TupleBuilder {
         (add(std::forward<Ts>(ts)), ...);
     }
 
-    auto build(const Scope& scope) && -> Node;
+    auto build(const Scope& scope) && -> Expression;
 
 private:
     auto add(NameTypeValueBuilder&& x) { builders.push_back(std::move(x)); }
@@ -155,20 +155,20 @@ public:
         return std::move(*this);
     }
 
-    auto build(const Scope& scope) && -> Node {
+    auto build(const Scope& scope) && -> Expression {
         return std::move(*this).visit(
-            [&](CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }, //
-            [&](NameTypeValueBuilder&& typ) -> Node {
+            [&](CallBuilder&& inv) -> Expression { return std::move(inv).build(scope); }, //
+            [&](NameTypeValueBuilder&& typ) -> Expression {
                 auto& type = instance::lookupA<instance::Type>(scope, m_typeName);
                 auto value = Value(&type);
                 value.set<NameTypeValue>() = std::move(typ).build(scope);
                 return value;
             },
-            [&](ModuleBuilder&& mod) -> Node { return ModuleReference{std::move(mod).build(scope)}; },
-            [&](TupleRef* ref) -> Node {
+            [&](ModuleBuilder&& mod) -> Expression { return ModuleReference{std::move(mod).build(scope)}; },
+            [&](TupleRef* ref) -> Expression {
                 return NameTypeValueReference{ref->ref}; //
             },
-            [&](auto&& lit) -> Node {
+            [&](auto&& lit) -> Expression {
                 using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
                 auto& type = instance::lookupA<instance::Type>(scope, m_typeName);
                 auto value = Value(&type);
@@ -180,17 +180,17 @@ public:
 
 template<class Expr>
 struct ExpressionBuilder {
-    static auto build(const Scope&, Expr&& expr) -> Node { return std::move(expr); }
+    static auto build(const Scope&, Expr&& expr) -> Expression { return std::move(expr); }
 };
 
 template<>
 struct ExpressionBuilder<CallBuilder> {
-    static auto build(const Scope& scope, CallBuilder&& inv) -> Node { return std::move(inv).build(scope); }
+    static auto build(const Scope& scope, CallBuilder&& inv) -> Expression { return std::move(inv).build(scope); }
 };
 
 template<>
 struct ExpressionBuilder<TupleBuilder> {
-    static auto build(const Scope& scope, TupleBuilder&& inv) -> Node { return std::move(inv).build(scope); }
+    static auto build(const Scope& scope, TupleBuilder&& inv) -> Expression { return std::move(inv).build(scope); }
 };
 
 inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -> ArgumentAssignment {
@@ -204,7 +204,7 @@ inline auto ArgumentBuilder::build(const Scope& scope, const Function& fun) && -
     return as;
 }
 
-inline auto TupleBuilder::build(const Scope& scope) && -> Node {
+inline auto TupleBuilder::build(const Scope& scope) && -> Expression {
     auto tuple = NameTypeValueTuple{};
     auto i = 0;
     for (auto&& ts : std::move(builders)) {
@@ -267,7 +267,7 @@ auto expr(Expr&& expr) -> details::ValueExprBuilder {
 }
 
 template<class Expr>
-auto buildExpression(const Scope& scope, Expr&& expr) -> Node {
+auto buildExpression(const Scope& scope, Expr&& expr) -> Expression {
     return details::ExpressionBuilder<Expr>::build(scope, std::forward<Expr>(expr));
 }
 

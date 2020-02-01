@@ -25,6 +25,7 @@ Project {
             "Parser.h",
             "basic/flags.h",
             "basic/list.h",
+            "basic/pointer.h",
             "basic/str.h",
             "basic/u64.h",
         ]

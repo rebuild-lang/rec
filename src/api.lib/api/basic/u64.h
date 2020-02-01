@@ -2,7 +2,7 @@
 #include "intrinsic/Function.h"
 #include "intrinsic/Type.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include <stdexcept>
 #include <string>

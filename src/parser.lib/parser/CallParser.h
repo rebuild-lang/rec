@@ -84,7 +84,7 @@ private:
         return t == external.intrinsicType(meta::Type<parser::BlockLiteral>{});
     }
     template<class T>
-    static bool isNodeBlockLiteral(const OptNode& node, External<T>& external) {
+    static bool isNodeBlockLiteral(const OptExpression& node, External<T>& external) {
         if (!node) return false;
         if (!node.value().holds<Value>()) return false;
         auto& value = node.value().get<Value>();
@@ -100,7 +100,7 @@ private:
         return typed.value ? true : false;
     }
     template<class T>
-    static auto implicitConvert(const NameTypeValue& typed, ParameterView parameter, External<T>& external) -> Nodes {
+    static auto implicitConvert(const NameTypeValue& typed, ParameterView parameter, External<T>& external) -> Expressions {
         if (typed.type || !typed.value) {
             auto type = external.intrinsicType(meta::Type<NameTypeValue>{});
             auto value = Value(type);

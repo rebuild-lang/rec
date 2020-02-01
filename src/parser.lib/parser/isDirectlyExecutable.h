@@ -1,12 +1,12 @@
 #pragma once
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include "instance/Function.h"
 
 namespace parser {
 
 bool isDirectlyExecutable(const NameTypeValue&);
-bool isDirectlyExecutable(const Node&);
+bool isDirectlyExecutable(const Expression&);
 bool isDirectlyExecutable(const Call&);
 
 // impl
@@ -16,7 +16,7 @@ inline bool isDirectlyExecutable(const NameTypeValue& typed) {
     return true;
 }
 
-inline bool isDirectlyExecutable(const Node& node) {
+inline bool isDirectlyExecutable(const Expression& node) {
     return node.visit(
         [](const Block&) { return false; },
         [](const Call& call) { return isDirectlyExecutable(call); },

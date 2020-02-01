@@ -1,5 +1,5 @@
 #pragma once
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include "instance/Function.h"
 
@@ -10,10 +10,10 @@ namespace parser {
 /// We have to recognize those when we resolve overload sets to prevent multiple different side effects of one
 /// expression.
 
-bool hasSideEffects(const Node& node);
-bool hasSideEffects(const Nodes& nodes);
+bool hasSideEffects(const Expression& node);
+bool hasSideEffects(const Expressions& nodes);
 
-inline bool hasSideEffects(const Block& block) { return hasSideEffects(block.nodes); }
+inline bool hasSideEffects(const Block& block) { return hasSideEffects(block.expressions); }
 inline bool hasSideEffects(const ArgumentAssignment& aa) { return hasSideEffects(aa.values); }
 
 bool hasSideEffects(const ArgumentAssignments& aas);
@@ -45,8 +45,8 @@ constexpr bool any(const C& c, F&& f) {
 }
 constexpr auto has_side_effects_call = [](auto& e) -> bool { return hasSideEffects(e); };
 
-inline bool hasSideEffects(const Node& node) { return node.visit(has_side_effects_call); }
-inline bool hasSideEffects(const Nodes& nodes) { return any(nodes, has_side_effects_call); }
+inline bool hasSideEffects(const Expression& node) { return node.visit(has_side_effects_call); }
+inline bool hasSideEffects(const Expressions& nodes) { return any(nodes, has_side_effects_call); }
 
 inline bool hasSideEffects(const ArgumentAssignments& aas) { return any(aas, has_side_effects_call); }
 inline bool hasSideEffects(const Call& call) {
