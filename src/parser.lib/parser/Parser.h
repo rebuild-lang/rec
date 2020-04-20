@@ -16,6 +16,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <cassert>
+
 namespace parser {
 
 using instance::Function;
@@ -23,20 +25,52 @@ using instance::FunctionView;
 using strings::CompareView;
 using InputBlockLiteral = nesting::BlockLiteral;
 
+/// Pointers to name, type and value (used internally)
+struct ViewNameTypeValue {
+    using This = ViewNameTypeValue;
+    OptView name{};
+    OptTypeExprView type{};
+    OptValueExprView value{};
+
+    ViewNameTypeValue() = default;
+    ViewNameTypeValue(const NameTypeValue& ntv) noexcept
+        : name(ntv.name.map([](const auto& n) -> View { return n; }))
+        , type(ntv.type.map([](const auto& t) -> TypeExprView { return &t; }))
+        , value(ntv.value.map([](const auto& v) -> ValueExprView { return &v; })) {}
+    explicit ViewNameTypeValue(const ValueExpr& node) noexcept
+        : value(&node) {}
+};
+using VecOfViewNameTypeValue = std::vector<ViewNameTypeValue>;
+
+static_assert(meta::has_move_assignment<ViewNameTypeValue>);
+
+struct ViewNameTypeValueTuple {
+    using This = ViewNameTypeValueTuple;
+    VecOfViewNameTypeValue tuple{};
+
+    ViewNameTypeValueTuple() = default;
+    ViewNameTypeValueTuple(const NameTypeValueTuple& ntvTuple) noexcept
+        : tuple(ntvTuple.tuple.begin(), ntvTuple.tuple.end()) {}
+    explicit ViewNameTypeValueTuple(const ValueExpr& node) noexcept
+        : tuple({ViewNameTypeValue{node}}) {}
+};
+static_assert(meta::has_move_assignment<ViewNameTypeValueTuple>);
+
 struct Parser {
-    template<class Context>
-    static auto parse(const InputBlockLiteral& blockLiteral, Context context) -> Block {
-        auto api = ContextApi<Context>{std::move(context)};
+    template<class C>
+    [[nodiscard]] static auto parseBlock(const InputBlockLiteral& blockLiteral, C context) -> Block {
+        static_assert(is_context<C>);
         auto block = Block{};
         for (const auto& line : blockLiteral.value.lines) {
-            if (!blockLiteral.isTainted && line.hasErrors()) reportLineErrors(line, api);
+            if (!blockLiteral.isTainted && line.hasErrors()) reportLineErrors(line, context);
             auto it = BlockLineView(&line);
             if (it) {
-                auto expr = parseTuple(it, api);
+                auto expr = parseNameTypeValueTuple(it, context);
                 if (!expr.tuple.empty()) {
                     if (1 == expr.tuple.size() && expr.tuple.front().onlyValue()) {
                         // no reason to keep the tuple around, unwrap it
-                        block.expressions.emplace_back(std::move(expr).tuple.front().value.value());
+                        block.expressions.emplace_back(std::move(expr).tuple.front().value.value().visit(
+                            [](auto&& v) -> BlockExpr { return std::move(v); }));
                     }
                     else {
                         block.expressions.emplace_back(std::move(expr));
@@ -52,14 +86,22 @@ struct Parser {
     }
 
 private:
-    template<class Context>
-    static auto parseTuple(BlockLineView& it, ContextApi<Context>& context) -> NameTypeValueTuple {
+    template<class C>
+    [[nodiscard]] static auto parseNameTypeValueTuple(BlockLineView& it, C& context) -> NameTypeValueTuple {
         auto tuple = NameTypeValueTuple{};
-        auto subContext = context.withTupleLookup(&tuple);
+        using BaseContext = typename C::BaseContext;
+        auto subContext = ContextWithTupleLookup<BaseContext>(context, &tuple);
         if (!it) return tuple;
         auto withBrackets = it.current().holds<nesting::BracketOpen>();
         if (withBrackets) ++it;
-        parseTupleInto(tuple, it, subContext);
+        while (it) {
+            auto opt = parseNameTypeValue(it, subContext);
+            if (opt) {
+                tuple.tuple.push_back(std::move(opt).value());
+            }
+            auto r = parseOptionalComma(it);
+            if (r == ParseOptions::finish_single) break;
+        }
         if (withBrackets) {
             if (!it) {
                 // error: missing closing bracket
@@ -74,24 +116,12 @@ private:
         return tuple;
     }
 
-    template<class Context>
-    static void parseTupleInto(NameTypeValueTuple& tuple, BlockLineView& it, Context& context) {
-        while (it) {
-            auto opt = parseSingleTyped(it, context);
-            if (opt) {
-                tuple.tuple.push_back(std::move(opt).value());
-            }
-            auto r = parseOptionalComma(it);
-            if (r == ParseOptions::finish_single) break;
-        }
-    }
-
     enum class ParseOptions {
         continue_single,
         finish_single,
     };
 
-    static ParseOptions parseOptionalComma(BlockLineView& it) {
+    [[nodiscard]] static auto parseOptionalComma(BlockLineView& it) -> ParseOptions {
         if (!it) return ParseOptions::finish_single;
         if (it.current().holds<nesting::CommaSeparator>()) {
             ++it; // skip optional comma
@@ -101,39 +131,40 @@ private:
         return ParseOptions::continue_single;
     }
 
-    static bool isAssignment(const BlockToken& t) {
+    [[nodiscard]] static auto isAssignment(const BlockToken& t) -> bool {
         return t.visit(
             [](const nesting::OperatorLiteral& o) { return o.input.isContentEqual(View{"="}); }, //
             [](const auto&) { return false; });
     }
 
-    static bool isColon(const BlockToken& t) { return t.holds<nesting::ColonSeparator>(); }
+    [[nodiscard]] static auto isColon(const BlockToken& t) -> bool { return t.holds<nesting::ColonSeparator>(); }
 
     template<class Context>
-    static auto parseSingleTyped(BlockLineView& it, Context& context) -> OptNameTypeValue {
-        auto parseValueInto = [&](NameTypeValue& typed) { typed.value = parseSingle(it, context); };
-        return parseSingleTypedCallback(it, context, parseValueInto);
+    [[nodiscard]] static auto parseNameTypeValue(BlockLineView& it, Context& context) -> OptNameTypeValue {
+        auto parseValueInto = [&](NameTypeValue& ntv) { ntv.value = parseValueExpr(it, context); };
+        return parseNameTypeValueCallback(it, context, parseValueInto);
     }
 
     template<class Context, class Callback>
-    static auto parseSingleTypedCallback(BlockLineView& it, Context& context, Callback&& callback) -> OptNameTypeValue {
-        auto result = NameTypeValue{};
+    [[nodiscard]] static auto parseNameTypeValueCallback(
+        BlockLineView& it, Context& context, Callback&& parseValueCallback) -> OptNameTypeValue {
+        auto nameTypeValue = NameTypeValue{};
         auto extractName = [&] {
-            result.name = to_string(it.current().get<nesting::IdentifierLiteral>().input);
+            nameTypeValue.name = to_string(it.current().get<nesting::IdentifierLiteral>().input);
             ++it; // skip name
         };
         auto parseType = [&] {
             ++it; // skip colon
-            result.type = parseSingle(it, context);
+            nameTypeValue.type = parseTypeExpr(it, context);
         };
         auto parseValue = [&] {
             ++it; // skip assign
-            callback(result);
+            parseValueCallback(nameTypeValue);
         };
         auto parseAssignValue = [&]() {
             if (it && isAssignment(it.current())) parseValue();
         };
-        if (!it) return result;
+        if (!it) return nameTypeValue;
 
         if (it.current().holds<nesting::IdentifierLiteral>() && it.hasNext()) {
             auto next = it.next();
@@ -142,58 +173,38 @@ private:
                 extractName();
                 parseType();
                 parseAssignValue();
-                return result;
+                return nameTypeValue;
             }
             if (isAssignment(next)) {
                 // name =value
                 extractName();
                 parseValue();
-                return result;
+                return nameTypeValue;
             }
         }
         if (isColon(it.current())) {
             // :typed
             parseType();
             parseAssignValue();
-            return result;
+            return nameTypeValue;
         }
-        // value
-        callback(result);
-        if (!result.value) return {};
-        return result;
+        // just value (no assign)
+        parseValueCallback(nameTypeValue);
+        if (!nameTypeValue.value) return {};
+        return nameTypeValue;
     }
 
-    template<class Context>
-    static auto parseAssignmentNode(BlockLineView& it, Context& context) -> OptExpression {
-        if (it && isAssignment(it.current())) {
-            // = value
-            ++it;
-            return parseSingle(it, context);
-        }
-        return {};
-    }
-
-    template<class Context>
-    static auto parseSingle(BlockLineView& it, Context& context) -> OptExpression {
-        auto result = OptExpression{};
-        while (it) {
-            auto opt = parseStep(result, it, context);
-            if (opt == ParseOptions::finish_single) break;
-        }
-        return result;
-    }
-
-    template<class ValueType, class Context, class Token>
-    static auto makeTokenValue(BlockLineView&, const Token& token, ContextApi<Context>& context) -> Value {
-        auto type = context.intrinsicType(meta::Type<ValueType>{});
-        auto value = Value{type};
-        value.set<ValueType>() = ValueType{token};
-        return value;
-    }
-
-    template<class Context>
-    static auto parseStep(OptExpression& result, BlockLineView& it, ContextApi<Context>& context) -> ParseOptions {
-        auto parseId = [&](const auto& id) {
+    template<class ContextBase>
+    [[nodiscard]] static auto parseValueExpr(BlockLineView& it, ContextWithTupleLookup<ContextBase>& context)
+        -> OptValueExpr {
+        auto result = OptValueExpr{};
+        auto parseTuple = [&]() -> ParseOptions {
+            if (result) return ParseOptions::finish_single;
+            auto tuple = parseNameTypeValueTuple(it, context);
+            result = ValueExpr{std::move(tuple)};
+            return ParseOptions::continue_single;
+        };
+        auto parseId = [&](const auto& id) -> ParseOptions {
             using Id = std::remove_const_t<std::remove_reference_t<decltype(id)>>;
             if (auto range = lookupModule(id.input, result); !range.empty()) {
                 result = {};
@@ -201,7 +212,7 @@ private:
             }
             if (auto opRef = context.lookupTuple(id.input); opRef) {
                 if (result) return ParseOptions::finish_single;
-                result = OptExpression{NameTypeValueReference{opRef.value()}};
+                result = OptValueExpr{NameTypeValueReference{opRef.value()}};
                 ++it;
                 return ParseOptions::continue_single;
             }
@@ -210,24 +221,85 @@ private:
             }
             // symbol not found
             if (result) return ParseOptions::finish_single;
-            result = OptExpression{makeTokenValue<Id>(it, id, context)};
+            result = OptValueExpr{makeTokenValue<Id>(it, id, context)};
             ++it;
             return ParseOptions::continue_single;
         };
-        auto parseLiteral = [&](const auto& lit) {
+        auto parseLiteral = [&](const auto& lit) -> ParseOptions {
             using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
             if (result) return ParseOptions::finish_single;
-            result = OptExpression{makeTokenValue<Lit>(it, lit, context)};
+            result = OptValueExpr{makeTokenValue<Lit>(it, lit, context)};
             ++it;
             return ParseOptions::continue_single;
         };
-        return it.current().visit(
+
+        while (it) {
+            auto opt = it.current().visit(
+                [](const nesting::CommaSeparator&) { return ParseOptions::finish_single; },
+                [](const nesting::BracketClose&) { return ParseOptions::finish_single; },
+                [&](const nesting::BracketOpen&) { return parseTuple(); },
+                [&](const nesting::IdentifierLiteral& id) { return parseId(id); },
+                [&](const nesting::OperatorLiteral& op) { return parseId(op); },
+                [&](const nesting::StringLiteral& s) { return parseLiteral(s); },
+                [&](const nesting::NumberLiteral& n) { return parseLiteral(n); },
+                [&](const nesting::BlockLiteral& b) { return parseLiteral(b); },
+                [](const auto&) { return ParseOptions::finish_single; });
+
+            if (opt == ParseOptions::finish_single) break;
+        }
+        return result;
+    }
+
+    template<class Context>
+    [[nodiscard]] static auto parseTypeExpr(BlockLineView& it, Context& context) -> OptTypeExpr {
+        auto result = OptTypeExpr{};
+        auto optValue = parseValueExpr(it, context);
+        if (optValue) {
+            std::move(optValue).value().visit(
+                [&](auto&& val) { result = {std::move(val)}; },
+                [&](ModuleReference&& mod) {
+                    auto f = mod.module->locals.byName(parser::nameOfType());
+                    if (f.single() && f.frontValue().holds<instance::TypePtr>()) {
+                        result = {TypeReference{f.frontValue().get<instance::TypePtr>().get()}};
+                    }
+                    // TODO: extract Type of module…
+                },
+                [](NameTypeValueTuple&& tuple) {
+                    // TODO: one member + value of type 'Type'
+                },
+                [](Block&&) {
+                    // TODO: report error
+                },
+                [](VariableInit&&) {
+                    // TODO: report error
+                });
+        }
+        return result;
+    }
+
+    template<class Context>
+    [[nodiscard]] static auto parsePartialExpr(BlockLineView& it, Context& context) -> VecOfPartiallyParsed {
+        auto result = VecOfPartiallyParsed{};
+        auto parseSubExpr = [&]() {
+            ++it; // skip signal
+            auto subExpr = parseValueExpr(it, context);
+            if (subExpr) {
+                std::move(subExpr).value().visit(
+                    [&](auto&& val) { result.emplace_back(std::move(val)); },
+                    [&](VecOfPartiallyParsed&& subPartial) {
+                        for (auto&& val : subPartial) {
+                            result.emplace_back(std::move(val));
+                        }
+                    });
+            }
+        };
+        it.current.visit(
             [](const nesting::CommaSeparator&) { return ParseOptions::finish_single; },
             [](const nesting::BracketClose&) { return ParseOptions::finish_single; },
             [&](const nesting::BracketOpen&) {
                 if (result) return ParseOptions::finish_single;
-                auto tuple = parseTuple(it, context);
-                result = Expression{std::move(tuple)};
+                auto tuple = parseNameTypeValueTuple(it, context);
+                result = ValueExpr{std::move(tuple)};
                 return ParseOptions::continue_single;
             },
             [&](const nesting::IdentifierLiteral& id) { return parseId(id); },
@@ -236,12 +308,26 @@ private:
             [&](const nesting::NumberLiteral& n) { return parseLiteral(n); },
             [&](const nesting::BlockLiteral& b) { return parseLiteral(b); },
             [](const auto&) { return ParseOptions::finish_single; });
+        return result;
     }
 
-    static auto lookupModule(const strings::View& id, const OptExpression& result) -> instance::ConstEntryRange {
-        return result.map([&](const Expression& n) -> instance::ConstEntryRange {
+    template<class ValueType, class ContextBase, class Token>
+    [[nodiscard]] static auto makeTokenValue(
+        BlockLineView&, const Token& token, ContextWithTupleLookup<ContextBase>& context) -> Value {
+        auto type = context.intrinsicType(meta::Type<ValueType>{});
+        if (type == nullptr) {
+            assert(type); // this has to resolve a valid API type!
+        }
+        auto value = Value{type};
+        value.set<ValueType>() = ValueType{token};
+        return value;
+    }
+
+    [[nodiscard]] static auto lookupModule(const strings::View& id, const OptValueExpr& result)
+        -> instance::ConstEntryRange {
+        return result.map([&](const ValueExpr& n) -> instance::ConstEntryRange {
             return n.visit(
-                [&](const ModuleReference& ref) { return ref.module->locals[id]; },
+                [&](const ModuleReference& ref) { return ref.module->locals.byName(id); },
                 // [&](const VariableReference& ref) {},
                 // [&](const ParameterReference& ref) {},
                 // [&](const NameTypeValueReference& ref) {},
@@ -250,45 +336,39 @@ private:
     }
 
     template<class Context>
-    static auto parseInstance( //
-        OptExpression& result,
+    [[nodiscard]] static auto parseInstance( //
+        OptValueExpr& result,
         const instance::ConstEntryRange& range,
         BlockLineView& it,
         Context& context) -> ParseOptions {
 
         return range.frontValue().visit(
-            [&](const instance::Variable& var) {
+            [&](const instance::VariablePtr& var) {
                 if (result) return ParseOptions::finish_single;
-                result = OptExpression{VariableReference{&var}};
+                result = OptValueExpr{VariableReference{var.get()}};
                 ++it;
                 return ParseOptions::continue_single;
             },
-            [&](const instance::Parameter& arg) {
-                if (result) return ParseOptions::finish_single;
-                result = OptExpression{ParameterReference{&arg}};
-                ++it;
-                return ParseOptions::continue_single;
-            },
-            [&](const instance::Function& fun) {
+            [&](const instance::FunctionPtr& fun) {
                 ++it;
                 return parseCall(result, fun, it, context);
             },
-            [&](const instance::Type& type) {
+            [&](const instance::TypePtr& type) {
                 if (result) return ParseOptions::finish_single;
-                result = OptExpression{TypeReference{&type}};
+                result = OptValueExpr{TypeReference{type.get()}};
                 ++it;
                 return ParseOptions::continue_single;
             },
-            [&](const instance::Module& mod) {
+            [&](const instance::ModulePtr& mod) {
                 if (result) return ParseOptions::finish_single;
-                result = OptExpression{ModuleReference{&mod}};
+                result = OptValueExpr{ModuleReference{mod.get()}};
                 ++it;
                 return ParseOptions::continue_single;
             });
         // TODO(arBmind): add overloads
     }
 
-    static bool canImplicitConvertToType(ExpressionView node, const parser::TypeView& type) {
+    [[nodiscard]] static bool canImplicitConvertToType(ValueExprView node, const parser::TypeView& type) {
         // TODO(arBmind):
         // I guess we need a scope here
         (void)node;
@@ -296,25 +376,26 @@ private:
         return true;
     }
 
-    static void assignLeftArguments(CallOverloads& co, const OptExpression& left) {
+    static void assignLeftArguments(CallOverloads& co, const OptValueExpr& left) {
         auto leftView = left //
             ? left.value().holds<NameTypeValueTuple>() //
                 ? ViewNameTypeValueTuple{left.value().get<NameTypeValueTuple>()}
                 : ViewNameTypeValueTuple{left.value()}
             : ViewNameTypeValueTuple{};
         for (auto& coi : co.items) {
-            auto o = 0u, t = 0u;
-            auto la = coi.function->leftParameters();
-            for (const ViewNameTypeValue& typed : leftView.tuple) {
-                if (!typed.value) {
+            auto o = 0U;
+            auto t = 0U;
+            auto lp = coi.function->leftParameters();
+            for (const ViewNameTypeValue& ntv : leftView.tuple) {
+                if (!ntv.value) {
                     // pass type?
                 }
-                else if (typed.name) {
-                    auto optParam = coi.function->lookupParameter(typed.name.value());
+                else if (ntv.name) {
+                    auto optParam = coi.function->lookupParameter(ntv.name.value());
                     if (optParam) {
                         instance::ParameterView param = optParam.value();
                         if (param->side == instance::ParameterSide::left //
-                            && canImplicitConvertToType(typed.value.value(), param->typed.type)) {
+                            && canImplicitConvertToType(ntv.value.value(), param->variable->type)) {
                             t++;
                             continue;
                         }
@@ -323,10 +404,10 @@ private:
                     }
                     // name not found
                 }
-                else if (o < la.size()) {
-                    const auto* param = la[o];
+                else if (o < lp.size()) {
+                    const auto& param = lp[o];
                     if (param->side == instance::ParameterSide::left //
-                        && canImplicitConvertToType(typed.value.value(), param->typed.type)) {
+                        && canImplicitConvertToType(ntv.value.value(), param->variable->type)) {
                         o++;
                         continue;
                     }
@@ -337,7 +418,7 @@ private:
                 coi.active = false;
                 return;
             }
-            if (o + t == la.size()) return;
+            if (o + t == lp.size()) return;
             // not right count
             coi.active = false;
         }
@@ -346,33 +427,33 @@ private:
     template<class Context>
     struct Wrap {
         template<class Type>
-        auto intrinsicType(meta::Type<Type>) -> instance::TypeView {
+        [[nodiscard]] auto intrinsicType(meta::Type<Type>) -> instance::TypeView {
             return context->intrinsicType(meta::Type<Type>{});
         }
-        auto reportDiagnostic(diagnostic::Diagnostic diagnostic) -> void {
+        void reportDiagnostic(diagnostic::Diagnostic diagnostic) {
             return context->reportDiagnostic(std::move(diagnostic));
         }
-        auto parserForType(const TypeView& type) {
+        [[nodiscard]] auto parserForType(const TypeView& type) {
             return [this, parser = Parser::parserForType<Context>(type)](BlockLineView& blv) { //
                 return parser(blv, *context);
             };
         }
         template<class Callback>
-        auto parseTypedWithCallback(BlockLineView& it, Callback&& cb) -> OptNameTypeValue {
-            return Parser::parseSingleTypedCallback(it, *context, cb);
+        [[nodiscard]] auto parseNtvWithCallback(BlockLineView& it, Callback&& cb) -> OptNameTypeValue {
+            return Parser::parseNameTypeValueCallback(it, *context, cb);
         }
         Context* context;
     };
 
     template<class Context>
-    static auto parseCall( //
-        OptExpression& left,
-        const Function& fun,
+    [[nodiscard]] static auto parseCall( //
+        OptValueExpr& left,
+        const instance::FunctionPtr& fun,
         BlockLineView& it,
         Context& context) -> ParseOptions { //
 
         auto co = CallOverloads{};
-        co.items.emplace_back(&fun);
+        co.items.emplace_back(fun.get());
         assignLeftArguments(co, left);
 
         CallParser::parse(co, it, Wrap<Context>{&context});
@@ -387,12 +468,12 @@ private:
         return ParseOptions::continue_single;
     }
 
-    template<class Context>
-    static auto buildCallNode(Call&& call, ContextApi<Context>& context) -> OptExpression {
+    template<class ContextBase>
+    [[nodiscard]] static auto buildCallNode(Call&& call, ContextWithTupleLookup<ContextBase>& context) -> OptValueExpr {
         if (isDirectlyExecutable(call)) {
             return context.runCall(call);
         }
-        return Expression{std::move(call)};
+        return ValueExpr{std::move(call)};
     }
 
     template<class Token, class Context>
@@ -401,8 +482,8 @@ private:
         Context& context;
         using BlockToken = Token;
 
-        auto operator()(const BlockToken& t) -> OptExpression {
-            auto result = OptExpression{makeTokenValue<Token>(it, t, context)};
+        auto operator()(const BlockToken& t) -> OptValueExpr {
+            auto result = OptValueExpr{makeTokenValue<Token>(it, t, context)};
             ++it;
             return result;
         }
@@ -413,17 +494,17 @@ private:
     }
 
     template<class Context>
-    static auto parseSingleToken(BlockLineView& it, Context& context) -> OptExpression {
+    [[nodiscard]] static auto parseSingleToken(BlockLineView& it, Context& context) -> OptValueExpr {
         return it.current().visit(
             buildTokenVisitors<Context, BlockLiteral, StringLiteral, NumberLiteral, IdentifierLiteral, OperatorLiteral>(
                 it, context),
-            [](const auto&) { return OptExpression{}; });
+            [](const auto&) { return OptValueExpr{}; });
     }
 
     template<class Context>
-    using ParseFunc = auto (*)(BlockLineView& it, Context& context) -> OptExpression;
+    using ParseFunc = auto (*)(BlockLineView& it, Context& context) -> OptValueExpr;
 
-    static auto getParserForType(const parser::TypeView& type) -> TypeParser {
+    [[nodiscard]] static auto getParserForType(const parser::TypeView& type) -> TypeParser {
         return TypeParser::Expression;
         //        return type.visit(
         //            [&](const Pointer& ptr) {
@@ -435,31 +516,31 @@ private:
     }
 
     template<class Context>
-    static auto parserForType(const parser::TypeView& type) -> ParseFunc<Context> {
+    [[nodiscard]] static auto parserForType(const parser::TypeView& type) -> ParseFunc<Context> {
         using namespace instance;
         switch (getParserForType(type)) {
         case TypeParser::Expression:
             return [](BlockLineView& it, Context& context) {
-                return parseSingle(it, context); //
+                return parseValueExpr(it, context); //
             };
         case TypeParser::SingleToken:
             return [](BlockLineView& it, Context& context) { //
                 return parseSingleToken(it, context);
             };
         case TypeParser::IdTypeValue:
-            return [](BlockLineView& it, Context& context) -> OptExpression {
-                auto optTyped = parseSingleTyped(it, context);
-                if (optTyped) {
-                    auto type = context.intrinsicType(meta::Type<Typed>{});
-                    auto value = NameTypeValue{optTyped.value()};
+            return [](BlockLineView& it, Context& context) -> OptValueExpr {
+                auto optNtv = parseNameTypeValue(it, context);
+                if (optNtv) {
+                    auto type = context.intrinsicType(meta::Type<NameTypeValue>{});
+                    auto value = NameTypeValue{optNtv.value()};
                     // return {Value{std::move(value), {TypeInstance{type}}}};
                     return {}; // TODO(arBmind): new types
                 }
-                // return Node{TypedTuple{{optTyped.value()}}}; // TODO(arBmind): store as value
+                // return Node{NameTypeValueTuple{{optNtv.value()}}}; // TODO(arBmind): store as value
                 return {};
             };
 
-        default: return [](BlockLineView&, Context&) { return OptExpression{}; };
+        default: return [](BlockLineView&, Context&) { return OptValueExpr{}; };
         }
     }
 };

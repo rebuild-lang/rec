@@ -15,43 +15,54 @@ using TypeBuilder = std::function<auto(const Scope&)->parser::TypeView>;
 
 struct ParameterBuilder {
     using This = ParameterBuilder;
-    Parameter arg{};
+    ParameterPtr parameter{};
+    VariablePtr variable{};
     TypeBuilder typeBuilder{};
 
+    [[nodiscard]] ParameterBuilder()
+        : parameter(std::make_shared<Parameter>())
+        , variable(std::make_shared<Variable>()) {
+        parameter->variable = variable.get();
+        variable->parameter = parameter.get();
+        variable->flags |= VariableFlag::function_parameter;
+    }
+
     template<size_t N>
-    explicit ParameterBuilder(const char (&name)[N]) {
-        arg.typed.name = Name{name};
+    [[nodiscard]] explicit ParameterBuilder(const char (&name)[N])
+        : ParameterBuilder() {
+        parameter->name = Name{name};
+        variable->name = Name{name};
     }
 
     template<class Builder>
-    auto type(Builder&& b) && -> ParameterBuilder {
+    [[nodiscard]] auto type(Builder&& b) && -> ParameterBuilder {
         typeBuilder = [b2 = std::move(b)](const Scope& scope) mutable { return std::move(b2).build(scope); };
         return std::move(*this);
     }
 
-    auto left() && -> ParameterBuilder {
-        arg.side = ParameterSide::left;
+    [[nodiscard]] auto left() && -> ParameterBuilder {
+        parameter->side = ParameterSide::left;
         return std::move(*this);
     }
-    auto right() && -> ParameterBuilder {
-        arg.side = ParameterSide::right;
+    [[nodiscard]] auto right() && -> ParameterBuilder {
+        parameter->side = ParameterSide::right;
         return std::move(*this);
     }
-    auto result() && -> ParameterBuilder {
-        arg.side = ParameterSide::result;
+    [[nodiscard]] auto result() && -> ParameterBuilder {
+        parameter->side = ParameterSide::result;
         return std::move(*this);
     }
-    auto optional() && -> ParameterBuilder {
-        arg.flags |= ParameterFlag::optional;
-        return std::move(*this);
-    }
+    // auto optional() && -> ParameterBuilder {
+    //     parameter->flags |= ParameterFlag::optional;
+    //     return std::move(*this);
+    // }
 
-    auto build(const Scope& scope, LocalScope& funScope) && -> ParameterView {
+    [[nodiscard]] auto build(const Scope& scope, LocalScope& parameterScope) && -> ParameterPtr {
         if (typeBuilder) {
-            arg.typed.type = typeBuilder(scope);
+            variable->type = typeBuilder(scope);
         }
-        auto entry = funScope.emplace(std::move(arg));
-        return &entry->get<Parameter>();
+        parameterScope.emplace(std::move(variable));
+        return std::move(parameter);
     }
 };
 

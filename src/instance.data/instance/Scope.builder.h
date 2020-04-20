@@ -14,7 +14,9 @@ struct EntryBuilder {
 
 template<>
 struct EntryBuilder<FunctionBuilder> {
-    static auto build(const Scope& scope, FunctionBuilder&& v) -> Entry { return Entry{std::move(v).build(scope)}; }
+    static auto build(const Scope& scope, FunctionBuilder&& builder) -> Entry {
+        return Entry{std::move(builder).build(scope)};
+    }
 };
 
 } // namespace details

@@ -40,7 +40,7 @@ struct TypeOf<parser::NumberLiteral> {
 };
 
 template<>
-struct TypeOf<parser::BlockLiteral> {
+struct TypeOf<parser::ScopedBlockLiteral> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".Block"};
@@ -91,7 +91,23 @@ template<>
 struct TypeOf<parser::NameTypeValue> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = Name{".Typed"};
+        info.name = Name{".NameTypeValue"};
+        info.flags = TypeFlag::CompileTime;
+        info.parser = Parser::IdTypeValue;
+        return info;
+    }
+
+    template<class Module>
+    static constexpr auto module(Module&) {
+        // TODO(arBmind): add API
+    }
+};
+
+template<>
+struct TypeOf<nesting::BlockLiteral> {
+    static constexpr auto info() {
+        auto info = TypeInfo{};
+        info.name = Name{".BlockLiteral"};
         info.flags = TypeFlag::CompileTime;
         info.parser = Parser::IdTypeValue;
         return info;
@@ -114,10 +130,11 @@ struct Literal {
     static constexpr auto module(Module& mod) {
         mod.template type<parser::NumberLiteral>();
         mod.template type<parser::StringLiteral>();
-        mod.template type<parser::BlockLiteral>();
+        mod.template type<parser::ScopedBlockLiteral>();
         mod.template type<parser::IdentifierLiteral>();
         mod.template type<parser::OperatorLiteral>();
         mod.template type<parser::NameTypeValue>();
+        mod.template type<nesting::BlockLiteral>();
     }
 };
 

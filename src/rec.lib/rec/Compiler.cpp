@@ -12,6 +12,7 @@
 
 #include "diagnostic/Diagnostic.ostream.h"
 #include "nesting/Token.ostream.h"
+#include "parser/Expression.ostream.h"
 #include "scanner/Token.ostream.h"
 
 #include <iostream>
@@ -26,7 +27,7 @@ using diagnostic::Diagnostic;
 using nesting::BlockLiteral;
 using parser::Block;
 using parser::Call;
-using parser::OptExpression;
+using parser::OptValueExpr;
 
 namespace {
 
@@ -41,9 +42,9 @@ struct IntrinsicType {
 
 auto assignResultStorage(Call& call) {
     const auto* f = call.function;
-    for (auto* a : f->parameters) {
-        if (a->side != instance::ParameterSide::result) continue;
-        call.arguments.push_back({a, {parser::Value{a->typed.type}}});
+    for (auto& p : f->parameters) {
+        if (p->side != instance::ParameterSide::result) continue;
+        call.arguments.push_back(parser::ArgumentAssignment{p.get(), {parser::Value{p->variable->type}}});
     }
 }
 
@@ -58,36 +59,34 @@ auto getResultValue(Call& call) -> meta::Optional<parser::Value> {
     return result;
 }
 
-auto extractResults(Call& call, const InstanceScope& globals) -> OptExpression {
-    auto optResult = getResultValue(call);
-    if (optResult) {
-        auto resultType = optResult.value().type();
-        if (resultType == IntrinsicType{&globals}(meta::Type<parser::VariableInit>{})) {
-            return parser::Expression{optResult.value().get<parser::VariableInit>()};
+auto extractResults(Call& call, const InstanceScopePtr& globals) -> OptValueExpr {
+    return getResultValue(call).map([&](parser::Value&& result) -> OptValueExpr {
+        auto resultType = result.type();
+        if (resultType == IntrinsicType{globals.get()}(meta::type<parser::NameTypeValue>)) {
+            return parser::ValueExpr(parser::NameTypeValueTuple{{std::move(result).get<parser::NameTypeValue>()}});
         }
-    }
-    // TODO(arBmind): create TypedTuple from results
-    return {};
+        return parser::ValueExpr{std::move(result)};
+    });
 }
 
 } // namespace
 
-auto Compiler::executionContext(InstanceScope& parserScope) {
+auto Compiler::executionContext(const InstanceScopePtr& parserScope) {
     auto r = ExecutionContext{};
     r.compiler = &compilerCallback;
-    r.parserScope = &parserScope;
-    auto parse = [&](const BlockLiteral& blockLiteral, auto& parserContext) {
-        return parser::Parser::parse(blockLiteral, parserContext);
+    r.parserScope = parserScope;
+    auto parse = [](const BlockLiteral& blockLiteral, auto& parserContext) {
+        return parser::Parser::parseBlock(blockLiteral, parserContext);
     };
-    auto declare = [&](InstanceNode&& node) { parserScope.emplace(std::move(node)); };
+    auto declare = [=](InstanceNode&& node) { parserScope->emplace(std::move(node)); };
     (void)parse;
     (void)declare;
     return r;
 }
 
-auto Compiler::parserContext(InstanceScope& scope) {
-    auto lookup = [&](const StringView& id) { return scope[id]; };
-    auto runCall = [&](const Call& call) -> OptExpression {
+auto Compiler::parserContext(const InstanceScopePtr& scope) {
+    auto lookup = [=](const StringView& id) { return scope->byName(id); };
+    auto runCall = [=](const Call& call) -> OptValueExpr {
         // TODO(arBmind):
         // * check arguments - have to be available
         auto callCopy = call;
@@ -101,18 +100,19 @@ auto Compiler::parserContext(InstanceScope& scope) {
         // TODO(arBmind): somehow add fileName
         diagnostics.emplace_back(std::move(diagnostic));
     };
-    return parser::Context{std::move(lookup), std::move(runCall), IntrinsicType{&globals}, std::move(reportDiagnostic)};
+    return parser::ComposeContext{
+        std::move(lookup), std::move(runCall), IntrinsicType{globals.get()}, std::move(reportDiagnostic)};
 }
 
-Compiler::Compiler(Config config, InstanceScope _globals)
+Compiler::Compiler(Config config, InstanceScopePtr _globals)
     : config(config)
-    , globals(std::move(_globals))
-    , globalScope(&globals) {
+    , globals(_globals ? std::move(_globals) : std::make_shared<InstanceScope>())
+    , globalScope(globals) {
 
-    globals.emplace(intrinsicAdapter::Adapter::moduleInstance<intrinsic::Rebuild>());
+    globals->emplace(intrinsicAdapter::Adapter::moduleOf(meta::type<intrinsic::Rebuild>));
 
-    compilerCallback.parseBlock = [this](const BlockLiteral& block, InstanceScope* scope) -> parser::Block {
-        return parser::Parser::parse(block, parserContext(*scope));
+    compilerCallback.parseBlock = [this](const BlockLiteral& block, const InstanceScopePtr& scope) -> parser::Block {
+        return parser::Parser::parseBlock(block, parserContext(scope));
     };
     compilerCallback.reportDiagnostic = [this](Diagnostic diagnostic) {
         diagnostics.emplace_back(std::move(diagnostic));
@@ -125,7 +125,9 @@ void Compiler::compile(const TextFile& file) {
     auto tokenize = [&](const auto& file) { return scanner::tokenize(positions(file)); };
     auto filter = [&](const auto& file) { return filter::filterTokens(tokenize(file)); };
     auto blockify = [&](const auto& file) { return nesting::nestTokens(filter(file)); };
-    auto parse = [&](const auto& file) { return parser::Parser::parse(blockify(file), parserContext(globalScope)); };
+    auto parse = [&](const auto& file) {
+        return parser::Parser::parseBlock(blockify(file), parserContext(globalScope));
+    };
 
     if (config.tokenOutput) {
         auto& out = *config.tokenOutput;

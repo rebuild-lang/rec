@@ -27,6 +27,10 @@ private:
 
 public:
     constexpr View() noexcept = default;
+    constexpr View(const View&) = default;
+    constexpr View(View&&) = default;
+    constexpr View& operator=(const View&) = default;
+    constexpr View& operator=(View&&) = default;
 
     template<size_t N>
     constexpr explicit View(const Char (&str)[N]) noexcept // view a constant string literal

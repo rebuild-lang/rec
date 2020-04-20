@@ -7,7 +7,7 @@ Project {
     StaticLibrary {
         name: "instance.data"
         Depends { name: "cpp" }
-        cpp.combineCxxSources: true
+        //cpp.combineCxxSources: true
         cpp.includePaths: [".."]
 
         Depends { name: "parser.data" }
@@ -37,8 +37,6 @@ Project {
             "Type.builder.h",
             "Type.cpp",
             "Type.h",
-            "Typed.cpp",
-            "Typed.h",
             "Variable.cpp",
             "Variable.h",
         ]

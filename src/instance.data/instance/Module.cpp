@@ -8,7 +8,7 @@ namespace {
 
 void fixTypes(Module* old, Module* cur) {
     for (auto& n : cur->locals) {
-        n.second.visitSome([&](Type& t) {
+        n.visitSome([&](Type& t) {
             if (t.module == old) t.module = cur;
         });
     }
@@ -23,7 +23,7 @@ Module::Module(This&& o) noexcept
     fixTypes(&o, this);
 }
 
-auto Module::operator=(This&& o) & noexcept -> This& {
+auto Module::operator=(This&& o) & noexcept -> Module& {
     name = std::move(o.name);
     flags = std::move(o.flags);
     locals = std::move(o.locals);

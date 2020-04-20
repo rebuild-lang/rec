@@ -35,7 +35,7 @@ Project {
         Depends { name: "instance.data" }
 
         files: [
-            "Tree.builder.h",
+            "Expression.builder.h",
             "Type.builder.h",
         ]
 

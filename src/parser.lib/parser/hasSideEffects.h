@@ -10,34 +10,40 @@ namespace parser {
 /// We have to recognize those when we resolve overload sets to prevent multiple different side effects of one
 /// expression.
 
-bool hasSideEffects(const Expression& node);
-bool hasSideEffects(const Expressions& nodes);
+auto hasSideEffects(const ValueExpr&) -> bool;
+auto hasSideEffects(const VecOfValueExpr&) -> bool;
+inline auto hasSideEffects(const ArgumentAssignment& aa) -> bool { return hasSideEffects(aa.values); }
 
-inline bool hasSideEffects(const Block& block) { return hasSideEffects(block.expressions); }
-inline bool hasSideEffects(const ArgumentAssignment& aa) { return hasSideEffects(aa.values); }
+auto hasSideEffects(const BlockExpr&) -> bool;
+auto hasSideEffects(const VecOfBlockExpr&) -> bool;
+inline auto hasSideEffects(const Block& block) -> bool { return hasSideEffects(block.expressions); }
 
-bool hasSideEffects(const ArgumentAssignments& aas);
+auto hasSideEffects(const ArgumentAssignments& aas) -> bool;
 
-bool hasSideEffects(const Call& call);
-
-// correct flags are transported to the FunctionView
-constexpr bool hasSideEffects(const IntrinsicCall&) { return false; }
+auto hasSideEffects(const Call& call) -> bool;
 
 // references themselfs never have side effects
-constexpr bool hasSideEffects(const ParameterReference&) { return false; }
-constexpr bool hasSideEffects(const VariableReference&) { return false; }
-constexpr bool hasSideEffects(const ModuleReference&) { return false; }
-constexpr bool hasSideEffects(const NameTypeValueReference&) { return false; }
-constexpr bool hasSideEffects(const Value&) { return false; }
+constexpr auto hasSideEffects(const VariableReference&) -> bool { return false; }
+constexpr auto hasSideEffects(const TypeReference&) -> bool { return false; }
+constexpr auto hasSideEffects(const ModuleReference&) -> bool { return false; }
+constexpr auto hasSideEffects(const NameTypeValueReference&) -> bool { return false; }
+constexpr auto hasSideEffects(const Value&) -> bool { return false; }
 
-inline bool hasSideEffects(const VariableInit& vi) { return hasSideEffects(vi.nodes); }
+constexpr auto hasSideEffects(const VecOfPartiallyParsed&) -> bool { return false; }
 
-bool hasSideEffects(const NameTypeValueTuple& ntvt);
-bool hasSideEffects(const NameTypeValue& ntv);
+inline auto hasSideEffects(const VariableInit& vi) -> bool { return hasSideEffects(vi.nodes); }
+inline auto hasSideEffects(const ModuleInit& mi) -> bool {
+    return false;
+    // TODO(arBmind): make use of module InitExpr
+    // hasSideEffects(mi.nodes);
+}
+
+auto hasSideEffects(const NameTypeValueTuple& ntvt) -> bool;
+auto hasSideEffects(const NameTypeValue& ntv) -> bool;
 
 // impl
 template<class C, class F>
-constexpr bool any(const C& c, F&& f) {
+constexpr auto any(const C& c, F&& f) -> bool {
     for (auto& e : c) {
         if (f(e)) return true;
     }
@@ -45,17 +51,20 @@ constexpr bool any(const C& c, F&& f) {
 }
 constexpr auto has_side_effects_call = [](auto& e) -> bool { return hasSideEffects(e); };
 
-inline bool hasSideEffects(const Expression& node) { return node.visit(has_side_effects_call); }
-inline bool hasSideEffects(const Expressions& nodes) { return any(nodes, has_side_effects_call); }
+inline auto hasSideEffects(const ValueExpr& node) -> bool { return node.visit(has_side_effects_call); }
+inline auto hasSideEffects(const VecOfValueExpr& nodes) -> bool { return any(nodes, has_side_effects_call); }
 
-inline bool hasSideEffects(const ArgumentAssignments& aas) { return any(aas, has_side_effects_call); }
-inline bool hasSideEffects(const Call& call) {
-    if (call.function && call.function->flags.all(instance::FunctionFlag::compiletime_sideeffects)) return true;
+inline auto hasSideEffects(const BlockExpr& node) -> bool { return node.visit(has_side_effects_call); }
+inline auto hasSideEffects(const VecOfBlockExpr& nodes) -> bool { return any(nodes, has_side_effects_call); }
+
+inline auto hasSideEffects(const ArgumentAssignments& aas) -> bool { return any(aas, has_side_effects_call); }
+inline auto hasSideEffects(const Call& call) -> bool {
+    if (call.function && call.function->flags.all(instance::FunctionFlag::compile_time_side_effects)) return true;
     return hasSideEffects(call.arguments);
 }
 
-inline bool hasSideEffects(const NameTypeValueTuple& ntvt) { return any(ntvt.tuple, has_side_effects_call); }
+inline auto hasSideEffects(const NameTypeValueTuple& ntvt) -> bool { return any(ntvt.tuple, has_side_effects_call); }
 
-inline bool hasSideEffects(const NameTypeValue& ntv) { return ntv.value.map(has_side_effects_call); }
+inline auto hasSideEffects(const NameTypeValue& ntv) -> bool { return ntv.value.map(has_side_effects_call); }
 
 } // namespace parser

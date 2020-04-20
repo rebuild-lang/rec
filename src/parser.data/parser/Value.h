@@ -1,6 +1,7 @@
 #pragma once
 #include "Type.h"
 
+#include "meta/Type.h"
 #include "meta/TypeTraits.h"
 
 namespace parser {
@@ -55,22 +56,26 @@ struct Value {
         return *this;
     }
 
-    bool operator==(const This& o) const {
+    [[nodiscard]] bool operator==(const This& o) const {
         return m_type == o.m_type && (m_type == nullptr || m_type->equalFunc(data(), o.data()));
     }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    [[nodiscard]] bool operator!=(const This& o) const { return !(*this == o); }
 
-    auto type() const& -> TypeView { return m_type; }
+    [[nodiscard]] auto type() const& -> TypeView { return m_type; }
 
-    auto data() const& -> const void* { return m_storage.get(); }
-    auto data() & -> void* { return m_storage.get(); }
+    [[nodiscard]] auto data() const& -> const void* { return m_storage.get(); }
+    [[nodiscard]] auto data() & -> void* { return m_storage.get(); }
 
     template<class T>
-    auto get() const& -> const T& {
+    [[nodiscard]] auto get(meta::Type<T> = {}) const& -> const T& {
         return *std::launder(reinterpret_cast<const T*>(data()));
     }
     template<class T>
-    auto set() & -> T& {
+    [[nodiscard]] auto get(meta::Type<T> = {}) && -> T {
+        return std::move(*std::launder(reinterpret_cast<const T*>(data())));
+    }
+    template<class T>
+    [[nodiscard]] auto set() & -> T& {
         return *std::launder(reinterpret_cast<T*>(data()));
     }
 

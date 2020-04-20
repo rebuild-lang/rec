@@ -9,43 +9,46 @@ namespace details {
 
 struct FunctionBuilder {
     using This = FunctionBuilder;
-    Function fun_;
-    std::vector<ParameterBuilder> params_;
+    FunctionPtr fun_{};
+    std::vector<ParameterBuilder> params_{};
+
+    [[nodiscard]] FunctionBuilder()
+        : fun_(std::make_shared<Function>()) {}
 
     template<size_t N>
-    explicit FunctionBuilder(const char (&name)[N]) {
-        fun_.name = Name{name};
+    [[nodiscard]] explicit FunctionBuilder(const char (&name)[N])
+        : FunctionBuilder() {
+        fun_->name = Name{name};
     }
 
-    auto runtime() && -> This {
-        fun_.flags |= FunctionFlag::runtime;
+    [[nodiscard]] auto runtime() && -> This {
+        fun_->flags |= FunctionFlag::run_time;
         return std::move(*this);
     }
 
-    auto compiletime() && -> This {
-        fun_.flags |= FunctionFlag::compiletime;
+    [[nodiscard]] auto compiletime() && -> This {
+        fun_->flags |= FunctionFlag::compile_time;
         return std::move(*this);
     }
 
-    auto compiletime_sideeffects() && -> This {
-        fun_.flags |= FunctionFlags(FunctionFlag::compiletime, FunctionFlag::compiletime_sideeffects);
+    [[nodiscard]] auto compiletime_sideeffects() && -> This {
+        fun_->flags |= FunctionFlags(FunctionFlag::compile_time, FunctionFlag::compile_time_side_effects);
         return std::move(*this);
     }
 
     template<class... Parameter>
-    auto params(Parameter&&... parameter) && -> This {
-        auto x = {(params_.push_back(std::forward<Parameter>(parameter)), 0)...};
-        (void)x;
+    [[nodiscard]] auto params(Parameter&&... parameter) && -> This {
+        params_.insert(params_.end(), {std::forward<Parameter>(parameter)...});
         return std::move(*this);
     }
 
-    auto rawIntrinsic(void (*f)(uint8_t*, intrinsic::Context*)) && -> This {
-        fun_.body.block.expressions.emplace_back(parser::IntrinsicCall{f});
+    [[nodiscard]] auto rawIntrinsic(void (*f)(uint8_t*, intrinsic::ContextInterface*)) && -> This {
+        fun_->body = instance::IntrinsicCall{f};
         return std::move(*this);
     }
 
-    auto build(const Scope& scope) && -> Function {
-        for (auto&& a : params_) fun_.parameters.emplace_back(std::move(a).build(scope, fun_.parameterScope));
+    [[nodiscard]] auto build(const Scope& scope) && -> FunctionPtr {
+        for (auto&& a : params_) fun_->parameters.emplace_back(std::move(a).build(scope, fun_->parameterScope));
         return std::move(fun_);
     }
 };

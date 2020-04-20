@@ -7,25 +7,17 @@ namespace instance {
 LocalScope::LocalScope() = default;
 LocalScope::~LocalScope() = default;
 
-LocalScope::LocalScope(This&&) = default;
-auto LocalScope::operator=(This&&) -> This& = default;
+LocalScope::LocalScope(This&&) noexcept = default;
+auto LocalScope::operator=(This&&) noexcept -> LocalScope& = default;
 
-auto LocalScope::operator[](NameView name) const& noexcept -> ConstEntryRange {
-    auto [b, e] = m.equal_range(name);
-    return {b, e};
-}
+auto LocalScope::byName(NameView name) const& noexcept -> ConstEntryRange { return m.equalRange(name); }
+auto LocalScope::updateRange(NameView name) & noexcept -> EntryRange { return m.updateRange(name); }
 
-auto LocalScope::operator[](NameView name) & noexcept -> EntryRange {
-    auto [b, e] = m.equal_range(name);
-    return {b, e};
-}
+auto LocalScope::begin() noexcept -> EntryByName::It { return m.begin(); }
+auto LocalScope::end() noexcept -> EntryByName::It { return m.end(); }
+auto LocalScope::begin() const noexcept -> EntryByName::cIt { return m.begin(); }
+auto LocalScope::end() const noexcept -> EntryByName::cIt { return m.end(); }
 
-auto LocalScope::begin() noexcept -> EntryByName::iterator { return m.begin(); }
-auto LocalScope::end() noexcept -> EntryByName::iterator { return m.end(); }
-
-auto LocalScope::emplace(Entry&& entry) & -> EntryView {
-    auto name = nameOf(entry);
-    return &m.emplace(name, std::move(entry))->second;
-}
+auto LocalScope::emplace(Entry&& entry) & -> void { m.insert(std::move(entry)); }
 
 } // namespace instance

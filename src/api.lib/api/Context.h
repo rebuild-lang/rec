@@ -18,7 +18,7 @@
 namespace intrinsic {
 
 template<>
-struct TypeOf<Context*> {
+struct TypeOf<ContextInterface*> {
     static constexpr auto info() {
         return TypeInfo{Name{".Context"}, TypeFlag::CompileTime}; //
     }
@@ -30,7 +30,7 @@ struct TypeOf<Context*> {
         }
     };
     struct Block {
-        parser::BlockLiteral v;
+        parser::ScopedBlockLiteral v;
         static constexpr auto info() {
             return ParameterInfo{Name{"__block__"}, ParameterSide::Right}; //
         }
@@ -42,7 +42,7 @@ struct TypeOf<Context*> {
         }
     };
     struct ImplicitContext {
-        Context* v;
+        ContextInterface* v;
         static constexpr auto info() {
             return ParameterInfo{Name{"__context__"}, ParameterSide::Implicit};
             // info.flags = ParameterFlag::Assignable; // | ParameterFlag::Optional;
@@ -51,16 +51,16 @@ struct TypeOf<Context*> {
 
     static void declareModule(Label label, Block block, ModuleResult& res, ImplicitContext context) {
         auto name = label.v.input;
-        auto range = context.v->parserScope->locals[name];
+        auto range = context.v->parserScope->locals->byName(name);
         if (!range.empty()) {
             auto& node = range.frontValue();
-            if (range.single() && node.holds<instance::Module>()) {
-                auto& module = node.get<instance::Module>();
-                auto moduleScope = instance::Scope(context.v->parserScope);
-                moduleScope.locals = std::move(module.locals);
-                context.v->parse(block.v, &moduleScope);
-                module.locals = std::move(moduleScope.locals);
-                res.v = &module;
+            if (range.single() && node.holds<instance::ModulePtr>()) {
+                auto& module = node.get<instance::ModulePtr>();
+                auto localsPtr = instance::LocalScopePtr(module, &module->locals);
+                auto moduleScope = std::make_shared<instance::Scope>(std::move(localsPtr), context.v->parserScope);
+                auto parsedBlock = context.v->parse(block.v.block, moduleScope);
+                (void)parsedBlock; // TODO(arBmind): use parsedBlock
+                res.v = module.get();
             }
             else {
                 using namespace diagnostic;
@@ -71,24 +71,26 @@ struct TypeOf<Context*> {
                 auto expl = Explanation{String("Module Name already defined"), doc};
                 context.v->report(Diagnostic{Code{String{"rebuild-api"}, 1}, Parts{expl}});
 
-                res.v = new instance::Module{};
+                res.v = nullptr;
                 return; // error
             }
         }
         else {
-            auto node = context.v->parserScope->emplace([&] {
-                auto module = instance::Module{};
-                module.name = strings::to_string(name);
-                auto moduleScope = instance::Scope(context.v->parserScope);
-                context.v->parse(block.v, &moduleScope);
-                module.locals = std::move(moduleScope.locals);
+            auto module = [&] {
+                auto module = std::make_shared<instance::Module>();
+                module->name = strings::to_string(name);
+                auto localsPtr = instance::LocalScopePtr(module, &module->locals);
+                auto moduleScope = std::make_shared<instance::Scope>(std::move(localsPtr), context.v->parserScope);
+                auto parsedBlock = context.v->parse(block.v.block, moduleScope);
+                (void)parsedBlock; // TODO(arBmind): use parsedBlock
                 return module;
-            }());
-            res.v = &node->get<instance::Module>();
+            }();
+            context.v->parserScope->emplace(module);
+            res.v = module.get();
         }
     }
 
-    struct Typed {
+    struct NameTypeValue {
         parser::NameTypeValue v;
         static constexpr auto info() {
             return ParameterInfo{Name{"__typed__"}, ParameterSide::Right}; //
@@ -101,15 +103,15 @@ struct TypeOf<Context*> {
         }
     };
 
-    static auto typeFromNode(const parser::Expression& node) -> parser::TypeView {
+    static auto typeFromNode(const parser::TypeExpr& node) -> parser::TypeView {
         // TODO(arBmind): somehow handle computed types
         return node.visit(
             [](const parser::TypeReference& tr) { return tr.type; }, //
             [](const parser::ModuleReference& mr) -> parser::TypeView {
-                auto typeRange = mr.module->locals[instance::nameOfType()];
+                auto typeRange = mr.module->locals.byName(parser::nameOfType());
                 if (typeRange.single()) {
-                    const auto& type = typeRange.frontValue().get<instance::Type>();
-                    return &type;
+                    const auto& type = typeRange.frontValue().get<instance::TypePtr>();
+                    return type.get();
                 }
                 return {}; // error module is not a type
             },
@@ -117,23 +119,26 @@ struct TypeOf<Context*> {
         );
     }
 
-    static void declareVariable(Typed typed, VariableInitResult& res, ImplicitContext context) {
-        if (!typed.v.name || !typed.v.type) {
+    static void declareVariable(NameTypeValue ntv, VariableInitResult& res, ImplicitContext context) {
+        if (!ntv.v.name || !ntv.v.type) {
             return; // error
         }
-        auto name = typed.v.name.value();
-        if (auto range = context.v->parserScope->locals[name]; !range.empty()) {
+        auto name = ntv.v.name.value();
+        if (auto range = context.v->parserScope->locals->byName(name); !range.empty()) {
             return; // error
         }
-        auto node = context.v->parserScope->emplace([&] {
-            auto variable = instance::Variable{};
-            variable.typed.name = name;
-            if (typed.v.type) variable.typed.type = typeFromNode(typed.v.type.value());
+        auto variable = [&] {
+            auto variable = std::make_shared<instance::Variable>();
+            variable->name = name;
+            if (ntv.v.type) variable->type = typeFromNode(ntv.v.type.value());
             // TODO(arBmind): else use type of value!
             return variable;
-        }());
-        res.v.variable = &node->get<instance::Variable>();
-        if (typed.v.value) res.v.nodes.push_back(typed.v.value.value());
+        }();
+
+        context.v->parserScope->emplace(variable);
+        res.v.variable = variable.get();
+
+        if (ntv.v.value) res.v.nodes.push_back(ntv.v.value.value());
     }
 
     struct LeftParameterTuple {
@@ -172,52 +177,70 @@ struct TypeOf<Context*> {
 
         // TODO(arBmind): implement
         auto name = label.v.input;
-        auto range = context.v->parserScope->locals[name];
-        if (!range.empty() && !range.frontValue().holds<instance::Function>()) {
+        auto range = context.v->parserScope->locals->byName(name);
+        if (!range.empty() && !range.frontValue().holds<instance::FunctionPtr>()) {
             /*
                 return; // error
             */
         }
         else {
-            auto parameterScope = instance::Scope(context.v->parserScope);
-            auto node = context.v->parserScope->emplace([&] {
-                auto function = instance::Function{};
-                function.name = strings::to_string(name);
-                function.flags |= instance::FunctionFlag::compiletime; // TODO(arBmind): allow custom flags
+            auto function = [&] {
+                auto function = std::make_shared<instance::Function>();
+                function->name = strings::to_string(name);
+                function->flags |= instance::FunctionFlag::compile_time; // TODO(arBmind): allow custom flags
 
-                auto addParametersFromTyped = [&](instance::ParameterSide side, parser::NameTypeValueTuple& tuple) {
-                    for (auto& typed : tuple.tuple) {
+                auto addParametersFromNtvTuple = [&](instance::ParameterSide side, parser::NameTypeValueTuple& ntvTuple) {
+                    for (auto& ntv : ntvTuple.tuple) {
                         // TODO(arBmind): check double parameter names
-                        auto view = parameterScope.emplace([&] {
-                            auto parameter = instance::Parameter{};
-                            if (typed.name) parameter.typed.name = strings::to_string(typed.name.value());
-                            if (typed.type) parameter.typed.type = typeFromNode(typed.type.value());
-                            // TODO(arBmind): else type of value / error
-                            parameter.side = side;
-                            if (side == instance::ParameterSide::result)
-                                parameter.flags |= instance::ParameterFlag::assignable;
+                        auto parameter = [&] {
+                            auto parameter = std::make_shared<instance::Parameter>();
+                            if (ntv.name) parameter->name = strings::to_string(ntv.name.value());
+                            if (ntv.type) parameter->type = ntv.type.value();
 
-                            if (typed.value) parameter.init.push_back(typed.value.value());
+                            // TODO(arBmind): else type of value / error
+                            parameter->side = side;
+                            if (side == instance::ParameterSide::result)
+                                parameter->flags |= instance::ParameterFlag::assignable;
+
+                            if (ntv.value) parameter->defaultValue.push_back(ntv.value.value());
                             return parameter;
-                        }());
-                        function.parameters.push_back(&view->get<instance::Parameter>());
+                        }();
+                        auto variable = [&] {
+                            auto variable = std::make_shared<instance::Variable>();
+                            if (ntv.name) variable->name = strings::to_string(ntv.name.value());
+                            variable->flags = instance::VariableFlag::function_parameter;
+                            if (parameter->flags.any(instance::ParameterFlag::assignable))
+                                variable->flags |= instance::VariableFlag::assignable;
+
+                            variable->parameter = parameter.get();
+
+                            return variable;
+                        }();
+                        parameter->variable = variable.get();
+
+                        function->parameters.emplace_back(parameter);
+                        function->parameterScope.emplace(variable);
                     }
                 };
 
-                addParametersFromTyped(instance::ParameterSide::left, left.v);
-                addParametersFromTyped(instance::ParameterSide::right, right.v);
-                addParametersFromTyped(instance::ParameterSide::result, results.v);
+                addParametersFromNtvTuple(instance::ParameterSide::left, left.v);
+                addParametersFromNtvTuple(instance::ParameterSide::right, right.v);
+                addParametersFromNtvTuple(instance::ParameterSide::result, results.v);
                 return function;
-            }());
-            auto& function = node->get<instance::Function>();
+            }();
 
-            auto bodyScope = instance::Scope(&parameterScope);
-            function.body.block = context.v->parse(block.v, &bodyScope);
-            function.body.locals = std::move(bodyScope.locals);
+            context.v->parserScope->emplace(function);
+            res.v = function.get();
 
-            function.parameterScope = std::move(parameterScope.locals);
+            // parse function body
+            auto parameterLocalScope = instance::LocalScopePtr(function, &function->parameterScope);
+            auto parameterScope = std::make_shared<instance::Scope>(parameterLocalScope, context.v->parserScope);
 
-            res.v = &function;
+            auto& localBlock = function->body.get<instance::ParsedBlock>();
+            auto blockLocalScope = instance::LocalScopePtr(function, &localBlock.locals);
+            auto bodyScope = std::make_shared<instance::Scope>(blockLocalScope, parameterScope);
+
+            localBlock.block = context.v->parse(block.v.block, bodyScope);
         }
     }
 
@@ -255,7 +278,7 @@ struct Rebuild {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template type<Context*>();
+        mod.template type<ContextInterface*>();
 
         mod.template module<Basic>();
         mod.template module<Literal>();

@@ -12,7 +12,7 @@ Project {
         Depends { name: "instance.data" }
 
         files: [
-            "Tree.ostream.h",
+            "Expression.ostream.h",
             "Type.ostream.h",
         ]
 

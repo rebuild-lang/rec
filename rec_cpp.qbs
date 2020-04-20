@@ -5,7 +5,7 @@ Project {
     minimumQbsVersion: "1.7.1"
 
     references: [
-        "thirdparty",
+        "third_party",
         "shared",
         "src",
     ]

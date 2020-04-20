@@ -15,6 +15,7 @@
 #include "meta/TypeList.h"
 
 #include <cassert>
+#include <map>
 
 namespace intrinsicAdapter {
 
@@ -66,7 +67,7 @@ struct Call {
     using Sizes = std::index_sequence<parameterSize<ParameterTypes>()...>;
     using Indices = std::make_index_sequence<sizeof...(ParameterTypes)>;
 
-    static void call(uint8_t* memory, intrinsic::Context* context) {
+    static void call(uint8_t* memory, intrinsic::ContextInterface* context) {
         constexpr auto sizes = Sizes{};
         constexpr auto indices = Indices{};
         constexpr auto offsets = partialSum(sizes, indices);
@@ -75,13 +76,13 @@ struct Call {
 
 private:
     template<size_t... Offset>
-    static void callImpl(uint8_t* memory, intrinsic::Context* context, std::index_sequence<Offset...>) {
+    static void callImpl(uint8_t* memory, intrinsic::ContextInterface* context, std::index_sequence<Offset...>) {
         auto f = reinterpret_cast<Func>(F);
         f(argumentAt<ParameterTypes, Offset>(memory, context)...);
     }
 
     template<class Type, size_t Offset>
-    static auto argumentAt(uint8_t* memory, intrinsic::Context* context) -> Type {
+    static auto argumentAt(uint8_t* memory, intrinsic::ContextInterface* context) -> Type {
         using namespace intrinsic;
         if constexpr (Parameter<Type>::info().side == ParameterSide::Implicit) {
             return {context};
@@ -101,16 +102,16 @@ struct Adapter {
     using This = Adapter;
 
     template<class T>
-    static auto moduleInstance() -> instance::Module {
+    static auto moduleOf(meta::Type<T> = {}) -> instance::ModulePtr {
         auto types = Types{};
-        auto inner = This{&types};
+        auto moduleBuilder = This{&types};
 
         constexpr auto info = T::info();
-        inner.moduleName(info.name);
-        T::module(inner);
+        moduleBuilder.moduleName(info.name);
+        T::module(moduleBuilder);
 
-        inner.resolveTypes();
-        return std::move(inner.instanceModule);
+        moduleBuilder.resolveTypes();
+        return std::move(moduleBuilder.instanceModule);
     }
 
     template<class T>
@@ -121,51 +122,55 @@ struct Adapter {
             // TODO(arBmind)
         }
         else if constexpr (info.flags.any(TypeFlag::Construct)) {
-            constructedType<T>(&TypeOf<T>::construct);
+            // TODO(arBmind)
+            //            constructedType<T>(&TypeOf<T>::construct);
         }
         else {
-            auto a = This{&types};
-            a.moduleName(info.name);
+            auto moduleBuilder = This{&types};
+            moduleBuilder.moduleName(info.name);
 
-            TypeOf<T>::module(a);
+            TypeOf<T>::module(moduleBuilder);
 
-            a.instanceModule.locals.emplace([]() -> instance::Type {
+            auto type = [&] {
                 constexpr auto info = TypeOf<T>::info();
-                auto r = instance::Type{};
-                r.size = sizeof(T);
-                r.alignment = alignof(T);
-                //                r.flags = typeFlags(info.flags);
-                r.typeParser = typeParser(info.parser);
-                r.constructFunc = [](void* dest) { new (dest) T(); };
-                r.destructFunc = [](void* dest) { std::launder(reinterpret_cast<T*>(dest))->~T(); };
-                r.cloneFunc = [](void* dest, const void* source) { new (dest) T(*reinterpret_cast<const T*>(source)); };
-                r.equalFunc = [](const void* a, const void* b) -> bool {
+                auto r = std::make_shared<instance::Type>();
+                r->module = moduleBuilder.instanceModule.get();
+                r->size = sizeof(T);
+                r->alignment = alignof(T);
+                r->constructFunc = [](void* dest) { new (dest) T(); };
+                r->destructFunc = [](void* dest) { std::launder(reinterpret_cast<T*>(dest))->~T(); };
+                r->cloneFunc = [](void* dest, const void* source) {
+                    new (dest) T(*reinterpret_cast<const T*>(source));
+                };
+                r->equalFunc = [](const void* a, const void* b) -> bool {
                     return *std::launder(reinterpret_cast<const T*>(a)) == *std::launder(reinterpret_cast<const T*>(b));
                 };
+                r->typeParser = typeParser(info.parser);
+#ifdef VALUE_DEBUG_DATA
+                r->debugDataFunc = [](std::ostream& out, const void* source) -> std::ostream& {
+                    const T& value = *std::launder(reinterpret_cast<const T*>(source));
+                    return out << value;
+                };
+#endif
                 return r;
-            }());
+            }();
 
-            auto typeRange = a.instanceModule.locals[instance::nameOfType()];
-            assert(typeRange.single());
-            types.map[info.name.data()] = &typeRange.frontValue().get<instance::Type>();
+            moduleBuilder.instanceModule->locals.emplace(type);
+            types.map[info.name.data()] = type.get();
 
-            instanceModule.locals.emplace(std::move(a.instanceModule));
-
-            auto modRange = instanceModule.locals[info.name];
-            assert(modRange.single());
-            typeRange.frontValue().get<instance::Type>().module =
-                &modRange.frontValue().get(meta::type<instance::Module>);
+            instanceModule->locals.emplace(std::move(moduleBuilder.instanceModule));
         }
     }
 
     template<class T>
     void module() {
         constexpr auto info = T::info();
-        auto inner = This{&types};
-        inner.moduleName(info.name);
-        T::module(inner);
+        auto moduleBuilder = This{&types};
+        moduleBuilder.moduleName(info.name);
 
-        instanceModule.locals.emplace(std::move(inner.instanceModule));
+        T::module(moduleBuilder);
+
+        instanceModule->locals.emplace(std::move(moduleBuilder.instanceModule));
     }
 
     using FunctionInfoFunc = intrinsic::FunctionInfoFunc;
@@ -193,21 +198,21 @@ struct Adapter {
     void functionImpl2(meta::TypeList<ExternParams...>) {
         // assert((GenericFunc)f2 == (GenericFunc)F);
         auto info = Info();
-        auto r = instance::Function{};
-        r.name = strings::to_string(info.name);
-        r.flags = functionFlags(info.flags);
-        r.parameters = instance::ParameterViews{parameter<ExternParams>(r.parameterScope)...};
+        auto r = std::make_shared<instance::Function>();
+        r->name = strings::to_string(info.name);
+        r->flags = functionFlags(info.flags);
+        r->parameters = instance::Parameters{parameter<ExternParams>(r->parameterScope)...};
 
-        auto call = &details::Call<F, Params...>::call;
-        r.body.block.expressions.emplace_back(parser::IntrinsicCall{call});
+        auto execFunc = &details::Call<F, Params...>::call;
+        r->body = instance::IntrinsicCall{execFunc};
 
         auto indices = std::make_index_sequence<sizeof...(ExternParams)>{};
-        trackParameters<ExternParams...>(r.parameters, indices);
+        trackParameters<ExternParams...>(r->parameters, indices);
 
-        instanceModule.locals.emplace(std::move(r));
+        instanceModule->locals.emplace(std::move(r));
     }
 
-    void moduleName(intrinsic::Name name) { instanceModule.name = strings::to_string(name); }
+    void moduleName(intrinsic::Name name) { instanceModule->name = strings::to_string(name); }
 
 private:
     struct ParameterRef {
@@ -223,10 +228,11 @@ private:
     };
 
     Types& types;
-    instance::Module instanceModule;
+    instance::ModulePtr instanceModule;
 
     Adapter(Types* types)
-        : types(*types) {}
+        : types(*types)
+        , instanceModule(std::make_shared<instance::Module>()) {}
 
     void resolveTypes() {
         for (auto [parameter, typeName] : types.parameters) {
@@ -235,33 +241,33 @@ private:
                 // TODO(arBmind): error, unknown type
                 continue;
             }
-            parameter->typed.type = typeIt->second;
+            parameter->variable->type = typeIt->second;
         }
         // TODO(arBmind): resolve other types
     }
 
-    template<class T, class R>
-    void constructedType(R (*construct)()) {
-        // TODO(arBmind): normal type + construct & destruct functions
-        (void)construct;
-    }
+    //    template<class T, class R>
+    //    void constructedType(R (*construct)()) {
+    //        // TODO(arBmind): normal type + construct & destruct functions
+    //        (void)construct;
+    //    }
 
-    template<class T, class R, class Param>
-    void constructedType(R (*construct)(const Param&)) {
-        (void)construct;
-        using namespace intrinsic;
-        constexpr auto info = TypeOf<T>::info();
+    //    template<class T, class R, class Param>
+    //    void constructedType(R (*construct)(const Param&)) {
+    //        (void)construct;
+    //        using namespace intrinsic;
+    //        constexpr auto info = TypeOf<T>::info();
 
-        auto r = instance::Function{};
-        r.name = strings::to_string(info.name);
-        // r.flags =;
-        // r.parameters = typeParameters(&TypeOf<T>::eval);
-        // r.body =;
-        // call T::eval(…)
-        // return Type that stores result & all functions
+    //        auto instanceFunction = std::make_shared<instance::Function>();
+    //        instanceFunction->name = strings::to_string(info.name);
+    //        // r->flags =;
+    //        // r->parameters = typeParameters(&TypeOf<T>::eval);
+    //        // r->body =;
+    //        // call T::eval(…)
+    //        // return Type that stores result & all functions
 
-        instanceModule.locals.emplace(std::move(r));
-    }
+    //        instanceModule->locals.emplace(std::move(instanceFunction));
+    //    }
 
     static constexpr auto typeParser(intrinsic::Parser parser) -> parser::TypeParser {
         using namespace intrinsic;
@@ -273,65 +279,64 @@ private:
         return {};
     }
 
-    template<class R, class... Params>
-    auto typeParameters(R (*)(Params...)) -> instance::Parameters {
-        return {parameter<Params>()..., typeResultParameter()};
-    }
+    //    template<class R, class... Params>
+    //    auto typeParameters(R (*)(Params...)) -> instance::Parameters {
+    //        return {parameter<Params>()..., typeResultParameter()};
+    //    }
 
-    auto typeResultParameter() -> instance::Parameter {
-        auto r = instance::Parameter{};
-        r.typed.name = strings::String{"result"};
-        // r.typed.type = // prosponed "instance::Type"
-        r.side = instance::ParameterSide::result;
-        // r.flags |= instance::ParameterFlag::assignable; // TODO(arBmind): missing
-        return r;
-    }
+    //    auto typeResultParameter() -> instance::ParameterPtr {
+    //        auto r = std::make_shared<instance::Parameter>();
+    //        r->name = strings::String{"result"};
+    //        // r->indexNtvs.type = // prosponed "instance::Type"
+    //        r->side = instance::ParameterSide::result;
+    //        // r->flags |= instance::ParameterFlag::assignable; // TODO(arBmind): missing
+    //        return r;
+    //    }
 
     template<class... Params, size_t... I>
-    auto trackParameters(instance::ParameterViews& params, std::index_sequence<I...>) {
+    auto trackParameters(instance::Parameters& params, std::index_sequence<I...>) {
         using namespace intrinsic;
-        (types.parameters.push_back(
-             ParameterRef{const_cast<instance::Parameter*>(params[I]), Parameter<Params>::typeInfo().name.data()}),
-         ...);
+        (types.parameters.push_back(ParameterRef{params[I].get(), Parameter<Params>::typeInfo().name.data()}), ...);
     }
 
     template<class T>
-    auto parameter(instance::LocalScope& scope) -> instance::ParameterView {
+    auto parameter(instance::LocalScope& parameterScope) -> instance::ParameterPtr {
         using namespace intrinsic;
 
-        auto node = scope.emplace([] {
+        auto instanceParameter = [&] {
+            auto r = std::make_shared<instance::Parameter>();
             constexpr auto info = Parameter<T>::info();
-            auto r = instance::Parameter{};
-            r.typed.name = strings::to_string(info.name);
-            if (info.flags.any(ParameterFlag::Assignable, ParameterFlag::Reference)) {
-                // TODO(arBmind): new types - assign pointer
-                //                if (Parameter<T>::is_pointer) {
-                //                    r.typed.type =
-                //                    parser::Pointer{std::make_shared<parser::TypeExpression>(parser::Pointer{})};
-                //                }
-                //                else
-                //                    r.typed.type = parser::Pointer{};
-            }
-            //            else if (Parameter<T>::is_pointer) {
-            //                r.typed.type = parser::Pointer{};
-            //            }
-            // r.typed.type = // this has to be delayed until all types are known
-            r.side = parameterSide(info.side);
-            r.flags = parameterFlags(info.flags);
+            r->name = strings::to_string(info.name);
+            r->side = parameterSide(info.side);
+            r->flags = parameterFlags(info.flags);
             return r;
-        }());
-        return &node->template get<instance::Parameter>();
+        }();
+
+        auto instanceVariable = [&] {
+            auto r = std::make_shared<instance::Variable>();
+            constexpr auto info = Parameter<T>::info();
+            r->flags = parameterVariableFlags(info.side, info.flags);
+            r->name = instanceParameter->name;
+            // r->type = // this has to be delayed until all types are known
+            return r;
+        }();
+
+        instanceParameter->variable = instanceVariable.get();
+        instanceVariable->parameter = instanceParameter.get();
+
+        parameterScope.emplace(instanceVariable);
+        return instanceParameter;
     }
 
     constexpr static auto functionFlags(intrinsic::FunctionFlags flags) -> instance::FunctionFlags {
         using namespace intrinsic;
         auto r = instance::FunctionFlags{};
         if (flags.any(FunctionFlag::CompileTimeOnly)) {
-            r |= instance::FunctionFlag::compiletime;
+            r |= instance::FunctionFlag::compile_time;
         }
         if (flags.any(FunctionFlag::CompileTimeSideEffects)) {
-            r |= instance::FunctionFlag::compiletime;
-            r |= instance::FunctionFlag::compiletime_sideeffects;
+            r |= instance::FunctionFlag::compile_time;
+            r |= instance::FunctionFlag::compile_time_side_effects;
         }
         return r;
     }
@@ -355,6 +360,16 @@ private:
         }
         if (flags.any(ParameterFlag::Unrolled)) {
             r |= instance::ParameterFlag::splatted;
+        }
+        return r;
+    }
+
+    constexpr static auto parameterVariableFlags(intrinsic::ParameterSide, intrinsic::ParameterFlags flags)
+        -> instance::VariableFlags {
+        using namespace intrinsic;
+        auto r = instance::VariableFlags{instance::VariableFlag::function_parameter};
+        if (flags.any(ParameterFlag::Assignable)) {
+            r |= instance::VariableFlag::assignable;
         }
         return r;
     }

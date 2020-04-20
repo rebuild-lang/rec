@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 namespace instance {
 
@@ -11,12 +12,10 @@ using ParameterView = const Parameter*;
 struct Variable;
 using VariableView = const Variable*;
 
-struct Typed;
-using TypedView = const Typed*;
-
 struct Function;
 using FunctionView = const Function*;
 
 struct Scope;
+using ScopePtr = std::shared_ptr<Scope>;
 
 } // namespace instance

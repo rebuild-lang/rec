@@ -154,12 +154,9 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
     return EscapedMarkers{to_string(output), std::move(markers)};
 }
 
-template<class Context>
+template<class ContextBase>
 void reportDecodeErrorMarkers(
-    text::Line line,
-    strings::View tokenLines,
-    const parser::ViewMarkers& viewMarkers,
-    parser::ContextApi<Context>& context) {
+    text::Line line, strings::View tokenLines, const parser::ViewMarkers& viewMarkers, Context<ContextBase>& context) {
 
     using namespace diagnostic;
 
@@ -215,7 +212,7 @@ inline void collectDecodeErrorMarkers(
 }
 
 template<class Token, class Context>
-void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, ContextApi<Context>& context) {
+void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, Context& context) {
     using namespace diagnostic;
 
     auto tokenLines = extractViewLines(blockLine, tok.input);
@@ -224,9 +221,9 @@ void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, C
     reportDecodeErrorMarkers(tok.position.line, tokenLines, viewMarkers, context);
 }
 
-template<class Context>
+template<class ContextBase>
 void reportNewline(
-    const nesting::BlockLine& blockLine, const nesting::NewLineIndentation& nli, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::NewLineIndentation& nli, Context<ContextBase>& context) {
     if (nli.isTainted || !nli.value.hasErrors()) return; // already reported or no errors
 
     using namespace diagnostic;
@@ -283,15 +280,15 @@ template<class... Tags, class Context>
 void reportTokenWithDecodeErrors(
     const nesting::BlockLine& blockLine,
     const scanner::details::TagTokenWithDecodeErrors<Tags...>& de,
-    ContextApi<Context>& context) {
+    Context& context) {
     if (de.isTainted || de.decodeErrors.empty()) return; // already reported or no errors
 
     reportDecodeErrors(blockLine, de, context);
 }
 
-template<class Context>
+template<class ContextBase>
 void reportStringLiteral(
-    const nesting::BlockLine& blockLine, const nesting::StringLiteral& sl, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::StringLiteral& sl, Context<ContextBase>& context) {
     if (sl.isTainted || !sl.value.hasErrors()) return;
 
     using namespace diagnostic;
@@ -364,9 +361,9 @@ void reportStringLiteral(
     auto viewMarkers = ViewMarkers{};
 }
 
-template<class Context>
+template<class ContextBase>
 void reportNumberLiteral(
-    const nesting::BlockLine& blockLine, const nesting::NumberLiteral& nl, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::NumberLiteral& nl, Context<ContextBase>& context) {
     if (nl.isTainted || !nl.value.hasErrors()) return;
 
     using namespace diagnostic;
@@ -416,9 +413,9 @@ void reportNumberLiteral(
     }
 }
 
-template<class Context>
+template<class ContextBase>
 void reportOperatorLiteral(
-    const nesting::BlockLine& blockLine, const nesting::OperatorLiteral& ol, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::OperatorLiteral& ol, Context<ContextBase>& context) {
     if (ol.isTainted || !ol.value.hasErrors()) return;
 
     using namespace diagnostic;
@@ -469,16 +466,15 @@ void reportOperatorLiteral(
 }
 
 template<class Context>
-void reportInvalidEncoding(
-    const nesting::BlockLine& blockLine, const nesting::InvalidEncoding& ie, ContextApi<Context>& context) {
+void reportInvalidEncoding(const nesting::BlockLine& blockLine, const nesting::InvalidEncoding& ie, Context& context) {
     if (ie.isTainted) return; // already reported
 
     reportDecodeErrors(blockLine, ie, context);
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedCharacter(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedCharacter& uc, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedCharacter& uc, Context<ContextBase>& context) {
     if (uc.isTainted) return;
 
     using namespace diagnostic;
@@ -514,9 +510,9 @@ void reportUnexpectedCharacter(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedColon(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedColon& uc, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedColon& uc, Context<ContextBase>& context) {
     if (uc.isTainted) return;
 
     using namespace diagnostic;
@@ -538,9 +534,9 @@ void reportUnexpectedColon(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedIndent(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedIndent& ui, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedIndent& ui, Context<ContextBase>& context) {
     if (ui.isTainted) return;
 
     using namespace diagnostic;
@@ -574,9 +570,9 @@ void reportUnexpectedIndent(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedTokenAfterEnd(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedTokensAfterEnd& utae, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedTokensAfterEnd& utae, Context<ContextBase>& context) {
 
     using namespace diagnostic;
     auto tokenLines = extractBlockLines(blockLine);
@@ -604,9 +600,9 @@ void reportUnexpectedTokenAfterEnd(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedBlockEnd(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedBlockEnd& ube, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedBlockEnd& ube, Context<ContextBase>& context) {
 
     if (ube.isTainted) return;
     using namespace diagnostic;
@@ -636,9 +632,9 @@ void reportUnexpectedBlockEnd(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportMissingBlockEnd(
-    const nesting::BlockLine& blockLine, const nesting::MissingBlockEnd& ube, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::MissingBlockEnd& ube, Context<ContextBase>& context) {
 
     if (ube.isTainted) return;
     using namespace diagnostic;

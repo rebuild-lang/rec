@@ -13,7 +13,7 @@
 #include <vector>
 
 namespace intrinsic {
-struct Context;
+struct ContextInterface;
 }
 
 namespace parser {
@@ -24,23 +24,73 @@ using OptView = strings::OptionalView;
 using Name = strings::String;
 using OptName = strings::OptionalString;
 
-struct Expression;
-using Expressions = std::vector<Expression>;
-using ExpressionPtr = std::unique_ptr<Expression>;
+using nesting::BlockLiteral;
+using nesting::NumberLiteral;
+using nesting::StringLiteral;
 
+/// expressions on the block level
+struct BlockExpr;
+using VecOfBlockExpr = std::vector<BlockExpr>;
+
+/// represents a parsed block
+/// - may contain partially parsed expressions
 struct Block {
     using This = Block;
-    Expressions expressions{};
+    VecOfBlockExpr expressions{};
 
     bool operator==(const This& o) const { return expressions == o.expressions; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 static_assert(meta::has_move_assignment<Block>);
 
+/// triple of name :type =value
+/// - we take references by pointer to this
+/// - so we have to store a std::list
+struct NameTypeValue;
+using NameTypeValueView = const NameTypeValue*;
+using ListOfNameTypeValue = std::list<NameTypeValue>; // TODO: use std::vector<std::unique_ptr<>>
+
+/// local reference in the same set
+/// eg. fn foo(a :type, b: a)
+struct NameTypeValueReference {
+    using This = NameTypeValueReference;
+    NameTypeValueView nameTypeValue{};
+
+    bool operator==(const This& o) const;
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+static_assert(meta::has_move_assignment<NameTypeValueReference>);
+
+/// reference to local or global variable
+struct VariableReference {
+    using This = VariableReference;
+    instance::VariableView variable{};
+
+    bool operator==(const This& o) const { return variable == o.variable; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+static_assert(meta::has_move_assignment<VariableReference>);
+
+/// direct reference to a type
+struct TypeReference {
+    using This = TypeReference;
+    TypeView type{};
+
+    bool operator==(const This& o) const { return type == o.type; }
+    bool operator!=(const This& o) const { return !(*this == o); }
+};
+static_assert(meta::has_move_assignment<TypeReference>);
+
+/// Expression that eventually turns into a value
+struct ValueExpr;
+using VecOfValueExpr = std::vector<ValueExpr>;
+using PtrToValueExpr = std::unique_ptr<ValueExpr>;
+
+/// assignment to a parameter of a function for a call
 struct ArgumentAssignment {
     using This = ArgumentAssignment;
     instance::ParameterView parameter{};
-    Expressions values{};
+    VecOfValueExpr values{};
 
     bool operator==(const This& o) const { return parameter == o.parameter && values == o.values; }
     bool operator!=(const This& o) const { return !(*this == o); }
@@ -48,6 +98,8 @@ struct ArgumentAssignment {
 using ArgumentAssignments = std::vector<ArgumentAssignment>;
 static_assert(meta::has_move_assignment<ArgumentAssignment>);
 
+/// direct call to a function
+/// TODO: allow call through variable or NTVRef
 struct Call {
     using This = Call;
     instance::FunctionView function{};
@@ -58,44 +110,30 @@ struct Call {
 };
 static_assert(meta::has_move_assignment<Call>);
 
-struct IntrinsicCall {
-    using This = IntrinsicCall;
-    using Exec = void (*)(uint8_t*, intrinsic::Context*);
-    Exec exec;
+/// if we cannot parse any further before knowing types we store everything as partially parsed
+struct PartiallyParsed;
+using PartiallyParsedView = const PartiallyParsed*;
+using VecOfPartiallyParsed = std::vector<PartiallyParsed>;
 
-    bool operator==(const This& o) const { return exec == o.exec; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+/// expression used on for types
+constexpr auto type_expr_pack = //
+    meta::type_pack<
+        NameTypeValueReference, // of type Type
+        VariableReference, // of type Type
+        TypeReference, // direct
+        Value, // result of a Call of type Type
+        Call, // not executed call (depends on parameters)
+        VecOfPartiallyParsed // not fully parsed tokens
+        >;
+using TypeExprVariant = meta::ApplyPack<meta::Variant, decltype(type_expr_pack)>;
+struct TypeExpr : TypeExprVariant {
+    META_VARIANT_CONSTRUCT(TypeExpr, TypeExprVariant)
 };
-static_assert(meta::has_move_assignment<IntrinsicCall>);
+using OptTypeExpr = meta::Optional<TypeExpr>;
+using TypeExprView = const TypeExpr*;
+using OptTypeExprView = meta::Optional<TypeExprView>;
 
-struct ParameterReference {
-    using This = ParameterReference;
-    instance::ParameterView parameter{};
-
-    bool operator==(const This& o) const { return parameter == o.parameter; }
-    bool operator!=(const This& o) const { return !(*this == o); }
-};
-static_assert(meta::has_move_assignment<ParameterReference>);
-
-struct VariableReference {
-    using This = VariableReference;
-    instance::VariableView variable{};
-
-    bool operator==(const This& o) const { return variable == o.variable; }
-    bool operator!=(const This& o) const { return !(*this == o); }
-};
-static_assert(meta::has_move_assignment<VariableReference>);
-
-struct VariableInit {
-    using This = VariableInit;
-    instance::VariableView variable{};
-    Expressions nodes{};
-
-    bool operator==(const This& o) const { return variable == o.variable && nodes == o.nodes; }
-    bool operator!=(const This& o) const { return !(*this == o); }
-};
-static_assert(meta::has_move_assignment<VariableInit>);
-
+/// direct reference to a module
 struct ModuleReference {
     using This = ModuleReference;
     instance::ModuleView module{};
@@ -105,73 +143,119 @@ struct ModuleReference {
 };
 static_assert(meta::has_move_assignment<ModuleReference>);
 
-struct TypeReference {
-    using This = TypeReference;
-    TypeView type{};
+// TODO: FunctionReference
 
-    bool operator==(const This& o) const { return type == o.type; }
+/// expression that initializes variables and submodules of a module
+struct InitExpr;
+using VecOfInitExpr = std::vector<InitExpr>;
+
+/// paritial initializer for a module
+struct ModuleInit {
+    using This = ModuleInit;
+    instance::ModuleView module{};
+    VecOfInitExpr nodes{};
+
+    bool operator==(const This& o) const { return module == o.module && nodes == o.nodes; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
-static_assert(meta::has_move_assignment<TypeReference>);
+static_assert(meta::has_move_assignment<ModuleInit>);
 
-struct NameTypeValue;
-using NameTypeValueView = const NameTypeValue*;
-using NameTypeValueList = std::list<NameTypeValue>;
+/// initializer for a variable
+struct VariableInit {
+    using This = VariableInit;
+    instance::VariableView variable{};
+    VecOfValueExpr nodes{};
 
-struct NameTypeValueReference {
-    using This = NameTypeValueReference;
-    NameTypeValueView nameTypeValue{};
-
-    bool operator==(const This& o) const;
+    bool operator==(const This& o) const { return variable == o.variable && nodes == o.nodes; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
-static_assert(meta::has_move_assignment<NameTypeValueReference>);
+static_assert(meta::has_move_assignment<VariableInit>);
 
+constexpr auto init_expr_pack = meta::type_pack<
+    ModuleInit,
+    VariableInit,
+    VecOfPartiallyParsed //
+    >;
+using InitExprVariant = meta::ApplyPack<meta::Variant, decltype(init_expr_pack)>;
+struct InitExpr : InitExprVariant {
+    META_VARIANT_CONSTRUCT(InitExpr, InitExprVariant)
+};
+
+/// wrapper for ListOfNameTypeValue
+// TODO: remove if we do not add functionality here
 struct NameTypeValueTuple {
     using This = NameTypeValueTuple;
-    NameTypeValueList tuple{};
+    ListOfNameTypeValue tuple{};
 
     bool operator==(const This& o) const { return tuple == o.tuple; }
     bool operator!=(const This& o) const { return !(*this == o); }
 };
 static_assert(meta::has_move_assignment<NameTypeValueTuple>);
 
-using nesting::BlockLiteral;
-using nesting::IdentifierLiteral;
-using nesting::NumberLiteral;
-using nesting::OperatorLiteral;
-using nesting::StringLiteral;
+/// when passing BlockLiteral to functions we might need the Scope from the block definition site.
+// so far we use the ParserScope - but we get into troubles with delayed parsing either way
+struct ScopedBlockLiteral {
+    using This = ScopedBlockLiteral;
+    nesting::BlockLiteral block;
+    // instance::ScopePtr scope; // parser has no access to scope?
 
-using ExpressionVariant = meta::Variant<
-    Block,
-    Call,
-    IntrinsicCall,
-    ParameterReference,
-    VariableReference,
-    NameTypeValueReference,
-    VariableInit,
-    ModuleReference,
-    TypeReference,
-    NameTypeValueTuple,
-    Value>;
-static_assert(meta::has_move_assignment<ExpressionVariant>);
-
-// note: this type is needed because we cannot forward a using definition
-struct Expression : public ExpressionVariant {
-    META_VARIANT_CONSTRUCT(Expression, ExpressionVariant)
+    bool operator==(const This& o) const { return block == o.block; }
+    bool operator!=(const This& o) const { return !(*this == o); }
 };
-using OptExpression = meta::Optional<Expression>;
-using ExpressionView = const Expression*;
-using OptExpressionView = meta::Optional<ExpressionView>;
 
-static_assert(meta::has_move_assignment<Expression>);
-static_assert(meta::has_move_assignment<OptExpression>);
+using nesting::IdentifierLiteral;
+using nesting::OperatorLiteral;
+
+constexpr auto value_expr_pack = //
+    type_expr_pack + ///< everything that works for a type
+    meta::type_pack<
+        ModuleReference, ///< direct reference to a module
+        // FunctionReference,
+        Block, ///< nested parsed block
+        NameTypeValueTuple ///< bunch of values
+        >;
+using ValueExprVariant = meta::ApplyPack<meta::Variant, decltype(value_expr_pack)>;
+struct ValueExpr : public ValueExprVariant {
+    META_VARIANT_CONSTRUCT(ValueExpr, ValueExprVariant)
+};
+using OptValueExpr = meta::Optional<ValueExpr>;
+using ValueExprView = const ValueExpr*;
+using OptValueExprView = meta::Optional<ValueExprView>;
+
+static_assert(meta::has_move_assignment<ValueExpr>);
+static_assert(meta::has_move_assignment<OptValueExpr>);
+
+constexpr auto block_expr_pack = //
+    value_expr_pack + ///
+    meta::type_pack<
+        ModuleInit, ///< initialize local modules
+        VariableInit ///< initialize local variables
+        >;
+using BlockExprVariant = meta::ApplyPack<meta::Variant, decltype(block_expr_pack)>;
+struct BlockExpr : public BlockExprVariant {
+    META_VARIANT_CONSTRUCT(BlockExpr, BlockExprVariant)
+};
+using OptBlockExpr = meta::Optional<BlockExpr>;
+
+constexpr auto partial_parsed_pack = //
+    value_expr_pack +
+    meta::type_pack<
+        IdentifierLiteral,
+        OperatorLiteral //
+        >;
+using PartiallyParsedVariant = meta::ApplyPack<meta::Variant, decltype(partial_parsed_pack)>;
+static_assert(meta::has_move_assignment<PartiallyParsedVariant>);
+
+struct PartiallyParsed : public PartiallyParsedVariant {
+    META_VARIANT_CONSTRUCT(PartiallyParsed, PartiallyParsedVariant)
+};
+static_assert(meta::has_move_assignment<PartiallyParsed>);
 
 struct NameTypeValue {
     using This = NameTypeValue;
     OptName name{}; // name might be empty!
-    OptExpression type{};
-    OptExpression value{};
+    OptTypeExpr type{};
+    OptValueExpr value{};
 
     auto onlyValue() const { return !name && !type && value; }
 
@@ -182,35 +266,5 @@ using OptNameTypeValue = meta::Optional<meta::DefaultPacked<NameTypeValue>>;
 using OptNameTypeValueView = meta::Optional<meta::DefaultPacked<NameTypeValueView>>;
 
 static_assert(meta::has_move_assignment<NameTypeValue>);
-
-struct ViewNameTypeValue {
-    using This = ViewNameTypeValue;
-    OptView name{};
-    OptExpressionView type{};
-    OptExpressionView value{};
-
-    ViewNameTypeValue() = default;
-    ViewNameTypeValue(const NameTypeValue& typed)
-        : name(typed.name.map([](const auto& n) -> View { return n; }))
-        , type(typed.type.map([](const auto& v) -> ExpressionView { return &v; }))
-        , value(typed.value.map([](const auto& v) -> ExpressionView { return &v; })) {}
-    ViewNameTypeValue(const Expression& node)
-        : value(&node) {}
-};
-using ViewNameTypeValues = std::vector<ViewNameTypeValue>;
-
-static_assert(meta::has_move_assignment<ViewNameTypeValue>);
-
-struct ViewNameTypeValueTuple {
-    using This = ViewNameTypeValueTuple;
-    ViewNameTypeValues tuple{};
-
-    ViewNameTypeValueTuple() = default;
-    ViewNameTypeValueTuple(const NameTypeValueTuple& typed)
-        : tuple(typed.tuple.begin(), typed.tuple.end()) {}
-    ViewNameTypeValueTuple(const Expression& node)
-        : tuple({node}) {}
-};
-static_assert(meta::has_move_assignment<ViewNameTypeValueTuple>);
 
 } // namespace parser

@@ -7,7 +7,7 @@ Project {
     StaticLibrary {
         name: "execution.lib"
         Depends { name: "cpp" }
-        cpp.combineCxxSources: true
+        // cpp.combineCxxSources: true
         cpp.includePaths: [".."]
 
         Depends { name: "instance.data" }

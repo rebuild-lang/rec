@@ -26,7 +26,7 @@ template<>
 struct TypeOf<parser::NameTypeValueTuple> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = Name{".TypedTuple"};
+        info.name = Name{".NameTypeValueTuple"};
         info.flags = TypeFlag::CompileTime;
         return info;
     }

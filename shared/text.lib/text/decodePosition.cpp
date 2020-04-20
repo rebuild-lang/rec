@@ -2,6 +2,6 @@
 
 namespace text {
 
-// TODO
+// empty
 
 } // namespace text

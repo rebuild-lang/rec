@@ -8,12 +8,11 @@
 namespace instance {
 
 using Name = strings::String;
-using NameView = strings::View;
 
 enum class ModuleFlag {
-    CompileTime = 1 << 0,
-    RunTime = 1 << 1,
-    Final = 1 << 2,
+    compile_time = 1 << 0, // marked as usable at compile time (applies to all new members)
+    run_time = 1 << 1, // marked as usable at run time (applies to all new members)
+    final = 1 << 2, // marked as final (no new members allowed, applies to all submodules)
 };
 using ModuleFlags = meta::Flags<ModuleFlag>;
 
@@ -28,13 +27,12 @@ struct Module {
     ~Module() = default;
     // no copy
     Module(const This&) = delete;
-    auto operator=(const This&) & -> This& = delete;
+    auto operator=(const This&) & -> Module& = delete;
     // movable
     Module(This&& o) noexcept;
-    auto operator=(This&& o) & noexcept -> This&;
+    auto operator=(This&& o) & noexcept -> Module&;
 };
+using ModulePtr = std::shared_ptr<Module>;
 using ModuleView = const Module*;
-
-inline auto nameOf(const Module& m) -> NameView { return m.name; }
 
 } // namespace instance

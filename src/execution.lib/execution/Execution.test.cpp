@@ -7,8 +7,8 @@
 
 #include "nesting/Token.builder.h"
 
-#include "parser/Tree.builder.h"
-#include "parser/Tree.ostream.h"
+#include "parser/Expression.builder.h"
+#include "parser/Expression.ostream.h"
 
 #include "gtest/gtest.h"
 
@@ -54,7 +54,7 @@ struct ExecutionMachineData {
         return std::move(*this);
     }
 
-    static void literal(uint8_t* memory, intrinsic::Context*) {
+    static void literal(uint8_t* memory, intrinsic::ContextInterface*) {
         auto& lit = *reinterpret_cast<parser::NumberLiteral*>(memory);
         instance->result = strings::String{lit.value.integerPart};
     }
@@ -92,5 +92,5 @@ INSTANTIATE_TEST_CASE_P(
                 instance::fun("print")
                     .params(instance::param("v").right().type(parser::type("Lit")))
                     .rawIntrinsic(&ExecutionMachineData::literal))
-            .run(parser::call("print").right(parser::arg("v", parser::expr(nesting::num("42")).typeName("Lit"))))
+            .run(parser::call("print").right(parser::arg("v", parser::valueExpr(nesting::num("42")).typeName("Lit"))))
             .expect("42")));

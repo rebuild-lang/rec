@@ -8,6 +8,9 @@ namespace meta {
 template<class...>
 struct TypePack {};
 
+template<class... Ts>
+constexpr auto type_pack = TypePack<Ts...>{};
+
 /// Equality
 template<class... As, class... Bs>
 constexpr bool operator==(TypePack<As...>, TypePack<Bs...>) {
@@ -124,5 +127,11 @@ constexpr auto makeUnique(TypePack<Ts...> = {}) {
     else
         return TypePack{};
 }
+
+template<template<class...> class Tpl, class... Ts>
+constexpr auto applyPack(TypePack<Ts...> = {}) -> Tpl<Ts...>;
+
+template<template<class...> class Tpl, class TP>
+using ApplyPack = decltype(applyPack<Tpl>(TP{}));
 
 } // namespace meta
