@@ -20,8 +20,7 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
             [&](const nesting::CommentLiteral& cl) { reportTokenWithDecodeErrors(line, cl, context); },
             [&](const nesting::StringLiteral& sl) { reportStringLiteral(line, sl, context); },
             [&](const nesting::NumberLiteral& sl) { reportNumberLiteral(line, sl, context); },
-            [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
-            [&](const nesting::OperatorLiteral& ol) { reportOperatorLiteral(line, ol, context); },
+            [&](const nesting::IdentifierLiteral& ol) { reportIdentifierLiteral(line, ol, context); },
             [&](const nesting::InvalidEncoding& ie) { reportInvalidEncoding(line, ie, context); },
             [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); },
             // filter
@@ -194,7 +193,10 @@ inline void collectDecodeErrorMarkers(
             },
             [&](const nesting::IdentifierLiteral& il) {
                 if (il.isTainted || !il.input.isPartOf(tokenLines)) return;
-                for (auto& p : il.decodeErrors) viewMarkers.emplace_back(p.input);
+                for (auto& err : il.value.errors) {
+                    err.visitSome(
+                        [&](const scanner::DecodedErrorPosition& dep) { viewMarkers.emplace_back(dep.input); });
+                }
                 if (&il != tok) const_cast<nesting::IdentifierLiteral&>(il).isTainted = true;
             },
             [&](const nesting::NewLineIndentation& nli) {
@@ -414,15 +416,15 @@ void reportNumberLiteral(
 }
 
 template<class ContextBase>
-void reportOperatorLiteral(
-    const nesting::BlockLine& blockLine, const nesting::OperatorLiteral& ol, Context<ContextBase>& context) {
+void reportIdentifierLiteral(
+    const nesting::BlockLine& blockLine, const nesting::IdentifierLiteral& ol, Context<ContextBase>& context) {
     if (ol.isTainted || !ol.value.hasErrors()) return;
 
     using namespace diagnostic;
 
     auto tokenLines = extractViewLines(blockLine, ol.input);
 
-    auto reportedKinds = std::bitset<scanner::OperatorLiteralError::optionCount()>{};
+    auto reportedKinds = std::bitset<scanner::IdentifierLiteralError::optionCount()>{};
     for (auto& err : ol.value.errors) {
         auto kind = err.index().value();
         if (reportedKinds[kind]) continue;

@@ -138,7 +138,6 @@ struct NameTypeValueBuilder {
 using ValueExprBuilderVariant = meta::Variant<
     nesting::StringLiteral,
     nesting::NumberLiteral,
-    nesting::OperatorLiteral,
     nesting::IdentifierLiteral,
     nesting::BlockLiteral,
     CallBuilder,
@@ -185,7 +184,6 @@ public:
 using TypeExprBuilderVariant = meta::Variant<
     nesting::StringLiteral,
     nesting::NumberLiteral,
-    nesting::OperatorLiteral,
     nesting::IdentifierLiteral,
     nesting::BlockLiteral,
     CallBuilder,

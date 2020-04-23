@@ -133,7 +133,7 @@ private:
 
     [[nodiscard]] static auto isAssignment(const BlockToken& t) -> bool {
         return t.visit(
-            [](const nesting::OperatorLiteral& o) { return o.input.isContentEqual(View{"="}); }, //
+            [](const nesting::IdentifierLiteral& o) { return o.input.isContentEqual(View{"="}); }, //
             [](const auto&) { return false; });
     }
 
@@ -239,7 +239,6 @@ private:
                 [](const nesting::BracketClose&) { return ParseOptions::finish_single; },
                 [&](const nesting::BracketOpen&) { return parseTuple(); },
                 [&](const nesting::IdentifierLiteral& id) { return parseId(id); },
-                [&](const nesting::OperatorLiteral& op) { return parseId(op); },
                 [&](const nesting::StringLiteral& s) { return parseLiteral(s); },
                 [&](const nesting::NumberLiteral& n) { return parseLiteral(n); },
                 [&](const nesting::BlockLiteral& b) { return parseLiteral(b); },
@@ -303,7 +302,6 @@ private:
                 return ParseOptions::continue_single;
             },
             [&](const nesting::IdentifierLiteral& id) { return parseId(id); },
-            [&](const nesting::OperatorLiteral& op) { return parseId(op); },
             [&](const nesting::StringLiteral& s) { return parseLiteral(s); },
             [&](const nesting::NumberLiteral& n) { return parseLiteral(n); },
             [&](const nesting::BlockLiteral& b) { return parseLiteral(b); },
@@ -496,8 +494,7 @@ private:
     template<class Context>
     [[nodiscard]] static auto parseSingleToken(BlockLineView& it, Context& context) -> OptValueExpr {
         return it.current().visit(
-            buildTokenVisitors<Context, BlockLiteral, StringLiteral, NumberLiteral, IdentifierLiteral, OperatorLiteral>(
-                it, context),
+            buildTokenVisitors<Context, BlockLiteral, StringLiteral, NumberLiteral, IdentifierLiteral>(it, context),
             [](const auto&) { return OptValueExpr{}; });
     }
 

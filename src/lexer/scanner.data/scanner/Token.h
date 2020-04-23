@@ -1,7 +1,7 @@
 #pragma once
+#include "IdentifierLiteralValue.h"
 #include "NewLineIndentationValue.h"
 #include "NumberLiteralValue.h"
-#include "OperatorLiteralValue.h"
 #include "StringLiteralValue.h"
 
 #include <text/DecodedPosition.h>
@@ -67,8 +67,7 @@ using SquareBracketOpen = details::TagToken<struct SquareBracketOpenTag>;
 using SquareBracketClose = details::TagToken<struct SquareBracketCloseTag>;
 using BracketOpen = details::TagToken<struct BracketOpenTag>;
 using BracketClose = details::TagToken<struct BracketCloseTag>;
-using IdentifierLiteral = details::TagTokenWithDecodeErrors<struct IdentifierLiteralTag>;
-using OperatorLiteral = details::ValueToken<OperatorLiteralValue>;
+using IdentifierLiteral = details::ValueToken<IdentifierLiteralValue>;
 
 // UTF8-Decoder found a problem
 using InvalidEncoding = details::TagErrorToken<struct InvalidEncodingTag>;
@@ -93,7 +92,6 @@ using Token = meta::Variant<
     StringLiteral,
     NumberLiteral,
     IdentifierLiteral,
-    OperatorLiteral,
     InvalidEncoding,
     UnexpectedCharacter>;
 

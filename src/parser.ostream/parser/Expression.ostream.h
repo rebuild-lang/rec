@@ -46,10 +46,6 @@ inline auto operator<<(std::ostream& out, const IdentifierLiteral& il) -> std::o
     using OP = auto(std::ostream&, const IdentifierLiteral&)->std::ostream&;
     return static_cast<OP*>(scanner::operator<<)(out, il);
 }
-inline auto operator<<(std::ostream& out, const OperatorLiteral& il) -> std::ostream& {
-    using OP = auto(std::ostream&, const OperatorLiteral&)->std::ostream&;
-    return static_cast<OP*>(scanner::operator<<)(out, il);
-}
 inline auto operator<<(std::ostream& out, const ScopedBlockLiteral& sbl) -> std::ostream& {
     using OP = auto(std::ostream&, const BlockLiteral&)->std::ostream&;
     return static_cast<OP*>(nesting::operator<<)(out, sbl.block);

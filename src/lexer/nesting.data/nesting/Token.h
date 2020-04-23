@@ -77,7 +77,6 @@ using filter::ColonSeparator;
 using filter::CommaSeparator;
 using filter::IdentifierLiteral;
 using filter::NumberLiteral;
-using filter::OperatorLiteral;
 using filter::SquareBracketClose;
 using filter::SquareBracketOpen;
 using filter::StringLiteral;
@@ -92,8 +91,7 @@ using TokenVariant = meta::Variant<
     BracketClose,
     StringLiteral,
     NumberLiteral,
-    IdentifierLiteral,
-    OperatorLiteral>;
+    IdentifierLiteral>;
 
 struct Token : TokenVariant {
     META_VARIANT_CONSTRUCT(Token, TokenVariant)

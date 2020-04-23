@@ -1,4 +1,5 @@
 #pragma once
+#include "IdentifierLiteralValue.ostream.h"
 #include "NewLineIndentationValue.ostream.h"
 #include "NumberLiteralValue.ostream.h"
 #include "StringLiteralValue.ostream.h"
@@ -33,10 +34,7 @@ inline auto operator<<(std::ostream& out, const NumberLiteral& num) -> std::ostr
 }
 
 inline auto operator<<(std::ostream& out, const IdentifierLiteral& id) -> std::ostream& {
-    return out << "<id: " << id.input << ">";
-}
-inline auto operator<<(std::ostream& out, const OperatorLiteral& op) -> std::ostream& {
-    return out << "<op: " << op.input << ">";
+    return out << "<id(" << id.value.type << "): " << id.input << ">";
 }
 
 inline auto operator<<(std::ostream& out, const InvalidEncoding& e) -> std::ostream& {

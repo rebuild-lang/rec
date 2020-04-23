@@ -204,7 +204,6 @@ struct ScopedBlockLiteral {
 };
 
 using nesting::IdentifierLiteral;
-using nesting::OperatorLiteral;
 
 constexpr auto value_expr_pack = //
     type_expr_pack + ///< everything that works for a type
@@ -238,11 +237,7 @@ struct BlockExpr : public BlockExprVariant {
 using OptBlockExpr = meta::Optional<BlockExpr>;
 
 constexpr auto partial_parsed_pack = //
-    value_expr_pack +
-    meta::type_pack<
-        IdentifierLiteral,
-        OperatorLiteral //
-        >;
+    value_expr_pack + meta::type_pack<IdentifierLiteral>;
 using PartiallyParsedVariant = meta::ApplyPack<meta::Variant, decltype(partial_parsed_pack)>;
 static_assert(meta::has_move_assignment<PartiallyParsedVariant>);
 

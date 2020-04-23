@@ -12,12 +12,12 @@ Project {
         Depends { name: "text.lib" }
 
         files: [
+            "IdentifierLiteralValue.cpp",
+            "IdentifierLiteralValue.h",
             "NewLineIndentationValue.cpp",
             "NewLineIndentationValue.h",
             "NumberLiteralValue.cpp",
             "NumberLiteralValue.h",
-            "OperatorLiteralValue.cpp",
-            "OperatorLiteralValue.h",
             "StringLiteralValue.cpp",
             "StringLiteralValue.h",
             "Token.cpp",

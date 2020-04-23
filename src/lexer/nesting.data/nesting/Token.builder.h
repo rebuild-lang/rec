@@ -50,11 +50,18 @@ auto buildTokens(Tok&&... t) -> Tokens {
     return Tokens{::nesting::buildToken(std::forward<Tok>(t))...};
 }
 
-inline auto id(View view) -> IdentifierLiteral { return IdentifierLiteral{view}; }
+inline auto id(View view) -> IdentifierLiteral {
+    auto type = [&] {
+        if (view.front() == '.') return scanner::IdentifierLiteralType::member;
+        if (view.front() == '$') return scanner::IdentifierLiteralType::pattern_placeholder;
+        return scanner::IdentifierLiteralType::normal;
+    }();
+    return IdentifierLiteral{{view}, {type, {}}};
+}
 
 template<size_t N>
-auto op(const char (&text)[N]) -> OperatorLiteral {
-    return OperatorLiteral{View{text}};
+auto op(const char (&text)[N]) -> IdentifierLiteral {
+    return IdentifierLiteral{{View{text}}, {scanner::IdentifierLiteralType::operator_sign}};
 }
 
 template<size_t N>

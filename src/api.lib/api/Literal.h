@@ -72,22 +72,6 @@ struct TypeOf<parser::IdentifierLiteral> {
 };
 
 template<>
-struct TypeOf<parser::OperatorLiteral> {
-    static constexpr auto info() {
-        auto info = TypeInfo{};
-        info.name = Name{".Operator"};
-        info.flags = TypeFlag::CompileTime;
-        info.parser = Parser::SingleToken;
-        return info;
-    }
-
-    template<class Module>
-    static constexpr auto module(Module&) {
-        // TODO(arBmind): add API
-    }
-};
-
-template<>
 struct TypeOf<parser::NameTypeValue> {
     static constexpr auto info() {
         auto info = TypeInfo{};
@@ -132,7 +116,6 @@ struct Literal {
         mod.template type<parser::StringLiteral>();
         mod.template type<parser::ScopedBlockLiteral>();
         mod.template type<parser::IdentifierLiteral>();
-        mod.template type<parser::OperatorLiteral>();
         mod.template type<parser::NameTypeValue>();
         mod.template type<nesting::BlockLiteral>();
     }

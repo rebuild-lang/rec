@@ -54,12 +54,17 @@ inline auto id(View v) -> IdentifierLiteral { return IdentifierLiteral{{v}}; }
 
 template<size_t N>
 auto id(const char (&text)[N]) -> IdentifierLiteral {
-    return IdentifierLiteral{View{text}};
+    auto type = [&] {
+        if (text[0] == '.') return scanner::IdentifierLiteralType::member;
+        if (text[0] == '$') return scanner::IdentifierLiteralType::pattern_placeholder;
+        return scanner::IdentifierLiteralType::normal;
+    }();
+    return IdentifierLiteral{View{text}, {type, {}}};
 }
 
 template<size_t N>
-auto op(const char (&text)[N]) -> OperatorLiteral {
-    return OperatorLiteral{View{text}};
+auto op(const char (&text)[N]) -> IdentifierLiteral {
+    return IdentifierLiteral{View{text}, {scanner::IdentifierLiteralType::operator_sign}};
 }
 
 template<class Tok>
