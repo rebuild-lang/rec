@@ -32,6 +32,7 @@ struct ParameterBuilder {
         : ParameterBuilder() {
         parameter->name = Name{name};
         variable->name = Name{name};
+        parameter->side = ParameterSide::right;
     }
 
     template<class Builder>
