@@ -79,13 +79,15 @@ struct TypeOf<ContextInterface*> {
             auto module = [&] {
                 auto module = std::make_shared<instance::Module>();
                 module->name = strings::to_string(name);
+                context.v->parserScope->emplace(module);
+
                 auto localsPtr = instance::LocalScopePtr(module, &module->locals);
                 auto moduleScope = std::make_shared<instance::Scope>(std::move(localsPtr), context.v->parserScope);
                 auto parsedBlock = context.v->parse(block.v.block, moduleScope);
                 (void)parsedBlock; // TODO(arBmind): use parsedBlock
                 return module;
             }();
-            context.v->parserScope->emplace(module);
+
             res.v = module.get();
         }
     }
@@ -189,7 +191,8 @@ struct TypeOf<ContextInterface*> {
                 function->name = strings::to_string(name);
                 function->flags |= instance::FunctionFlag::compile_time; // TODO(arBmind): allow custom flags
 
-                auto addParametersFromNtvTuple = [&](instance::ParameterSide side, parser::NameTypeValueTuple& ntvTuple) {
+                auto addParametersFromNtvTuple = [&](instance::ParameterSide side,
+                                                     parser::NameTypeValueTuple& ntvTuple) {
                     for (auto& ntv : ntvTuple.tuple) {
                         // TODO(arBmind): check double parameter names
                         auto parameter = [&] {
