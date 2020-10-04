@@ -191,7 +191,7 @@ using TypeExprBuilderVariant = meta::Variant<
     TypeNameValueRef*>;
 
 struct TypeExprBuilder final : TypeExprBuilderVariant {
-    using This = ValueExprBuilder;
+    using This = TypeExprBuilder;
     Name m_typeName{};
 
 public:
