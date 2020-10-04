@@ -8,8 +8,8 @@ namespace {
 
 void fixTypes(Module* old, Module* cur) {
     for (auto& n : cur->locals) {
-        n.visitSome([&](Type& t) {
-            if (t.module == old) t.module = cur;
+        n.visitSome([&](TypePtr& t) {
+            if (t->module == old) t->module = cur;
         });
     }
 }
