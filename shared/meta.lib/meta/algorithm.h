@@ -1,8 +1,9 @@
 #pragma once
 #include "Optional.h"
 
-#include <algorithm>
-#include <numeric>
+#include <algorithm> // find_if, stable_sort, transform, …
+#include <iterator> // back_inserter
+#include <numeric> // accumulate
 
 /// convenience algorithms that work on containers
 namespace meta {
