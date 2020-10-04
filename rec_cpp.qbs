@@ -58,6 +58,7 @@ Project {
             ".clang-tidy",
             ".editorconfig",
             ".gitattributes",
+            ".github/workflows/test_runner.yml",
             ".gitignore",
             ".travis.yml",
             "Makefile",

@@ -1,0 +1,39 @@
+name: Test Runner
+
+on: push
+
+jobs:
+  docker-qbs:
+    name: "Build and run tests on Docker"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: run qbs build
+        run: >-
+          docker run --rm -v ${GITHUB_WORKSPACE}:/build -w /build
+          arbmind/qbs-clang10:qbs_v1.16.0
+          build
+          --file /build/rec_cpp.qbs
+          --build-directory /tmp/build
+          -p autotest-runner
+
+  windows-qbs:
+    name: "Build and run tests on Windows"
+    runs-on: windows-2019
+    steps:
+      - run: choco install qbs
+      - run: qbs setup-toolchains --detect
+      - run: qbs config --list profiles
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - run: >-
+          qbs build profile:MSVC2019-x64
+          --file rec_cpp.qbs
+          --build-directory %TMP%\build
+          -p autotest-runner

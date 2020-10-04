@@ -8,7 +8,7 @@ matrix:
         - docker
       script:
         - docker run -t -v${PWD}:/build -e TERM=xterm-color -e GTEST_COLOR=yes
-            arbmind/qbs-clang8:1
+            arbmind/qbs-clang10:qbs_v1.16.0
             build --file /build/rec_cpp.qbs --build-directory /tmp/build
             -p autotest-runner
             modules.cpp.commonCompilerFlags:-fcolor-diagnostics
