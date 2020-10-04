@@ -276,38 +276,38 @@ private:
         return result;
     }
 
-    template<class Context>
-    [[nodiscard]] static auto parsePartialExpr(BlockLineView& it, Context& context) -> VecOfPartiallyParsed {
-        auto result = VecOfPartiallyParsed{};
-        auto parseSubExpr = [&]() {
-            ++it; // skip signal
-            auto subExpr = parseValueExpr(it, context);
-            if (subExpr) {
-                std::move(subExpr).value().visit(
-                    [&](auto&& val) { result.emplace_back(std::move(val)); },
-                    [&](VecOfPartiallyParsed&& subPartial) {
-                        for (auto&& val : subPartial) {
-                            result.emplace_back(std::move(val));
-                        }
-                    });
-            }
-        };
-        it.current.visit(
-            [](const nesting::CommaSeparator&) { return ParseOptions::finish_single; },
-            [](const nesting::BracketClose&) { return ParseOptions::finish_single; },
-            [&](const nesting::BracketOpen&) {
-                if (result) return ParseOptions::finish_single;
-                auto tuple = parseNameTypeValueTuple(it, context);
-                result = ValueExpr{std::move(tuple)};
-                return ParseOptions::continue_single;
-            },
-            [&](const nesting::IdentifierLiteral& id) { return parseId(id); },
-            [&](const nesting::StringLiteral& s) { return parseLiteral(s); },
-            [&](const nesting::NumberLiteral& n) { return parseLiteral(n); },
-            [&](const nesting::BlockLiteral& b) { return parseLiteral(b); },
-            [](const auto&) { return ParseOptions::finish_single; });
-        return result;
-    }
+    // template<class Context>
+    // [[nodiscard]] static auto parsePartialExpr(BlockLineView& it, Context& context) -> VecOfPartiallyParsed {
+    //     auto result = VecOfPartiallyParsed{};
+    //     auto parseSubExpr = [&]() {
+    //         ++it; // skip signal
+    //         auto subExpr = parseValueExpr(it, context);
+    //         if (subExpr) {
+    //             std::move(subExpr).value().visit(
+    //                 [&](auto&& val) { result.emplace_back(std::move(val)); },
+    //                 [&](VecOfPartiallyParsed&& subPartial) {
+    //                     for (auto&& val : subPartial) {
+    //                         result.emplace_back(std::move(val));
+    //                     }
+    //                 });
+    //         }
+    //     };
+    //     it.current().visit(
+    //         [](const nesting::CommaSeparator&) { return ParseOptions::finish_single; },
+    //         [](const nesting::BracketClose&) { return ParseOptions::finish_single; },
+    //         [&](const nesting::BracketOpen&) {
+    //             if (!result.empty()) return ParseOptions::finish_single;
+    //             auto tuple = parseNameTypeValueTuple(it, context);
+    //             result.emplace_back(ValueExpr{std::move(tuple)});
+    //             return ParseOptions::continue_single;
+    //         },
+    //         [&](const nesting::IdentifierLiteral& id) { return parseId(id); },
+    //         [&](const nesting::StringLiteral& s) { return parseLiteral(s); },
+    //         [&](const nesting::NumberLiteral& n) { return parseLiteral(n); },
+    //         [&](const nesting::BlockLiteral& b) { return parseLiteral(b); },
+    //         [](const auto&) { return ParseOptions::finish_single; });
+    //     return result;
+    // }
 
     template<class ValueType, class ContextBase, class Token>
     [[nodiscard]] static auto makeTokenValue(
