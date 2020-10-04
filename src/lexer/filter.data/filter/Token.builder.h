@@ -64,7 +64,8 @@ auto id(const char (&text)[N]) -> IdentifierLiteral {
 
 template<size_t N>
 auto op(const char (&text)[N]) -> IdentifierLiteral {
-    return IdentifierLiteral{View{text}, {scanner::IdentifierLiteralType::operator_sign}};
+    return IdentifierLiteral{
+        {View{text}}, scanner::IdentifierLiteralValue{scanner::IdentifierLiteralType::operator_sign}};
 }
 
 template<class Tok>
