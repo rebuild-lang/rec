@@ -17,7 +17,7 @@ Project {
 
         Export {
             Depends { name: "cpp" }
-            cpp.cxxLanguageVersion: "c++17"
+            cpp.cxxLanguageVersion: "c++2a"
 
             Properties {
                 condition: qbs.toolchain.contains('msvc') && !qbs.toolchain.contains('clang-cl')
