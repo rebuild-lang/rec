@@ -12,12 +12,16 @@
 #include "instance/Scope.h"
 #include "instance/Type.h"
 
+#include "meta/Pointer.h"
 #include "meta/TypeList.h"
 
 #include <cassert>
 #include <map>
 
 namespace intrinsicAdapter {
+
+using meta::Ptr;
+using meta::ptr_to;
 
 namespace details {
 
@@ -173,11 +177,11 @@ struct Adapter {
         instanceModule->locals.emplace(std::move(moduleBuilder.instanceModule));
     }
 
-    using FunctionInfoFunc = intrinsic::FunctionInfoFunc;
+    using FunctionInfo = intrinsic::FunctionInfo;
 
-    template<auto* F, FunctionInfoFunc Info>
-    void function() {
-        return functionImpl<Info, F>(makeSignature(F));
+    template<auto* F>
+    void function(Ptr<F>*, const FunctionInfo& info) {
+        return functionImpl(ptr_to<F>, info, makeSignature(F));
     }
 
     struct IsImplicit {
@@ -188,16 +192,14 @@ struct Adapter {
         }
     };
 
-    template<FunctionInfoFunc Info, auto* F, class... Params>
-    void functionImpl(intrinsic::FunctionSignature<void, Params...>) {
+    template<auto* F, class... Params>
+    void functionImpl(Ptr<F>*, const FunctionInfo& info, intrinsic::FunctionSignature<void, Params...>) {
         auto externParams = meta::TypeList<Params...>::template filterPred<IsImplicit>();
-        functionImpl2<Info, F, Params...>(externParams);
+        functionImpl2<Params...>(ptr_to<F>, info, externParams);
     }
 
-    template<FunctionInfoFunc Info, auto* F, class... Params, class... ExternParams>
-    void functionImpl2(meta::TypeList<ExternParams...>) {
-        // assert((GenericFunc)f2 == (GenericFunc)F);
-        auto info = Info();
+    template<class... Params, auto* F, class... ExternParams>
+    void functionImpl2(Ptr<F>*, const FunctionInfo& info, meta::TypeList<ExternParams...>) {
         auto r = std::make_shared<instance::Function>();
         r->name = strings::to_string(info.name);
         r->flags = functionFlags(info.flags);

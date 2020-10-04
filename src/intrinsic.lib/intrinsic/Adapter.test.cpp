@@ -114,27 +114,27 @@ struct TypeOf<uint64_t> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<&implicitFrom, [] {
+        mod.function(ptr_to<implicitFrom>, [] {
             auto info = FunctionInfo{};
             info.name = Name{".implicitFrom"};
             info.flags = FunctionFlag::CompileTimeOnly;
             return info;
-        }>();
-        mod.template function<&add, [] {
+        }());
+        mod.function(ptr_to<add>, [] {
             auto info = FunctionInfo{};
             info.name = Name{"add"};
             return info;
-        }>();
-        mod.template function<&sub, [] {
+        }());
+        mod.function(ptr_to<sub>, [] {
             auto info = FunctionInfo{};
             info.name = Name{"sub"};
             return info;
-        }>();
-        mod.template function<&mul, [] {
+        }());
+        mod.function(ptr_to<mul>, [] {
             auto info = FunctionInfo{};
             info.name = Name{"mul"};
             return info;
-        }>();
+        }());
     }
 };
 

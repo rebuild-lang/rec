@@ -18,6 +18,7 @@ Project {
             "Optional.h",
             "Optional.ostream.h",
             "Overloaded.h",
+            "Pointer.h",
             "Same.h",
             "Type.h",
             "TypeList.h",

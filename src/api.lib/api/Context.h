@@ -249,17 +249,17 @@ struct TypeOf<ContextInterface*> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<&declareModule, [] {
+        mod.function(ptr_to<declareModule>, [] {
             return FunctionInfo{Name{".declareModule"}, FunctionFlag::CompileTimeSideEffects};
-        }>();
+        }());
 
-        mod.template function<&declareVariable, [] {
+        mod.function(ptr_to<declareVariable>, [] {
             return FunctionInfo{Name{".declareVariable"}, FunctionFlag::CompileTimeSideEffects};
-        }>();
+        }());
 
-        mod.template function<&declareFunction, [] {
+        mod.function(ptr_to<declareFunction>, [] {
             return FunctionInfo{Name{".declareFunction"}, FunctionFlag::CompileTimeSideEffects};
-        }>();
+        }());
     }
 };
 
@@ -288,20 +288,20 @@ struct Rebuild {
         mod.template module<Instance>();
         mod.template module<ParserModule>();
 
-        mod.template function<&debugSay, [] {
+        mod.function(ptr_to<debugSay>, [] {
             return FunctionInfo{Name{".say"}, FunctionFlag::CompileTimeSideEffects};
-        }>();
+        }());
 
         // mod.template type<compiler::Scope>();
         // mod.template type<compiler::LocalScope>();
 
-        //        mod.template function<&currentContext,
+        //        mod.function(ptr_to<currentContext>,
         //            [] {
         //                auto info = FunctionInfo{};
         //                info.name = Name{".context"};
         //                info.flags = FunctionFlag::CompileTimeOnly;
         //                return info;
-        //            }>();
+        //            }());
     }
 };
 

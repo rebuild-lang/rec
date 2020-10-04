@@ -80,16 +80,16 @@ struct TypeOf<api::Pointer> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<&address, [] {
+        mod.function(ptr_to<address>, [] {
             auto info = FunctionInfo{};
             info.name = Name{".address"};
             return info;
-        }>();
-        mod.template function<&value, [] {
+        }());
+        mod.function(ptr_to<value>, [] {
             auto info = FunctionInfo{};
             info.name = Name{".value"};
             return info;
-        }>();
+        }());
     }
 };
 

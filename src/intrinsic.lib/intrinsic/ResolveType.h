@@ -4,7 +4,11 @@
 #include "instance/Type.h"
 #include "intrinsic/Function.h"
 
+#include "meta/Pointer.h"
+
 namespace intrinsic {
+
+using meta::Ptr;
 
 template<class Type>
 struct ResolveType {
@@ -38,8 +42,8 @@ struct ResolveType {
         if (inner.result) result = inner.result;
     }
 
-    template<auto* F, FunctionInfoFunc Info>
-    void function() {}
+    template<auto* F>
+    void function(Ptr<F>*, const FunctionInfo&) {}
 };
 
 } // namespace intrinsic
