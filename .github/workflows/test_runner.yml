@@ -35,5 +35,5 @@ jobs:
       - run: >-
           qbs build profile:MSVC2019-x64
           --file rec_cpp.qbs
-          --build-directory %TMP%\build
+          --build-directory ${RUNNER_TEMP}\build
           -p autotest-runner
