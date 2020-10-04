@@ -32,7 +32,7 @@ constexpr auto hasSideEffects(const Value&) -> bool { return false; }
 constexpr auto hasSideEffects(const VecOfPartiallyParsed&) -> bool { return false; }
 
 inline auto hasSideEffects(const VariableInit& vi) -> bool { return hasSideEffects(vi.nodes); }
-inline auto hasSideEffects(const ModuleInit& mi) -> bool {
+inline auto hasSideEffects(const ModuleInit & /*mi*/) -> bool {
     return false;
     // TODO(arBmind): make use of module InitExpr
     // hasSideEffects(mi.nodes);

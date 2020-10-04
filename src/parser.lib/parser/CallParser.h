@@ -100,7 +100,7 @@ private:
         return ntv.value ? true : false;
     }
     template<class T>
-    static auto implicitConvert(const NameTypeValue& ntv, ParameterView parameter, External<T>& external)
+    static auto implicitConvert(const NameTypeValue& ntv, ParameterView /*parameter*/, External<T>& external)
         -> VecOfValueExpr {
         if (ntv.type || !ntv.value) {
             auto type = external.intrinsicType(meta::Type<NameTypeValue>{});
@@ -141,7 +141,7 @@ private:
         };
         auto paramByPos = [&](const ItemIt& itemIt) -> OptParameterView {
             auto params = itemIt->function->rightParameters(); // TODO(arBmind): cache rightParameters!
-            if (itemIt->argIndex < 0 || itemIt->argIndex >= params.size()) return {};
+            if (itemIt->argIndex < 0 || itemIt->argIndex >= static_cast<int>(params.size())) return {};
             return params[itemIt->argIndex].get();
         };
         auto scanParamByName = [&](ItemIt& itemIt, strings::View name) -> OptParameterView {

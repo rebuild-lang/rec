@@ -209,7 +209,7 @@ private:
 
         auto memory = tmpData.get();
         const auto& fun = *call.function;
-        for (const auto param : fun.parameters) {
+        for (const auto& param : fun.parameters) {
             if (param->side != instance::ParameterSide::result) continue;
             if (!param->defaultValue.empty()) continue;
             if (auto* assign = findAssign(call.arguments, *param); assign != nullptr) continue;

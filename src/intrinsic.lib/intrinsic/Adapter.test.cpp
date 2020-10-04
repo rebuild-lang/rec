@@ -275,7 +275,7 @@ struct TypeOf<instance::Type*> {
     };
 
     template<class Module>
-    static constexpr void module(Module& mod) {
+    static constexpr void module(Module& /*mod*/) {
         // mod.function<ReadName>();
         // mod.function<ReadParent>();
         // mod.function<ReadSize>();

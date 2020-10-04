@@ -49,13 +49,7 @@ struct BlockLine {
     template<class F>
     void forEach(F&& f) const;
 
-    bool hasErrors() const {
-        constexpr static auto hasError = [](const auto& t) {
-            return t.visit([](auto& e) { return hasTokenError(e); });
-        };
-        auto contains = [](const auto& c) { return c.end() != std::find_if(c.begin(), c.end(), hasError); };
-        return contains(tokens) || contains(insignificants);
-    }
+    bool hasErrors() const;
 };
 using BlockLines = std::vector<BlockLine>;
 
@@ -115,6 +109,12 @@ void BlockLine::forEach(F&& f) const {
     }
     while (ti != te) f(*ti++);
     while (ii != ie) f(*ii++);
+}
+
+inline bool BlockLine::hasErrors() const {
+    constexpr static auto hasError = [](const auto& t) { return t.visit([](auto& e) { return hasTokenError(e); }); };
+    auto contains = [](const auto& c) { return c.end() != std::find_if(c.begin(), c.end(), hasError); };
+    return contains(tokens) || contains(insignificants);
 }
 
 } // namespace nesting

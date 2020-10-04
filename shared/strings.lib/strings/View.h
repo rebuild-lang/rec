@@ -124,11 +124,14 @@ private:
 };
 
 struct CompareView : View {
+    using This = CompareView;
     using View::View;
     CompareView() = default;
     CompareView(const View& v)
         : View(v.begin(), v.end()) {}
-    constexpr bool operator==(const This& o) const { return View::operator==(o) || isContentEqual(o); }
+    constexpr bool operator==(const This& o) const {
+        return View::operator==(static_cast<const View&>(o)) || isContentEqual(o);
+    }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
 };
 

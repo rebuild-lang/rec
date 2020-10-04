@@ -263,7 +263,7 @@ private:
                     }
                     // TODO: extract Type of module…
                 },
-                [](NameTypeValueTuple&& tuple) {
+                [](NameTypeValueTuple&& /*tuple*/) {
                     // TODO: one member + value of type 'Type'
                 },
                 [](Block&&) {
@@ -501,7 +501,7 @@ private:
     template<class Context>
     using ParseFunc = auto (*)(BlockLineView& it, Context& context) -> OptValueExpr;
 
-    [[nodiscard]] static auto getParserForType(const parser::TypeView& type) -> TypeParser {
+    [[nodiscard]] static auto getParserForType(const parser::TypeView & /*type*/) -> TypeParser {
         return TypeParser::Expression;
         //        return type.visit(
         //            [&](const Pointer& ptr) {
@@ -528,8 +528,8 @@ private:
             return [](BlockLineView& it, Context& context) -> OptValueExpr {
                 auto optNtv = parseNameTypeValue(it, context);
                 if (optNtv) {
-                    auto type = context.intrinsicType(meta::Type<NameTypeValue>{});
-                    auto value = NameTypeValue{optNtv.value()};
+                    // auto type = context.intrinsicType(meta::Type<NameTypeValue>{});
+                    // auto value = NameTypeValue{optNtv.value()};
                     // return {Value{std::move(value), {TypeInstance{type}}}};
                     return {}; // TODO(arBmind): new types
                 }

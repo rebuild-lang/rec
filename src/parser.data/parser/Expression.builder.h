@@ -321,7 +321,9 @@ auto buildValueExpr(const Scope& scope, Expr&& expr) -> ValueExpr {
 
 template<class Expr>
 auto buildBlockExpr(const Scope& scope, Expr&& expr) -> BlockExpr {
-    return buildValueExpr(scope, std::forward<Expr>(expr)).visit([](auto&& expr) -> BlockExpr { return expr; });
+    return buildValueExpr(scope, std::forward<Expr>(expr)).visit([]<class VExpr>(VExpr&& vexpr) -> BlockExpr {
+        return std::forward<VExpr>(vexpr);
+    });
 }
 
 } // namespace parser
