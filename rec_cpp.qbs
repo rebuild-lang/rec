@@ -57,15 +57,10 @@ Project {
             ".gitattributes",
             ".github/workflows/test_runner.yml",
             ".gitignore",
-            ".travis.yml",
             "Makefile",
             "Readme.md",
-            "Vagrantfile",
-            "azure-pipelines.yml",
             "docs/modules.adoc",
             "docs/rebuild_API.adoc",
-            "vagrant_install.sh",
-            "vagrant_make.bat",
         ]
     }
 }
