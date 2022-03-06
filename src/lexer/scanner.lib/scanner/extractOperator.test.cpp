@@ -51,15 +51,15 @@ TEST_P(OperatorScanners, all) {
     ASSERT_TRUE(optTok);
 
     auto tok = optTok.value();
-    ASSERT_TRUE(tok.holds<OperatorLiteral>());
+    ASSERT_TRUE(tok.holds<IdentifierLiteral>());
 
-    const auto& lit = tok.get<OperatorLiteral>();
+    const auto& lit = tok.get<IdentifierLiteral>();
     EXPECT_EQ(param.content, strings::to_string(lit.input));
     constexpr const auto beginPosition = Position{Line{1}, Column{1}};
     EXPECT_EQ(beginPosition, lit.position);
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     examples,
     OperatorScanners,
     ::testing::Values( //

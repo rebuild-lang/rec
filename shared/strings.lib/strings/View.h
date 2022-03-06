@@ -27,6 +27,10 @@ private:
 
 public:
     constexpr View() noexcept = default;
+    constexpr View(const View&) = default;
+    constexpr View(View&&) = default;
+    constexpr View& operator=(const View&) = default;
+    constexpr View& operator=(View&&) = default;
 
     template<size_t N>
     constexpr explicit View(const Char (&str)[N]) noexcept // view a constant string literal
@@ -45,18 +49,17 @@ public:
     // enable fast optional
     // equal if view on the same range
     // use isContentEqual for content comparison
-    constexpr bool operator==(const This& o) const { return start_m == o.start_m && end_m == o.end_m; }
-    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+    constexpr bool operator==(const This& o) const noexcept = default;
 
     // byte ordering
     constexpr bool operator<(const This& o) const {
         auto l = *this;
         auto r = o;
-        auto lcp = l.pop().orValue(0);
-        auto rcp = r.pop().orValue(0);
+        auto lcp = l.pop().orValue(Byte{0});
+        auto rcp = r.pop().orValue(Byte{0});
         while (lcp != 0 && lcp == rcp) {
-            lcp = l.pop().orValue(0);
-            rcp = r.pop().orValue(0);
+            lcp = l.pop().orValue(Byte{0});
+            rcp = r.pop().orValue(Byte{0});
         }
         return (lcp < rcp);
     }
@@ -120,11 +123,14 @@ private:
 };
 
 struct CompareView : View {
+    using This = CompareView;
     using View::View;
     CompareView() = default;
     CompareView(const View& v)
         : View(v.begin(), v.end()) {}
-    constexpr bool operator==(const This& o) const { return View::operator==(o) || isContentEqual(o); }
+    constexpr bool operator==(const This& o) const {
+        return View::operator==(static_cast<const View&>(o)) || isContentEqual(o);
+    }
     constexpr bool operator!=(const This& o) const { return !(*this == o); }
 };
 

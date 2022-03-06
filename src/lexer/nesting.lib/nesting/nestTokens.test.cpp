@@ -54,7 +54,7 @@ TEST_P(NestTransformation, BlockParser) {
     ASSERT_EQ(blk, data.expected);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     examples,
     NestTransformation,
     ::testing::Values(
@@ -151,7 +151,7 @@ INSTANTIATE_TEST_CASE_P(
         ),
     [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     missingEndErrors,
     NestTransformation,
     ::testing::Values(
@@ -201,7 +201,7 @@ INSTANTIATE_TEST_CASE_P(
         }()),
     [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     extraEnd,
     NestTransformation,
     ::testing::Values(
@@ -231,7 +231,7 @@ INSTANTIATE_TEST_CASE_P(
         }()),
     [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     wrongBlockIndentation,
     NestTransformation,
     ::testing::Values(
@@ -268,7 +268,7 @@ INSTANTIATE_TEST_CASE_P(
         }()),
     [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     wrongLineIndentation,
     NestTransformation,
     ::testing::Values(
@@ -299,7 +299,7 @@ INSTANTIATE_TEST_CASE_P(
         }()),
     [](const ::testing::TestParamInfo<NestTokensData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     extraTokens,
     NestTransformation,
     ::testing::Values(

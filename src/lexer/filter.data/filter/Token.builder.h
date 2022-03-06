@@ -23,12 +23,14 @@ struct TokenLineBuilder {
 
     template<class... Tok>
     auto insignificants(Tok&&... t) && -> This {
-        auto add = [this](auto&& t) {
-            using T = std::remove_const_t<std::remove_reference_t<decltype(t)>>;
-            if (std::is_same_v<T, NewLineIndentation>) line.newLineIndex = line.insignificants.size();
-            if (std::is_same_v<T, BlockStartColon>) line.blockStartColonIndex = line.insignificants.size();
-            if (std::is_same_v<T, BlockEndIdentifier>) line.blockEndIdentifierIndex = line.insignificants.size();
-            line.insignificants.emplace_back(std::forward<decltype(t)>(t));
+        auto add = [this]<class TR>(TR&& t) {
+            using T = std::remove_const_t<std::remove_reference_t<TR>>;
+            if (std::is_same_v<T, NewLineIndentation>) line.newLineIndex = static_cast<int>(line.insignificants.size());
+            if (std::is_same_v<T, BlockStartColon>)
+                line.blockStartColonIndex = static_cast<int>(line.insignificants.size());
+            if (std::is_same_v<T, BlockEndIdentifier>)
+                line.blockEndIdentifierIndex = static_cast<int>(line.insignificants.size());
+            line.insignificants.emplace_back(std::forward<TR>(t));
         };
         (add(std::forward<Tok>(t)), ...);
         return std::move(*this);
@@ -54,12 +56,18 @@ inline auto id(View v) -> IdentifierLiteral { return IdentifierLiteral{{v}}; }
 
 template<size_t N>
 auto id(const char (&text)[N]) -> IdentifierLiteral {
-    return IdentifierLiteral{View{text}};
+    auto type = [&] {
+        if (text[0] == '.') return scanner::IdentifierLiteralType::member;
+        if (text[0] == '$') return scanner::IdentifierLiteralType::pattern_placeholder;
+        return scanner::IdentifierLiteralType::normal;
+    }();
+    return IdentifierLiteral{View{text}, {type, {}}};
 }
 
 template<size_t N>
-auto op(const char (&text)[N]) -> OperatorLiteral {
-    return OperatorLiteral{View{text}};
+auto op(const char (&text)[N]) -> IdentifierLiteral {
+    return IdentifierLiteral{
+        {View{text}}, scanner::IdentifierLiteralValue{scanner::IdentifierLiteralType::operator_sign}};
 }
 
 template<class Tok>

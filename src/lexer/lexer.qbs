@@ -1,8 +1,6 @@
 import qbs
 
 Project {
-    minimumQbsVersion: "1.7.1"
-
     references: [
         "scanner.data/scanner",
         "scanner.ostream/scanner",

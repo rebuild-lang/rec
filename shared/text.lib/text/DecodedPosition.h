@@ -16,8 +16,7 @@ struct InputPositionData {
     View input{};
     Position position{};
 
-    constexpr bool operator==(const This& o) const { return input == o.input && position == o.position; }
-    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+    constexpr bool operator==(const This& o) const noexcept = default;
 };
 
 template<class...>
@@ -28,10 +27,7 @@ struct CodePointPosition : InputPositionData {
     CodePoint codePoint{};
     Position endPosition{};
 
-    constexpr bool operator==(const This& o) const {
-        return input == o.input && position == o.position && codePoint == o.codePoint && endPosition == o.endPosition;
-    }
-    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+    constexpr bool operator==(const This& o) const noexcept = default;
 };
 
 using NewlinePosition = InputPosition<struct NewlinePositionTag>;

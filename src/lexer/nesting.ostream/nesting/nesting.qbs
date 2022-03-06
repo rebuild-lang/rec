@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "nesting.ostream"
-    minimumQbsVersion: "1.7.1"
 
     Product {
         name: "nesting.ostream"

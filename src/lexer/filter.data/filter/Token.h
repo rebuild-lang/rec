@@ -8,7 +8,6 @@ using scanner::BracketOpen;
 using scanner::CommaSeparator;
 using scanner::IdentifierLiteral;
 using scanner::NumberLiteral;
-using scanner::OperatorLiteral;
 using scanner::SquareBracketClose;
 using scanner::SquareBracketOpen;
 using scanner::StringLiteral;
@@ -33,8 +32,7 @@ using Token = meta::Variant<
     BracketClose,
     StringLiteral,
     NumberLiteral,
-    IdentifierLiteral,
-    OperatorLiteral>;
+    IdentifierLiteral>;
 
 using Insignificant = meta::Variant<
     CommentLiteral,
@@ -95,14 +93,7 @@ struct TokenLine {
         while (ii != ie) f(*ii++);
     }
 
-    bool operator==(const This& o) const {
-        return tokens == o.tokens //
-            && insignificants == o.insignificants //
-            && newLineIndex == o.newLineIndex //
-            && blockStartColonIndex == o.blockStartColonIndex //
-            && blockEndIdentifierIndex == o.blockEndIdentifierIndex;
-    }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const = default;
 };
 
 } // namespace filter

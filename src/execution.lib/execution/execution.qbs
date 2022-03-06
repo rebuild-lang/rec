@@ -2,12 +2,11 @@ import qbs
 
 Project {
     name: "execution.lib"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "execution.lib"
         Depends { name: "cpp" }
-        cpp.combineCxxSources: true
+        // cpp.combineCxxSources: true
         cpp.includePaths: [".."]
 
         Depends { name: "instance.data" }

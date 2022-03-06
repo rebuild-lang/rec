@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "rec.lib"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "rec.lib"
@@ -17,6 +16,7 @@ Project {
 
         Depends { name: "nesting.ostream" }
         Depends { name: "scanner.ostream" }
+        Depends { name: "instance.ostream" }
         Depends { name: "diagnostic.ostream" }
         files: [
             "Compiler.cpp",
@@ -37,6 +37,7 @@ Project {
 
             Depends { name: "nesting.ostream" }
             Depends { name: "scanner.ostream" }
+            Depends { name: "instance.ostream" }
             Depends { name: "diagnostic.ostream" }
         }
     }

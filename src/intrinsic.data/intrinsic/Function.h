@@ -1,5 +1,6 @@
 #pragma once
 #include "meta/Flags.h"
+#include "meta/Pointer.h"
 #include "strings/View.h"
 
 #include "Parameter.h"
@@ -8,6 +9,7 @@
 
 namespace intrinsic {
 
+using meta::ptr_to;
 using Name = strings::View;
 
 enum class FunctionFlag : uint64_t {
@@ -29,7 +31,5 @@ template<class Ret, class... Args>
 auto makeSignature(Ret (*)(Args...)) -> FunctionSignature<Ret, Args...> {
     return {};
 }
-
-using FunctionInfoFunc = intrinsic::FunctionInfo (*)();
 
 } // namespace intrinsic

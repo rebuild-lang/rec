@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "rec.app"
-    minimumQbsVersion: "1.7.1"
 
     Application {
         name: "rec.app"

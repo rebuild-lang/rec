@@ -1,3 +1,0 @@
-#include "OperatorLiteralValue.h"
-
-// empty

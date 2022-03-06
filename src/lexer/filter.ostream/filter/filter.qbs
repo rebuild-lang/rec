@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "filter.ostream"
-    minimumQbsVersion: "1.7.1"
 
     Product {
         name: "filter.ostream"

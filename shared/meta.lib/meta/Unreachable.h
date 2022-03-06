@@ -11,7 +11,7 @@ namespace details {
 template<class Result = void>
 [[noreturn]] auto unreachable() -> Result {
     details::reportUnreachable();
-    return {};
+    // return {};
 }
 
 } // namespace meta

@@ -4,16 +4,25 @@
 
 namespace instance {
 
+struct Scope;
+using ConstScopePtr = std::shared_ptr<const Scope>;
+
 struct Scope {
     using This = Scope;
 
-    const This* parent{};
-    LocalScope locals;
+    LocalScopePtr locals{};
+    ConstScopePtr parent{};
 
-    Scope() = default;
+    Scope()
+        : locals(std::make_shared<LocalScope>()) {}
     ~Scope() = default;
-    explicit Scope(const This* parent)
-        : parent(parent) {}
+    explicit Scope(LocalScopePtr locals, ConstScopePtr parent)
+        : locals(std::move(locals))
+        , parent(std::move(parent)) {}
+
+    explicit Scope(ConstScopePtr parent)
+        : locals(std::make_shared<LocalScope>())
+        , parent(std::move(parent)) {}
 
     // move enabled
     Scope(This&&) = default;
@@ -23,14 +32,13 @@ struct Scope {
     Scope(const This&) = delete;
     Scope& operator=(const This&) = delete;
 
-public:
-    auto operator[](NameView name) const& -> ConstEntryRange {
-        auto range = locals[name];
-        if (range.empty() && parent != nullptr) return (*parent)[name];
-        return range;
+    [[nodiscard]] auto byName(NameView name) const& -> ConstEntryRange {
+        if (auto range = locals->byName(name); !range.empty()) return range;
+        if (parent) return parent->byName(name);
+        return {};
     }
 
-    auto emplace(Entry&& entry) & -> EntryView { return locals.emplace(std::move(entry)); }
+    auto emplace(Entry&& entry) & -> void { locals->emplace(std::move(entry)); }
 };
 
 } // namespace instance

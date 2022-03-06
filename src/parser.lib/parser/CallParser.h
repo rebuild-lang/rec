@@ -56,7 +56,7 @@ struct CallParser {
         if (withBrackets) {
             auto& open = it.current().get<nesting::BracketOpen>();
             ++it; // skip BracketOpen
-            parseArgumentsWithout(os, it, external);
+            parseImpl(os, it, external);
             if (!it || !it.current().holds<nesting::BracketClose>()) {
                 if (!os.tainted) {
                     CallErrorReporter::reportMissingClosingBracket(open, it, external);
@@ -67,7 +67,7 @@ struct CallParser {
             ++it; // skip BracketClose
             return;
         }
-        parseArgumentsWithout(os, it, external);
+        parseImpl(os, it, external);
     }
 
 private:
@@ -76,7 +76,7 @@ private:
     using ItemIt = Items::iterator;
 
     template<class T>
-    static bool isTyped(const TypeView& t, External<T>& external) {
+    static bool isNameTypeValue(const TypeView& t, External<T>& external) {
         return t == external.intrinsicType(meta::Type<parser::NameTypeValue>{});
     }
     template<class T>
@@ -84,7 +84,7 @@ private:
         return t == external.intrinsicType(meta::Type<parser::BlockLiteral>{});
     }
     template<class T>
-    static bool isNodeBlockLiteral(const OptNode& node, External<T>& external) {
+    static bool isNodeBlockLiteral(const OptValueExpr& node, External<T>& external) {
         if (!node) return false;
         if (!node.value().holds<Value>()) return false;
         auto& value = node.value().get<Value>();
@@ -92,22 +92,23 @@ private:
     }
 
     template<class T>
-    static bool canImplicitConvert(const NameTypeValue& typed, ParameterView parameter, External<T>& external) {
-        if (typed.type || !typed.value) {
-            return isTyped(parameter->typed.type, external);
+    static bool canImplicitConvert(const NameTypeValue& ntv, ParameterView parameter, External<T>& external) {
+        if (ntv.type || !ntv.value) {
+            return isNameTypeValue(parameter->variable->type, external);
         }
         // TODO(arBmind): allow real conversions
-        return typed.value ? true : false;
+        return ntv.value ? true : false;
     }
     template<class T>
-    static auto implicitConvert(const NameTypeValue& typed, ParameterView parameter, External<T>& external) -> Nodes {
-        if (typed.type || !typed.value) {
+    static auto implicitConvert(const NameTypeValue& ntv, ParameterView /*parameter*/, External<T>& external)
+        -> VecOfValueExpr {
+        if (ntv.type || !ntv.value) {
             auto type = external.intrinsicType(meta::Type<NameTypeValue>{});
             auto value = Value(type);
-            value.set<NameTypeValue>() = typed;
+            value.set<NameTypeValue>() = ntv;
             return {std::move(value)};
         }
-        return {typed.value.value()};
+        return {ntv.value.value()};
     }
 
     static void parseOptionalComma(BlockLineView& it) {
@@ -115,7 +116,7 @@ private:
     }
 
     template<class T>
-    static void parseArgumentsWithout(CallOverloads& os, BlockLineView& startIt, External<T>& external) {
+    static void parseImpl(CallOverloads& os, BlockLineView& startIt, External<T>& external) {
         for (auto& o : os.items) o.it = startIt;
         auto itemBegin = begin(os.items);
         auto itemEnd = end(os.items);
@@ -140,8 +141,8 @@ private:
         };
         auto paramByPos = [&](const ItemIt& itemIt) -> OptParameterView {
             auto params = itemIt->function->rightParameters(); // TODO(arBmind): cache rightParameters!
-            if (itemIt->argIndex < 0 || itemIt->argIndex >= params.size()) return {};
-            return params[itemIt->argIndex];
+            if (itemIt->argIndex < 0 || itemIt->argIndex >= static_cast<int>(params.size())) return {};
+            return params[itemIt->argIndex].get();
         };
         auto scanParamByName = [&](ItemIt& itemIt, strings::View name) -> OptParameterView {
             while (true) {
@@ -166,24 +167,24 @@ private:
                 item.active = false;
             }
         };
-        auto assignParam = [&](ItemIt& itemIt, BlockLineView& it, const NameTypeValue& typed) {
-            bool sideEffect = hasSideEffects(typed);
+        auto assignParam = [&](ItemIt& itemIt, BlockLineView& it, const NameTypeValue& nameTypeValue) {
+            bool sideEffect = hasSideEffects(nameTypeValue);
             if (sideEffect) os.sideEffects++;
             auto allowMismatch = bool{};
             auto baseIt = itemIt->it;
-            auto isNamed = typed.name && !typed.type;
+            auto isNamed = nameTypeValue.name && !nameTypeValue.type;
             while (true) {
-                auto optParam = isNamed ? paramByName(itemIt, typed.name.value()) : paramByPos(itemIt);
-                if (optParam && canImplicitConvert(typed, optParam.value(), external)) {
+                auto optParam = isNamed ? paramByName(itemIt, nameTypeValue.name.value()) : paramByPos(itemIt);
+                if (optParam && canImplicitConvert(nameTypeValue, optParam.value(), external)) {
                     auto param = optParam.value();
                     auto as = ArgumentAssignment{};
                     as.parameter = param;
-                    as.values = implicitConvert(typed, param, external);
+                    as.values = implicitConvert(nameTypeValue, param, external);
                     itemIt->args.push_back(std::move(as));
                     itemIt->it = it;
                     itemIt->argIndex = isNamed && paramByPos(itemIt) != optParam ? -1 : (itemIt->argIndex + 1);
                     if (sideEffect) itemIt->sideEffects++;
-                    if (isNodeBlockLiteral(typed.value, external)) itemIt->hasBlocks = true;
+                    if (isNodeBlockLiteral(nameTypeValue.value, external)) itemIt->hasBlocks = true;
                     updateStatus(*itemIt);
                     if (itemIt->active) parseOptionalComma(itemIt->it);
                 }
@@ -203,19 +204,19 @@ private:
             auto next = nextItem();
             auto nextIt = next->it;
 
-            auto parseValue = [&](NameTypeValue& typed) {
+            auto parseValue = [&](NameTypeValue& ntv) {
                 auto optParam =
-                    (typed.name && !typed.type) ? scanParamByName(next, typed.name.value()) : scanParamByPos(next);
+                    (ntv.name && !ntv.type) ? scanParamByName(next, ntv.name.value()) : scanParamByPos(next);
                 if (optParam) {
-                    auto parseArg = external.parserForType(optParam.value()->typed.type);
-                    typed.value = parseArg(nextIt);
+                    auto parseArg = external.parserForType(optParam.value()->variable->type);
+                    ntv.value = parseArg(nextIt);
                 }
                 // invalid Param cannot be parsed
             };
-            auto optTyped = external.parseTypedWithCallback(nextIt, parseValue);
+            auto optNtv = external.parseNtvWithCallback(nextIt, parseValue);
             if (next == active) continue; // no params matched
-            if (optTyped) {
-                assignParam(next, nextIt, optTyped.value());
+            if (optNtv) {
+                assignParam(next, nextIt, optNtv.value());
             }
             else {
                 next->active = false;

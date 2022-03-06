@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "intrinsic.lib"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "intrinsic.lib"

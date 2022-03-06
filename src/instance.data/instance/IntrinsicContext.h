@@ -1,20 +1,21 @@
 #pragma once
 #include "diagnostic/Diagnostic.h"
 #include "instance/Views.h"
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 namespace intrinsic {
 
-struct Context {
-    instance::Scope* parserScope{};
+struct ContextInterface {
+    instance::ScopePtr parserScope{};
     const instance::Scope* executionScope{};
 
-    Context(instance::Scope* parserScope, const instance::Scope* executionScope)
-        : parserScope(parserScope)
-        , executionScope(executionScope) {}
+    ContextInterface(instance::ScopePtr parserScope, const instance::ScopePtr& executionScope)
+        : parserScope(std::move(parserScope))
+        , executionScope(executionScope.get()) {}
 
     /// run Parser for a block of code and a custom scope
-    virtual auto parse(const parser::BlockLiteral& block, instance::Scope* scope) const -> parser::Block = 0;
+    [[nodiscard]] virtual auto parse(const parser::BlockLiteral& block, const instance::ScopePtr& scope) const
+        -> parser::Block = 0;
 
     /// report diagnostics from the C++ API
     virtual void report(diagnostic::Diagnostic diagnostic) = 0;

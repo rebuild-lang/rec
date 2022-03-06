@@ -40,22 +40,12 @@ struct BlockLine {
     std::vector<Token> tokens{};
     std::vector<Insignificant> insignificants{};
 
-    bool operator==(const This& o) const {
-        return tokens == o.tokens //
-            && insignificants == o.insignificants;
-    }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const = default;
 
     template<class F>
     void forEach(F&& f) const;
 
-    bool hasErrors() const {
-        constexpr static auto hasError = [](const auto& t) {
-            return t.visit([](auto& e) { return hasTokenError(e); });
-        };
-        auto contains = [](const auto& c) { return c.end() != std::find_if(c.begin(), c.end(), hasError); };
-        return contains(tokens) || contains(insignificants);
-    }
+    bool hasErrors() const;
 };
 using BlockLines = std::vector<BlockLine>;
 
@@ -65,8 +55,7 @@ struct BlockLiteralValue {
 
     auto hasErrors() const -> bool { return false; }
 
-    bool operator!=(const This& o) const { return lines != o.lines; }
-    bool operator==(const This& o) const { return lines == o.lines; }
+    bool operator==(const This& o) const = default;
 };
 
 using BlockLiteral = scanner::details::ValueToken<BlockLiteralValue>;
@@ -77,7 +66,6 @@ using filter::ColonSeparator;
 using filter::CommaSeparator;
 using filter::IdentifierLiteral;
 using filter::NumberLiteral;
-using filter::OperatorLiteral;
 using filter::SquareBracketClose;
 using filter::SquareBracketOpen;
 using filter::StringLiteral;
@@ -92,8 +80,7 @@ using TokenVariant = meta::Variant<
     BracketClose,
     StringLiteral,
     NumberLiteral,
-    IdentifierLiteral,
-    OperatorLiteral>;
+    IdentifierLiteral>;
 
 struct Token : TokenVariant {
     META_VARIANT_CONSTRUCT(Token, TokenVariant)
@@ -117,6 +104,12 @@ void BlockLine::forEach(F&& f) const {
     }
     while (ti != te) f(*ti++);
     while (ii != ie) f(*ii++);
+}
+
+inline bool BlockLine::hasErrors() const {
+    constexpr static auto hasError = [](const auto& t) { return t.visit([](auto& e) { return hasTokenError(e); }); };
+    auto contains = [](const auto& c) { return c.end() != std::find_if(c.begin(), c.end(), hasError); };
+    return contains(tokens) || contains(insignificants);
 }
 
 } // namespace nesting

@@ -1,6 +1,5 @@
 #pragma once
-
-#include <cinttypes>
+#include <stddef.h> // size_t
 
 namespace meta {
 

@@ -4,10 +4,10 @@
 
 namespace instance {
 
-auto Function::lookupParameter(NameView name) const -> OptParameterView {
-    auto r = parameterScope[name];
+auto Function::lookupParameter(NameView paramName) const -> OptParameterView {
+    auto r = parameterScope.byName(paramName);
     if (!r.single()) return {};
-    return &r.frontValue().get(meta::type<Parameter>);
+    return r.frontValue().get(meta::type<VariablePtr>)->parameter;
 }
 
 } // namespace instance

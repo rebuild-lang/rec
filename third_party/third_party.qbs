@@ -2,7 +2,6 @@ import qbs
 import qbs.FileInfo
 
 Project {
-    minimumQbsVersion: "1.7.1"
     id: root
 
     property string googletestPath: "googletest"
@@ -53,10 +52,6 @@ Project {
                 condition: qbs.toolchain.contains('clang')
                 cpp.cxxStandardLibrary: "libc++"
                 cpp.staticLibraries: ["pthread"]
-            }
-            Properties {
-                condition: qbs.toolchain.contains('msvc') && !qbs.toolchain.contains('clang-cl')
-                cpp.cxxFlags: ["/experimental:external", "/external:W0", "/external:I", FileInfo.joinPaths(qbs.sourceDirectory, project.googletestPath)]
             }
         }
     }

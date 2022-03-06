@@ -29,8 +29,7 @@ struct StringError {
     View input{};
     Position position{};
 
-    bool operator==(const This& o) const { return o.kind == kind && o.input == input && o.position == position; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const = default;
 };
 using StringErrors = std::vector<StringError>;
 
@@ -41,8 +40,7 @@ struct StringLiteralValue {
 
     auto hasErrors() const -> bool { return !errors.empty(); }
 
-    bool operator==(const This& o) const { return o.text == text && o.errors == errors; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const = default;
 };
 
 } // namespace scanner

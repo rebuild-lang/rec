@@ -10,54 +10,59 @@ namespace details {
 
 struct TypeModuleBuilder {
     using This = TypeModuleBuilder;
-    Module mod_;
-    Type type_;
+    ModulePtr mod_;
+    TypePtr type_;
+
+    [[nodiscard]] TypeModuleBuilder()
+        : mod_(std::make_shared<Module>())
+        , type_(std::make_shared<Type>()) {
+        type_->module = mod_.get();
+        mod_->locals.emplace(type_);
+    }
 
     template<size_t N>
-    explicit TypeModuleBuilder(const char (&name)[N]) {
-        mod_.name = Name{name};
+    [[nodiscard]] explicit TypeModuleBuilder(const char (&name)[N])
+        : TypeModuleBuilder() {
+        mod_->name = Name{name};
     }
 
-    auto size(size_t size) && -> This {
-        type_.size = size;
+    [[nodiscard]] auto size(size_t size) && -> This {
+        type_->size = size;
         return std::move(*this);
     }
-    auto align(size_t align) && -> This {
-        type_.alignment = align;
+    [[nodiscard]] auto align(size_t align) && -> This {
+        type_->alignment = align;
         return std::move(*this);
     }
-    auto construct(parser::ConstructFunc* f) && -> This {
-        type_.constructFunc = f;
+    [[nodiscard]] auto construct(parser::ConstructFunc* f) && -> This {
+        type_->constructFunc = f;
         return std::move(*this);
     }
-    auto destruct(parser::DestructFunc* f) && -> This {
-        type_.destructFunc = f;
+    [[nodiscard]] auto destruct(parser::DestructFunc* f) && -> This {
+        type_->destructFunc = f;
         return std::move(*this);
     }
 
-    auto clone(parser::CloneFunc* f) && -> This {
-        type_.cloneFunc = f;
+    [[nodiscard]] auto clone(parser::CloneFunc* f) && -> This {
+        type_->cloneFunc = f;
         return std::move(*this);
     }
-    auto equal(parser::EqualFunc* f) && -> This {
-        type_.equalFunc = f;
+    [[nodiscard]] auto equal(parser::EqualFunc* f) && -> This {
+        type_->equalFunc = f;
         return std::move(*this);
     }
 #ifdef VALUE_DEBUG_DATA
-    auto debugData(parser::DebugDataFunc* f) && -> This {
-        type_.debugDataFunc = f;
+    [[nodiscard]] auto debugData(parser::DebugDataFunc* f) && -> This {
+        type_->debugDataFunc = f;
         return std::move(*this);
     }
 #endif
-    auto parser(parser::TypeParser parser) && -> This {
-        type_.typeParser = parser;
+    [[nodiscard]] auto parser(parser::TypeParser parser) && -> This {
+        type_->typeParser = parser;
         return std::move(*this);
     }
 
-    auto build() && -> Module {
-        auto ptr = &mod_;
-        type_.module = ptr;
-        mod_.locals.emplace(std::move(type_));
+    [[nodiscard]] auto build() && -> ModulePtr {
         return std::move(mod_); // note: move constructor fixes module ptr in type!
     }
 };

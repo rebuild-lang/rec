@@ -20,8 +20,7 @@ void reportLineErrors(const nesting::BlockLine& line, Context& context) {
             [&](const nesting::CommentLiteral& cl) { reportTokenWithDecodeErrors(line, cl, context); },
             [&](const nesting::StringLiteral& sl) { reportStringLiteral(line, sl, context); },
             [&](const nesting::NumberLiteral& sl) { reportNumberLiteral(line, sl, context); },
-            [&](const nesting::IdentifierLiteral& il) { reportTokenWithDecodeErrors(line, il, context); },
-            [&](const nesting::OperatorLiteral& ol) { reportOperatorLiteral(line, ol, context); },
+            [&](const nesting::IdentifierLiteral& ol) { reportIdentifierLiteral(line, ol, context); },
             [&](const nesting::InvalidEncoding& ie) { reportInvalidEncoding(line, ie, context); },
             [&](const nesting::UnexpectedCharacter& uc) { reportUnexpectedCharacter(line, uc, context); },
             // filter
@@ -113,7 +112,7 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
         auto str = escaped.str();
         output += strings::String{str.data(), str.data() + str.size()};
         begin = input.end();
-        offset += str.length();
+        offset += static_cast<int>(str.length());
     };
 
     for (auto d : strings::utf8Decode(view)) {
@@ -144,8 +143,8 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
         auto i = 0;
         for (const auto& vm : viewMarkers) {
             auto& m = markers[i];
-            m.start = vm.begin() - view.begin();
-            m.length = vm.byteCount().v;
+            m.start = static_cast<int>(vm.begin() - view.begin());
+            m.length = static_cast<int>(vm.byteCount().v);
             i++;
         }
         return EscapedMarkers{to_string(view), std::move(markers)};
@@ -154,12 +153,9 @@ inline auto escapeSourceLine(strings::View view, ViewMarkers viewMarkers) -> Esc
     return EscapedMarkers{to_string(output), std::move(markers)};
 }
 
-template<class Context>
+template<class ContextBase>
 void reportDecodeErrorMarkers(
-    text::Line line,
-    strings::View tokenLines,
-    const parser::ViewMarkers& viewMarkers,
-    parser::ContextApi<Context>& context) {
+    text::Line line, strings::View tokenLines, const parser::ViewMarkers& viewMarkers, Context<ContextBase>& context) {
 
     using namespace diagnostic;
 
@@ -169,9 +165,10 @@ void reportDecodeErrorMarkers(
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
     auto doc = Document{
-        {Paragraph{(viewMarkers.size() == 1) ? String{"The UTF8-decoder encountered an invalid encoding"}
-                                             : String{"The UTF8-decoder encountered multiple invalid encodings"},
-                   {}},
+        {Paragraph{
+             (viewMarkers.size() == 1) ? String{"The UTF8-decoder encountered an invalid encoding"}
+                                       : String{"The UTF8-decoder encountered multiple invalid encodings"},
+             {}},
          SourceCodeBlock{escapedLines, highlights, String{}, line}}};
 
     auto expl = Explanation{String("Invalid UTF8 Encoding"), doc};
@@ -197,7 +194,10 @@ inline void collectDecodeErrorMarkers(
             },
             [&](const nesting::IdentifierLiteral& il) {
                 if (il.isTainted || !il.input.isPartOf(tokenLines)) return;
-                for (auto& p : il.decodeErrors) viewMarkers.emplace_back(p.input);
+                for (auto& err : il.value.errors) {
+                    err.visitSome(
+                        [&](const scanner::DecodedErrorPosition& dep) { viewMarkers.emplace_back(dep.input); });
+                }
                 if (&il != tok) const_cast<nesting::IdentifierLiteral&>(il).isTainted = true;
             },
             [&](const nesting::NewLineIndentation& nli) {
@@ -215,7 +215,7 @@ inline void collectDecodeErrorMarkers(
 }
 
 template<class Token, class Context>
-void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, ContextApi<Context>& context) {
+void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, Context& context) {
     using namespace diagnostic;
 
     auto tokenLines = extractViewLines(blockLine, tok.input);
@@ -224,9 +224,9 @@ void reportDecodeErrors(const nesting::BlockLine& blockLine, const Token& tok, C
     reportDecodeErrorMarkers(tok.position.line, tokenLines, viewMarkers, context);
 }
 
-template<class Context>
+template<class ContextBase>
 void reportNewline(
-    const nesting::BlockLine& blockLine, const nesting::NewLineIndentation& nli, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::NewLineIndentation& nli, Context<ContextBase>& context) {
     if (nli.isTainted || !nli.value.hasErrors()) return; // already reported or no errors
 
     using namespace diagnostic;
@@ -269,8 +269,9 @@ void reportNewline(
         auto highlights = Highlights{};
         for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
-        auto doc = Document{{Paragraph{String{"The indentation mixes tabs and spaces."}, {}},
-                             SourceCodeBlock{escapedLines, highlights, String{}, text::Line{nli.position.line.v - 1}}}};
+        auto doc = Document{
+            {Paragraph{String{"The indentation mixes tabs and spaces."}, {}},
+             SourceCodeBlock{escapedLines, highlights, String{}, text::Line{nli.position.line.v - 1}}}};
 
         auto expl = Explanation{String("Mixed Indentation Characters"), doc};
 
@@ -283,15 +284,15 @@ template<class... Tags, class Context>
 void reportTokenWithDecodeErrors(
     const nesting::BlockLine& blockLine,
     const scanner::details::TagTokenWithDecodeErrors<Tags...>& de,
-    ContextApi<Context>& context) {
+    Context& context) {
     if (de.isTainted || de.decodeErrors.empty()) return; // already reported or no errors
 
     reportDecodeErrors(blockLine, de, context);
 }
 
-template<class Context>
+template<class ContextBase>
 void reportStringLiteral(
-    const nesting::BlockLine& blockLine, const nesting::StringLiteral& sl, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::StringLiteral& sl, Context<ContextBase>& context) {
     if (sl.isTainted || !sl.value.hasErrors()) return;
 
     using namespace diagnostic;
@@ -315,8 +316,9 @@ void reportStringLiteral(
         using Kind = scanner::StringError::Kind;
         switch (err.kind) {
         case Kind::EndOfInput: {
-            auto doc = Document{{Paragraph{String{"The string was not terminated."}, {}},
-                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto doc = Document{
+                {Paragraph{String{"The string was not terminated."}, {}},
+                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
             auto expl = Explanation{String("Unexpected end of input"), doc};
             auto d = Diagnostic{Code{String{"rebuild-lexer"}, 10}, Parts{expl}};
             context.reportDiagnostic(std::move(d));
@@ -327,32 +329,36 @@ void reportStringLiteral(
             break;
         }
         case Kind::InvalidEscape: {
-            auto doc = Document{{Paragraph{String{"These Escape sequences are unknown."}, {}},
-                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto doc = Document{
+                {Paragraph{String{"These Escape sequences are unknown."}, {}},
+                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
             auto expl = Explanation{String("Unkown escape sequence"), doc};
             auto d = Diagnostic{Code{String{"rebuild-lexer"}, 11}, Parts{expl}};
             context.reportDiagnostic(std::move(d));
             break;
         }
         case Kind::InvalidControl: {
-            auto doc = Document{{Paragraph{String{"Use of invalid control characters. Use escape sequences."}, {}},
-                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto doc = Document{
+                {Paragraph{String{"Use of invalid control characters. Use escape sequences."}, {}},
+                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
             auto expl = Explanation{String("Unkown control characters"), doc};
             auto d = Diagnostic{Code{String{"rebuild-lexer"}, 12}, Parts{expl}};
             context.reportDiagnostic(std::move(d));
             break;
         }
         case Kind::InvalidDecimalUnicode: {
-            auto doc = Document{{Paragraph{String{"Use of invalid decimal unicode values."}, {}},
-                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto doc = Document{
+                {Paragraph{String{"Use of invalid decimal unicode values."}, {}},
+                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
             auto expl = Explanation{String("Invalid decimal unicode"), doc};
             auto d = Diagnostic{Code{String{"rebuild-lexer"}, 13}, Parts{expl}};
             context.reportDiagnostic(std::move(d));
             break;
         }
         case Kind::InvalidHexUnicode: {
-            auto doc = Document{{Paragraph{String{"Use of invalid hexadecimal unicode values."}, {}},
-                                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
+            auto doc = Document{
+                {Paragraph{String{"Use of invalid hexadecimal unicode values."}, {}},
+                 SourceCodeBlock{escapedLines, highlights, String{}, sl.position.line}}};
             auto expl = Explanation{String("Invalid hexadecimal unicode"), doc};
             auto d = Diagnostic{Code{String{"rebuild-lexer"}, 14}, Parts{expl}};
             context.reportDiagnostic(std::move(d));
@@ -364,9 +370,9 @@ void reportStringLiteral(
     auto viewMarkers = ViewMarkers{};
 }
 
-template<class Context>
+template<class ContextBase>
 void reportNumberLiteral(
-    const nesting::BlockLine& blockLine, const nesting::NumberLiteral& nl, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::NumberLiteral& nl, Context<ContextBase>& context) {
     if (nl.isTainted || !nl.value.hasErrors()) return;
 
     using namespace diagnostic;
@@ -393,22 +399,25 @@ void reportNumberLiteral(
                 reportDecodeErrorMarkers(nl.position.line, tokenLines, viewMarkers, context);
             },
             [&, &escapedLines = escapedLines](const scanner::NumberMissingExponent&) {
-                auto doc = Document{{Paragraph{String{"After the exponent sign an actual value is expected."}, {}},
-                                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
+                auto doc = Document{
+                    {Paragraph{String{"After the exponent sign an actual value is expected."}, {}},
+                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
                 auto expl = Explanation{String("Missing exponent value"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 20}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
             },
             [&, &escapedLines = escapedLines](const scanner::NumberMissingValue&) {
-                auto doc = Document{{Paragraph{String{"After the radix sign an actual value is expected."}, {}},
-                                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
+                auto doc = Document{
+                    {Paragraph{String{"After the radix sign an actual value is expected."}, {}},
+                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
                 auto expl = Explanation{String("Missing value"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 21}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
             },
             [&, &escapedLines = escapedLines](const scanner::NumberMissingBoundary&) {
-                auto doc = Document{{Paragraph{String{"The number literal ends with an unknown suffix."}, {}},
-                                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
+                auto doc = Document{
+                    {Paragraph{String{"The number literal ends with an unknown suffix."}, {}},
+                     SourceCodeBlock{escapedLines, highlights, String{}, nl.position.line}}};
                 auto expl = Explanation{String("Missing boundary"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 22}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
@@ -416,16 +425,16 @@ void reportNumberLiteral(
     }
 }
 
-template<class Context>
-void reportOperatorLiteral(
-    const nesting::BlockLine& blockLine, const nesting::OperatorLiteral& ol, ContextApi<Context>& context) {
+template<class ContextBase>
+void reportIdentifierLiteral(
+    const nesting::BlockLine& blockLine, const nesting::IdentifierLiteral& ol, Context<ContextBase>& context) {
     if (ol.isTainted || !ol.value.hasErrors()) return;
 
     using namespace diagnostic;
 
     auto tokenLines = extractViewLines(blockLine, ol.input);
 
-    auto reportedKinds = std::bitset<scanner::OperatorLiteralError::optionCount()>{};
+    auto reportedKinds = std::bitset<scanner::IdentifierLiteralError::optionCount()>{};
     for (auto& err : ol.value.errors) {
         auto kind = err.index().value();
         if (reportedKinds[kind]) continue;
@@ -445,22 +454,25 @@ void reportOperatorLiteral(
                 reportDecodeErrorMarkers(ol.position.line, tokenLines, viewMarkers, context);
             },
             [&, &escapedLines = escapedLines](const scanner::OperatorWrongClose&) {
-                auto doc = Document{{Paragraph{String{"The closing sign does not match the opening sign."}, {}},
-                                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
+                auto doc = Document{
+                    {Paragraph{String{"The closing sign does not match the opening sign."}, {}},
+                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
                 auto expl = Explanation{String("Operator wrong close"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 30}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
             },
             [&, &escapedLines = escapedLines](const scanner::OperatorUnexpectedClose&) {
-                auto doc = Document{{Paragraph{String{"There was no opening sign before the closing sign."}, {}},
-                                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
+                auto doc = Document{
+                    {Paragraph{String{"There was no opening sign before the closing sign."}, {}},
+                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
                 auto expl = Explanation{String("Operator unexpected close"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 31}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
             },
             [&, &escapedLines = escapedLines](const scanner::OperatorNotClosed&) {
-                auto doc = Document{{Paragraph{String{"The operator ends before the closing sign was found."}, {}},
-                                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
+                auto doc = Document{
+                    {Paragraph{String{"The operator ends before the closing sign was found."}, {}},
+                     SourceCodeBlock{escapedLines, highlights, String{}, ol.position.line}}};
                 auto expl = Explanation{String("Operator not closed"), doc};
                 auto d = Diagnostic{Code{String{"rebuild-lexer"}, 32}, Parts{expl}};
                 context.reportDiagnostic(std::move(d));
@@ -469,16 +481,15 @@ void reportOperatorLiteral(
 }
 
 template<class Context>
-void reportInvalidEncoding(
-    const nesting::BlockLine& blockLine, const nesting::InvalidEncoding& ie, ContextApi<Context>& context) {
+void reportInvalidEncoding(const nesting::BlockLine& blockLine, const nesting::InvalidEncoding& ie, Context& context) {
     if (ie.isTainted) return; // already reported
 
     reportDecodeErrors(blockLine, ie, context);
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedCharacter(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedCharacter& uc, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedCharacter& uc, Context<ContextBase>& context) {
     if (uc.isTainted) return;
 
     using namespace diagnostic;
@@ -501,11 +512,12 @@ void reportUnexpectedCharacter(
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
     auto doc = Document{
-        {Paragraph{(viewMarkers.size() == 1)
-                       ? String{"The tokenizer encountered a character that is not part of any Rebuild language token."}
-                       : String{"The tokenizer encountered multiple characters that are not part of any Rebuild "
-                                "language token."},
-                   {}},
+        {Paragraph{
+             (viewMarkers.size() == 1)
+                 ? String{"The tokenizer encountered a character that is not part of any Rebuild language token."}
+                 : String{"The tokenizer encountered multiple characters that are not part of any Rebuild "
+                          "language token."},
+             {}},
          SourceCodeBlock{escapedLines, highlights, String{}, uc.position.line}}};
 
     auto expl = Explanation{String("Unexpected characters"), doc};
@@ -514,9 +526,9 @@ void reportUnexpectedCharacter(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedColon(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedColon& uc, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedColon& uc, Context<ContextBase>& context) {
     if (uc.isTainted) return;
 
     using namespace diagnostic;
@@ -529,8 +541,9 @@ void reportUnexpectedColon(
     auto highlights = Highlights{};
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
-    auto doc = Document{{Paragraph{String{"The colon cannot be the only token on a line."}, {}},
-                         SourceCodeBlock{escapedLines, highlights, String{}, uc.position.line}}};
+    auto doc = Document{
+        {Paragraph{String{"The colon cannot be the only token on a line."}, {}},
+         SourceCodeBlock{escapedLines, highlights, String{}, uc.position.line}}};
 
     auto expl = Explanation{String("Unexpected colon"), doc};
 
@@ -538,9 +551,9 @@ void reportUnexpectedColon(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedIndent(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedIndent& ui, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedIndent& ui, Context<ContextBase>& context) {
     if (ui.isTainted) return;
 
     using namespace diagnostic;
@@ -574,9 +587,9 @@ void reportUnexpectedIndent(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedTokenAfterEnd(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedTokensAfterEnd& utae, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedTokensAfterEnd& utae, Context<ContextBase>& context) {
 
     using namespace diagnostic;
     auto tokenLines = extractBlockLines(blockLine);
@@ -595,8 +608,9 @@ void reportUnexpectedTokenAfterEnd(
     auto highlights = Highlights{};
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
-    auto doc = Document{{Paragraph{String{"After end no more tokens are allowed."}, {}},
-                         SourceCodeBlock{escapedLines, highlights, String{}, utae.position.line}}};
+    auto doc = Document{
+        {Paragraph{String{"After end no more tokens are allowed."}, {}},
+         SourceCodeBlock{escapedLines, highlights, String{}, utae.position.line}}};
 
     auto expl = Explanation{String("Unexpected tokens after end"), doc};
 
@@ -604,9 +618,9 @@ void reportUnexpectedTokenAfterEnd(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportUnexpectedBlockEnd(
-    const nesting::BlockLine& blockLine, const nesting::UnexpectedBlockEnd& ube, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::UnexpectedBlockEnd& ube, Context<ContextBase>& context) {
 
     if (ube.isTainted) return;
     using namespace diagnostic;
@@ -627,8 +641,9 @@ void reportUnexpectedBlockEnd(
     auto highlights = Highlights{};
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
-    auto doc = Document{{Paragraph{String{"The end keyword is only allowed to end blocks"}, {}},
-                         SourceCodeBlock{escapedLines, highlights, String{}, ube.position.line}}};
+    auto doc = Document{
+        {Paragraph{String{"The end keyword is only allowed to end blocks"}, {}},
+         SourceCodeBlock{escapedLines, highlights, String{}, ube.position.line}}};
 
     auto expl = Explanation{String("Unexpected block end"), doc};
 
@@ -636,9 +651,9 @@ void reportUnexpectedBlockEnd(
     context.reportDiagnostic(std::move(d));
 }
 
-template<class Context>
+template<class ContextBase>
 void reportMissingBlockEnd(
-    const nesting::BlockLine& blockLine, const nesting::MissingBlockEnd& ube, ContextApi<Context>& context) {
+    const nesting::BlockLine& blockLine, const nesting::MissingBlockEnd& ube, Context<ContextBase>& context) {
 
     if (ube.isTainted) return;
     using namespace diagnostic;
@@ -650,8 +665,9 @@ void reportMissingBlockEnd(
     auto highlights = Highlights{};
     for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
-    auto doc = Document{{Paragraph{String{"The block ended without the end keyword"}, {}},
-                         SourceCodeBlock{escapedLines, highlights, String{}, ube.position.line}}};
+    auto doc = Document{
+        {Paragraph{String{"The block ended without the end keyword"}, {}},
+         SourceCodeBlock{escapedLines, highlights, String{}, ube.position.line}}};
 
     auto expl = Explanation{String("Missing Block End"), doc};
 

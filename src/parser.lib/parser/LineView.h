@@ -19,8 +19,7 @@ struct BlockLineView {
     auto current() const -> decltype(auto) { return m_line->tokens[m_index]; }
     auto next() const -> decltype(auto) { return m_line->tokens[m_index + 1]; }
 
-    bool operator==(const This& o) const { return m_line == o.m_line && m_index == o.m_index; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
     bool operator<(const This& o) const { return m_line == o.m_line && m_index < o.m_index; }
 
     auto operator++() & -> This& {

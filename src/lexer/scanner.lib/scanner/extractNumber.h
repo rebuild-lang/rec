@@ -6,6 +6,7 @@
 
 namespace scanner {
 
+using meta::CoEnumerator;
 using text::CodePointPosition;
 using text::DecodedPosition;
 
@@ -19,7 +20,7 @@ using text::DecodedPosition;
  * * decodeErrors are eaten
  * * one error is tracked
  */
-inline auto extractNumber(CodePointPosition firstCpp, meta::CoEnumerator<DecodedPosition>& decoded) -> NumberLiteral {
+inline auto extractNumber(CodePointPosition firstCpp, CoEnumerator<DecodedPosition>& decoded) -> NumberLiteral {
     using text::CodePoint;
     using OptCodePointPosition = meta::Optional<CodePointPosition>;
     auto number = NumberLiteralValue{};

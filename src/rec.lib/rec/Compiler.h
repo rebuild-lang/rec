@@ -12,6 +12,7 @@ namespace rec {
 using TextFile = text::File;
 using TextConfig = text::Config;
 using InstanceScope = instance::Scope;
+using InstanceScopePtr = instance::ScopePtr;
 using CompilerCallback = execution::Compiler;
 using diagnostic::Diagnostics;
 
@@ -25,16 +26,16 @@ struct Config : TextConfig {
 struct Compiler final {
 private:
     Config config;
-    InstanceScope globals;
-    InstanceScope globalScope;
+    InstanceScopePtr globals;
+    InstanceScopePtr globalScope;
     CompilerCallback compilerCallback;
     Diagnostics diagnostics;
 
-    auto executionContext(InstanceScope& parserScope);
-    auto parserContext(InstanceScope& scope);
+    auto executionContext(const InstanceScopePtr& parserScope);
+    auto parserContext(const InstanceScopePtr& scope);
 
 public:
-    Compiler(Config config, InstanceScope globals = {});
+    Compiler(Config config, InstanceScopePtr globals = {});
     ~Compiler() = default;
 
     // the compiler captures this in lambdas, therefore no copy or move allowed

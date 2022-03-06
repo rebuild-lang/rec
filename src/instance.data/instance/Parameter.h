@@ -1,34 +1,39 @@
 #pragma once
-#include "instance/Typed.h"
-
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include "meta/Flags.h"
 #include "strings/String.h"
+#include "strings/View.h"
 
 namespace instance {
 
+using Name = strings::String;
+
 enum class ParameterSide { left, right, result };
 enum class ParameterFlag {
-    optional = 1 << 0,
-    splatted = 1 << 1, // array type is gathered during call
-    token = 1 << 5, // unparsed token
-    expression = 1 << 6, // unevaluated expression
-    compile_time = 1 << 7, // compile time result
-    assignable = 1 << 8,
+    // _mutable = 1 << 0, // == assignable
+    assignable = 1 << 1, // only output parameters are assignable
+
+    // based on type and default assignment
+    compile_time = 1 << 2, ///< variable is usable at compile time
+    run_time = 1 << 3, ///< variable is usable at runtime
+
+    splatted = 1 << 4, // array values are gathered during call
+    // token = 1 << 5, // unparsed token
+    // expression = 1 << 6, // unevaluated expression
     // …
 };
 using ParameterFlags = meta::Flags<ParameterFlag>;
 META_FLAGS_OP(ParameterFlags)
 
 struct Parameter {
-    Typed typed;
+    Name name;
+    parser::TypeExpr type{};
     ParameterSide side{};
     ParameterFlags flags{};
-    parser::Nodes init{};
+    parser::VecOfValueExpr defaultValue{};
+    Variable* variable{}; // mutable pointer to the variable that references this parameter
 };
-using Parameters = std::vector<Parameter>;
-
-inline auto nameOf(const Parameter& arg) -> NameView { return nameOf(arg.typed); }
+using ParameterPtr = std::shared_ptr<Parameter>;
 
 } // namespace instance

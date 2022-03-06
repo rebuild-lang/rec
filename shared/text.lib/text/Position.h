@@ -17,8 +17,7 @@ struct Line {
         return *this;
     }
 
-    constexpr bool operator==(const This& o) const { return v == o.v; }
-    constexpr bool operator!=(const This& o) const { return v != o.v; }
+    constexpr bool operator==(const This& o) const = default;
 
     constexpr bool operator>(const This& o) const { return v > o.v; }
     constexpr bool operator<(const This& o) const { return v < o.v; }
@@ -40,8 +39,7 @@ struct Column {
         return *this;
     }
 
-    constexpr bool operator==(const This& o) const { return v == o.v; }
-    constexpr bool operator!=(const This& o) const { return v != o.v; }
+    constexpr bool operator==(const This& o) const = default;
 
     constexpr bool operator<(const This& o) const { return v < o.v; }
     constexpr bool operator>(const This& o) const { return v > o.v; }
@@ -64,8 +62,7 @@ struct Position {
         column = {};
     }
 
-    constexpr bool operator==(const This& o) const { return line == o.line && column == o.column; }
-    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+    constexpr bool operator==(const This& o) const = default;
 
     constexpr bool operator>(const This& o) const { return line > o.line || (line == o.line && column > o.column); }
     constexpr bool operator>=(const This& o) const { return line > o.line || (line == o.line && column >= o.column); }

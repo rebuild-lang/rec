@@ -26,7 +26,7 @@ struct CallErrorReporter {
             "no reportDiagnostic");
         static_assert(
             std::is_same_v<
-                OptNode,
+                OptValueExpr,
                 decltype( //
                     std::declval<T>().parserForType(std::declval<const TypeView&>()) //
                     (std::declval<BlockLineView&>()))>,
@@ -34,9 +34,9 @@ struct CallErrorReporter {
         static_assert(
             std::is_same_v<
                 OptNameTypeValue,
-                decltype(std::declval<T>().parseTypedWithCallback(
+                decltype(std::declval<T>().parseNtvWithCallback(
                     std::declval<BlockLineView&>(), std::declval<void(NameTypeValue&)>()))>,
-            "no parseTypedWithCallback");
+            "no parseNtvWithCallback");
 
         template<class Type>
         auto intrinsicType(meta::Type<Type>) -> instance::TypeView {
@@ -47,8 +47,8 @@ struct CallErrorReporter {
         auto parserForType(const TypeView& type) { return api.parserForType(type); }
 
         template<class Callback>
-        auto parseTypedWithCallback(BlockLineView& it, Callback&& cb) -> OptNameTypeValue {
-            return api.parseTypedWithCallback(it, std::forward<Callback>(cb));
+        auto parseNtvWithCallback(BlockLineView& it, Callback&& cb) -> OptNameTypeValue {
+            return api.parseNtvWithCallback(it, std::forward<Callback>(cb));
         }
     };
 
@@ -74,10 +74,11 @@ struct CallErrorReporter {
         for (auto& m : escapedMarkers) highlights.emplace_back(Marker{m, {}});
 
         auto doc = Document{
-            {Paragraph{(viewMarkers.size() == 1)
-                           ? String{"A call with opening bracket is expected to close before the end of the line."}
-                           : String{"An closing bracket for the call was expected here."},
-                       {}},
+            {Paragraph{
+                 (viewMarkers.size() == 1)
+                     ? String{"A call with opening bracket is expected to close before the end of the line."}
+                     : String{"An closing bracket for the call was expected here."},
+                 {}},
              SourceCodeBlock{escapedLines, highlights, String{}, line}}};
 
         auto expl = Explanation{String("Missing Closing Bracket"), doc};

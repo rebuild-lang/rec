@@ -2,7 +2,7 @@
 #include "execution/Frame.h"
 #include "execution/Stack.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 #include "instance/Function.h"
 #include "instance/IntrinsicContext.h"
@@ -14,7 +14,11 @@
 
 namespace execution {
 
-using ParseBlock = std::function<parser::Block(const nesting::BlockLiteral& block, instance::Scope* scope)>;
+// TODO(arBmind): somehow fix result / assignable (note: localFrame[TypeView] uses wrong type!
+// TODO(arBmind): run destructors on frames!
+// TODO(arBmind): assign defaults to results if unused!
+
+using ParseBlock = std::function<parser::Block(const nesting::BlockLiteral& block, const instance::ScopePtr& scope)>;
 using ReportDiagnositc = std::function<void(diagnostic::Diagnostic)>;
 
 struct Compiler {
@@ -24,30 +28,30 @@ struct Compiler {
 };
 
 struct Context {
-    Context* parent{};
+    const Context* parent{};
     Compiler* compiler{};
 
     const Context* caller{};
-    instance::Scope* parserScope{};
+    instance::ScopePtr parserScope{};
 
     Byte* localBase{};
     LocalFrame localFrame{};
 
-    auto operator[](instance::TypedView typed) const& -> Byte* {
-        auto addr = localFrame[typed];
+    auto byVariable(instance::VariableView var) const& -> Byte* {
+        auto addr = localFrame.byVariable(var);
         if (addr) return addr;
-        if (parent) return (*parent)[typed];
+        if (parent) return parent->byVariable(var);
         return nullptr;
     }
 
-    auto createCall() const -> Context {
+    auto createCall() const& -> Context {
         auto result = Context{};
         result.compiler = compiler;
         result.caller = this;
         result.parserScope = parserScope;
         return result;
     }
-    auto createNested() & -> Context {
+    auto createNested() const& -> Context {
         auto result = Context{};
         result.parent = this;
         result.compiler = compiler;
@@ -56,14 +60,14 @@ struct Context {
     }
 };
 
-struct IntrinsicContext : intrinsic::Context {
+struct IntrinsicContext : intrinsic::ContextInterface {
     Compiler* compiler{};
 
-    IntrinsicContext(execution::Context& context, const instance::Scope* executionScope)
-        : intrinsic::Context{context.parserScope, executionScope}
+    IntrinsicContext(execution::Context& context, const instance::ScopePtr& executionScope)
+        : intrinsic::ContextInterface{context.parserScope, executionScope}
         , compiler(context.compiler) {}
 
-    auto parse(const parser::BlockLiteral& block, instance::Scope* scope) const -> parser::Block override {
+    auto parse(const parser::BlockLiteral& block, const instance::ScopePtr& scope) const -> parser::Block override {
         return compiler->parseBlock(block, scope);
     }
 
@@ -72,12 +76,8 @@ struct IntrinsicContext : intrinsic::Context {
 
 struct Machine {
     static void runCall(const parser::Call& call, const Context& context) {
-        auto stackSize = argumentsSize(*call.function);
-        auto stackData = context.compiler->stack.allocate(stackSize);
-
-        auto callContext = context.createCall();
-        callContext.localBase = stackData.get();
-        storeArguments(call, callContext);
+        auto tmpContext = storeTemporaryResults(call, context);
+        auto callContext = storeArguments(call, tmpContext);
 
         runFunction(*call.function, callContext);
     }
@@ -88,97 +88,154 @@ struct Machine {
     }
 
 private:
-    static void runNode(const parser::Node& node, Context& context) {
-        node.visit(
+    static void runBlockExpr(const parser::BlockExpr& expr, Context& context) {
+        expr.visit(
             [&](const parser::Block& block) { runFunctionBlock(block, context); },
             [&](const parser::Call& call) { runCall(call, context); },
-            [&](const parser::IntrinsicCall& intrinsic) { runIntrinsic(intrinsic, context); },
-            [&](const parser::ParameterReference&) {},
             [&](const parser::VariableReference&) {},
             [&](const parser::NameTypeValueReference&) {},
-            [&](const parser::VariableInit& var) { initVariable(var, context); },
+            [&](const parser::VariableInit& varInit) { initVariable(varInit, context); },
+            [&](const parser::ModuleInit& modInit) { (void)modInit; }, // TODO(arBmind)
             [&](const parser::ModuleReference&) {},
-            [&](const parser::NameTypeValueTuple& typed) { runTyped(typed, context); },
-            [&](const parser::Value&) {});
+            [&](const parser::NameTypeValueTuple& ntvTuple) { runTuple(ntvTuple, context); },
+            [&](const parser::TypeReference&) {},
+            [&](const parser::Value&) {},
+            [](const parser::VecOfPartiallyParsed&) {});
     }
 
     static void initVariable(const parser::VariableInit& var, Context& context) {
-        auto memory = context[&var.variable->typed];
+        auto memory = context.byVariable(var.variable);
         if (var.nodes.size() == 1) {
             for (const auto& node : var.nodes) {
-                storeNode(node, context, memory);
+                storeValueExpr(node, context, memory);
             }
         }
     }
 
     static void runFunctionBlock(const parser::Block& block, Context& context) {
-        auto frameSize = variablesInBlockSize(block.nodes);
+        auto frameSize = variablesInBlockSize(block.expressions);
         auto frameData = context.compiler->stack.allocate(frameSize);
 
         auto nested = context.createNested();
         nested.localBase = frameData.get();
-        layoutVariables(block.nodes, nested);
+        layoutVariables(block.expressions, nested);
 
-        for (const auto& node : block.nodes) {
-            runNode(node, nested);
+        for (const auto& node : block.expressions) {
+            runBlockExpr(node, nested);
         }
     }
 
-    static void runIntrinsic(const parser::IntrinsicCall& intrinsic, Context& context) {
-        Byte* memory = context.parent->localBase; // arguments
+    static void runIntrinsic(const instance::IntrinsicCall& intrinsic, Context& context) {
+        Byte* memory = context.localBase; // arguments
         auto intrinsicContext = IntrinsicContext{context, nullptr};
         intrinsic.exec(memory, &intrinsicContext);
     }
 
     static void runFunction(const instance::Function& function, Context& context) {
-        runFunctionBlock(function.body.block, context);
+        function.body.visit(
+            [&](const instance::IntrinsicCall& intrinsic) { runIntrinsic(intrinsic, context); },
+            [&](const instance::ParsedBlock& localBlock) { runFunctionBlock(localBlock.block, context); });
     }
 
-    static void runTyped(const parser::NameTypeValueTuple& typed, Context& context) {
-        for (const auto& entry : typed.tuple) {
-            runNode(entry.value.value(), context);
+    static void runTuple(const parser::NameTypeValueTuple& ntvTuple, Context& context) {
+        for (const auto& entry : ntvTuple.tuple) {
+            runValueExpr(entry.value.value(), context);
         }
     }
+    static void runValueExpr(const parser::ValueExpr& expr, Context& context) {
+        expr.visit(
+            [&](const parser::Block& block) { runFunctionBlock(block, context); },
+            [&](const parser::Call& call) { runCall(call, context); },
+            [&](const parser::VariableReference&) {},
+            [&](const parser::NameTypeValueReference&) {},
+            [&](const parser::ModuleReference&) {},
+            [&](const parser::NameTypeValueTuple& indexNtvs) { runTuple(indexNtvs, context); },
+            [&](const parser::TypeReference&) {},
+            [&](const parser::Value&) {},
+            [](const parser::VecOfPartiallyParsed&) {});
+    }
 
-    static auto variablesInBlockSize(const parser::Nodes& nodes) -> size_t {
-        auto sum = 0u;
+    static auto variablesInBlockSize(const parser::VecOfBlockExpr& nodes) -> size_t {
+        auto sum = size_t{};
         for (auto& n : nodes) {
             n.visitSome([&](const parser::VariableInit& var) { //
-                sum += typeExpressionSize(var.variable->typed.type);
+                sum += typeExpressionSize(var.variable->type);
             });
         }
         return sum;
     }
 
     static auto argumentsSize(const instance::Function& fun) -> size_t {
-        auto sum = 0u;
-        for (auto* param : fun.parameters) {
-            sum += argumentSize(*param);
+        auto sum = size_t{};
+        for (const auto& parameter : fun.parameters) {
+            sum += parameterVariableSize(parameter.get());
         }
         return sum;
     }
-    static auto argumentSize(const instance::Parameter& arg) -> size_t {
+    static auto parameterVariableSize(instance::ParameterView param) -> size_t {
         using namespace instance;
-        if (arg.flags.any(ParameterFlag::splatted)) {
+        if (param->flags.any(ParameterFlag::splatted)) {
             return 8; // TODO(arBmind): sizeof(Array)
         }
-        if (arg.flags.any(ParameterFlag::assignable)) {
+        if (param->flags.any(ParameterFlag::assignable)) {
             return sizeof(void*); // passed as pointer
         }
-        return typeExpressionSize(arg.typed.type);
+        if (param->variable->type) {
+            return param->variable->type->size;
+        }
+        return 1; // error!
     }
 
     static auto typeExpressionSize(const parser::TypeView& type) -> size_t { return type->size; }
 
-    static void storeArguments(const parser::Call& call, Context& context) {
-        Byte* memory = context.localBase;
+    // results are assignable, so we pass a pointer
+    // but we have also have to provide the storage this pointer points to
+    static auto temporaryResultSize(const parser::Call& call) -> size_t {
+        auto size = size_t{};
         const auto& fun = *call.function;
-        // assert(call.arguments sufficient & valid)
-        for (auto* funParam : fun.parameters) {
-            context.localFrame.insert(&funParam->typed, memory);
-            assignArgument(call, *funParam, context, memory);
-            memory += argumentSize(*funParam);
+        for (const auto& parameter : fun.parameters) {
+            if (parameter->side != instance::ParameterSide::result) continue;
+            if (!parameter->defaultValue.empty()) continue;
+            if (auto* assign = findAssign(call.arguments, *parameter); assign != nullptr) continue;
+            size += parameter->variable->type->size;
         }
+        return size;
+    }
+
+    static auto storeTemporaryResults(const parser::Call& call, const Context& context) -> Context {
+        auto tmpSize = temporaryResultSize(call);
+        auto tmpData = context.compiler->stack.allocate(tmpSize);
+        auto tmpContext = context.createNested();
+
+        auto memory = tmpData.get();
+        const auto& fun = *call.function;
+        for (const auto& param : fun.parameters) {
+            if (param->side != instance::ParameterSide::result) continue;
+            if (!param->defaultValue.empty()) continue;
+            if (auto* assign = findAssign(call.arguments, *param); assign != nullptr) continue;
+
+            tmpContext.localFrame.insert(param->variable, memory);
+            param->variable->type->constructFunc(memory);
+            memory += parameterVariableSize(param.get());
+        }
+        return tmpContext;
+    }
+
+    static auto storeArguments(const parser::Call& call, const Context& context) -> Context {
+        auto stackSize = argumentsSize(*call.function);
+        auto stackData = context.compiler->stack.allocate(stackSize);
+
+        auto callContext = context.createCall();
+        auto memory = callContext.localBase = stackData.get();
+
+        const auto& fun = *call.function;
+        for (const auto& param : fun.parameters) {
+            assignArgument(call, *param, callContext, memory);
+
+            callContext.localFrame.insert(param->variable, memory);
+            memory += parameterVariableSize(param.get());
+        }
+        return callContext;
     }
 
     static void assignArgument(
@@ -190,8 +247,12 @@ private:
         if (auto* assign = findAssign(call.arguments, parameter); assign != nullptr) {
             storeArgument(*context.caller, memory, parameter, assign->values);
         }
-        else {
-            storeArgument(*context.caller, memory, parameter, parameter.init);
+        else if (!parameter.defaultValue.empty()) {
+            storeArgument(*context.caller, memory, parameter, parameter.defaultValue);
+        }
+        else if (parameter.side == instance::ParameterSide::result) {
+            auto tmpMemory = context.caller->byVariable(parameter.variable);
+            storeResultAt(memory, parameter, tmpMemory);
         }
     }
 
@@ -199,24 +260,24 @@ private:
         Byte* memory = context.localBase;
         const auto& fun = *call.function;
         // assert(call.arguments sufficient & valid)
-        for (auto* funParam : fun.parameters) {
-            context.localFrame.insert(&funParam->typed, memory);
+        for (auto& funParam : fun.parameters) {
+            // context.localFrame.insert(&funParam, memory);
             if (funParam->side == instance::ParameterSide::result) {
                 storeResultAt(memory, *funParam, result);
             }
             else {
                 assignArgument(call, *funParam, context, memory);
             }
-            memory += argumentSize(*funParam);
+            memory += parameterVariableSize(funParam.get());
         }
     }
 
-    static void layoutVariables(const parser::Nodes& nodes, Context& context) {
+    static void layoutVariables(const parser::VecOfBlockExpr& nodes, Context& context) {
         Byte* memory = context.localBase;
         for (const auto& node : nodes) {
             node.visitSome([&](const parser::VariableInit& var) { //
-                context.localFrame.insert(&var.variable->typed, memory);
-                memory += typeExpressionSize(var.variable->typed.type);
+                context.localFrame.insert(var.variable, memory);
+                memory += typeExpressionSize(var.variable->type);
             });
         }
     }
@@ -233,7 +294,7 @@ private:
         const Context& context, //
         Byte* memory,
         const instance::Parameter& param,
-        const parser::Nodes& nodes) {
+        const parser::VecOfValueExpr& nodes) {
 
         using namespace instance;
         if (param.flags.any(ParameterFlag::splatted)) {
@@ -243,16 +304,13 @@ private:
         if (param.flags.any(ParameterFlag::assignable)) {
             assert(nodes.size() == 1);
             nodes[0].visit(
-                [&](const parser::VariableReference& var) { storeTypedAddress(var.variable->typed, context, memory); },
-                [&](const parser::ParameterReference& param) {
-                    storeTypedAddress(param.parameter->typed, context, memory);
-                },
+                [&](const parser::VariableReference& var) { storeVariableAddress(*var.variable, context, memory); },
                 [&](const parser::Value& value) { storeValueAddress(value, memory); },
                 [&](const auto&) { assert(false); });
             return;
         }
         for (const auto& node : nodes) {
-            storeNode(node, context, memory);
+            storeValueExpr(node, context, memory);
         }
     }
 
@@ -261,23 +319,23 @@ private:
         reinterpret_cast<void*&>(*memory) = result;
     }
 
-    static void storeNode(const parser::Node& node, const Context& context, Byte* memory) {
+    static void storeValueExpr(const parser::ValueExpr& node, const Context& context, Byte* memory) {
         node.visit(
             [&](const parser::Block&) { assert(false); },
             [&](const parser::Call& call) { storeCallResult(call, context, memory); },
-            [&](const parser::IntrinsicCall&) { assert(false); },
-            [&](const parser::ParameterReference& param) { storeTypedValue(param.parameter->typed, context, memory); },
-            [&](const parser::VariableReference& var) { storeTypedValue(var.variable->typed, context, memory); },
+            [&](const parser::VariableReference& var) { storeVariableValue(*var.variable, context, memory); },
             [&](const parser::NameTypeValueReference& ref) {
                 if (ref.nameTypeValue && ref.nameTypeValue->value)
-                    storeNode(ref.nameTypeValue->value.value(), context, memory);
+                    storeValueExpr(ref.nameTypeValue->value.value(), context, memory);
                 else
                     assert(false);
             },
             [&](const parser::VariableInit&) { assert(false); },
             [&](const parser::ModuleReference&) {},
             [&](const parser::NameTypeValueTuple& tuple) { storeTupleCopy(tuple, memory); },
-            [&](const parser::Value& value) { storeValueCopy(value, memory); });
+            [&](const parser::TypeReference&) { assert(false); },
+            [&](const parser::Value& value) { storeValueCopy(value, memory); },
+            [](const parser::VecOfPartiallyParsed&) {});
     }
 
     static void storeCallResult(const parser::Call& call, const Context& context, Byte* memory) {
@@ -291,18 +349,18 @@ private:
         runFunction(*call.function, callContext);
     }
 
-    static void storeTypedAddress(const instance::Typed& typed, const Context& context, Byte* memory) {
-        reinterpret_cast<void*&>(*memory) = context[&typed];
+    static void storeVariableAddress(const instance::Variable& var, const Context& context, Byte* memory) {
+        reinterpret_cast<void*&>(*memory) = context.byVariable(&var);
     }
 
     static void storeValueAddress(const parser::Value& value, Byte* memory) {
         reinterpret_cast<const void*&>(*memory) = value.data(); // store pointer to real instance
     }
 
-    static void storeTypedValue(const instance::Typed& typed, const Context& context, Byte* memory) {
-        auto* source = context[&typed];
+    static void storeVariableValue(const instance::Variable& var, const Context& context, Byte* memory) {
+        auto* source = context.byVariable(&var);
         assert(source);
-        cloneTypeInto(typed.type, memory, source);
+        cloneTypeInto(var.type, memory, source);
     }
 
     static void storeTupleCopy(const parser::NameTypeValueTuple& tuple, Byte* memory) {

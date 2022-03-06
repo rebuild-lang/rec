@@ -94,7 +94,7 @@ inline auto extractOperator(CodePointPosition firstCpp, meta::CoEnumerator<Decod
     };
     using Stack = std::vector<Entry>;
     auto stack = Stack{};
-    auto errors = OperatorLiteralErrors{};
+    auto errors = IdentifierLiteralErrors{};
 
     auto isConsumed = true;
     auto end = firstCpp.input.end();
@@ -179,7 +179,8 @@ inline auto extractOperator(CodePointPosition firstCpp, meta::CoEnumerator<Decod
     if (!stack.empty()) {
         errors.emplace_back(OperatorNotClosed{{View{stack.back().begin, end}, stack.back().beginPosition}});
     }
-    return Token{OperatorLiteral{{inputView(), firstCpp.position}, {std::move(errors)}}};
-} // namespace scanner
+    return Token{
+        IdentifierLiteral{{inputView(), firstCpp.position}, {IdentifierLiteralType::operator_sign, std::move(errors)}}};
+}
 
 } // namespace scanner

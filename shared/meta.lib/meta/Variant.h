@@ -25,8 +25,7 @@ public:
     constexpr explicit operator bool() const { return m < sizeof...(T); }
     constexpr size_t value() const { return m; }
 
-    constexpr bool operator==(const This& o) const { return m == o.m; }
-    constexpr bool operator!=(const This& o) const { return m != o.m; }
+    constexpr bool operator==(const This& o) const = default;
 
     template<class... C>
     constexpr bool holds() const {
@@ -35,6 +34,14 @@ public:
         return Indices::contains(m);
     }
 };
+
+// workaround for:
+// https://developercommunity.visualstudio.com/content/problem/1067936/-ambiguous-base-class-with-stdclatest.html
+struct VisitFallback {
+    template<class... Ts>
+    constexpr auto operator()(const Ts&...) const {}
+};
+inline constexpr auto fallback_lambda = VisitFallback{};
 
 template<class... T>
 struct Variant {
@@ -68,8 +75,7 @@ public:
     Derived(A&&... a)                                                                                                  \
         : Variant(std::forward<A>(a)...) {}
 
-    bool operator==(const This& o) const { return m == o.m; }
-    bool operator!=(const This& o) const { return m != o.m; }
+    bool operator==(const This& o) const = default;
 
     constexpr static auto optionCount() { return sizeof...(T); }
 
@@ -90,17 +96,17 @@ public:
 
     template<class... F>
     auto visitSome(F&&... f) const& -> decltype(auto) {
-        return std::visit(Overloaded{std::forward<F>(f)..., [](const auto&) {}}, m);
+        return std::visit(Overloaded{std::forward<F>(f)..., fallback_lambda}, m);
     }
 
     template<class... F>
     auto visitSome(F&&... f) & -> decltype(auto) {
-        return std::visit(Overloaded{std::forward<F>(f)..., [](const auto&) {}}, m);
+        return std::visit(Overloaded{std::forward<F>(f)..., fallback_lambda}, m);
     }
 
     template<class... F>
     auto visitSome(F&&... f) && -> decltype(auto) {
-        return std::visit(Overloaded{std::forward<F>(f)..., [](const auto&) {}}, std::move(m));
+        return std::visit(Overloaded{std::forward<F>(f)..., fallback_lambda}, std::move(m));
     }
 
     template<class R>

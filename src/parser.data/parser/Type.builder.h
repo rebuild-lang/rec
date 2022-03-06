@@ -19,8 +19,8 @@ struct TypeBuilder {
     operator bool() const { return !name.isEmpty(); }
 
     auto build(const instance::Scope& scope) && -> TypeView {
-        auto* t = &instance::lookupA<instance::Type>(scope, name);
-        return t;
+        const auto& t = instance::lookupA<instance::TypePtr>(scope, name);
+        return t.get();
     }
 };
 

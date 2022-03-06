@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "parser.data"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "parser.data"
@@ -11,8 +10,8 @@ Project {
         Depends { name: "instance.view" }
 
         files: [
-            "Tree.cpp",
-            "Tree.h",
+            "Expression.cpp",
+            "Expression.h",
             "Type.cpp",
             "Type.h",
             "Value.cpp",
@@ -35,7 +34,7 @@ Project {
         Depends { name: "instance.data" }
 
         files: [
-            "Tree.builder.h",
+            "Expression.builder.h",
             "Type.builder.h",
         ]
 

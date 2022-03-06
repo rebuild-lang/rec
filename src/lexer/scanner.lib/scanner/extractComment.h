@@ -26,7 +26,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
     auto updateEnd = [&](auto ip) { end = ip.input.end(); };
 
     auto makeToken = [&, begin = firstCpp.input.begin()]() -> CommentLiteral {
-        return {View{begin, end}, firstCpp.position, decodeErrors};
+        return {{View{begin, end}, firstCpp.position}, decodeErrors};
     };
     auto scanLine = [&] {
         while (decoded) {
@@ -68,7 +68,7 @@ inline auto extractComment(CodePointPosition firstCpp, meta::CoEnumerator<Decode
                     return !(
                         cpp.codePoint.v == '#' //
                         && marker.end() < b //
-                        && marker == CompareView{b, cpp.input.end()});
+                        && CompareView{marker} == CompareView{b, cpp.input.end()});
                 });
             if (!next) break;
         }

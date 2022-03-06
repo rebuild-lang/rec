@@ -27,7 +27,7 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
             [](scanner::UnexpectedCharacter&&) { return meta::unreachable<Token>(); },
             [](scanner::NewLineIndentation&&) { return meta::unreachable<Token>(); },
             [](scanner::SemicolonSeparator&&) { return meta::unreachable<Token>(); },
-            [](auto&& d) { return Token{std::forward<decltype(d)>(d)}; });
+            []<class D>(D&& d) { return Token{std::forward<D>(d)}; });
     };
     auto line = TokenLine{};
     auto addInsignificant = [&](ScannerToken&& tok) {
@@ -38,21 +38,21 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
             [](scanner::UnexpectedCharacter&& c) -> Insignificant { return {c}; },
             [](scanner::SemicolonSeparator&& c) -> Insignificant { return {c}; },
             [&](scanner::NewLineIndentation&& c) -> Insignificant {
-                line.newLineIndex = line.insignificants.size();
+                line.newLineIndex = static_cast<int>(line.insignificants.size());
                 return {c};
             },
             [&](scanner::ColonSeparator&& c) -> Insignificant {
-                line.blockStartColonIndex = line.insignificants.size();
+                line.blockStartColonIndex = static_cast<int>(line.insignificants.size());
                 return BlockStartColon{c};
             },
             [&](scanner::IdentifierLiteral&& c) -> Insignificant {
-                line.blockEndIdentifierIndex = line.insignificants.size();
+                line.blockEndIdentifierIndex = static_cast<int>(line.insignificants.size());
                 return BlockEndIdentifier{c};
             },
             [](auto&&) { return meta::unreachable<Insignificant>(); }));
     };
     auto insertBlockStartColon = [&](size_t index, Insignificant colon) {
-        if (colon.holds<BlockStartColon>()) line.blockStartColonIndex = index;
+        if (colon.holds<BlockStartColon>()) line.blockStartColonIndex = static_cast<int>(index);
         line.insignificants.insert(line.insignificants.begin() + index, colon);
     };
     auto addToken = [&](Token&& tok) { line.tokens.emplace_back(std::move(tok)); };

@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "api.lib"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "api.lib"
@@ -25,6 +24,7 @@ Project {
             "Parser.h",
             "basic/flags.h",
             "basic/list.h",
+            "basic/pointer.h",
             "basic/str.h",
             "basic/u64.h",
         ]

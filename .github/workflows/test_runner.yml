@@ -1,0 +1,60 @@
+name: Test Runner
+
+on: push
+
+jobs:
+  docker-qbs:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "Linux Docker: Clang 13, Qbs 1.20.1"
+            os: ubuntu-20.04
+            image: arbmind/qbs-clang13:qbs_v1.20.1
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: run qbs build
+        run: >-
+          docker run --rm -v ${GITHUB_WORKSPACE}:/build -w /build
+          ${{ matrix.config.image }}
+          build
+          --file rec_cpp.qbs
+          --build-directory /tmp/build
+          -p autotest-runner
+
+  windows-qbs:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "Windows: MSVC 2019"
+            os: windows-2019
+            profile: MSVC2019-x64
+          - name: "Windows: MSVC 2022"
+            os: windows-2022
+            profile: MSVC0-x64
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - run: choco install qbs
+
+      - run: qbs setup-toolchains --detect
+      - run: qbs config --list profiles
+
+      - name: run qbs build
+        run: >-
+          qbs build profile:${{ matrix.config.profile }}
+          --file rec_cpp.qbs
+          --build-directory ${env:RUNNER_TEMP}\build
+          -p autotest-runner

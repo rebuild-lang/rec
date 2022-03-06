@@ -60,16 +60,7 @@ struct NumberLiteralValue {
 
     constexpr auto hasErrors() const { return radix == Radix::invalid || !errors.empty(); }
 
-    bool operator==(const This& o) const noexcept {
-        if (radix == Radix::invalid || o.radix == Radix::invalid) return radix == o.radix; // fast optional invalid
-        return radix == o.radix //
-            && integerPart == o.integerPart //
-            && fractionalPart == o.fractionalPart //
-            && (exponentPart.isEmpty() ? true : exponentSign == o.exponentSign) //
-            && exponentPart == o.exponentPart //
-            && errors == o.errors;
-    }
-    bool operator!=(const This& o) const noexcept { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 
 } // namespace scanner

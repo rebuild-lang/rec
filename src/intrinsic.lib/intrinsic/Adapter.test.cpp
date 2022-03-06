@@ -114,27 +114,27 @@ struct TypeOf<uint64_t> {
 
     template<class Module>
     static constexpr auto module(Module& mod) {
-        mod.template function<&implicitFrom, [] {
+        mod.function(ptr_to<implicitFrom>, [] {
             auto info = FunctionInfo{};
             info.name = Name{".implicitFrom"};
             info.flags = FunctionFlag::CompileTimeOnly;
             return info;
-        }>();
-        mod.template function<&add, [] {
+        }());
+        mod.function(ptr_to<add>, [] {
             auto info = FunctionInfo{};
             info.name = Name{"add"};
             return info;
-        }>();
-        mod.template function<&sub, [] {
+        }());
+        mod.function(ptr_to<sub>, [] {
             auto info = FunctionInfo{};
             info.name = Name{"sub"};
             return info;
-        }>();
-        mod.template function<&mul, [] {
+        }());
+        mod.function(ptr_to<mul>, [] {
             auto info = FunctionInfo{};
             info.name = Name{"mul"};
             return info;
-        }>();
+        }());
     }
 };
 
@@ -275,7 +275,7 @@ struct TypeOf<instance::Type*> {
     };
 
     template<class Module>
-    static constexpr void module(Module& mod) {
+    static constexpr void module(Module& /*mod*/) {
         // mod.function<ReadName>();
         // mod.function<ReadParent>();
         // mod.function<ReadSize>();
@@ -326,26 +326,25 @@ TEST(intrinsic, output) {
 TEST(intrinsic, adapter) {
     using namespace intrinsic;
     using Adapter = intrinsicAdapter::Adapter;
-    auto rebuild = Adapter::moduleInstance<Rebuild>();
-    EXPECT_EQ(strings::to_string(rebuild.name), strings::String{"Rebuild"});
+    auto rebuild = Adapter::moduleOf<Rebuild>();
+    EXPECT_EQ(strings::to_string(rebuild->name), strings::String{"Rebuild"});
 }
 
 TEST(intrinsic, call) {
     using namespace intrinsic;
     using View = strings::View;
     using Adapter = intrinsicAdapter::Adapter;
-    auto rebuild = Adapter::moduleInstance<Rebuild>();
-    ASSERT_TRUE(rebuild.locals[View{"u64"}].single());
-    ASSERT_TRUE(rebuild.locals[View{"u64"}].frontValue().holds<instance::Module>());
-    const auto& u64 = rebuild.locals[View{"u64"}].frontValue().get<instance::Module>();
+    auto rebuild = Adapter::moduleOf<Rebuild>();
+    ASSERT_TRUE(rebuild->locals.byName(View{"u64"}).single());
+    ASSERT_TRUE(rebuild->locals.byName(View{"u64"}).frontValue().holds<instance::ModulePtr>());
+    const auto u64 = rebuild->locals.byName(View{"u64"}).frontValue().get<instance::ModulePtr>();
 
-    ASSERT_TRUE(u64.locals[View{"add"}].single());
-    ASSERT_TRUE(u64.locals[View{"add"}].frontValue().holds<instance::Function>());
-    const auto& add = u64.locals[View{"add"}].frontValue().get<instance::Function>();
+    ASSERT_TRUE(u64->locals.byName(View{"add"}).single());
+    ASSERT_TRUE(u64->locals.byName(View{"add"}).frontValue().holds<instance::FunctionPtr>());
+    const auto& add = u64->locals.byName(View{"add"}).frontValue().get<instance::FunctionPtr>();
 
-    ASSERT_TRUE(!add.body.block.nodes.empty());
-    ASSERT_TRUE(add.body.block.nodes.front().holds<parser::IntrinsicCall>());
-    auto& call = add.body.block.nodes.front().get<parser::IntrinsicCall>();
+    ASSERT_TRUE(add->body.holds<instance::IntrinsicCall>());
+    auto& call = add->body.get<instance::IntrinsicCall>();
 
     constexpr auto u64_size = sizeof(uint64_t);
     constexpr auto ptr_size = sizeof(void*);

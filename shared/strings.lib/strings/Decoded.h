@@ -10,16 +10,14 @@ struct DecodedError {
     using This = DecodedError;
     View input;
 
-    constexpr bool operator==(const This& o) const { return input == o.input; }
-    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+    constexpr bool operator==(const This& o) const = default;
 };
 struct DecodedCodePoint {
     using This = DecodedCodePoint;
     View input;
     CodePoint cp;
 
-    constexpr bool operator==(const This& o) const { return input == o.input && cp == o.cp; }
-    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+    constexpr bool operator==(const This& o) const = default;
 };
 
 using Decoded = meta::Variant<DecodedCodePoint, DecodedError>;

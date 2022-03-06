@@ -4,7 +4,11 @@
 #include "instance/Type.h"
 #include "intrinsic/Function.h"
 
+#include "meta/Pointer.h"
+
 namespace intrinsic {
+
+using meta::Ptr;
 
 template<class Type>
 struct ResolveType {
@@ -15,7 +19,7 @@ struct ResolveType {
 
     template<class T>
     static auto moduleInstance(const instance::Scope* scope) -> instance::TypeView {
-        auto r = This{&scope->locals};
+        auto r = This{scope->locals.get()};
         r.template module<T>();
         return r.result;
     }
@@ -24,22 +28,22 @@ struct ResolveType {
     void type() {
         if constexpr (std::is_same_v<T, Type>) {
             constexpr auto info = TypeOf<T>::info();
-            auto& mod = (*scope)[info.name].frontValue().template get<instance::Module>();
-            result = &mod.locals[strings::View{"type"}].frontValue().template get<instance::Type>();
+            auto& mod = scope->byName(info.name).frontValue().template get<instance::ModulePtr>();
+            result = mod->locals.byName(strings::View{"type"}).frontValue().template get<instance::TypePtr>().get();
         }
     }
 
     template<class T>
     void module() {
         auto info = T::info();
-        auto modRange = (*scope)[info.name];
-        auto inner = This{&modRange.frontValue().template get<instance::Module>().locals};
+        auto modRange = scope->byName(info.name);
+        auto inner = This{&modRange.frontValue().template get<instance::ModulePtr>()->locals};
         T::module(inner);
         if (inner.result) result = inner.result;
     }
 
-    template<auto* F, FunctionInfoFunc Info>
-    void function() {}
+    template<auto* F>
+    void function(Ptr<F>*, const FunctionInfo&) {}
 };
 
 } // namespace intrinsic

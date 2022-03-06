@@ -3,7 +3,7 @@
 #include "intrinsic/Module.h"
 #include "intrinsic/Type.h"
 
-#include "parser/Tree.h"
+#include "parser/Expression.h"
 
 namespace intrinsic {
 
@@ -40,7 +40,7 @@ struct TypeOf<parser::NumberLiteral> {
 };
 
 template<>
-struct TypeOf<parser::BlockLiteral> {
+struct TypeOf<parser::ScopedBlockLiteral> {
     static constexpr auto info() {
         auto info = TypeInfo{};
         info.name = Name{".Block"};
@@ -72,12 +72,12 @@ struct TypeOf<parser::IdentifierLiteral> {
 };
 
 template<>
-struct TypeOf<parser::OperatorLiteral> {
+struct TypeOf<parser::NameTypeValue> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = Name{".Operator"};
+        info.name = Name{".NameTypeValue"};
         info.flags = TypeFlag::CompileTime;
-        info.parser = Parser::SingleToken;
+        info.parser = Parser::IdTypeValue;
         return info;
     }
 
@@ -88,10 +88,10 @@ struct TypeOf<parser::OperatorLiteral> {
 };
 
 template<>
-struct TypeOf<parser::NameTypeValue> {
+struct TypeOf<nesting::BlockLiteral> {
     static constexpr auto info() {
         auto info = TypeInfo{};
-        info.name = Name{".Typed"};
+        info.name = Name{".BlockLiteral"};
         info.flags = TypeFlag::CompileTime;
         info.parser = Parser::IdTypeValue;
         return info;
@@ -114,10 +114,10 @@ struct Literal {
     static constexpr auto module(Module& mod) {
         mod.template type<parser::NumberLiteral>();
         mod.template type<parser::StringLiteral>();
-        mod.template type<parser::BlockLiteral>();
+        mod.template type<parser::ScopedBlockLiteral>();
         mod.template type<parser::IdentifierLiteral>();
-        mod.template type<parser::OperatorLiteral>();
         mod.template type<parser::NameTypeValue>();
+        mod.template type<nesting::BlockLiteral>();
     }
 };
 

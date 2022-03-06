@@ -50,7 +50,7 @@ TEST_P(IdentifierScanners, all) {
     EXPECT_EQ(beginPosition, lit.position);
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     examples,
     IdentifierScanners,
     ::testing::Values( //

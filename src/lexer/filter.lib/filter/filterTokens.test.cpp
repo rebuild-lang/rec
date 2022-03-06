@@ -62,7 +62,7 @@ TEST_P(TokenFilters, FilterParser) {
     }
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     filterStart,
     TokenFilters,
     ::testing::Values(
@@ -101,7 +101,7 @@ INSTANTIATE_TEST_CASE_P(
         ),
     [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     filterEnd,
     TokenFilters,
     ::testing::Values(
@@ -121,7 +121,7 @@ INSTANTIATE_TEST_CASE_P(
         ),
     [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     semicolons,
     TokenFilters,
     ::testing::Values(
@@ -143,7 +143,7 @@ INSTANTIATE_TEST_CASE_P(
         ),
     [](const ::testing::TestParamInfo<TokensFilterData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     blocks,
     TokenFilters,
     ::testing::Values(

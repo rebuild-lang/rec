@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "filter.lib"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "filter.lib"

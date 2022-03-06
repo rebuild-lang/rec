@@ -1,23 +1,24 @@
 import qbs
 
 Project {
-    minimumQbsVersion: "1.7.1"
-
     StaticLibrary {
         name: "meta.lib"
         targetName: "meta"
 
         Depends { name: "cpp" }
-        Depends { name: "cpp17" }
+        Depends { name: "cpp20" }
 
         files: [
             "CoEnumerator.h",
+            "CoRoutine.cpp",
             "CoRoutine.h",
             "Flags.h",
             "Flags.ostream.h",
             "Optional.h",
             "Optional.ostream.h",
             "Overloaded.h",
+            "Pointer.h",
+            "Same.h",
             "Type.h",
             "TypeList.h",
             "TypePack.h",
@@ -34,7 +35,7 @@ Project {
         Export {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
-            Depends { name: "cpp17" }
+            Depends { name: "cpp20" }
         }
     }
 

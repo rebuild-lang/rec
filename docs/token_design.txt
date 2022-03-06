@@ -1,0 +1,54 @@
+
+struct TokenLine {
+  SkippedTokens skipped;
+  MainTokens mains;
+};
+
+struct ErrorTaint {
+  bool before;
+  bool after;
+  bool self;
+  bool between;
+};
+
+using SkippedToken = Variant<
+  WhiteSpaceSeparator,
+  CommentLiteral,
+  InvalidEncoding,
+  UnexpectedCharacter,
+  NewLineIndentation, // in a sequence with comment/newline
+  ColonSeparator, // skipped error: if only Token in a line
+>;
+using MainToken = Variant<
+  NewLineIndentation, // before other tokens for a line
+  BlockStartIndentation,
+  BlockEndIndentation,
+  ColonSeparator, // not before newline
+  CommaSeparator,
+  [Square]Bracket[Open/Close],
+  [String/Number]Literal,
+  [Identifier/Operator]Literal,
+>;
+
+struct TagToken {
+  int skippedIndex; // index where this token would be placed
+  View input; // empty => inserted
+  Position position;
+  ErrorTainted tainted;
+  // SkippedTokens before; // IgnoreTokens / ErrorTokens
+};
+
+struct ComposeToken {
+  Position position;
+  ErrorTainted tainted;
+  //SkippedTokens before;
+  //SkippedTokens between;
+};
+struct BlockStartToken : ComposeToken {
+  ColonToken colon;
+  NewLineIndentToken indent;
+};
+struct BlockEndToken : ComposeToken {
+  NewLineIndentToken indent;
+  IdentifierToken end;
+};

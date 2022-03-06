@@ -14,7 +14,7 @@ inline auto extractIdentifier(CodePointPosition firstCpp, meta::CoEnumerator<Dec
 
     auto end = firstCpp.input.end();
     auto inputView = [&, begin = firstCpp.input.begin()] { return View{begin, end}; };
-    auto errors = DecodedErrorPositions{};
+    auto errors = IdentifierLiteralErrors{};
 
     auto peekCpp = [&]() -> OptCodePointPosition {
         while (true) {
@@ -45,6 +45,7 @@ inline auto extractIdentifier(CodePointPosition firstCpp, meta::CoEnumerator<Dec
         return cp.isLetter() || cp.isPunctuationConnector() || cp.isDecimalNumber();
     };
 
+    auto type = IdentifierLiteralType::normal;
     auto isStart = [&]() -> bool {
         auto chr = firstCpp.codePoint;
         if (chr == '.') {
@@ -53,6 +54,7 @@ inline auto extractIdentifier(CodePointPosition firstCpp, meta::CoEnumerator<Dec
             chr = optCpp.value().codePoint;
             auto r = isFirst(chr);
             if (r) nextCpp();
+            type = IdentifierLiteralType::member;
         }
         return isFirst(chr);
     };
@@ -60,7 +62,7 @@ inline auto extractIdentifier(CodePointPosition firstCpp, meta::CoEnumerator<Dec
     if (!isStart()) return {};
     auto optCpp = peekCpp();
     while (optCpp.map(isContinuation)) optCpp = nextCpp();
-    return Token{IdentifierLiteral{{inputView(), firstCpp.position}, std::move(errors)}};
+    return Token{IdentifierLiteral{{inputView(), firstCpp.position}, {type, std::move(errors)}}};
 }
 
 } // namespace scanner

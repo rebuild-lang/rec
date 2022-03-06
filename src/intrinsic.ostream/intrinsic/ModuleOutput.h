@@ -3,6 +3,7 @@
 #include "intrinsic/Module.h"
 #include "intrinsic/Type.h"
 
+#include "meta/Pointer.h"
 #include "strings/String.ostream.h"
 #include "strings/View.ostream.h"
 
@@ -10,6 +11,9 @@
 #include <iostream>
 
 namespace intrinsic {
+
+using meta::Ptr;
+using meta::ptr_to;
 
 // example visitor implemenetation
 struct ModuleOutput {
@@ -38,17 +42,16 @@ struct ModuleOutput {
         indent.resize(indent.size() - 2);
     }
 
-    template<auto* F, FunctionInfoFunc Info>
-    void function() {
-        return functionImpl<Info, F>(makeSignature(F));
+    template<auto* F>
+    void function(Ptr<F>*, const FunctionInfo& info) {
+        return functionImpl(info, makeSignature(F));
     }
 
 private:
     std::string indent{};
 
-    template<FunctionInfoFunc Info, auto* F, class... Params>
-    void functionImpl(FunctionSignature<void, Params...>) {
-        auto info = Info();
+    template<class... Params>
+    void functionImpl(const FunctionInfo& info, FunctionSignature<void, Params...>) {
         std::cout << indent << "function " << info.name << '\n';
         indent += "  ";
         (parameter<Params>(), ...);

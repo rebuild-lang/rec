@@ -1,7 +1,6 @@
 import qbs
 
 Project {
-    minimumQbsVersion: "1.7.1"
     name: "scanner.ostream"
 
     StaticLibrary {
@@ -13,6 +12,8 @@ Project {
         //Depends { name: "text.ostream" }
 
         files: [
+            "IdentifierLiteralValue.ostream.cpp",
+            "IdentifierLiteralValue.ostream.h",
             "NewLineIndentationValue.ostream.cpp",
             "NewLineIndentationValue.ostream.h",
             "NumberLiteralValue.ostream.cpp",

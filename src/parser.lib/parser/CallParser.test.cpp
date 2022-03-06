@@ -1,7 +1,7 @@
 #include "parser/CallParser.h"
 
-#include "parser/Tree.builder.h"
-#include "parser/Tree.ostream.h"
+#include "parser/Expression.builder.h"
+#include "parser/Expression.ostream.h"
 #include "parser/Type.builder.h"
 #include "parser/Type.ostream.h"
 
@@ -26,8 +26,9 @@
 using namespace parser;
 
 using diagnostic::Diagnostics;
-using ValueNodes = std::map<std::string, OptNode>;
-using IndexTyped = std::map<size_t, OptNameTypeValue>;
+using instance::ScopePtr;
+using ValueNodes = std::map<std::string, OptValueExpr>;
+using IndexNtvs = std::map<size_t, OptNameTypeValue>;
 using FunctionViews = std::vector<instance::FunctionView>;
 
 template<class... Ts>
@@ -43,7 +44,7 @@ inline auto operator<<(std::ostream& out, const std::map<Ts...>& map) -> std::os
 
 struct TestCallExternal {
     ValueNodes valueNodes{};
-    IndexTyped typed{};
+    IndexNtvs indexNtvs{};
     std::string diagnostics{};
 
     template<class Type>
@@ -58,7 +59,7 @@ struct TestCallExternal {
     }
 
     auto parserForType(const TypeView& type) {
-        return [this, type](BlockLineView& blv) -> OptNode {
+        return [this, type](BlockLineView& blv) -> OptValueExpr {
             if (!blv) return {};
             auto k = [&] {
                 auto ks = std::stringstream{};
@@ -79,12 +80,12 @@ struct TestCallExternal {
     }
 
     template<class Callback>
-    auto parseTypedWithCallback(BlockLineView& blv, Callback&& cb) -> OptNameTypeValue {
+    auto parseNtvWithCallback(BlockLineView& blv, Callback&& cb) -> OptNameTypeValue {
         if (!blv) return {};
         auto k = blv.index();
-        auto it = typed.find(k);
-        if (it == typed.end()) {
-            std::cout << "WARNING: missing indexTyped at: " << k << '\n';
+        auto it = indexNtvs.find(k);
+        if (it == indexNtvs.end()) {
+            std::cout << "WARNING: missing indexNtv at: " << k << '\n';
             return {};
         }
         auto r = it->second;
@@ -96,10 +97,10 @@ struct TestCallExternal {
 
 struct CallParserData {
     const char* name{};
-    std::shared_ptr<Scope> scope{};
+    ScopePtr scope{};
     BlockLine input{};
     ValueNodes valueNodes{};
-    IndexTyped indexTyped{};
+    IndexNtvs indexNtvs{};
     FunctionViews functions{};
     // expected
     int os_complete{};
@@ -124,14 +125,14 @@ struct CallParserData {
         valueNodes[std::move(key)] = std::move(expr).build(*scope);
         return std::move(*this);
     }
-    auto typed(size_t key, details::NameTypeValueBuilder typed) && -> CallParserData {
-        indexTyped[key] = std::move(typed).build(*scope);
+    auto indexNtv(size_t key, details::NameTypeValueBuilder builder) && -> CallParserData {
+        indexNtvs[key] = std::move(builder).build(*scope);
         return std::move(*this);
     }
     template<size_t N>
     auto load(const char (&name)[N]) && -> CallParserData {
-        auto range = scope->operator[](strings::View{name});
-        for (auto& f : range) functions.push_back(&f.second.get<instance::Function>());
+        auto range = scope->byName(strings::View{name});
+        for (auto& f : range) functions.push_back(f.get<instance::FunctionPtr>().get());
         return std::move(*this);
     }
     auto complete(int count) && -> CallParserData {
@@ -149,7 +150,7 @@ static auto operator<<(std::ostream& out, const CallParserData& cpd) -> std::ost
     out << "input:\n";
     out << cpd.input << '\n';
     out << "valueNodes: " << cpd.valueNodes << '\n';
-    out << "indexTyped: " << cpd.indexTyped << '\n';
+    out << "indexNtv: " << cpd.indexNtvs << '\n';
     out << "expected:\n";
     out << "  complete: " << cpd.os_complete << '\n';
     out << "  diagnostics: " << cpd.diagnostics << '\n';
@@ -163,7 +164,7 @@ TEST_P(CallParserP, parse) {
     const auto scope = data.scope;
 
     auto ext = TestCallExternal{};
-    ext.typed = data.indexTyped;
+    ext.indexNtvs = data.indexNtvs;
     ext.valueNodes = data.valueNodes;
 
     auto os = CallOverloads{};
@@ -180,7 +181,7 @@ TEST_P(CallParserP, parse) {
     EXPECT_EQ(data.diagnostics, ext.diagnostics);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     simple,
     CallParserP,
     ::testing::Values( //
@@ -191,8 +192,8 @@ INSTANTIATE_TEST_CASE_P(
                     instance::fun("print").runtime().params(instance::param("v").right().type(type("NumLit"))))
                 .in(nesting::num("1"))
                 .load("print")
-                .typed(0, parser::typed())
-                .value("[0]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .indexNtv(0, parser::ntv())
+                .value("[0]:NumLit", parser::valueExpr(nesting::num("1")).typeName("NumLit"))
                 .complete(1);
         }(),
         [] {
@@ -202,8 +203,8 @@ INSTANTIATE_TEST_CASE_P(
                     instance::fun("print").runtime().params(instance::param("v").right().type(type("NumLit"))))
                 .in(nesting::id(View{"v="}), nesting::num("1"))
                 .load("print")
-                .typed(0, parser::typed("v"))
-                .value("[1]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .indexNtv(0, parser::ntv("v"))
+                .value("[1]:NumLit", parser::valueExpr(nesting::num("1")).typeName("NumLit"))
                 .complete(1);
         }(),
         [] {
@@ -214,8 +215,8 @@ INSTANTIATE_TEST_CASE_P(
                     instance::fun("print").runtime().params(instance::param("w").right().type(type("NumLit"))))
                 .in(nesting::num("1"))
                 .load("print")
-                .typed(0, parser::typed())
-                .value("[0]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .indexNtv(0, parser::ntv())
+                .value("[0]:NumLit", parser::valueExpr(nesting::num("1")).typeName("NumLit"))
                 .complete(2);
         }(),
         [] {
@@ -226,8 +227,8 @@ INSTANTIATE_TEST_CASE_P(
                     instance::fun("print").runtime().params(instance::param("w").right().type(type("NumLit"))))
                 .in(nesting::id(View{"v="}), nesting::num("1"))
                 .load("print")
-                .typed(0, parser::typed("v"))
-                .value("[1]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .indexNtv(0, parser::ntv("v"))
+                .value("[1]:NumLit", parser::valueExpr(nesting::num("1")).typeName("NumLit"))
                 .complete(1);
         }(),
         [] {
@@ -240,8 +241,8 @@ INSTANTIATE_TEST_CASE_P(
                     instance::fun("print").runtime().params(instance::param("w").right().type(type("NumLit"))))
                 .in(nesting::num("1"))
                 .load("print")
-                .typed(0, parser::typed())
-                .value("[0]:NumLit", parser::expr(nesting::num("1")).typeName("NumLit"))
+                .indexNtv(0, parser::ntv())
+                .value("[0]:NumLit", parser::valueExpr(nesting::num("1")).typeName("NumLit"))
                 .complete(1);
         }()),
     [](const ::testing::TestParamInfo<CallParserData>& inf) { return inf.param.name; });
