@@ -35,10 +35,12 @@ auto lookupA(const Scope& scope, NameView name) -> const T& {
         if (!tr.single()) throw "wrong type";
         return tr.frontValue().get<T>();
     }
-    else if (!c.holds<T>()) {
-        throw "wrong type";
+    else {
+        if (!c.holds<T>()) {
+            throw "wrong type";
+        }
+        return c.get<T>();
     }
-    return c.get<T>();
 }
 
 } // namespace instance

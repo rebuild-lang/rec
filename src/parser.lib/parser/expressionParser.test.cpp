@@ -92,15 +92,17 @@ struct IntrinsicType {
             auto& m = scope->byName(strings::View{"NameTypeValue"}).frontValue().get<instance::ModulePtr>();
             return m->locals.byName(strings::View{"type"}).frontValue().get<instance::TypePtr>().get();
         }
-        if constexpr (std::is_same_v<T, NumberLiteral>) {
+        else if constexpr (std::is_same_v<T, NumberLiteral>) {
             auto& m = scope->byName(strings::View{"NumLit"}).frontValue().get<instance::ModulePtr>();
             return m->locals.byName(strings::View{"type"}).frontValue().get<instance::TypePtr>().get();
         }
-        if constexpr (std::is_same_v<T, instance::Type*>) {
+        else if constexpr (std::is_same_v<T, instance::Type*>) {
             auto& m = scope->byName(strings::View{"Type"}).frontValue().get<instance::ModulePtr>();
             return m->locals.byName(strings::View{"type"}).frontValue().get<instance::TypePtr>().get();
         }
-        return {};
+        else {
+            return {};
+        }
     }
 };
 

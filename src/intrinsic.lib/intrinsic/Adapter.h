@@ -92,6 +92,7 @@ private:
             return {context};
         }
         else {
+            (void)context;
             return ArgumentAt<Type>::from(memory + Offset);
         }
     }
