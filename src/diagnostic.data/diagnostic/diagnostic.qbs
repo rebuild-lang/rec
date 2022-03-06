@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "diagnostic.data"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "diagnostic.data"

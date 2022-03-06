@@ -1,8 +1,6 @@
 import qbs
 
 Project {
-    minimumQbsVersion: "1.7.1"
-
     references: [
         "api.lib/api",
         "diagnostic.data/diagnostic",

@@ -1,8 +1,6 @@
 import qbs
 
 Project {
-    minimumQbsVersion: "1.7.1"
-
     StaticLibrary {
         name: "meta.lib"
         targetName: "meta"

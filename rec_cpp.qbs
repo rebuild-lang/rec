@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "Rebuild Experimental Compiler"
-    minimumQbsVersion: "1.7.1"
 
     // Customizations:
     // - enforce debug symbols for debuggig

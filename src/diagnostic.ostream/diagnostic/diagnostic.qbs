@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "diagnostic.ostream"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "diagnostic.ostream"

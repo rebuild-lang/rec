@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "api.lib"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "api.lib"

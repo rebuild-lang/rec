@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "parser.data"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "parser.data"

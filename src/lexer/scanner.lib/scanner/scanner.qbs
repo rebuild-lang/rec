@@ -1,7 +1,6 @@
 import qbs
 
 Project {
-    minimumQbsVersion: "1.7.1"
     name: "scanner.lib"
 
     StaticLibrary {

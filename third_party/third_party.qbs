@@ -2,7 +2,6 @@ import qbs
 import qbs.FileInfo
 
 Project {
-    minimumQbsVersion: "1.7.1"
     id: root
 
     property string googletestPath: "googletest"

@@ -2,7 +2,6 @@ import qbs
 
 Project {
     name: "nesting.lib"
-    minimumQbsVersion: "1.7.1"
 
     StaticLibrary {
         name: "nesting.lib"
