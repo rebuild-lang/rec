@@ -8,10 +8,11 @@ Project {
         targetName: "meta"
 
         Depends { name: "cpp" }
-        Depends { name: "cpp17" }
+        Depends { name: "cpp20" }
 
         files: [
             "CoEnumerator.h",
+            "CoRoutine.cpp",
             "CoRoutine.h",
             "Flags.h",
             "Flags.ostream.h",
@@ -36,7 +37,7 @@ Project {
         Export {
             Depends { name: "cpp" }
             cpp.includePaths: [".."]
-            Depends { name: "cpp17" }
+            Depends { name: "cpp20" }
         }
     }
 

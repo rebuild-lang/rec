@@ -1,24 +1,18 @@
 #pragma once
-
 #include "CoRoutine.h"
 
 #include <iterator>
 
 namespace meta {
 
-namespace std {
-using namespace ::std;
-using namespace ::std::experimental;
-} // namespace std
-
 template<class V>
 struct CoEnumerator {
     using element_type = V;
     using This = CoEnumerator;
-    struct Promise;
-    using Handle = std::coroutine_handle<Promise>;
+    struct promise_type;
+    using Handle = std::coroutine_handle<promise_type>;
 
-    struct Promise {
+    struct promise_type {
         V v;
 
         auto get_return_object() noexcept { return CoEnumerator{Handle::from_promise(*this)}; }
@@ -39,7 +33,7 @@ struct CoEnumerator {
     auto move() -> V { return std::move(handle.promise().v); }
 
     explicit operator bool() const { return handle && !handle.done(); }
-    bool operator++(int) {
+    auto operator++(int) -> bool {
         if (handle) handle.resume();
         return static_cast<bool>(*this);
     }
@@ -65,16 +59,10 @@ struct CoEnumerator {
             ++gen;
             return *this;
         }
-        bool operator==(End) const { return !gen; }
-        bool operator!=(End) const { return !!gen; }
+        auto operator==(End) const -> bool { return !gen; }
+        auto operator!=(End) const -> bool { return !!gen; }
     };
-    auto begin() { return Iterator{++(*this)}; }
-
-#if !defined(__cpp_coroutines) && !defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
-#    pragma message("Warning: Lacking Coroutine Support!")
-#    define co_yield (void)
-#    define co_return (void)
-#endif
+    auto begin() -> Iterator { return Iterator{++(*this)}; }
 
     ~CoEnumerator() {
         if (handle) handle.destroy();
@@ -85,8 +73,8 @@ struct CoEnumerator {
         : handle(o.handle) {
         o.handle = {};
     }
-    This& operator=(const This&) = delete;
-    This& operator=(This&&) = delete;
+    auto operator=(const This&) -> This& = delete;
+    auto operator=(This&&) -> This& = delete;
 
 private:
     explicit CoEnumerator(Handle h)
@@ -97,12 +85,3 @@ private:
 };
 
 } // namespace meta
-
-namespace std::experimental {
-
-template<class T, class... Vs>
-struct coroutine_traits<meta::CoEnumerator<T>, Vs...> {
-    using promise_type = typename meta::CoEnumerator<T>::Promise;
-};
-
-} // namespace std::experimental
