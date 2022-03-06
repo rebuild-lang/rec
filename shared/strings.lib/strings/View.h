@@ -55,11 +55,11 @@ public:
     constexpr bool operator<(const This& o) const {
         auto l = *this;
         auto r = o;
-        auto lcp = l.pop().orValue(0);
-        auto rcp = r.pop().orValue(0);
+        auto lcp = l.pop().orValue(Byte{0});
+        auto rcp = r.pop().orValue(Byte{0});
         while (lcp != 0 && lcp == rcp) {
-            lcp = l.pop().orValue(0);
-            rcp = r.pop().orValue(0);
+            lcp = l.pop().orValue(Byte{0});
+            rcp = r.pop().orValue(Byte{0});
         }
         return (lcp < rcp);
     }

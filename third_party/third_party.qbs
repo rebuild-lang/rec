@@ -54,10 +54,6 @@ Project {
                 cpp.cxxStandardLibrary: "libc++"
                 cpp.staticLibraries: ["pthread"]
             }
-            Properties {
-                condition: qbs.toolchain.contains('msvc') && !qbs.toolchain.contains('clang-cl')
-                cpp.cxxFlags: ["/experimental:external", "/external:W0", "/external:I", FileInfo.joinPaths(qbs.sourceDirectory, project.googletestPath)]
-            }
         }
     }
 }

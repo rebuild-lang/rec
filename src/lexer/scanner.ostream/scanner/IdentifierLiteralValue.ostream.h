@@ -5,8 +5,8 @@
 
 namespace scanner {
 
-inline auto operator<<(std::ostream& out, IdentifierLiteralType type) -> std::ostream& {
-    return out << to_string(type);
+inline auto operator<<(std::ostream& out, IdentifierLiteralType literalType) -> std::ostream& {
+    return out << to_string(literalType);
 }
 
 } // namespace scanner

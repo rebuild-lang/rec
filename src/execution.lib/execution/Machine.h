@@ -156,7 +156,7 @@ private:
     }
 
     static auto variablesInBlockSize(const parser::VecOfBlockExpr& nodes) -> size_t {
-        auto sum = 0u;
+        auto sum = size_t{};
         for (auto& n : nodes) {
             n.visitSome([&](const parser::VariableInit& var) { //
                 sum += typeExpressionSize(var.variable->type);
@@ -166,7 +166,7 @@ private:
     }
 
     static auto argumentsSize(const instance::Function& fun) -> size_t {
-        auto sum = 0u;
+        auto sum = size_t{};
         for (const auto& parameter : fun.parameters) {
             sum += parameterVariableSize(parameter.get());
         }

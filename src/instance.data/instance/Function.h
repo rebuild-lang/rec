@@ -44,7 +44,7 @@ struct Function : std::enable_shared_from_this<Function> {
     Parameters parameters{};
     ScopePtr parserScope{}; // only set if more parsing is required
 
-    auto lookupParameter(NameView name) const -> OptParameterView;
+    auto lookupParameter(NameView) const -> OptParameterView;
     auto leftParameters() const -> ParameterRange {
         auto b = parameters.begin();
         auto e = meta::findIf(parameters, [](const auto& a) { return a->side != ParameterSide::left; });

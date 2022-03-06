@@ -23,12 +23,14 @@ struct TokenLineBuilder {
 
     template<class... Tok>
     auto insignificants(Tok&&... t) && -> This {
-        auto add = [this](auto&& t) {
-            using T = std::remove_const_t<std::remove_reference_t<decltype(t)>>;
-            if (std::is_same_v<T, NewLineIndentation>) line.newLineIndex = line.insignificants.size();
-            if (std::is_same_v<T, BlockStartColon>) line.blockStartColonIndex = line.insignificants.size();
-            if (std::is_same_v<T, BlockEndIdentifier>) line.blockEndIdentifierIndex = line.insignificants.size();
-            line.insignificants.emplace_back(std::forward<decltype(t)>(t));
+        auto add = [this]<class TR>(TR&& t) {
+            using T = std::remove_const_t<std::remove_reference_t<TR>>;
+            if (std::is_same_v<T, NewLineIndentation>) line.newLineIndex = static_cast<int>(line.insignificants.size());
+            if (std::is_same_v<T, BlockStartColon>)
+                line.blockStartColonIndex = static_cast<int>(line.insignificants.size());
+            if (std::is_same_v<T, BlockEndIdentifier>)
+                line.blockEndIdentifierIndex = static_cast<int>(line.insignificants.size());
+            line.insignificants.emplace_back(std::forward<TR>(t));
         };
         (add(std::forward<Tok>(t)), ...);
         return std::move(*this);
