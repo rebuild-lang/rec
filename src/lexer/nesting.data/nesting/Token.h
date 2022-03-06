@@ -40,11 +40,7 @@ struct BlockLine {
     std::vector<Token> tokens{};
     std::vector<Insignificant> insignificants{};
 
-    bool operator==(const This& o) const {
-        return tokens == o.tokens //
-            && insignificants == o.insignificants;
-    }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const = default;
 
     template<class F>
     void forEach(F&& f) const;
@@ -59,8 +55,7 @@ struct BlockLiteralValue {
 
     auto hasErrors() const -> bool { return false; }
 
-    bool operator!=(const This& o) const { return lines != o.lines; }
-    bool operator==(const This& o) const { return lines == o.lines; }
+    bool operator==(const This& o) const = default;
 };
 
 using BlockLiteral = scanner::details::ValueToken<BlockLiteralValue>;

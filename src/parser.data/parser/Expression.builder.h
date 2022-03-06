@@ -171,8 +171,8 @@ public:
             [&](TypeNameValueRef* ref) -> ValueExpr {
                 return NameTypeValueReference{ref->ref}; //
             },
-            [&](auto&& lit) -> ValueExpr {
-                using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
+            [&]<class LitR>(LitR&& lit) -> ValueExpr {
+                using Lit = std::remove_const_t<std::remove_reference_t<LitR>>;
                 auto type = instance::lookupA<instance::TypePtr>(scope, m_typeName);
                 auto value = Value(type.get());
                 value.set<Lit>() = std::move(lit);
@@ -210,8 +210,8 @@ public:
                 return NameTypeValueReference{ref->ref}; //
             },
             [&](TypeBuilder&& tb) -> TypeExpr { return TypeReference{std::move(tb).build(scope)}; },
-            [&](auto&& lit) -> TypeExpr {
-                using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
+            [&]<class LitR>(LitR&& lit) -> TypeExpr {
+                using Lit = std::remove_const_t<std::remove_reference_t<LitR>>;
                 auto type = instance::lookupA<instance::TypePtr>(scope, m_typeName);
                 auto value = Value(type.get());
                 value.set<Lit>() = std::move(lit);

@@ -124,22 +124,22 @@ inline auto operator<<(std::ostream& out, const ModuleInit& vi) -> std::ostream&
 }
 
 inline auto operator<<(std::ostream& out, const ValueExpr& n) -> std::ostream& {
-    n.visit([&](const auto& a) {
-        using OP = auto(std::ostream&, decltype(a))->std::ostream&;
+    n.visit([&]<class A>(const A& a) {
+        using OP = auto(std::ostream&, const A&)->std::ostream&;
         static_cast<OP*>(operator<<)(out, a);
     });
     return out;
 }
 inline auto operator<<(std::ostream& out, const BlockExpr& n) -> std::ostream& {
-    n.visit([&](const auto& a) {
-        using OP = auto(std::ostream&, decltype(a))->std::ostream&;
+    n.visit([&]<class A>(const A& a) {
+        using OP = auto(std::ostream&, const A&)->std::ostream&;
         static_cast<OP*>(operator<<)(out, a);
     });
     return out;
 }
 inline auto operator<<(std::ostream& out, const TypeExpr& n) -> std::ostream& {
-    n.visit([&](const auto& a) {
-        using OP = auto(std::ostream&, decltype(a))->std::ostream&;
+    n.visit([&]<class A>(const A& a) {
+        using OP = auto(std::ostream&, const A&)->std::ostream&;
         static_cast<OP*>(operator<<)(out, a);
     });
     return out;

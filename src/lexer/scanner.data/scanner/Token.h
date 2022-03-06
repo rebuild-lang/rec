@@ -37,10 +37,7 @@ struct TagTokenWithDecodeErrors : text::InputPositionData {
     bool isTainted{};
 
     friend auto hasTokenError(const This& t) { return !t.decodeErrors.empty(); }
-    bool operator==(const This& o) const noexcept {
-        return input == o.input && position == o.position && decodeErrors == o.decodeErrors;
-    }
-    bool operator!=(const This& o) const noexcept { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 
 template<class Value>
@@ -51,8 +48,7 @@ struct ValueToken : text::InputPositionData {
     bool isTainted{};
 
     friend auto hasTokenError(const This& t) { return t.value.hasErrors(); }
-    bool operator==(const This& o) const { return input == o.input && position == o.position && value == o.value; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 
 } // namespace details

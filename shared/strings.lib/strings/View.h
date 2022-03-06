@@ -49,8 +49,7 @@ public:
     // enable fast optional
     // equal if view on the same range
     // use isContentEqual for content comparison
-    constexpr bool operator==(const This& o) const { return start_m == o.start_m && end_m == o.end_m; }
-    constexpr bool operator!=(const This& o) const { return !(*this == o); }
+    constexpr bool operator==(const This& o) const noexcept = default;
 
     // byte ordering
     constexpr bool operator<(const This& o) const {

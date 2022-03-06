@@ -38,8 +38,7 @@ struct Block {
     using This = Block;
     VecOfBlockExpr expressions{};
 
-    bool operator==(const This& o) const { return expressions == o.expressions; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 static_assert(meta::has_move_assignment<Block>);
 
@@ -66,8 +65,7 @@ struct VariableReference {
     using This = VariableReference;
     instance::VariableView variable{};
 
-    bool operator==(const This& o) const { return variable == o.variable; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 static_assert(meta::has_move_assignment<VariableReference>);
 
@@ -76,8 +74,7 @@ struct TypeReference {
     using This = TypeReference;
     TypeView type{};
 
-    bool operator==(const This& o) const { return type == o.type; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 static_assert(meta::has_move_assignment<TypeReference>);
 
@@ -92,8 +89,7 @@ struct ArgumentAssignment {
     instance::ParameterView parameter{};
     VecOfValueExpr values{};
 
-    bool operator==(const This& o) const { return parameter == o.parameter && values == o.values; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 using ArgumentAssignments = std::vector<ArgumentAssignment>;
 static_assert(meta::has_move_assignment<ArgumentAssignment>);
@@ -105,8 +101,7 @@ struct Call {
     instance::FunctionView function{};
     ArgumentAssignments arguments{};
 
-    bool operator==(const This& o) const { return function == o.function && arguments == o.arguments; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 static_assert(meta::has_move_assignment<Call>);
 
@@ -138,8 +133,7 @@ struct ModuleReference {
     using This = ModuleReference;
     instance::ModuleView module{};
 
-    bool operator==(const This& o) const { return module == o.module; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 static_assert(meta::has_move_assignment<ModuleReference>);
 
@@ -155,8 +149,7 @@ struct ModuleInit {
     instance::ModuleView module{};
     VecOfInitExpr nodes{};
 
-    bool operator==(const This& o) const { return module == o.module && nodes == o.nodes; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 static_assert(meta::has_move_assignment<ModuleInit>);
 
@@ -166,8 +159,7 @@ struct VariableInit {
     instance::VariableView variable{};
     VecOfValueExpr nodes{};
 
-    bool operator==(const This& o) const { return variable == o.variable && nodes == o.nodes; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 static_assert(meta::has_move_assignment<VariableInit>);
 
@@ -187,8 +179,7 @@ struct NameTypeValueTuple {
     using This = NameTypeValueTuple;
     ListOfNameTypeValue tuple{};
 
-    bool operator==(const This& o) const { return tuple == o.tuple; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 static_assert(meta::has_move_assignment<NameTypeValueTuple>);
 
@@ -199,8 +190,7 @@ struct ScopedBlockLiteral {
     nesting::BlockLiteral block;
     // instance::ScopePtr scope; // parser has no access to scope?
 
-    bool operator==(const This& o) const { return block == o.block; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 
 using nesting::IdentifierLiteral;
@@ -254,8 +244,7 @@ struct NameTypeValue {
 
     auto onlyValue() const { return !name && !type && value; }
 
-    bool operator==(const This& o) const { return name == o.name && type == o.type && value == o.value; }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 using OptNameTypeValue = meta::Optional<meta::DefaultPacked<NameTypeValue>>;
 using OptNameTypeValueView = meta::Optional<meta::DefaultPacked<NameTypeValueView>>;

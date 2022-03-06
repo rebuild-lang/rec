@@ -43,8 +43,7 @@ struct IdentifierLiteralValue {
 
     auto hasErrors() const { return !errors.empty(); }
 
-    bool operator==(const This& o) const noexcept { return errors == o.errors; }
-    bool operator!=(const This& o) const noexcept { return !(*this == o); }
+    bool operator==(const This& o) const noexcept = default;
 };
 
 } // namespace scanner

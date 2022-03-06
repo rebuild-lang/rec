@@ -25,8 +25,7 @@ public:
     constexpr explicit operator bool() const { return m < sizeof...(T); }
     constexpr size_t value() const { return m; }
 
-    constexpr bool operator==(const This& o) const { return m == o.m; }
-    constexpr bool operator!=(const This& o) const { return m != o.m; }
+    constexpr bool operator==(const This& o) const = default;
 
     template<class... C>
     constexpr bool holds() const {
@@ -76,8 +75,7 @@ public:
     Derived(A&&... a)                                                                                                  \
         : Variant(std::forward<A>(a)...) {}
 
-    bool operator==(const This& o) const { return m == o.m; }
-    bool operator!=(const This& o) const { return m != o.m; }
+    bool operator==(const This& o) const = default;
 
     constexpr static auto optionCount() { return sizeof...(T); }
 

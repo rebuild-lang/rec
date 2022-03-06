@@ -204,8 +204,7 @@ private:
             result = ValueExpr{std::move(tuple)};
             return ParseOptions::continue_single;
         };
-        auto parseId = [&](const auto& id) -> ParseOptions {
-            using Id = std::remove_const_t<std::remove_reference_t<decltype(id)>>;
+        auto parseId = [&]<class Id>(const Id& id) -> ParseOptions {
             if (auto range = lookupModule(id.input, result); !range.empty()) {
                 result = {};
                 return parseInstance(result, range, it, context);
@@ -225,8 +224,7 @@ private:
             ++it;
             return ParseOptions::continue_single;
         };
-        auto parseLiteral = [&](const auto& lit) -> ParseOptions {
-            using Lit = std::remove_const_t<std::remove_reference_t<decltype(lit)>>;
+        auto parseLiteral = [&]<class Lit>(const Lit& lit) -> ParseOptions {
             if (result) return ParseOptions::finish_single;
             result = OptValueExpr{makeTokenValue<Lit>(it, lit, context)};
             ++it;

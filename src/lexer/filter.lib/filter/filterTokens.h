@@ -27,7 +27,7 @@ inline auto filterTokens(meta::CoEnumerator<ScannerToken> input) -> meta::CoEnum
             [](scanner::UnexpectedCharacter&&) { return meta::unreachable<Token>(); },
             [](scanner::NewLineIndentation&&) { return meta::unreachable<Token>(); },
             [](scanner::SemicolonSeparator&&) { return meta::unreachable<Token>(); },
-            [](auto&& d) { return Token{std::forward<decltype(d)>(d)}; });
+            []<class D>(D&& d) { return Token{std::forward<D>(d)}; });
     };
     auto line = TokenLine{};
     auto addInsignificant = [&](ScannerToken&& tok) {

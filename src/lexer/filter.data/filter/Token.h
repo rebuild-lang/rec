@@ -93,14 +93,7 @@ struct TokenLine {
         while (ii != ie) f(*ii++);
     }
 
-    bool operator==(const This& o) const {
-        return tokens == o.tokens //
-            && insignificants == o.insignificants //
-            && newLineIndex == o.newLineIndex //
-            && blockStartColonIndex == o.blockStartColonIndex //
-            && blockEndIdentifierIndex == o.blockEndIdentifierIndex;
-    }
-    bool operator!=(const This& o) const { return !(*this == o); }
+    bool operator==(const This& o) const = default;
 };
 
 } // namespace filter

@@ -49,7 +49,7 @@ public:
     auto begin() const -> const Char* { return m.data(); }
     auto end() const -> const Char* { return m.data() + m.size(); }
 
-    bool operator==(const This& o) const { return m == o.m; }
+    bool operator==(const This& o) const noexcept = default;
     bool operator<(const This& o) const { return m < o.m; }
 };
 using OptionalString = meta::Optional<meta::DefaultPacked<String>>;
