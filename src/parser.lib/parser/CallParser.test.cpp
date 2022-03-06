@@ -181,7 +181,7 @@ TEST_P(CallParserP, parse) {
     EXPECT_EQ(data.diagnostics, ext.diagnostics);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     simple,
     CallParserP,
     ::testing::Values( //

@@ -54,7 +54,7 @@ TEST_P(NewLineScanners, all) {
     EXPECT_EQ(param.expected, value);
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     examples,
     NewLineScanners,
     ::testing::Values( //

@@ -40,7 +40,7 @@ TEST_P(U64Tests, implicitFrom) {
     EXPECT_EQ(data.expected, result.v);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     simple,
     U64Tests,
     ::testing::Values(

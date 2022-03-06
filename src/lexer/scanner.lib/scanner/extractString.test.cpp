@@ -55,7 +55,7 @@ TEST_P(StringScanners, all) {
     EXPECT_EQ(beginPosition, lit.position);
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     examples,
     StringScanners,
     ::testing::Values( //
@@ -178,7 +178,7 @@ TEST_P(StringErrorScanners, all) {
     EXPECT_EQ(beginPosition, lit.position);
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     error_cases,
     StringErrorScanners,
     ::testing::Values( //

@@ -57,7 +57,7 @@ TEST_P(NumberScanners, all) {
     EXPECT_EQ(beginPosition, lit.position);
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     fields,
     NumberScanners,
     ::testing::Values( //
@@ -99,7 +99,7 @@ INSTANTIATE_TEST_CASE_P( //
                    String{"3"}}),
     [](const ::testing::TestParamInfo<NumberData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     zeros,
     NumberScanners,
     ::testing::Values( //
@@ -154,7 +154,7 @@ INSTANTIATE_TEST_CASE_P( //
                    String{}}),
     [](const ::testing::TestParamInfo<NumberData>& inf) { return inf.param.name; });
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     hex,
     NumberScanners,
     ::testing::Values( //
@@ -218,7 +218,7 @@ TEST_P(NumberFailures, all) {
     EXPECT_EQ(param.errors, value.errors);
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     all,
     NumberFailures,
     ::testing::Values( //
@@ -287,7 +287,7 @@ TEST_P(NumberDecodeErrors, all) {
     EXPECT_EQ(param.integerPart, to_string(value.integerPart));
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     all,
     NumberDecodeErrors,
     ::testing::Values( //

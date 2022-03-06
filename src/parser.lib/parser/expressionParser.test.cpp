@@ -123,7 +123,7 @@ TEST_P(ExpressionParser, calls) {
     ASSERT_EQ(parsed, expected);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     simple,
     ExpressionParser,
     ::testing::Values( //

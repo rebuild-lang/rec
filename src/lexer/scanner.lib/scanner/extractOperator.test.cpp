@@ -59,7 +59,7 @@ TEST_P(OperatorScanners, all) {
     EXPECT_EQ(beginPosition, lit.position);
 }
 
-INSTANTIATE_TEST_CASE_P( //
+INSTANTIATE_TEST_SUITE_P( //
     examples,
     OperatorScanners,
     ::testing::Values( //

@@ -82,7 +82,7 @@ TEST_P(MachineTests, call) {
     EXPECT_EQ(data.expected, data.result);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     simple,
     MachineTests,
     ::testing::Values( //
