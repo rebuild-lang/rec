@@ -67,7 +67,7 @@ public:
         return (*this) && f(value());
     }
 
-    constexpr bool operator==(const This& o) const = default;
+    bool operator==(const This& o) const = default;
 };
 
 /// tag type to trigger a value packed optional implementation
@@ -132,7 +132,7 @@ public:
         return false;
     }
 
-    constexpr bool operator==(const This& o) const = default;
+    bool operator==(const This& o) const = default;
 };
 
 template<class T>
