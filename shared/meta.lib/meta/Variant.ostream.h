@@ -15,8 +15,8 @@ template<class P, class V = void>
 constexpr bool all_named = false;
 
 template<class... T>
-constexpr bool all_named<TypePack<T...>, std::enable_if_t<all_same_type<const char*, decltype(nameOf(type<T>))...>>> =
-    true;
+requires all_same_type<const char*, decltype(nameOf(type<T>))...>
+constexpr bool all_named<TypePack<T...>> = true;
 
 template<class Out, class Index, class Enable = void>
 struct PrintTypeNames {
@@ -24,7 +24,8 @@ struct PrintTypeNames {
 };
 
 template<class Out, class... T>
-struct PrintTypeNames<Out, VariantIndex<T...>, std::enable_if_t<all_named<TypePack<T...>>>> {
+requires all_named<TypePack<T...>>
+struct PrintTypeNames<Out, VariantIndex<T...>> {
 
     auto operator()(Out& out, VariantIndex<T...> idx) -> Out& {
         constexpr std::array<const char*, sizeof...(T)> names = {nameOf(type<T>)...};
@@ -34,19 +35,17 @@ struct PrintTypeNames<Out, VariantIndex<T...>, std::enable_if_t<all_named<TypePa
 
 } // namespace details
 
-template<typename Char, typename CharTraits, class... T>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, meta::VariantIndex<T...> idx) //
-    -> std::enable_if_t<meta::details::all_named<TypePack<T...>>, ::std::basic_ostream<Char, CharTraits>&> {
+template<typename... Cs, class... T>
+auto operator<<(::std::basic_ostream<Cs...>& out, meta::VariantIndex<T...> idx) //
+    -> ::std::basic_ostream<Cs...>& requires meta::details::all_named<TypePack<T...>> {
 
     constexpr std::array<const char*, sizeof...(T)> names = {nameOf(meta::type<T>)...};
     return out << names[idx.value()];
 }
 
-template<typename Char, typename CharTraits, class... T>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, const meta::Variant<T...>& var) //
-    -> std::enable_if_t<
-        all_same_type<decltype(out), decltype(out << std::declval<T>())...>,
-        ::std::basic_ostream<Char, CharTraits>&> {
+template<typename... Cs, class... T>
+auto operator<<(::std::basic_ostream<Cs...>& out, const meta::Variant<T...>& var) //
+    -> ::std::basic_ostream<Cs...>& requires all_same_type<decltype(out), decltype(out << std::declval<T>())...> {
 
     meta::details::PrintTypeNames<decltype(out), meta::VariantIndex<T...>>{}(out, var.index());
     return var.visit([&](const auto& v) -> decltype(auto) { return out << v; });

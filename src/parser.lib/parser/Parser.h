@@ -256,8 +256,8 @@ private:
                 [&](auto&& val) { result = {std::move(val)}; },
                 [&](ModuleReference&& mod) {
                     auto f = mod.module->locals.byName(parser::nameOfType());
-                    if (f.single() && f.frontValue().holds<instance::TypePtr>()) {
-                        result = {TypeReference{f.frontValue().get<instance::TypePtr>().get()}};
+                    if (f.single() && f.frontValue().template holds<instance::TypePtr>()) {
+                        result = {TypeReference{f.frontValue().template get<instance::TypePtr>().get()}};
                     }
                     // TODO: extract Type of module…
                 },
@@ -499,7 +499,7 @@ private:
     template<class Context>
     using ParseFunc = auto (*)(BlockLineView& it, Context& context) -> OptValueExpr;
 
-    [[nodiscard]] static auto getParserForType(const parser::TypeView & /*type*/) -> TypeParser {
+    [[nodiscard]] static auto getParserForType(const parser::TypeView& /*type*/) -> TypeParser {
         return TypeParser::Expression;
         //        return type.visit(
         //            [&](const Pointer& ptr) {

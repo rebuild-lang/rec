@@ -49,9 +49,13 @@ Project {
             }
 
             Properties {
+                condition: qbs.toolchain.contains('clang') || qbs.toolchain.contains('gcc')
+                cpp.cxxFlags: base.concat("-Wno-unused-parameter")
+                cpp.staticLibraries: ["pthread"]
+            }
+            Properties {
                 condition: qbs.toolchain.contains('clang')
                 cpp.cxxStandardLibrary: "libc++"
-                cpp.staticLibraries: ["pthread"]
             }
         }
     }

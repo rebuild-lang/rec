@@ -57,22 +57,17 @@ private:
 public:
     Variant() = default;
 
-    template<
-        class... A,
-        typename = std::enable_if_t< //
-            (sizeof...(A) != 1 || !meta::same_remove_const_ref_head_type<Variant, A...>)&& //
-            std::is_constructible_v<Data, A...>>>
-    Variant(A&&... a)
+    template<class... A>
+    requires(sizeof...(A) != 1 || !meta::same_remove_const_ref_head_type<Variant, A...>) &&
+        std::is_constructible_v<Data, A...> //
+        Variant(A&&... a)
         : m(std::forward<A>(a)...) {}
 
     // note: templated constructors are not forwarded with using
 #define META_VARIANT_CONSTRUCT(Derived, Variant)                                                                       \
-    template<                                                                                                          \
-        class... A,                                                                                                    \
-        typename = std::enable_if_t<(                                                                                  \
-            sizeof...(A) != 1 ||                                                                                       \
-            !meta::same_remove_const_ref_head_type<Derived, A...>)&&std::is_constructible_v<Variant, A...>>>           \
-    Derived(A&&... a)                                                                                                  \
+    template<class... A>                                                                                               \
+    requires(sizeof...(A) != 1 || !meta::same_remove_const_ref_head_type<Derived, A...>) &&                            \
+        std::is_constructible_v<Variant, A...> Derived(A&&... a)                                                       \
         : Variant(std::forward<A>(a)...) {}
 
     bool operator==(const This& o) const = default;

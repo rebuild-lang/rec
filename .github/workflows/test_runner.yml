@@ -13,6 +13,9 @@ jobs:
           - name: "Linux Docker: Clang 13, Qbs 1.20.1"
             os: ubuntu-20.04
             image: arbmind/qbs-clang13:qbs_v1.20.1
+          - name: "Linux Docker: Gcc 11, Qbs 1.20.1"
+            os: ubuntu-20.04
+            image: arbmind/qbs-gcc11:qbs_v1.20.1
 
     steps:
       - name: Git Checkout

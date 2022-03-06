@@ -9,15 +9,13 @@
 
 namespace strings {
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, Decimal d) -> decltype(out) {
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, Decimal d) -> ::std::basic_ostream<Cs...>& {
     return out << "digit:" << static_cast<int>(d.v);
 }
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, CodePoint cp)
-    -> decltype(out << std::declval<std::basic_string_view<Char>>()) {
-
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, CodePoint cp) -> ::std::basic_ostream<Cs...>& {
     return out << std::hex << std::showbase << cp.v << std::dec << std::noshowbase;
 }
 

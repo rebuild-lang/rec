@@ -34,7 +34,7 @@ Project {
                 )
             }
             Properties {
-                condition: qbs.toolchain.contains('clang')
+                condition: qbs.toolchain.contains('clang') || qbs.toolchain.contains('gcc')
                 cpp.cxxFlags: base.concat(
                     "--pedantic", // best C++ compatibility
                     "-Wall", "-Wextra", // enable more warnings
@@ -42,6 +42,9 @@ Project {
                     "-Wno-invalid-noreturn", // we need type for type checking
                     "-Wno-gnu-zero-variadic-macro-arguments" // google test uses this
                 )
+            }
+            Properties {
+                condition: qbs.toolchain.contains('clang')
                 cpp.cxxStandardLibrary: "libc++"
                 cpp.staticLibraries: ["c++", "c++abi"]
             }
@@ -59,6 +62,10 @@ Project {
             ".gitignore",
             "Makefile",
             "Readme.md",
+            "docker_clang_check.sh",
+            "docker_gcc_check.sh",
+            "docker_qtc_clang.sh",
+            "docker_qtc_gcc.sh",
             "docs/modules.adoc",
             "docs/rebuild_API.adoc",
         ]

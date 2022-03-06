@@ -21,16 +21,16 @@ Consequences:
 ## Requirements
 
 This is a spare time project, we use what makes the job easier and more enjoyable:
-* C++20
-* CoRoutines (as implemented right now)
+* C++20 (mainly for concepts and coroutines)
 
 Windows:
 * Visual Studio 2022
-* Qbs 1.20
+* Qbs 1.20+
 
 Linux:
-* Clang 13 + libc++
-* Qbs 1.20
+* GCC 11 with libstdc++
+* or Clang 13 with libc++
+* Qbs 1.20+
 
 ## Status
 

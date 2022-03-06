@@ -5,8 +5,8 @@
 
 namespace strings {
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, Counter c) -> decltype(out << c.v) {
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, Counter c) -> ::std::basic_ostream<Cs...>& {
     return out << "#" << c.v;
 }
 

@@ -17,14 +17,14 @@ constexpr auto nameOf(Type<text::DecodedErrorPosition>) { return "Error"; }
 
 namespace text {
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, CodePointPosition cpp) -> decltype(out) {
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, CodePointPosition cpp) -> decltype(out) {
     return out << ": " << std::hex << cpp.input //
                << " = cp: " << cpp.codePoint << cpp.position;
 }
 
-template<typename Char, typename CharTraits, class... Tags>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, InputPosition<Tags...> ip) -> decltype(out) {
+template<typename... Cs, class... Tags>
+auto operator<<(::std::basic_ostream<Cs...>& out, InputPosition<Tags...> ip) -> decltype(out) {
     return out << ": " << std::hex << ip.input << ip.position;
 }
 

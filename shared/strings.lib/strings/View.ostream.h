@@ -11,9 +11,8 @@
 
 namespace strings {
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, const View& v) -> decltype(auto) {
-
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, const View& v) -> decltype(auto) {
     if (std::ios_base::hex == (out.flags() & std::ios_base::basefield)) {
         return out << std::setfill('0')
                    << joinEachApply(v, ' ', [&](auto c) { out << std::setw(2) << static_cast<int>(c); });
@@ -21,9 +20,8 @@ auto operator<<(::std::basic_ostream<Char, CharTraits>& out, const View& v) -> d
     return out << std::string_view{v.begin(), v.byteCount().v};
 }
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, const CompareView& v) -> decltype(auto) {
-
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, const CompareView& v) -> decltype(auto) {
     return out << static_cast<const View&>(v);
 }
 

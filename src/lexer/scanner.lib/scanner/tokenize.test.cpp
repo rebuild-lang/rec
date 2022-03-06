@@ -13,10 +13,10 @@ TEST(tokenize, basic) {
 
     auto input = String{"\n "};
     auto inputColon = String{":"};
-    auto decoder = [&]() -> meta::CoEnumerator<DecodedPosition> {
+    auto decoder = [](View input, View inputColon) -> meta::CoEnumerator<DecodedPosition> {
         co_yield NewlinePosition{input, Position{Line{}, Column{}}};
         co_yield CodePointPosition{inputColon, Position{Line{2}, Column{2}}, CodePoint{':'}};
-    }();
+    }(input, inputColon);
     auto tokGen = scanner::tokenize(std::move(decoder));
     tokGen++;
     ASSERT_TRUE(tokGen);

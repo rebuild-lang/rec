@@ -7,8 +7,27 @@
 namespace scanner {
 
 using meta::CoEnumerator;
+using text::CodePoint;
 using text::CodePointPosition;
 using text::DecodedPosition;
+
+static constexpr auto isP = [](CodePoint cp) { return cp.v == 'p' || cp.v == 'P'; };
+static constexpr auto isE = [](CodePoint cp) { return cp.v == 'e' || cp.v == 'E'; };
+static constexpr auto isPlus = [](CodePoint cp) { return cp.v == '+'; };
+static constexpr auto isMinus = [](CodePoint cp) { return cp.v == '-'; };
+static constexpr auto isDot = [](CodePoint cp) { return cp.v == '.'; };
+static constexpr auto isZero = [](CodePoint cp) { return cp.v == '0'; };
+static constexpr auto isIgnored = [](CodePoint cp) { return cp.v == '\''; };
+static constexpr auto isZeroOrIgnored = [](CodePoint cp) { return isZero(cp) || isIgnored(cp); };
+
+static constexpr auto isDecimalDigit = [](CodePoint cp) { return cp.isDecimalNumber(); };
+static constexpr auto isBinaryDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '1'); };
+static constexpr auto isOctalDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '7'); };
+static constexpr auto isHexDigit = [](CodePoint cp) {
+    auto chr = cp.v;
+    return (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
+};
+static constexpr auto isNoBoundary = [](CodePoint cp) { return cp.isDecimalNumber() || cp.isLetter(); };
 
 /** \brief parse a number literal from an enumerator
  *
@@ -21,7 +40,6 @@ using text::DecodedPosition;
  * * one error is tracked
  */
 inline auto extractNumber(CodePointPosition firstCpp, CoEnumerator<DecodedPosition>& decoded) -> NumberLiteral {
-    using text::CodePoint;
     using OptCodePointPosition = meta::Optional<CodePointPosition>;
     auto number = NumberLiteralValue{};
 
@@ -61,24 +79,6 @@ inline auto extractNumber(CodePointPosition firstCpp, CoEnumerator<DecodedPositi
         }
         return optCpp;
     };
-
-    static auto isP = [](CodePoint cp) { return cp.v == 'p' || cp.v == 'P'; };
-    static auto isE = [](CodePoint cp) { return cp.v == 'e' || cp.v == 'E'; };
-    static auto isPlus = [](CodePoint cp) { return cp.v == '+'; };
-    static auto isMinus = [](CodePoint cp) { return cp.v == '-'; };
-    static auto isDot = [](CodePoint cp) { return cp.v == '.'; };
-    static auto isZero = [](CodePoint cp) { return cp.v == '0'; };
-    static auto isIgnored = [](CodePoint cp) { return cp.v == '\''; };
-    static auto isZeroOrIgnored = [&](CodePoint cp) { return isZero(cp) || isIgnored(cp); };
-
-    static auto isDecimalDigit = [](CodePoint cp) { return cp.isDecimalNumber(); };
-    static auto isBinaryDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '1'); };
-    static auto isOctalDigit = [](CodePoint cp) { return (cp.v >= '0' && cp.v <= '7'); };
-    static auto isHexDigit = [](CodePoint cp) {
-        auto chr = cp.v;
-        return (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
-    };
-    static auto isNoBoundary = [](CodePoint cp) { return cp.isDecimalNumber() || cp.isLetter(); };
 
     auto withRadix = [&](OptCodePointPosition optCpp, auto env) -> NumberLiteral {
         isIgnored(CodePoint{}); // Workaround for VS2017/2019 - internal compiler error

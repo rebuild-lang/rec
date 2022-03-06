@@ -3,10 +3,14 @@
 
 #include <ostream>
 
-template<typename Char, typename CharTraits, class T>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, const meta::Optional<T>& opt)
-    -> decltype(out << std::declval<meta::Optional<T>>().value()) {
+namespace meta {
+
+template<class... Cs, class T>
+auto operator<<(::std::basic_ostream<Cs...>& out, const Optional<T>& opt)
+    -> decltype(out << std::declval<Optional<T>>().value()) {
 
     if (!opt) return out << "<Empty>";
     return out << opt.value();
 }
+
+} // namespace meta

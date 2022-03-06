@@ -9,9 +9,8 @@
 
 namespace strings {
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, const Rope& r) -> decltype(auto) {
-
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, const Rope& r) -> decltype(out) {
     return out << to_string(r);
 }
 

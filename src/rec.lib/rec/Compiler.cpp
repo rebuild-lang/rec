@@ -86,7 +86,7 @@ auto Compiler::executionContext(const InstanceScopePtr& parserScope) {
 
 auto Compiler::parserContext(const InstanceScopePtr& scope) {
     auto lookup = [=](const StringView& id) { return scope->byName(id); };
-    auto runCall = [=](const Call& call) -> OptValueExpr {
+    auto runCall = [=, this](const Call& call) -> OptValueExpr {
         // TODO(arBmind):
         // * check arguments - have to be available
         auto callCopy = call;

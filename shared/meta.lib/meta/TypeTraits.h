@@ -100,21 +100,24 @@ static_assert(has_move_assignment<MoveOnly>);
 static_assert(!has_move_assignment<CopyOnly>);
 static_assert(has_move_assignment<TypePack<int>>);
 
-template<class T>
-auto removeConstRef(Type<T>) -> T;
-template<class T>
-auto removeConstRef(Type<T const>) -> T;
-template<class T>
-auto removeConstRef(Type<T&>) -> T;
-template<class T>
-auto removeConstRef(Type<T const&>) -> T;
-template<class T>
-auto removeConstRef(Type<T&&>) -> T;
-template<class T>
-auto removeConstRef(Type<T const&&>) -> T;
+// - crashes GCC11
+// template<class T>
+// auto removeConstRef(Type<T>) -> T;
+// template<class T>
+// auto removeConstRef(Type<T const>) -> T;
+// template<class T>
+// auto removeConstRef(Type<T&>) -> T;
+// template<class T>
+// auto removeConstRef(Type<T const&>) -> T;
+// template<class T>
+// auto removeConstRef(Type<T&&>) -> T;
+// template<class T>
+// auto removeConstRef(Type<T const&&>) -> T;
+// template<class T>
+// using RemoveConstRef = decltype(removeConstRef(type<T>));
 
 template<class T>
-using RemoveConstRef = decltype(removeConstRef(type<T>));
+using RemoveConstRef = std::remove_const_t<std::remove_reference_t<T>>;
 
 static_assert(same_type<int, RemoveConstRef<int>>);
 static_assert(same_type<int, RemoveConstRef<int const>>);
@@ -125,8 +128,8 @@ static_assert(same_type<int, RemoveConstRef<int const&&>>);
 //
 template<class, class...>
 constexpr bool same_remove_const_ref_head_type = false;
-template<class A, class... Bs>
-constexpr bool same_remove_const_ref_head_type<RemoveConstRef<A>, A, Bs...> = true;
+template<class A, class B, class... Bs>
+constexpr bool same_remove_const_ref_head_type<A, B, Bs...> = same_type<A, RemoveConstRef<B>>;
 
 static_assert(same_remove_const_ref_head_type<int, int const&, bool>);
 static_assert(!same_remove_const_ref_head_type<TypePack<int>, int&&, bool>);

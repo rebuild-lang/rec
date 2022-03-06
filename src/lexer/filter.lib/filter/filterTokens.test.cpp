@@ -47,11 +47,11 @@ class TokenFilters : public testing::TestWithParam<TokensFilterData> {};
 
 TEST_P(TokenFilters, FilterParser) {
     TokensFilterData data = GetParam();
-    auto input = [&]() -> meta::CoEnumerator<ScannerToken> {
-        for (const auto& t : data.input) {
+    auto input = [](const ScannerTokens& src) -> meta::CoEnumerator<ScannerToken> {
+        for (const auto& t : src) {
             co_yield t;
         }
-    }();
+    }(data.input);
     auto tokLineGen = filterTokens(std::move(input));
 
     for (const auto& expectedLine : data.expected) {

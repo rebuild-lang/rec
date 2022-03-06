@@ -17,13 +17,13 @@ constexpr auto nameOf(Type<strings::DecodedCodePoint>) { return "CP"; }
 
 namespace strings {
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, DecodedError de) -> decltype(out) {
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, DecodedError de) -> decltype(out) {
     return out << ": " << std::hex << de.input << std::dec;
 }
 
-template<typename Char, typename CharTraits>
-auto operator<<(::std::basic_ostream<Char, CharTraits>& out, DecodedCodePoint dcp) -> decltype(out) {
+template<typename... Cs>
+auto operator<<(::std::basic_ostream<Cs...>& out, DecodedCodePoint dcp) -> decltype(out) {
     return out << ": " << std::hex << dcp.input //
                << " = cp: " << dcp.cp;
 }
